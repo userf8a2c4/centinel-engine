@@ -1,123 +1,58 @@
-# [!] HND_SENTINEL_2029
-### > EVERYTHING IS CONNECTED. THE DATA IS THE TRUTH.
-### > TODO ESTÁ CONECTADO. LOS DATOS SON LA VERDAD.
+# HND-SENTINEL-2029
+## Automated Electoral Data Integrity System | Sistema Autónomo de Integridad de Datos Electorales
 
 ---
 
-## [EN] ENGLISH SECTION
+### [ES] SECCIÓN EN ESPAÑOL
 
-### TECHNICAL MANIFESTO
-**STATUS:** `OPERATIONAL`  
-**SYSTEM:** `INDEPENDENT_INTEGRITY_AUDIT`  
-**TARGET:** `CNE_PUBLIC_DATA_STREAM (HND)`
+#### 1. NATURALEZA DEL PROYECTO
+**HND-SENTINEL-2029** es una infraestructura técnica independiente diseñada para la fiscalización digital de los resultados electorales en Honduras. El sistema actúa como un "Escribano Digital" que registra, firma y audita los flujos de datos públicos en tiempo real.
 
-#### OBJECTIVE
-Autonomous monitoring and cryptographic verification of public electoral data, focused exclusively on the presidential level across Honduras' 18 departments.
-- **DATA_CAPTURE:** Periodic snapshots of JSON source streams.
-- **INTEGRITY:** SHA-256 cryptographic signatures for immutable record-keeping.
-- **FORENSICS:** Real-time detection of numerical anomalies, negative deltas, and outliers.
-- **TRANSPARENCY:** Automated reporting of verifiable facts.
+#### 2. ESPECIFICACIONES DE AUDITORÍA (MÉTODO)
+El sistema garantiza la transparencia mediante cuatro pilares técnicos:
+* **Integridad Criptográfica:** Cada snapshot de datos es procesado con SHA-256. Cualquier alteración posterior del archivo invalidará la firma.
+* **Monitoreo de Monotonicidad:** Detección automática de "votos perdidos" (regresiones) en conteos acumulativos.
+* **Correlación de Actas:** Verificación de consistencia entre votos sumados y documentos procesados reportados.
+* **Inmutabilidad Histórica:** Registro cronológico inalterable que impide la manipulación retroactiva de la base de datos.
 
-#### OPERATIONAL_PRINCIPLES
-1. **NULL_INTERPRETATION:** Only numbers. No opinions. No political bias.
-2. **IMMUTABILITY:** Once a hash is generated, the record is permanent.
-3. **AUTONOMY:** Automated execution via GitHub Actions.
-4. **ALGORITHMIC_NEUTRALITY:** The monitoring engine treats all Candidate_IDs as equal nodes. Thresholds are applied universally without human intervention.
+#### 3. COMPONENTES DEL MOTOR
+* `download_and_hash.py`: Módulo de adquisición y firma digital.
+* `analyze_rules.py`: Algoritmo de detección de anomalías lógicas.
+* `post_to_telegram.py`: Interfaz de difusión de alertas técnicas.
 
-#### SCOPE
-This system is not a political tool. It does not declare outcomes. It documents **data mutations** in public streams at the presidential level for each of the 18 departments. The verdict belongs to the observers.
+#### 4. PROTOCOLO DE CONEXIÓN (API)
+El sistema monitorea endpoints REST oficiales utilizando parámetros geográficos (`dept`) y de nivel (`level=PD`), asegurando una captura granular por cada uno de los 18 departamentos.
 
-#### INDEPENDENT_VERIFICATION
-To verify the integrity of any snapshot manually, use the following command:  
-`sha256sum data/snapshot_YYYYMMDD_HHMM.json`  
-Compare the output with the corresponding file in `hashes/`. If the strings match, the data is authentic.
-
-#### PRINCIPAL SCRIPTS
-- `scripts/download_and_hash.py`: Captures snapshots and generates SHA-256 hashes.
-- `scripts/calculate_diffs.py`: Computes numerical differences between snapshots.
-- `scripts/post_to_telegram.py`: Sends automated updates to Telegram (conditional on anomalies).
-- Script Integrity: SHA-256 hashes of all scripts are committed in `hashes/scripts_hashes.md`. Verify any fork against the original to prevent manipulation. Disclaimer: Modifications in forks are not endorsed by the Sentinel.
-
-#### EXPECTED ENDPOINTS (PREPARATION FOR 2029)
-Based on historical patterns from 2025 elections, the Sentinel will monitor public endpoints like:  
-- `https://resultadosgenerales2029.cne.hn/api/v1/results?level=presidencial&dept=01` (example for Presidential level, Atlántida department).  
-- Parameters: `level` (PD for Presidential), `dept` (01-18 for departments).  
-- Verification: Each snapshot will be hashed and committed. Use `sha256sum` to verify integrity locally.  
-- Note: Endpoints will be updated when CNE 2029 site is active. Contributions welcome for endpoint discovery.
-
-#### HOW TO CONTRIBUTE
-- Fork the repo and test the scripts.  
-- Open issues for technical suggestions.  
-- Verify hashes and reports for independent auditing.
-
-#### LICENSE
-MIT
-
-#### CHANNELS
-- **X:** `[ENCRYPTED_CHANNEL_PENDING]`  
-- **TELEGRAM:** `[ENCRYPTED_CHANNEL_PENDING]`
-
-**The Sentinel watches. Data exposed. Verify or ignore.**  
-**El Sentinel observa. Datos expuestos. Verifica o ignora.**
+#### 5. VERIFICACIÓN INDEPENDIENTE
+La legitimidad del dato es verificable por cualquier tercero mediante:
+`sha256sum data/snapshot_YYYYMMDD_HHMM.json`
 
 ---
 
-## [ES] SECCIÓN EN ESPAÑOL
+### [EN] ENGLISH SECTION
 
-### MANIFIESTO TÉCNICO
-**ESTADO:** `OPERATIVO`  
-**SISTEMA:** `AUDITORÍA_DE_INTEGRIDAD_INDEPENDIENTE`  
-**OBJETIVO:** `FLUJO_DE_DATOS_PÚBLICOS_CNE (HND)`
+#### 1. PROJECT NATURE
+**HND-SENTINEL-2029** is an independent technical infrastructure for the digital oversight of electoral results in Honduras. The system functions as a "Digital Notary," recording, signing, and auditing public data streams in real-time.
 
-#### OBJETIVO
-Monitoreo autónomo y verificación criptográfica de datos electorales públicos, enfocado exclusivamente en el nivel presidencial para los 18 departamentos de Honduras.
-- **CAPTURA_DATOS:** Snapshots periódicos de flujos JSON.
-- **INTEGRIDAD:** Firmas criptográficas SHA-256 para registros inmutables.
-- **FORENSE:** Detección en tiempo real de anomalías numéricas y deltas negativos.
-- **TRANSPARENCIA:** Publicación automatizada de hechos verificables.
+#### 2. AUDIT SPECIFICATIONS (METHOD)
+System transparency is secured through four technical pillars:
+* **Cryptographic Integrity:** Every data snapshot is hashed via SHA-256. Any subsequent file alteration invalidates the signature.
+* **Monotonicity Monitoring:** Automatic detection of "lost votes" (regressions) in cumulative counts.
+* **Tally Correlation:** Consistency verification between total votes and reported processed documents.
+* **Historical Immutability:** Unalterable chronological record-keeping that prevents retroactive database manipulation.
 
-#### PRINCIPIOS_OPERATIVOS
-1. **INTERPRETACIÓN_NULA:** Solo números. Sin opiniones. Sin sesgo político.
-2. **INMUTABILIDAD:** Una vez generado el hash, el registro es permanente.
-3. **AUTONOMÍA:** Ejecución automatizada vía GitHub Actions.
-4. **NEUTRALIDAD_ALGORÍTMICA:** El motor trata todos los ID_Candidato como nodos iguales. Los umbrales se aplican universalmente sin intervención humana.
+#### 3. ENGINE COMPONENTS
+* `download_and_hash.py`: Data acquisition and digital signature module.
+* `analyze_rules.py`: Logical anomaly detection algorithm.
+* `post_to_telegram.py`: Technical alert dissemination interface.
 
-#### ALCANCE
-Este sistema no es una herramienta política. No declara resultados. Documenta **mutaciones de datos** en flujos públicos al nivel presidencial para cada uno de los 18 departamentos. El veredicto pertenece a los observadores.
+#### 4. CONNECTION PROTOCOL (API)
+The system monitors official REST endpoints using geographic (`dept`) and level (`level=PD`) parameters, ensuring granular capture across all 18 departments.
 
-#### VERIFICACIÓN_INDEPENDIENTE
-Para verificar la integridad de cualquier snapshot manualmente, use el siguiente comando:  
-`sha256sum data/snapshot_YYYYMMDD_HHMM.json`  
-Compare el resultado con el archivo correspondiente en `hashes/`. Si las cadenas coinciden, los datos son auténticos.
-
-#### SCRIPTS PRINCIPALES
-- `scripts/download_and_hash.py`: Captura snapshots y genera hashes SHA-256.
-- `scripts/calculate_diffs.py`: Calcula diferencias numéricas entre snapshots.
-- `scripts/post_to_telegram.py`: Envía actualizaciones automáticas a Telegram (condicional a anomalías).
-- Integridad de Scripts: Hashes SHA-256 de todos los scripts se commitean en `hashes/scripts_hashes.md`. Verifica cualquier fork contra el original para prevenir manipulaciones. Disclaimer: Modificaciones en forks no están respaldadas por el Sentinel.
-
-#### ENDPOINTS ESPERADOS (PREPARACIÓN PARA 2029)
-Basado en patrones históricos de elecciones 2025, el Sentinel monitoreará endpoints públicos como:  
-- `https://resultadosgenerales2029.cne.hn/api/v1/results?level=presidencial&dept=01` (ejemplo para nivel Presidencial, departamento Atlántida).  
-- Parámetros: `level` (PD para Presidencial), `dept` (01-18 para departamentos).  
-- Verificación: Cada snapshot será hasheado y commiteado. Usa `sha256sum` para verificar integridad localmente.  
-- Nota: Endpoints se actualizarán cuando el sitio CNE 2029 esté activo. Contribuciones bienvenidas para descubrimiento de endpoints.
-
-#### CÓMO CONTRIBUIR
-- Forkea el repo y prueba los scripts.
-- Abre issues para sugerencias técnicas.
-- Verifica hashes y reportes para auditoría independiente.
-
-#### LICENCIA
-MIT
-
-#### CANALES
-- **X:** `[ENCRYPTED_CHANNEL_PENDING]`  
-- **TELEGRAM:** `[ENCRYPTED_CHANNEL_PENDING]`
-
-**The Sentinel watches. Data exposed. Verify or ignore.**  
-**El Sentinel observa. Datos expuestos. Verifica o ignora.**
+#### 5. INDEPENDENT VERIFICATION
+Data legitimacy is independently verifiable by any third party using:
+`sha256sum data/snapshot_YYYYMMDD_HHMM.json`
 
 ---
 
-**LICENSE:** MIT | **AUDIT_MODE:** ACTIVE
+**AUDIT_MODE:** ACTIVE | **LICENSE:** MIT | **REPOSITORY_STATUS:** VERIFIED
