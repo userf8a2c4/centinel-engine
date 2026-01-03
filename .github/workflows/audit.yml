@@ -1,5 +1,9 @@
 name: Vigilante Electoral Permanente
 
+permissions:
+  contents: write  # Necesario para commit y push
+  actions: read    # Opcional, para leer workflow
+
 on:
   workflow_dispatch:  # Permite ejecución manual
   schedule:
