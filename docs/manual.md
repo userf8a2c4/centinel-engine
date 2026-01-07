@@ -48,6 +48,11 @@ Salida:
 - `analysis_results.parquet` (si hay soporte en el entorno)
 - `anomalies_report.json`
 
+### Dashboard local
+```bash
+streamlit run dashboard.py
+```
+
 ### Publicación en Telegram
 Variables necesarias:
 - `TELEGRAM_BOT_TOKEN`
@@ -112,6 +117,11 @@ Outputs:
 - `analysis_results.json`
 - `analysis_results.parquet` (if supported)
 - `anomalies_report.json`
+
+### Local dashboard
+```bash
+streamlit run dashboard.py
+```
 
 ### Telegram publishing
 Required variables:

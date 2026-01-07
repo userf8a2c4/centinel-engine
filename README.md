@@ -29,6 +29,25 @@
 - Reglas técnicas: `docs/rules.md`
 - Formato de datos: `docs/data_format.md`
 
+### Instalación y ejecución rápida
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Ejecutar scripts (copy/paste):
+```bash
+python scripts/download_and_hash.py
+python scripts/analyze_rules.py
+python scripts/post_to_telegram.py "Reporte técnico" "hashes/snapshot_XX.sha256" neutral
+```
+
+Dashboard local:
+```bash
+streamlit run dashboard.py
+```
+
 ### Estado del proyecto (actual)
 - Captura de datos: configurable vía `config.yaml` (fuentes, niveles y mapeo de campos).
 - Integridad: snapshots crudos + JSON normalizados + hashes encadenados SHA-256.
@@ -65,6 +84,25 @@
 - Methodology: `docs/methodology.md`
 - Technical rules: `docs/rules.md`
 - Data format: `docs/data_format.md`
+
+### Quick install and run
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Run scripts (copy/paste):
+```bash
+python scripts/download_and_hash.py
+python scripts/analyze_rules.py
+python scripts/post_to_telegram.py "Technical report" "hashes/snapshot_XX.sha256" neutral
+```
+
+Local dashboard:
+```bash
+streamlit run dashboard.py
+```
 
 ### Project status (current)
 - Data capture: configurable via `config.yaml` (sources, levels, and field mapping).
