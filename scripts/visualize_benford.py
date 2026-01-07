@@ -1,6 +1,7 @@
 import json
 import matplotlib.pyplot as plt
 import os
+import shutil
 import collections
 import math
 from datetime import datetime
@@ -13,8 +14,12 @@ def get_first_digit(number):
 def generate_benford_plot():
     # 1. Configuración de rutas y tiempo
     report_path = 'anomalies_report.json'
-    output_path = 'plots/benford_analysis.png'
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    output_dir = 'plots'
+    now_dt = datetime.now()
+    file_timestamp = now_dt.strftime("%Y%m%d_%H%M%S")
+    output_path = os.path.join(output_dir, f'benford_analysis_{file_timestamp}.png')
+    latest_path = os.path.join(output_dir, 'latest.png')
+    now = now_dt.strftime("%Y-%m-%d %H:%M:%S")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     # 2. Datos ideales de Benford (Ley Matemática)
@@ -78,8 +83,12 @@ def generate_benford_plot():
     # 6. Guardar y Cerrar
     plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Ajustar espacio para el pie de foto
     plt.savefig(output_path)
+    shutil.copyfile(output_path, latest_path)
     plt.close()
-    print(f"Gráfica generada: {output_path} con timestamp {data_timestamp}")
+    print(
+        "Gráfica generada: "
+        f"{output_path} con timestamp {data_timestamp} (latest: {latest_path})"
+    )
 
 if __name__ == "__main__":
     generate_benford_plot()
