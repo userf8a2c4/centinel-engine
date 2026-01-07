@@ -2,7 +2,7 @@ requests==2.31.0  # Para peticiones HTTP: descarga snapshots del CNE y posting a
 pandas==2.0.3  # Para procesamiento de datos: diffs, deltas y análisis por departamento.
 scipy==1.11.1  # Para análisis avanzados: Ley de Benford y chi-squared.
 matplotlib==3.7.2  # Para visualización forense: generación de gráficas de Benford y tendencias.
-python-telegram-bot==20.3  # Para alertas automáticas en Telegram.
+python-telegram-bot==20.7  # Para alertas automáticas en Telegram.
 tweepy==4.14.0  # Para posting en X (Twitter).
 python-dateutil==2.8.2  # Para manejo robusto de timestamps en los snapshots.
 PyYAML==6.0.2  # Para cargar configuración centralizada.
