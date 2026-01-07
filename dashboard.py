@@ -131,7 +131,7 @@ def compute_diffs(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def display_header() -> None:
-    """Muestra el encabezado principal."""
+    """Renderiza el encabezado principal del dashboard."""
     st.markdown(
         "<h1 style='text-align:center;'>"
         "HND-SENTINEL-2029 – Auditoría Ciudadana Independiente del CNE Honduras – "
@@ -139,10 +139,16 @@ def display_header() -> None:
         "</h1>",
         unsafe_allow_html=True,
     )
+    st.markdown(
+        "<p style='text-align:center;'>"
+        "Panel operativo en tiempo real para auditoría de snapshots electorales"
+        "</p>",
+        unsafe_allow_html=True,
+    )
 
 
 def display_footer() -> None:
-    """Footer institucional."""
+    """Renderiza el pie institucional del dashboard."""
     st.markdown("---")
     st.markdown(
         "Proyecto open-source MIT – Solo datos públicos del CNE – "
@@ -152,7 +158,7 @@ def display_footer() -> None:
 
 
 def get_alerts(errors: list[str]) -> list[dict]:
-    """Carga alertas desde archivo si existe."""
+    """Carga alertas desde archivo JSON o log, registrando fallos."""
     if ALERTS_JSON.exists():
         data, error = safe_read_json(ALERTS_JSON, label="alertas")
         if error:
@@ -163,7 +169,8 @@ def get_alerts(errors: list[str]) -> list[dict]:
         try:
             lines = ALERTS_LOG.read_text(encoding="utf-8").splitlines()
             return [{"timestamp": "", "descripcion": line} for line in lines if line.strip()]
-        except OSError:
+        except OSError as exc:
+            errors.append(format_read_error("alertas/log", ALERTS_LOG, str(exc)))
             return []
     return []
 
@@ -240,7 +247,7 @@ def build_dataframe(snapshot_data: list[dict], errors: list[str]) -> pd.DataFram
 
 
 def display_estado_actual(latest: dict, errors: list[str]) -> None:
-    """Muestra la sección de estado actual."""
+    """Renderiza la sección con detalle del último snapshot."""
     with st.expander("Estado actual", expanded=True):
         timestamp = latest.get("timestamp")
         st.write(
@@ -265,7 +272,7 @@ def display_estado_actual(latest: dict, errors: list[str]) -> None:
 
 
 def display_table(df: pd.DataFrame) -> None:
-    """Tabla de últimos snapshots."""
+    """Renderiza la tabla con los últimos snapshots."""
     st.subheader("Últimos snapshots")
     if df.empty:
         st.info("Aún no hay snapshots. Corre download_and_hash.py primero.")
@@ -280,7 +287,7 @@ def display_table(df: pd.DataFrame) -> None:
 
 
 def display_chart(df: pd.DataFrame) -> None:
-    """Grafico de evolución del escrutinio y votos."""
+    """Renderiza el gráfico de evolución del escrutinio y votos."""
     st.subheader("Evolución del escrutinio")
     if df.empty:
         st.info("No hay datos para graficar.")
@@ -308,7 +315,7 @@ def display_chart(df: pd.DataFrame) -> None:
 
 
 def render_sidebar(snapshot_data: list[dict]) -> dict:
-    """Sidebar interactiva para filtros y acciones."""
+    """Renderiza la barra lateral para filtros y acciones."""
     st.sidebar.header("Filtros y acciones")
     departamentos = sorted(
         {item.get("departamento") for item in snapshot_data if item.get("departamento")}
@@ -346,12 +353,49 @@ def display_read_errors(errors: list[str]) -> None:
         st.write(f"- {error}")
 
 
+def display_estado_general(df: pd.DataFrame, alerts: list[dict]) -> None:
+    """Renderiza un resumen general con métricas clave."""
+    st.subheader("Estado general")
+    total_snapshots = len(df)
+    last_snapshot = df["Fecha/Hora"].iloc[0] if not df.empty else "N/A"
+    total_alertas = len(alerts)
+    porcentaje = df["Porcentaje escrutado"].iloc[0] if not df.empty else None
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Snapshots", total_snapshots)
+    col2.metric("Último snapshot", last_snapshot or "N/A")
+    col3.metric("Alertas activas", total_alertas)
+    col4.metric(
+        "Porcentaje escrutado",
+        f"{porcentaje:.2f}%" if isinstance(porcentaje, (int, float)) else "N/A",
+    )
+
+
+def trigger_refresh(errors: list[str]) -> None:
+    """Lanza el proceso de descarga y hashing sin bloquear la UI."""
+    if not st.session_state.get("refresh_requested"):
+        return
+    st.session_state["refresh_requested"] = False
+    script_path = Path("scripts") / "download_and_hash.py"
+    if not script_path.exists():
+        errors.append(format_read_error("refresh", script_path, "script no encontrado"))
+        return
+    try:
+        subprocess.Popen(
+            [sys.executable, str(script_path)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError as exc:
+        errors.append(format_read_error("refresh", script_path, str(exc)))
+
+
 def main() -> None:
     """Función principal del dashboard."""
     st.set_page_config(page_title="HND-SENTINEL-2029", layout="wide")
     display_header()
 
     errors: list[str] = []
+    trigger_refresh(errors)
     snapshots = load_snapshots_list()
     if not snapshots:
         st.info("Aún no hay snapshots. Corre download_and_hash.py primero.")
@@ -375,6 +419,7 @@ def main() -> None:
     alerts = get_alerts(errors)
 
     display_read_errors(errors)
+    display_estado_general(df, alerts)
     display_estado_actual(latest, errors)
     display_table(df)
     display_chart(df)
