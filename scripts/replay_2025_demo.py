@@ -6,10 +6,11 @@ from pathlib import Path
 
 from dateutil import parser
 
-from logging_utils import configure_logging, log_event
+from sentinel.utils.logging_config import setup_logging
 
 
-logger = configure_logging("sentinel.replay")
+setup_logging()
+logger = logging.getLogger("sentinel.replay")
 
 
 def parse_timestamp(path: Path, payload: dict) -> datetime | None:
@@ -29,15 +30,15 @@ def load_snapshot(path: Path) -> dict | None:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except OSError as exc:
-        log_event(logger, logging.ERROR, "snapshot_read_failed", path=str(path), error=str(exc))
+        logger.error("snapshot_read_failed path=%s error=%s", path, exc)
         return None
     except json.JSONDecodeError as exc:
-        log_event(logger, logging.ERROR, "snapshot_json_failed", path=str(path), error=str(exc))
+        logger.error("snapshot_json_failed path=%s error=%s", path, exc)
         return None
 
     timestamp = parse_timestamp(path, payload)
     if not timestamp:
-        log_event(logger, logging.WARNING, "snapshot_timestamp_missing", path=str(path))
+        logger.warning("snapshot_timestamp_missing path=%s", path)
         return None
 
     totals = payload.get("totals", {})
@@ -90,7 +91,7 @@ def generate_report(source_dir: Path, output_path: Path) -> None:
 
     snapshots = sorted(snapshots, key=lambda item: item["timestamp"])
     if len(snapshots) < 2:
-        log_event(logger, logging.WARNING, "insufficient_snapshots", count=len(snapshots))
+        logger.warning("insufficient_snapshots count=%s", len(snapshots))
         return
 
     diffs = []
@@ -105,7 +106,7 @@ def generate_report(source_dir: Path, output_path: Path) -> None:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
-    log_event(logger, logging.INFO, "replay_report_generated", output=str(output_path))
+    logger.info("replay_report_generated output=%s", output_path)
 
 
 def main() -> None:
