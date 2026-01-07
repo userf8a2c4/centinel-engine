@@ -11,6 +11,7 @@ import yaml
 
 from sentinel.core.hashchain import compute_hash
 from sentinel.core.normalyze import DEPARTMENT_CODES, normalize_snapshot, snapshot_to_canonical_json
+from sentinel.core.scraping import fetch_payload_with_playwright
 
 # Directorios
 data_dir = Path("data")
@@ -49,6 +50,11 @@ def load_config() -> Dict[str, Any]:
     env_headers = os.getenv("HEADERS")
     if env_headers:
         headers = json.loads(env_headers)
+
+    env_use_playwright = os.getenv("USE_PLAYWRIGHT")
+    use_playwright = config.get("use_playwright", False)
+    if env_use_playwright is not None:
+        use_playwright = env_use_playwright.strip().lower() in {"1", "true", "yes", "on"}
 
     backoff_base = float(config.get("backoff_base_seconds", 1))
     backoff_max = float(config.get("backoff_max_seconds", 30))
@@ -91,6 +97,7 @@ def load_config() -> Dict[str, Any]:
         "sources": resolved_sources,
         "required_keys": required_keys,
         "field_map": field_map,
+        "use_playwright": use_playwright,
     }
 
 
@@ -115,6 +122,7 @@ def fetch_source_data(
     retries: int,
     backoff_base: float,
     backoff_max: float,
+    use_playwright: bool,
 ) -> Dict[str, Any]:
     if not endpoints:
         raise ValueError("No hay endpoints configurados para la fuente.")
@@ -175,6 +183,34 @@ def fetch_source_data(
             error=str(last_error) if last_error else "Unknown error",
         )
 
+    if use_playwright:
+        log_event(
+            logging.INFO,
+            "fetch_fallback_playwright",
+            source_id=source.get("source_id") or department_code or source.get("name"),
+        )
+        try:
+            payload = fetch_payload_with_playwright(
+                base_url=base_url,
+                params=params,
+                timeout=timeout,
+                headers=headers,
+            )
+            log_event(
+                logging.INFO,
+                "fetch_fallback_success",
+                source_id=source.get("source_id") or department_code or source.get("name"),
+            )
+            return payload
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            log_event(
+                logging.ERROR,
+                "fetch_fallback_failed",
+                source_id=source.get("source_id") or department_code or source.get("name"),
+                error=str(exc),
+            )
+
     log_event(
         logging.ERROR,
         "fetch_failed",
@@ -205,6 +241,7 @@ def persist_snapshot(
     canonical_json: str,
     department_code: str,
     timestamp: str,
+    source_id: str,
 ) -> str:
     json_path = data_dir / f"snapshot_{department_code}_{timestamp}.json"
     hash_path = hash_dir / f"snapshot_{department_code}_{timestamp}.sha256"
@@ -243,6 +280,9 @@ def main() -> None:
 
     for source in config["sources"]:
         try:
+            department_name = source.get("name") or "Desconocido"
+            department_code = source.get("department_code") or source.get("source_id") or "NA"
+            source_id = source.get("source_id") or department_code or department_name
             payload = fetch_source_data(
                 session=session,
                 endpoints=source["endpoints"],
@@ -252,17 +292,22 @@ def main() -> None:
                 retries=config["retries"],
                 backoff_base=config["backoff_base"],
                 backoff_max=config["backoff_max"],
+                use_playwright=config["use_playwright"],
             )
-            snapshot = build_snapshot(payload, department_name, department_code)
+            snapshot = build_snapshot(payload, source)
             timestamp_utc = snapshot["metadata"]["timestamp_utc"]
             canonical_snapshot = normalize_snapshot(
                 payload,
                 department_name=department_name,
                 timestamp_utc=timestamp_utc,
+                scope=source.get("scope", "DEPARTMENT"),
+                department_code=department_code if source.get("department_code") else None,
+                candidate_count=config["candidate_count"],
+                field_map=config["field_map"],
             )
             canonical_json = snapshot_to_canonical_json(canonical_snapshot)
             timestamp = snapshot["metadata"]["timestamp_utc"].replace(":", "-")
-            persist_snapshot(snapshot, canonical_json, department_code, timestamp)
+            persist_snapshot(snapshot, canonical_json, department_code, timestamp, source_id)
         except Exception as exc:  # noqa: BLE001
             source_id = source.get("source_id") or source.get("department_code") or source.get("name")
             failures.append((source_id, str(exc)))
