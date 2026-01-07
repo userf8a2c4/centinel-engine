@@ -1,0 +1,8 @@
+base_url: "https://example.com/cne/results"
+timeout: 15
+retries: 3
+headers:
+  Accept: "application/json"
+  User-Agent: "HND-Sentinel/1.0"
+backoff_base_seconds: 1
+backoff_max_seconds: 30

@@ -1,0 +1,16 @@
+# Entornos virtuales
+.venv/
+
+# Salidas generadas
+/data/
+/hashes/
+/reports/
+/plots/
+/diffs/
+analysis_results.json
+analysis_results.parquet
+anomalies_report.json
+
+# Archivos temporales
+*.log
+*.tmp

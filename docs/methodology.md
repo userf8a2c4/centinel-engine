@@ -1,5 +1,7 @@
 # Metodología Operativa
 
+## [ES] Español
+
 1. Descarga de datos públicos
 2. Hash criptográfico
 3. Normalización
@@ -11,7 +13,7 @@ No hay intervención humana en ejecución.
 
 ---
 
-# Operating Methodology
+## [EN] English
 
 1. Public data download
 2. Cryptographic hash

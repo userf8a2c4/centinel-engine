@@ -1,9 +1,11 @@
 # Formato Interno de Datos – Sentinel
 
-## Objetivo
+## [ES] Español
+
+### Objetivo
 Definir una estructura única, estable y reproducible para todos los datos electorales observados.
 
-## Campos obligatorios
+### Campos obligatorios
 
 - **election_level** (string)
 - **geography** (object)
@@ -13,22 +15,22 @@ Definir una estructura única, estable y reproducible para todos los datos elect
 - **candidates** (array)
 - **metadata** (object)
 
-## Reglas
+### Reglas
 - Todos los valores numéricos son enteros.
 - Los porcentajes se recalculan internamente.
 - Nunca se confía en porcentajes externos.
 
-## Ejemplo
+### Ejemplo
 Ver `docs/examples/normalized_example.json`
 
 ---
 
-# Sentinel – Internal Data Format
+## [EN] English
 
-## Objective
+### Objective
 To define a unique, stable, and reproducible structure for all observed electoral data.
 
-## Mandatory Fields
+### Mandatory Fields
 
 - **election_level** (string)
 - **geography** (object)
@@ -38,10 +40,10 @@ To define a unique, stable, and reproducible structure for all observed electora
 - **candidates** (array)
 - **metadata** (object)
 
-## Rules
+### Rules
 - All numerical values are integers.
 - Percentages are recalculated internally.
 - External percentages are never trusted.
 
-## Example
+### Example
 See `docs/examples/normalized_example.json`

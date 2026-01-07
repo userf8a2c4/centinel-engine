@@ -1,53 +1,219 @@
 import json
-import hashlib
-from datetime import datetime
+import logging
+import os
+import time
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Dict
+
+import requests
+import yaml
+
+from sentinel.core.hashchain import compute_hash
+from sentinel.core.normalyze import DEPARTMENT_CODES, normalize_snapshot, snapshot_to_canonical_json
 
 # Directorios
 data_dir = Path("data")
 hash_dir = Path("hashes")
+config_path = Path(__file__).resolve().parents[1] / "config.yaml"
 
 data_dir.mkdir(exist_ok=True)
 hash_dir.mkdir(exist_ok=True)
 
-def get_previous_hash():
-    # Busca el archivo de hash más reciente en hashes/
-    hash_files = sorted(hash_dir.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)
+logger = logging.getLogger("sentinel.download")
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+
+def log_event(level: int, event: str, **fields: Any) -> None:
+    payload = {"event": event, **fields}
+    logger.log(level, json.dumps(payload, ensure_ascii=False))
+
+
+def load_config() -> Dict[str, Any]:
+    config: Dict[str, Any] = {}
+    if config_path.exists():
+        with open(config_path, "r", encoding="utf-8") as handle:
+            config = yaml.safe_load(handle) or {}
+
+    base_url = os.getenv("BASE_URL") or config.get("base_url")
+    if not base_url:
+        raise ValueError("BASE_URL no está configurado (config.yaml o env var).")
+
+    timeout = float(os.getenv("TIMEOUT") or config.get("timeout", 15))
+    retries = int(os.getenv("RETRIES") or config.get("retries", 3))
+    headers = config.get("headers", {})
+
+    env_headers = os.getenv("HEADERS")
+    if env_headers:
+        headers = json.loads(env_headers)
+
+    backoff_base = float(config.get("backoff_base_seconds", 1))
+    backoff_max = float(config.get("backoff_max_seconds", 30))
+
+    return {
+        "base_url": base_url,
+        "timeout": timeout,
+        "retries": retries,
+        "headers": headers,
+        "backoff_base": backoff_base,
+        "backoff_max": backoff_max,
+    }
+
+
+def get_previous_hash(department_code: str) -> str | None:
+    """
+    Busca el hash previo más reciente para el departamento.
+    """
+    pattern = f"snapshot_{department_code}_*.sha256"
+    hash_files = sorted(hash_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
     if hash_files:
-        with open(hash_files[0], "r") as f:
-            return f.read().strip()
-    return None  # Si no hay previo, retorna None (primer run)
+        with open(hash_files[0], "r", encoding="utf-8") as handle:
+            return handle.read().strip()
+    return None
 
-# Simulación (luego será el CNE – ajusta para requests.get(url))
-sample_data = {
-    "timestamp": datetime.utcnow().isoformat(),
-    "example": "placeholder"
-}
 
-timestamp = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
-json_path = data_dir / f"snapshot_{timestamp}.json"
-hash_path = hash_dir / f"snapshot_{timestamp}.sha256"
+def fetch_department_data(
+    session: requests.Session,
+    base_url: str,
+    department_code: str,
+    timeout: float,
+    headers: Dict[str, str],
+    retries: int,
+    backoff_base: float,
+    backoff_max: float,
+) -> Dict[str, Any]:
+    params = {"dept": department_code, "level": "PD"}
+    last_error: Exception | None = None
 
-# Guardar el snapshot JSON
-with open(json_path, "w") as f:
-    json.dump(sample_data, f, indent=2)
+    for attempt in range(1, retries + 1):
+        try:
+            response = session.get(base_url, params=params, timeout=timeout, headers=headers)
+            if not response.ok:
+                raise requests.HTTPError(
+                    f"HTTP {response.status_code}",
+                    response=response,
+                )
+            try:
+                payload = response.json()
+            except ValueError as exc:
+                raise ValueError("Respuesta no es JSON válido.") from exc
 
-# Contenido para hash (sorted para consistencia)
-content = json.dumps(sample_data, sort_keys=True).encode()
+            if not isinstance(payload, dict):
+                raise ValueError("Respuesta JSON no es un objeto.")
 
-# Cargar hash previo para chaining
-previous_hash = get_previous_hash()
-if previous_hash:
-    # Concatena hash previo al content para cadena inmutable
-    content += previous_hash.encode()
+            log_event(
+                logging.INFO,
+                "fetch_success",
+                department_code=department_code,
+                status_code=response.status_code,
+                attempt=attempt,
+            )
+            return payload
+        except Exception as exc:  # noqa: BLE001 - queremos loggear y reintentar
+            last_error = exc
+            log_event(
+                logging.WARNING,
+                "fetch_retry",
+                department_code=department_code,
+                attempt=attempt,
+                error=str(exc),
+            )
+            if attempt < retries:
+                sleep_time = min(backoff_base * (2 ** (attempt - 1)), backoff_max)
+                time.sleep(sleep_time)
 
-# Calcular hash SHA-256
-hash_value = hashlib.sha256(content).hexdigest()
+    log_event(
+        logging.ERROR,
+        "fetch_failed",
+        department_code=department_code,
+        error=str(last_error) if last_error else "Unknown error",
+        retries=retries,
+    )
+    raise last_error or RuntimeError("Fallo desconocido al descargar datos.")
 
-# Guardar hash
-with open(hash_path, "w") as f:
-    f.write(hash_value)
 
-print("Snapshot y hash chained creados:", timestamp)
-print("Hash previo usado:", previous_hash or "Ninguno (primer run)")
-print("Nuevo hash:", hash_value)
+def build_snapshot(payload: Dict[str, Any], department_name: str, department_code: str) -> Dict[str, Any]:
+    timestamp = datetime.now(timezone.utc).isoformat()
+    return {
+        "metadata": {
+            "department": department_name,
+            "department_code": department_code,
+            "timestamp_utc": timestamp,
+        },
+        "data": payload,
+    }
+
+
+def persist_snapshot(
+    snapshot: Dict[str, Any],
+    canonical_json: str,
+    department_code: str,
+    timestamp: str,
+) -> str:
+    json_path = data_dir / f"snapshot_{department_code}_{timestamp}.json"
+    hash_path = hash_dir / f"snapshot_{department_code}_{timestamp}.sha256"
+
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, indent=2, ensure_ascii=False)
+
+    previous_hash = get_previous_hash(department_code)
+    hash_value = compute_hash(canonical_json, previous_hash)
+
+    with open(hash_path, "w", encoding="utf-8") as f:
+        f.write(hash_value)
+
+    log_event(
+        logging.INFO,
+        "snapshot_saved",
+        department_code=department_code,
+        json_path=str(json_path),
+        hash_path=str(hash_path),
+        previous_hash=previous_hash or "none",
+        hash=hash_value,
+    )
+    return hash_value
+
+
+def main() -> None:
+    config = load_config()
+    failures = []
+    session = requests.Session()
+
+    for department_name, department_code in DEPARTMENT_CODES.items():
+        try:
+            payload = fetch_department_data(
+                session=session,
+                base_url=config["base_url"],
+                department_code=department_code,
+                timeout=config["timeout"],
+                headers=config["headers"],
+                retries=config["retries"],
+                backoff_base=config["backoff_base"],
+                backoff_max=config["backoff_max"],
+            )
+            snapshot = build_snapshot(payload, department_name, department_code)
+            timestamp_utc = snapshot["metadata"]["timestamp_utc"]
+            canonical_snapshot = normalize_snapshot(
+                payload,
+                department_name=department_name,
+                timestamp_utc=timestamp_utc,
+            )
+            canonical_json = snapshot_to_canonical_json(canonical_snapshot)
+            timestamp = snapshot["metadata"]["timestamp_utc"].replace(":", "-")
+            persist_snapshot(snapshot, canonical_json, department_code, timestamp)
+        except Exception as exc:  # noqa: BLE001
+            failures.append((department_code, str(exc)))
+            log_event(
+                logging.ERROR,
+                "snapshot_failed",
+                department_code=department_code,
+                error=str(exc),
+            )
+
+    if failures:
+        failure_summary = ", ".join(f"{dept}:{err}" for dept, err in failures)
+        raise SystemExit(f"Fallos al descargar snapshots: {failure_summary}")
+
+
+if __name__ == "__main__":
+    main()
