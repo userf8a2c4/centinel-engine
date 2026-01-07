@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Iterable
 from sentinel.core.models import Meta, Totals, CandidateResult, Snapshot
 
 
@@ -25,41 +25,143 @@ DEPARTMENT_CODES = {
 }
 
 
+def _safe_int(value: Any) -> int:
+    try:
+        if value is None:
+            return 0
+        return int(str(value).replace(",", "").split(".")[0])
+    except (ValueError, TypeError):
+        return 0
+
+
+def _get_nested_value(payload: Dict[str, Any], path: str) -> Any:
+    current: Any = payload
+    for part in path.split("."):
+        if not isinstance(current, dict):
+            return None
+        current = current.get(part)
+    return current
+
+
+def _first_value(payload: Dict[str, Any], keys: Iterable[str]) -> Any:
+    for key in keys:
+        if "." in key:
+            value = _get_nested_value(payload, key)
+        else:
+            value = payload.get(key)
+        if value is not None:
+            return value
+    return None
+
+
+def _extract_candidates_root(raw: Dict[str, Any], candidate_roots: Iterable[str]) -> Any:
+    for key in candidate_roots:
+        value = _get_nested_value(raw, key) if "." in key else raw.get(key)
+        if isinstance(value, dict) and "candidatos" in value:
+            return value["candidatos"]
+        if isinstance(value, (list, dict)):
+            return value
+    return None
+
+
+def _iter_candidates(
+    raw: Dict[str, Any],
+    candidate_count: int,
+    candidate_roots: Iterable[str],
+) -> Iterable[CandidateResult]:
+    raw_candidates = _extract_candidates_root(raw, candidate_roots)
+
+    if isinstance(raw_candidates, list):
+        for idx, item in enumerate(raw_candidates, start=1):
+            yield CandidateResult(
+                slot=_safe_int(item.get("posicion") or item.get("orden") or idx),
+                votes=_safe_int(item.get("votos") or item.get("votes")),
+                candidate_id=str(item.get("id")) if item.get("id") is not None else None,
+                name=item.get("candidato") or item.get("nombre") or item.get("name"),
+                party=item.get("partido") or item.get("party"),
+            )
+        return
+
+    if isinstance(raw_candidates, dict):
+        for idx in range(1, candidate_count + 1):
+            key = str(idx)
+            value = raw_candidates.get(key)
+            if isinstance(value, dict):
+                yield CandidateResult(
+                    slot=idx,
+                    votes=_safe_int(value.get("votos") or value.get("votes")),
+                    candidate_id=str(value.get("id")) if value.get("id") is not None else None,
+                    name=value.get("candidato") or value.get("nombre") or value.get("name"),
+                    party=value.get("partido") or value.get("party"),
+                )
+            else:
+                yield CandidateResult(slot=idx, votes=_safe_int(value))
+        return
+
+    for idx in range(1, candidate_count + 1):
+        yield CandidateResult(slot=idx, votes=0)
+
+
 def normalize_snapshot(
     raw: Dict[str, Any],
     department_name: str,
     timestamp_utc: str,
     year: int = 2025,
+    candidate_count: int = 10,
+    scope: str = "DEPARTMENT",
+    department_code: str | None = None,
+    field_map: Dict[str, List[str]] | None = None,
 ) -> Snapshot:
     """
     Convierte un JSON crudo del CNE en un Snapshot canónico e inmutable.
     """
 
-    department_code = DEPARTMENT_CODES[department_name]
+    resolved_department_code = department_code or DEPARTMENT_CODES.get(department_name, "00")
 
     meta = Meta(
         election="HN-PRESIDENTIAL",
         year=year,
         source="CNE",
-        scope="DEPARTMENT",
-        department_code=department_code,
+        scope=scope,
+        department_code=resolved_department_code,
         timestamp_utc=timestamp_utc,
     )
 
-    totals = Totals(
-        registered_voters=int(raw.get("registered_voters", 0)),
-        total_votes=int(raw.get("total_votes", 0)),
-        valid_votes=int(raw.get("valid_votes", 0)),
-        null_votes=int(raw.get("null_votes", 0)),
-        blank_votes=int(raw.get("blank_votes", 0)),
+    field_map = field_map or {}
+    totals_map = field_map.get("totals", {})
+    candidate_roots = field_map.get("candidate_roots", ["candidatos", "candidates", "resultados", "partidos"])
+
+    registered_voters = _safe_int(
+        _first_value(raw, totals_map.get("registered_voters", ["registered_voters", "inscritos", "padron"]))
+    )
+    total_votes = _safe_int(
+        _first_value(raw, totals_map.get("total_votes", ["total_votes", "total_votos", "votos_emitidos"]))
+    )
+    valid_votes = _safe_int(
+        _first_value(raw, totals_map.get("valid_votes", ["valid_votes", "votos_validos", "validos"]))
+    )
+    null_votes = _safe_int(
+        _first_value(raw, totals_map.get("null_votes", ["null_votes", "votos_nulos", "nulos"]))
+    )
+    blank_votes = _safe_int(
+        _first_value(raw, totals_map.get("blank_votes", ["blank_votes", "votos_blancos", "blancos"]))
     )
 
-    raw_candidates = raw.get("candidates", {})
-    candidates: List[CandidateResult] = []
+    if total_votes == 0 and any([valid_votes, null_votes, blank_votes]):
+        total_votes = valid_votes + null_votes + blank_votes
 
-    for slot in range(1, 8):
-        votes = int(raw_candidates.get(str(slot), 0))
-        candidates.append(CandidateResult(slot=slot, votes=votes))
+    totals = Totals(
+        registered_voters=registered_voters,
+        total_votes=total_votes,
+        valid_votes=valid_votes,
+        null_votes=null_votes,
+        blank_votes=blank_votes,
+    )
+
+    raw_candidates = _extract_candidates_root(raw, candidate_roots)
+    if isinstance(raw_candidates, list):
+        candidate_count = max(candidate_count, len(raw_candidates))
+    candidates: List[CandidateResult] = list(_iter_candidates(raw, candidate_count, candidate_roots))
 
     return Snapshot(
         meta=meta,
@@ -80,3 +182,11 @@ def snapshot_to_canonical_json(snapshot: Snapshot) -> str:
     }
 
     return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
+def snapshot_to_dict(snapshot: Snapshot) -> Dict[str, Any]:
+    return {
+        "meta": snapshot.meta.__dict__,
+        "totals": snapshot.totals.__dict__,
+        "candidates": [c.__dict__ for c in snapshot.candidates],
+    }

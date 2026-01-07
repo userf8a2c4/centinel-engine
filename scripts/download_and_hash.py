@@ -49,6 +49,21 @@ def load_config() -> Dict[str, Any]:
 
     backoff_base = float(config.get("backoff_base_seconds", 1))
     backoff_max = float(config.get("backoff_max_seconds", 30))
+    candidate_count = int(config.get("candidate_count", 10))
+    required_keys = config.get("required_keys", [])
+    field_map = config.get("field_map", {})
+
+    sources = config.get("sources")
+    if not sources:
+        sources = [
+            {
+                "name": department_name,
+                "department_code": department_code,
+                "level": "PD",
+                "scope": "DEPARTMENT",
+            }
+            for department_name, department_code in DEPARTMENT_CODES.items()
+        ]
 
     return {
         "base_url": base_url,
@@ -57,6 +72,10 @@ def load_config() -> Dict[str, Any]:
         "headers": headers,
         "backoff_base": backoff_base,
         "backoff_max": backoff_max,
+        "candidate_count": candidate_count,
+        "sources": sources,
+        "required_keys": required_keys,
+        "field_map": field_map,
     }
 
 
@@ -72,17 +91,22 @@ def get_previous_hash(department_code: str) -> str | None:
     return None
 
 
-def fetch_department_data(
+def fetch_source_data(
     session: requests.Session,
     base_url: str,
-    department_code: str,
+    source: Dict[str, Any],
     timeout: float,
     headers: Dict[str, str],
     retries: int,
     backoff_base: float,
     backoff_max: float,
 ) -> Dict[str, Any]:
-    params = {"dept": department_code, "level": "PD"}
+    params = {"level": source.get("level", "PD")}
+    department_code = source.get("department_code")
+    if department_code:
+        params["dept"] = department_code
+    if source.get("params"):
+        params.update(source["params"])
     last_error: Exception | None = None
 
     for attempt in range(1, retries + 1):
@@ -104,7 +128,7 @@ def fetch_department_data(
             log_event(
                 logging.INFO,
                 "fetch_success",
-                department_code=department_code,
+                source_id=source.get("source_id") or department_code or source.get("name"),
                 status_code=response.status_code,
                 attempt=attempt,
             )
@@ -114,7 +138,7 @@ def fetch_department_data(
             log_event(
                 logging.WARNING,
                 "fetch_retry",
-                department_code=department_code,
+                source_id=source.get("source_id") or department_code or source.get("name"),
                 attempt=attempt,
                 error=str(exc),
             )
@@ -125,19 +149,21 @@ def fetch_department_data(
     log_event(
         logging.ERROR,
         "fetch_failed",
-        department_code=department_code,
+        source_id=source.get("source_id") or department_code or source.get("name"),
         error=str(last_error) if last_error else "Unknown error",
         retries=retries,
     )
     raise last_error or RuntimeError("Fallo desconocido al descargar datos.")
 
 
-def build_snapshot(payload: Dict[str, Any], department_name: str, department_code: str) -> Dict[str, Any]:
+def build_snapshot(payload: Dict[str, Any], source: Dict[str, Any]) -> Dict[str, Any]:
     timestamp = datetime.now(timezone.utc).isoformat()
     return {
         "metadata": {
-            "department": department_name,
-            "department_code": department_code,
+            "department": source.get("name"),
+            "department_code": source.get("department_code"),
+            "scope": source.get("scope", "DEPARTMENT"),
+            "source_id": source.get("source_id"),
             "timestamp_utc": timestamp,
         },
         "data": payload,
@@ -165,7 +191,7 @@ def persist_snapshot(
     log_event(
         logging.INFO,
         "snapshot_saved",
-        department_code=department_code,
+        source_id=source_id,
         json_path=str(json_path),
         hash_path=str(hash_path),
         previous_hash=previous_hash or "none",
@@ -174,17 +200,23 @@ def persist_snapshot(
     return hash_value
 
 
+def persist_normalized(snapshot: Dict[str, Any], source_id: str, timestamp: str) -> None:
+    normalized_path = normalized_dir / f"snapshot_{source_id}_{timestamp}.json"
+    with open(normalized_path, "w", encoding="utf-8") as handle:
+        json.dump(snapshot, handle, indent=2, ensure_ascii=False)
+
+
 def main() -> None:
     config = load_config()
     failures = []
     session = requests.Session()
 
-    for department_name, department_code in DEPARTMENT_CODES.items():
+    for source in config["sources"]:
         try:
-            payload = fetch_department_data(
+            payload = fetch_source_data(
                 session=session,
                 base_url=config["base_url"],
-                department_code=department_code,
+                source=source,
                 timeout=config["timeout"],
                 headers=config["headers"],
                 retries=config["retries"],
@@ -202,11 +234,12 @@ def main() -> None:
             timestamp = snapshot["metadata"]["timestamp_utc"].replace(":", "-")
             persist_snapshot(snapshot, canonical_json, department_code, timestamp)
         except Exception as exc:  # noqa: BLE001
-            failures.append((department_code, str(exc)))
+            source_id = source.get("source_id") or source.get("department_code") or source.get("name")
+            failures.append((source_id, str(exc)))
             log_event(
                 logging.ERROR,
                 "snapshot_failed",
-                department_code=department_code,
+                source_id=source_id,
                 error=str(exc),
             )
 
