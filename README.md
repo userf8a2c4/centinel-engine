@@ -43,6 +43,8 @@
 
 ### Visualizaciones rápidas
 - `scripts/visualize_benford.py` genera un gráfico de distribución de primeros dígitos.
+  - Ubicación: `plots/`.
+  - Convención: `benford_analysis_YYYYMMDD_HHMMSS.png` y `latest.png` apunta a la última ejecución.
 
 ### Dashboard
 Ejecuta el panel interactivo con Streamlit después de generar snapshots:
@@ -93,6 +95,8 @@ Ejecuta el panel interactivo con Streamlit después de generar snapshots:
 
 ### Quick visualizations
 - `scripts/visualize_benford.py` generates a first-digit distribution chart.
+  - Location: `plots/`.
+  - Naming: `benford_analysis_YYYYMMDD_HHMMSS.png` and `latest.png` points to the latest run.
 
 ---
 
