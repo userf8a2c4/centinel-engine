@@ -1,4 +1,39 @@
 # HND-SENTINEL-2029
+## Primeros pasos (5 minutos)
+
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/userf8a2c4/sentinel.git
+   cd sentinel
+   ```
+
+2. Copia y configura:
+   ```bash
+   cp config.example.yaml config.yaml
+   cp .env.example .env
+   ```
+   Edita `config.yaml` (URLs, niveles, reglas) y `.env` (TELEGRAM_TOKEN, TELEGRAM_CHAT_ID).  
+   **Nunca commitear .env ni config.yaml con datos reales.**
+
+3. Instala dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Ejecuta el pipeline:
+   ```bash
+   python -m scripts.download_and_hash
+   ```
+
+5. Abre el dashboard:
+   ```bash
+   streamlit run dashboard.py
+   ```
+
+6. Ver logs:
+   - Archivo: sentinel.log
+   - Consola: output en vivo
+
 ## Sistema Autónomo de Integridad de Datos Electorales | Automated Electoral Data Integrity System
 
 ---

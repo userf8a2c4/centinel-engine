@@ -10,11 +10,10 @@ import requests
 import yaml
 from dotenv import load_dotenv
 
-from scripts.logging_utils import configure_logging, log_event
 from sentinel.core.hashchain import compute_hash
 from sentinel.core.normalyze import DEPARTMENT_CODES, normalize_snapshot, snapshot_to_canonical_json
 from sentinel.core.scraping import fetch_payload_with_playwright
-from logging_utils import configure_logging, log_event
+from sentinel.utils.logging_config import setup_logging
 
 # Directorios
 data_dir = Path("data")
@@ -26,7 +25,8 @@ hash_dir.mkdir(exist_ok=True)
 
 load_dotenv()
 
-logger = configure_logging("sentinel.download")
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 def load_config() -> Dict[str, Any]:
@@ -193,33 +193,27 @@ def fetch_source_data(
                 except ValueError as exc:
                     response_text = response.text
                     if use_playwright and _looks_like_html_or_captcha(response_text):
-                        log_event(
-                            logger,
-                            logging.INFO,
-                            "fetch_fallback_playwright_html",
-                            source_id=source_id,
-                            endpoint=endpoint,
-                            status_code=response.status_code,
+                        logger.info(
+                            "fetch_fallback_playwright_html source_id=%s endpoint=%s status_code=%s",
+                            source_id,
+                            endpoint,
+                            response.status_code,
                         )
                         try:
                             payload = _fetch_with_playwright(endpoint)
-                            log_event(
-                                logger,
-                                logging.INFO,
-                                "fetch_fallback_success",
-                                source_id=source_id,
-                                endpoint=endpoint,
+                            logger.info(
+                                "fetch_fallback_success source_id=%s endpoint=%s",
+                                source_id,
+                                endpoint,
                             )
                             return payload
                         except Exception as fallback_exc:  # noqa: BLE001
                             last_error = fallback_exc
-                            log_event(
-                                logger,
-                                logging.ERROR,
-                                "fetch_fallback_failed",
-                                source_id=source_id,
-                                endpoint=endpoint,
-                                error=str(fallback_exc),
+                            logger.error(
+                                "fetch_fallback_failed source_id=%s endpoint=%s error=%s",
+                                source_id,
+                                endpoint,
+                                fallback_exc,
                             )
                             break
                     raise ValueError("Respuesta no es JSON válido.") from exc
@@ -227,54 +221,44 @@ def fetch_source_data(
                 if not isinstance(payload, dict):
                     raise ValueError("Respuesta JSON no es un objeto.")
 
-                log_event(
-                    logger,
-                    logging.INFO,
-                    "fetch_success",
-                    source_id=source_id,
-                    endpoint=endpoint,
-                    status_code=response.status_code,
-                    attempt=attempt,
+                logger.info(
+                    "fetch_success source_id=%s endpoint=%s status_code=%s attempt=%s",
+                    source_id,
+                    endpoint,
+                    response.status_code,
+                    attempt,
                 )
                 return payload
             except Exception as exc:  # noqa: BLE001 - queremos loggear y reintentar
                 last_error = exc
-                log_event(
-                    logger,
-                    logging.WARNING,
-                    "fetch_retry",
-                    source_id=source_id,
-                    endpoint=endpoint,
-                    attempt=attempt,
-                    error=str(exc),
+                logger.warning(
+                    "fetch_retry source_id=%s endpoint=%s attempt=%s error=%s",
+                    source_id,
+                    endpoint,
+                    attempt,
+                    exc,
                 )
                 if attempt < retries:
                     sleep_time = min(backoff_base * (2 ** (attempt - 1)), backoff_max)
                     time.sleep(sleep_time)
 
-        log_event(
-            logger,
-            logging.WARNING,
-            "endpoint_failed",
-            source_id=source_id,
-            endpoint=endpoint,
-            error=str(last_error) if last_error else "Unknown error",
+        logger.warning(
+            "endpoint_failed source_id=%s endpoint=%s error=%s",
+            source_id,
+            endpoint,
+            last_error or "Unknown error",
         )
 
     if use_playwright:
         if not base_url:
-            log_event(
-                logger,
-                logging.ERROR,
-                "fetch_fallback_missing_base_url",
-                source_id=source.get("source_id") or department_code or source.get("name"),
+            logger.error(
+                "fetch_fallback_missing_base_url source_id=%s",
+                source.get("source_id") or department_code or source.get("name"),
             )
         else:
-            log_event(
-                logger,
-                logging.INFO,
-                "fetch_fallback_playwright",
-                source_id=source.get("source_id") or department_code or source.get("name"),
+            logger.info(
+                "fetch_fallback_playwright source_id=%s",
+                source.get("source_id") or department_code or source.get("name"),
             )
         try:
             if base_url:
@@ -289,31 +273,25 @@ def fetch_source_data(
                     viewport=playwright_viewport,
                     stealth=playwright_stealth,
                 )
-                log_event(
-                    logger,
-                    logging.INFO,
-                    "fetch_fallback_success",
-                    source_id=source.get("source_id") or department_code or source.get("name"),
+                logger.info(
+                    "fetch_fallback_success source_id=%s",
+                    source.get("source_id") or department_code or source.get("name"),
                 )
                 return payload
         except Exception as exc:  # noqa: BLE001
             last_error = exc
-            log_event(
-                logger,
-                logging.ERROR,
-                "fetch_fallback_failed",
-                source_id=source.get("source_id") or department_code or source.get("name"),
-                error=str(exc),
+            logger.error(
+                "fetch_fallback_failed source_id=%s error=%s",
+                source.get("source_id") or department_code or source.get("name"),
+                exc,
             )
 
-    log_event(
-        logger,
-        logging.ERROR,
-        "fetch_failed",
-        source_id=source_id,
-        endpoint=endpoints[-1] if endpoints else None,
-        error=str(last_error) if last_error else "Unknown error",
-        retries=retries,
+    logger.error(
+        "fetch_failed source_id=%s endpoint=%s error=%s retries=%s",
+        source_id,
+        endpoints[-1] if endpoints else None,
+        last_error or "Unknown error",
+        retries,
     )
     raise last_error or RuntimeError("Fallo desconocido al descargar datos.")
 
@@ -351,15 +329,13 @@ def persist_snapshot(
     with open(hash_path, "w", encoding="utf-8") as f:
         f.write(hash_value)
 
-    log_event(
-        logger,
-        logging.INFO,
-        "snapshot_saved",
-        source_id=source_id,
-        json_path=str(json_path),
-        hash_path=str(hash_path),
-        previous_hash=previous_hash or "none",
-        hash=hash_value,
+    logger.info(
+        "snapshot_saved source_id=%s json_path=%s hash_path=%s previous_hash=%s hash=%s",
+        source_id,
+        json_path,
+        hash_path,
+        previous_hash or "none",
+        hash_value,
     )
     return hash_value
 
@@ -414,12 +390,10 @@ def main() -> None:
         except Exception as exc:  # noqa: BLE001
             source_id = source.get("source_id") or source.get("department_code") or source.get("name")
             failures.append((source_id, str(exc)))
-            log_event(
-                logger,
-                logging.ERROR,
-                "snapshot_failed",
-                source_id=source_id,
-                error=str(exc),
+            logger.error(
+                "snapshot_failed source_id=%s error=%s",
+                source_id,
+                exc,
             )
 
     if failures:

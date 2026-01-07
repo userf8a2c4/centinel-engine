@@ -109,3 +109,7 @@ sources: # Fuentes configuradas para consultas.
     department_code: "18" # Código de departamento (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
+
+logging:
+  level: INFO # Opciones: DEBUG, INFO, WARNING, ERROR
+  file: sentinel.log # Ruta relativa al root

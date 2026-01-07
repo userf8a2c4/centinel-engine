@@ -1,10 +1,16 @@
 import json
+import logging
 import matplotlib.pyplot as plt
 import os
 import shutil
 import collections
 import math
 from datetime import datetime
+
+from sentinel.utils.logging_config import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 def get_first_digit(number):
     """Extrae el primer dígito significativo de un número."""
@@ -54,7 +60,7 @@ def generate_benford_plot():
                     real_frequencies = [(counts[d] / total) * 100 for d in digits]
                     has_real_data = True
         except Exception as e:
-            print(f"Error procesando datos reales: {e}")
+            logger.error("Error procesando datos reales: %s", e)
 
     # 4. Creación de la Gráfica
     plt.figure(figsize=(10, 7))
@@ -85,9 +91,11 @@ def generate_benford_plot():
     plt.savefig(output_path)
     shutil.copyfile(output_path, latest_path)
     plt.close()
-    print(
-        "Gráfica generada: "
-        f"{output_path} con timestamp {data_timestamp} (latest: {latest_path})"
+    logger.info(
+        "Gráfica generada: %s con timestamp %s (latest: %s)",
+        output_path,
+        data_timestamp,
+        latest_path,
     )
 
 if __name__ == "__main__":

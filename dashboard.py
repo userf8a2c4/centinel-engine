@@ -1,6 +1,7 @@
 """Streamlit dashboard para monitoreo de snapshots electorales."""
 
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -11,6 +12,10 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from sentinel.utils.logging_config import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 DATA_DIR = Path("data")
 HASH_DIR = Path("hashes")
@@ -207,9 +212,23 @@ def display_exports(df: pd.DataFrame, alerts: list[dict]) -> None:
         st.info("No hay datos para exportar.")
         return
     if not df.empty:
+        export_df = df.copy()
+        export_df = compute_diffs(export_df)
+        export_df["Alertas"] = len(alerts)
+        export_df = export_df[
+            [
+                "Fecha/Hora",
+                "Hash",
+                "Cambio %",
+                "Porcentaje escrutado",
+                "Departamento",
+                "Total votos",
+                "Alertas",
+            ]
+        ].copy()
         st.download_button(
             "Descargar snapshots (CSV)",
-            df.drop(columns=["Votos"], errors="ignore").to_csv(index=False).encode("utf-8"),
+            export_df.to_csv(index=False).encode("utf-8"),
             file_name="snapshots.csv",
             mime="text/csv",
         )
@@ -332,13 +351,17 @@ def render_sidebar(snapshot_data: list[dict]) -> dict:
     """Renderiza la barra lateral para filtros y acciones."""
     st.sidebar.header("Filtros y acciones")
     if DEFAULT_PDF_REPORT.exists():
-        report_bytes = DEFAULT_PDF_REPORT.read_bytes()
-        st.sidebar.download_button(
-            label="Descargar reporte PDF",
-            data=report_bytes,
-            file_name=DEFAULT_PDF_REPORT.name,
-            mime="application/pdf",
-        )
+        try:
+            report_bytes = DEFAULT_PDF_REPORT.read_bytes()
+            st.sidebar.download_button(
+                label="Descargar reporte PDF",
+                data=report_bytes,
+                file_name=DEFAULT_PDF_REPORT.name,
+                mime="application/pdf",
+            )
+        except OSError as exc:
+            st.sidebar.warning("No se pudo cargar el PDF de reporte.")
+            logger.warning("No se pudo cargar PDF: %s", exc)
     else:
         st.sidebar.caption("Genera un reporte PDF para habilitar la descarga.")
     departamentos = sorted(
@@ -350,7 +373,7 @@ def render_sidebar(snapshot_data: list[dict]) -> dict:
     if st.sidebar.button("Actualizar datos ahora"):
         with st.spinner("Ejecutando descarga de snapshots..."):
             result = subprocess.run(
-                [sys.executable, "scripts/download_and_hash.py"],
+                [sys.executable, "-m", "scripts.download_and_hash"],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -420,9 +443,28 @@ def main() -> None:
 
     errors: list[str] = []
     trigger_refresh(errors)
-    snapshots = load_snapshots_list()
+    try:
+        snapshots = load_snapshots_list()
+    except FileNotFoundError:
+        st.warning(
+            "No hay snapshots ni hashes disponibles aún. "
+            "Ejecuta primero: python -m scripts.download_and_hash"
+        )
+        logger.warning("No data found for dashboard")
+        display_footer()
+        return
+    except Exception as exc:  # noqa: BLE001
+        st.error(f"Error al cargar datos: {str(exc)}")
+        logger.error("Dashboard data load error: %s", exc)
+        display_footer()
+        return
+
     if not snapshots:
-        st.info("Aún no hay snapshots. Corre download_and_hash.py primero.")
+        st.warning(
+            "No hay snapshots ni hashes disponibles aún. "
+            "Ejecuta primero: python -m scripts.download_and_hash"
+        )
+        logger.warning("No data found for dashboard")
         display_footer()
         return
 
@@ -440,11 +482,43 @@ def main() -> None:
             latest = snapshot_data[0]
 
     df = build_dataframe(snapshot_data, errors)
-    alerts = get_alerts(errors)
+    try:
+        alerts = get_alerts(errors)
+    except Exception as exc:  # noqa: BLE001
+        st.error(f"Error al cargar datos: {str(exc)}")
+        logger.error("Dashboard data load error: %s", exc)
+        alerts = []
+
+    if "Departamento" in df.columns and not df.empty:
+        deptos = ["Todos"] + sorted(df["Departamento"].dropna().unique().tolist())
+        selected = st.selectbox("Filtrar por departamento", deptos)
+        if selected != "Todos":
+            df = df[df["Departamento"] == selected]
+            snapshot_data = [
+                item for item in snapshot_data if item.get("departamento") == selected
+            ]
+            if snapshot_data:
+                latest = snapshot_data[0]
+            else:
+                st.warning(
+                    "No hay datos para el departamento seleccionado. "
+                    "Ejecuta primero: python -m scripts.download_and_hash"
+                )
+                logger.warning("No data found for dashboard")
 
     display_read_errors(errors)
     display_estado_general(df, alerts)
     display_estado_actual(latest, errors)
+    if not df.empty:
+        try:
+            chart_df = df.copy()
+            chart_df["timestamp"] = pd.to_datetime(chart_df["Fecha/Hora"], errors="coerce")
+            if chart_df["timestamp"].notna().any():
+                st.subheader("Evolución del porcentaje escrutado")
+                st.line_chart(chart_df.set_index("timestamp")["Porcentaje escrutado"])
+        except Exception as exc:  # noqa: BLE001
+            st.error(f"Error al cargar datos: {str(exc)}")
+            logger.error("Dashboard data load error: %s", exc)
     display_table(df)
     display_chart(df)
     display_exports(df, alerts)
