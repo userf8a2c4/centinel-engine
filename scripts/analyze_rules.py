@@ -10,23 +10,18 @@ from datetime import datetime
 import pandas as pd
 from dateutil import parser
 
+from logging_utils import configure_logging, log_event
 # PROTOCOLO HND-SENTINEL-2029 // AUDITORÍA RESILIENTE
 # Versión optimizada para datos históricos 2025 y futuros 2029
 
-logger = logging.getLogger("sentinel.analyze")
-logging.basicConfig(level=logging.INFO, format="%(message)s")
-
-
-def log_event(level, event, **fields):
-    payload = {"event": event, **fields}
-    logger.log(level, json.dumps(payload, ensure_ascii=False))
+logger = configure_logging("sentinel.analyze")
 
 def load_json(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        log_event(logging.ERROR, "load_error", file_path=file_path, error=str(e))
+        log_event(logger, logging.ERROR, "load_error", file_path=file_path, error=str(e))
         return None
 
 def safe_int(value, default=0):
@@ -230,10 +225,10 @@ def run_audit(target_directory='data/normalized'):
 
     file_list = sorted(glob.glob(os.path.join(target_directory, '*.json')))
     if not file_list:
-        log_event(logging.WARNING, "no_files_found", target_directory=target_directory)
+        log_event(logger, logging.WARNING, "no_files_found", target_directory=target_directory)
         return
 
-    log_event(logging.INFO, "processing_snapshots", count=len(file_list), target_directory=target_directory)
+    log_event(logger, logging.INFO, "processing_snapshots", count=len(file_list), target_directory=target_directory)
 
     for file_path in file_list:
         data = load_json(file_path)
@@ -255,7 +250,7 @@ def run_audit(target_directory='data/normalized'):
             if c_id in peak_votos:
                 if v_actual < peak_votos[c_id]['valor']:
                     diff = v_actual - peak_votos[c_id]['valor']
-                    log_event(logging.WARNING, "negative_delta", candidate_id=c_id, loss=diff, file=file_name)
+                    log_event(logger, logging.WARNING, "negative_delta", candidate_id=c_id, loss=diff, file=file_name)
                     anomalies_log.append({
                         "file": file_name,
                         "type": "NEGATIVE_DELTA",
@@ -269,6 +264,7 @@ def run_audit(target_directory='data/normalized'):
         benford = apply_benford_law(votos_actuales)
         if benford and benford['is_anomaly']:
             log_event(
+                logger,
                 logging.WARNING,
                 "benford_anomaly",
                 file=file_name,
@@ -276,7 +272,7 @@ def run_audit(target_directory='data/normalized'):
             )
 
     if not records:
-        log_event(logging.WARNING, "no_department_records")
+        log_event(logger, logging.WARNING, "no_department_records")
         return
 
     df = pd.DataFrame(records)
@@ -366,7 +362,7 @@ def run_audit(target_directory='data/normalized'):
     try:
         df.to_parquet('analysis_results.parquet', index=False)
     except Exception as e:
-        log_event(logging.WARNING, "parquet_write_failed", error=str(e))
+        log_event(logger, logging.WARNING, "parquet_write_failed", error=str(e))
 
     with open('anomalies_report.json', 'w') as f:
         json.dump(anomalies_log + anomalies, f, indent=4)
@@ -379,7 +375,7 @@ def run_audit(target_directory='data/normalized'):
         f.write(build_plain_summary(output, language="en"))
 
     persist_to_sqlite(output, os.path.join(reports_dir, "sentinel.db"))
-    log_event(logging.INFO, "audit_completed", reports_dir=reports_dir)
+    log_event(logger, logging.INFO, "audit_completed", reports_dir=reports_dir)
 
 
 def persist_to_sqlite(output, sqlite_path):

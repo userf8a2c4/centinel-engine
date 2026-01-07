@@ -17,6 +17,18 @@ MIN_ANOMALIES = int(os.getenv("MIN_ANOMALIES", "1"))
 MIN_NEGATIVE_DELTA = int(os.getenv("MIN_NEGATIVE_DELTA", "1"))
 
 
+def critical_rules() -> set[str]:
+    raw = os.getenv("CRITICAL_ANOMALY_TYPES", "ARITHMETIC_MISMATCH,NEGATIVE_DELTA,CHANGE_POINT")
+    return {rule.strip().upper() for rule in raw.split(",") if rule.strip()}
+
+
+def filter_critical_anomalies(anomalies: List[Dict]) -> List[Dict]:
+    rules = critical_rules()
+    if not rules:
+        return anomalies
+    return [anomaly for anomaly in anomalies if anomaly.get("type", "").upper() in rules]
+
+
 def load_anomalies(path: str) -> List[Dict]:
     if not os.path.exists(path):
         print(f"[!] ANOMALY_REPORT_NOT_FOUND: {path}")
@@ -110,11 +122,12 @@ def publish(summary: str, hash_path: str, channels: List[str]) -> None:
 
 def main():
     anomalies = load_anomalies(DEFAULT_ANOMALY_PATH)
-    filtered = filter_anomalies(anomalies)
+    critical_only = filter_critical_anomalies(anomalies)
+    filtered = filter_anomalies(critical_only)
 
     if len(filtered) < MIN_ANOMALIES:
         summary = (
-            f"Anomalies detected: {len(filtered)} (below threshold {MIN_ANOMALIES}). "
+            f"Critical anomalies detected: {len(filtered)} (below threshold {MIN_ANOMALIES}). "
             "No alert published."
         )
         log_publication({
@@ -124,6 +137,7 @@ def main():
             "summary": summary,
             "anomaly_threshold": MIN_ANOMALIES,
             "negative_delta_threshold": MIN_NEGATIVE_DELTA,
+            "critical_types": sorted(critical_rules()),
         })
         print("[i] ALERT_SKIPPED_THRESHOLD")
         return

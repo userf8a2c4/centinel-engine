@@ -78,6 +78,18 @@ def build_alerts(anomalies):
     ]
 
 
+def critical_rules():
+    raw = os.getenv("CRITICAL_ANOMALY_TYPES", "ARITHMETIC_MISMATCH,NEGATIVE_DELTA,CHANGE_POINT")
+    return {rule.strip().upper() for rule in raw.split(",") if rule.strip()}
+
+
+def filter_critical_anomalies(anomalies):
+    rules = critical_rules()
+    if not rules:
+        return anomalies
+    return [anomaly for anomaly in anomalies if anomaly.get("type", "").upper() in rules]
+
+
 def should_generate_report(state, now):
     last_report = state.get("last_report_at")
     if not last_report:
@@ -107,7 +119,11 @@ def update_daily_summary(state, now, anomalies_count):
     state["daily_summary"] = daily
 
 
-def send_alert_if_configured(state, summary_path):
+def send_alert_if_configured(state, summary_path, critical_count):
+    if critical_count <= 0:
+        print("[i] Alertas omitidas: no hay errores críticos")
+        return
+
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
     if not token or not chat_id:
@@ -165,13 +181,14 @@ def run_pipeline():
     if anomalies_path.exists():
         anomalies = json.loads(anomalies_path.read_text(encoding="utf-8"))
 
-    alerts = build_alerts(anomalies)
+    critical_anomalies = filter_critical_anomalies(anomalies)
+    alerts = build_alerts(critical_anomalies)
     (ANALYSIS_DIR / "alerts.json").write_text(json.dumps(alerts, indent=2), encoding="utf-8")
 
     if should_generate_report(state, now):
         run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
         state["last_report_at"] = now.isoformat()
-        send_alert_if_configured(state, REPORTS_DIR / "summary.txt")
+        send_alert_if_configured(state, REPORTS_DIR / "summary.txt", len(critical_anomalies))
     else:
         print("[i] Reporte omitido por cadencia")
 

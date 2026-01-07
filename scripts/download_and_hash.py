@@ -21,13 +21,7 @@ config_path = Path(__file__).resolve().parents[1] / "config.yaml"
 data_dir.mkdir(exist_ok=True)
 hash_dir.mkdir(exist_ok=True)
 
-logger = logging.getLogger("sentinel.download")
-logging.basicConfig(level=logging.INFO, format="%(message)s")
-
-
-def log_event(level: int, event: str, **fields: Any) -> None:
-    payload = {"event": event, **fields}
-    logger.log(level, json.dumps(payload, ensure_ascii=False))
+logger = configure_logging("sentinel.download")
 
 
 def load_config() -> Dict[str, Any]:
@@ -197,6 +191,7 @@ def fetch_source_data(
                 headers=headers,
             )
             log_event(
+                logger,
                 logging.INFO,
                 "fetch_fallback_success",
                 source_id=source.get("source_id") or department_code or source.get("name"),
@@ -212,6 +207,7 @@ def fetch_source_data(
             )
 
     log_event(
+        logger,
         logging.ERROR,
         "fetch_failed",
         source_id=source_id,
@@ -256,6 +252,7 @@ def persist_snapshot(
         f.write(hash_value)
 
     log_event(
+        logger,
         logging.INFO,
         "snapshot_saved",
         source_id=source_id,
@@ -312,6 +309,7 @@ def main() -> None:
             source_id = source.get("source_id") or source.get("department_code") or source.get("name")
             failures.append((source_id, str(exc)))
             log_event(
+                logger,
                 logging.ERROR,
                 "snapshot_failed",
                 source_id=source_id,
