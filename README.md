@@ -22,11 +22,21 @@
 
 ### Documentación
 - Manual de configuración y scraping: `docs/manual.md`
+- Fuentes configurables en `config.yaml` (incluye nacional y departamentos).
 - Arquitectura: `docs/architecture.md`
 - Principios operativos: `docs/operating_principles.md`
 - Metodología: `docs/methodology.md`
 - Reglas técnicas: `docs/rules.md`
 - Formato de datos: `docs/data_format.md`
+
+### Estado del proyecto (actual)
+- Captura de datos: configurable vía `config.yaml` (fuentes, niveles y mapeo de campos).
+- Integridad: snapshots crudos + JSON normalizados + hashes encadenados SHA-256.
+- Análisis: reglas de anomalías, tendencias y resúmenes en lenguaje común.
+- Publicación: plantillas técnicas neutrales para Telegram y X.
+
+### Visualizaciones rápidas
+- `scripts/visualize_benford.py` genera un gráfico de distribución de primeros dígitos.
 
 ---
 
@@ -49,11 +59,21 @@
 
 ### Documentation
 - Configuration and scraping manual: `docs/manual.md`
+- Sources configurable in `config.yaml` (includes national and departments).
 - Architecture: `docs/architecture.md`
 - Operating principles: `docs/operating_principles.md`
 - Methodology: `docs/methodology.md`
 - Technical rules: `docs/rules.md`
 - Data format: `docs/data_format.md`
+
+### Project status (current)
+- Data capture: configurable via `config.yaml` (sources, levels, and field mapping).
+- Integrity: raw snapshots + normalized JSON + chained SHA-256 hashes.
+- Analysis: anomaly rules, trends, and plain-language summaries.
+- Publishing: neutral technical templates for Telegram and X.
+
+### Quick visualizations
+- `scripts/visualize_benford.py` generates a first-digit distribution chart.
 
 ---
 

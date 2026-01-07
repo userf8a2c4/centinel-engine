@@ -23,11 +23,11 @@ def format_as_neutral(raw_data, stored_hash=None):
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     hash_line = f"\nVerification hash (SHA-256): {stored_hash}" if stored_hash else ""
     return (
-        "HND-SENTINEL-2029 | AUTOMATED TECHNICAL NOTICE\n"
+        "HND-SENTINEL-2029 | TECHNICAL NOTICE\n"
         f"Timestamp (UTC): {timestamp}\n"
         f"{raw_data}"
         f"{hash_line}\n"
-        "Automated publication. Reproducible from published data."
+        "Publication generated from public data. Reproducible by third parties."
     )
 
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         send_message(truncate_for_x(formatted))
     else:
         heartbeat = (
-            "MONITOR_STATUS: Operational. Systems synchronized. "
-            "Automated technical notice."
+            "SYSTEM_STATUS: Operational. Data flow synchronized. "
+            "Technical notice."
         )
         send_message(truncate_for_x(format_as_neutral(heartbeat)))

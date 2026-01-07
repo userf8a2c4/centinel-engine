@@ -3,10 +3,9 @@ import os
 import sys
 import datetime
 
-# Protocolo de Identidad: HND-SENTINEL-2029
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-DEFAULT_TEMPLATE = os.getenv("TELEGRAM_TEMPLATE", "dedsec").strip().lower()
+DEFAULT_TEMPLATE = os.getenv("TELEGRAM_TEMPLATE", "neutral").strip().lower()
 
 
 def get_stored_hash(hash_path):
@@ -23,40 +22,13 @@ def get_stored_hash(hash_path):
         return f"HASH_READ_ERROR: {str(e)}"
 
 
-def format_as_sentinel(raw_data, stored_hash=None):
-    """
-    Formatea el reporte con estética DedSec bilingüe.
-    """
-    header = (
-        "<code>[!] DEDSEC_HND_SENTINEL_2029</code>\n"
-        "<code>[!] STATUS: ANOMALY_REPORT // PROTOCOL: biling_v1</code>\n"
-        "--------------------------------------------------\n\n"
-    )
-
-    hash_section = ""
-    if stored_hash:
-        hash_section = (
-            f"\n--------------------------------------------------\n"
-            f"<code>VERIFICATION_HASH (SHA-256):</code>\n"
-            f"<code>{stored_hash}</code>"
-        )
-
-    footer = (
-        "\n--------------------------------------------------\n"
-        "<b>DEDSEC has given you the truth. Do what you will.</b>\n"
-        "<b>DEDSEC te ha entregado la verdad. Haz lo que quieras.</b>"
-    )
-
-    return f"{header}{raw_data}{hash_section}{footer}"
-
-
 def format_as_neutral(raw_data, stored_hash=None):
     """
     Formatea el reporte con estilo técnico neutro.
     """
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     header = (
-        "<b>HND-SENTINEL-2029 | AUTOMATED TECHNICAL NOTICE</b>\n"
+        "<b>HND-SENTINEL-2029 | TECHNICAL NOTICE</b>\n"
         f"<code>Timestamp (UTC): {timestamp}</code>\n"
         "--------------------------------------------------\n\n"
     )
@@ -71,17 +43,14 @@ def format_as_neutral(raw_data, stored_hash=None):
 
     footer = (
         "\n--------------------------------------------------\n"
-        "<b>Automated publication. Reproducible from published data.</b>"
+        "<b>Publication generated from public data. Reproducible by third parties.</b>"
     )
 
     return f"{header}{raw_data}{hash_section}{footer}"
 
 
 def resolve_template(template_name):
-    normalized = (template_name or DEFAULT_TEMPLATE).strip().lower()
-    if normalized == "neutral":
-        return format_as_neutral
-    return format_as_sentinel
+    return format_as_neutral
 
 
 def send_message(text, stored_hash=None, template_name=None):
@@ -123,7 +92,7 @@ if __name__ == "__main__":
     else:
         # Heartbeat bilingüe si se ejecuta sin argumentos
         heartbeat = (
-            "<b>[EN] MONITOR_STATUS:</b> Operational. Systems synchronized.\n"
-            "<b>[ES] ESTADO_MONITOR:</b> Operativo. Sistemas sincronizados."
+            "<b>[EN] SYSTEM_STATUS:</b> Operational. Data flow synchronized.\n"
+            "<b>[ES] ESTADO_DEL_SISTEMA:</b> Operativo. Flujo de datos sincronizado."
         )
         send_message(heartbeat, template_name=DEFAULT_TEMPLATE)

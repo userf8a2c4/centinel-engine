@@ -15,6 +15,14 @@ Definir una estructura única, estable y reproducible para todos los datos elect
 - **candidates** (array)
 - **metadata** (object)
 
+### Campos recomendados en candidatos
+
+- **slot** (int)
+- **votes** (int)
+- **candidate_id** (string, opcional)
+- **name** (string, opcional)
+- **party** (string, opcional)
+
 ### Reglas
 - Todos los valores numéricos son enteros.
 - Los porcentajes se recalculan internamente.
@@ -39,6 +47,14 @@ To define a unique, stable, and reproducible structure for all observed electora
 - **totals** (object)
 - **candidates** (array)
 - **metadata** (object)
+
+### Recommended candidate fields
+
+- **slot** (int)
+- **votes** (int)
+- **candidate_id** (string, optional)
+- **name** (string, optional)
+- **party** (string, optional)
 
 ### Rules
 - All numerical values are integers.

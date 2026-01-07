@@ -1,11 +1,14 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 
 @dataclass(frozen=True)
 class CandidateResult:
     slot: int
     votes: int
+    candidate_id: Optional[str] = None
+    name: Optional[str] = None
+    party: Optional[str] = None
 
 
 @dataclass(frozen=True)

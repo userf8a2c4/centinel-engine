@@ -3,6 +3,8 @@ import os
 import glob
 import math
 import collections
+import logging
+import sqlite3
 from datetime import datetime
 
 import pandas as pd
@@ -11,12 +13,20 @@ from dateutil import parser
 # PROTOCOLO HND-SENTINEL-2029 // AUDITORÍA RESILIENTE
 # Versión optimizada para datos históricos 2025 y futuros 2029
 
+logger = logging.getLogger("sentinel.analyze")
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+
+def log_event(level, event, **fields):
+    payload = {"event": event, **fields}
+    logger.log(level, json.dumps(payload, ensure_ascii=False))
+
 def load_json(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        print(f"[!] ERROR_CARGA: {file_path} - {str(e)}")
+        log_event(logging.ERROR, "load_error", file_path=file_path, error=str(e))
         return None
 
 def safe_int(value, default=0):
@@ -29,6 +39,8 @@ def safe_int(value, default=0):
 
 def parse_timestamp(data, file_name):
     raw_ts = data.get('timestamp') or data.get('timestamp_utc') or data.get('fecha')
+    meta = data.get("meta") or data.get("metadata") or {}
+    raw_ts = raw_ts or meta.get("timestamp_utc")
     if raw_ts:
         try:
             return parser.parse(raw_ts)
@@ -48,8 +60,14 @@ def extract_department_records(data, file_name):
         return []
 
     records = []
+    meta = data.get("meta") or data.get("metadata") or {}
     if isinstance(data.get('resultados'), dict):
-        departamento = data.get('departamento') or data.get('departamento_nombre') or 'NACIONAL'
+        departamento = (
+            meta.get("department")
+            or data.get('departamento')
+            or data.get('departamento_nombre')
+            or 'NACIONAL'
+        )
         total_votes = sum(safe_int(v) for v in data['resultados'].values())
         actas = data.get('actas', {})
         actas_procesadas = safe_int(
@@ -57,6 +75,21 @@ def extract_department_records(data, file_name):
             or actas.get('divulgadas')
             or actas.get('totales')
         )
+        records.append({
+            "timestamp": timestamp,
+            "departamento": departamento,
+            "total_votes": total_votes,
+            "actas_procesadas": actas_procesadas,
+        })
+        return records
+
+    totals = data.get("totals") or {}
+    candidatos = data.get("candidates")
+    if isinstance(candidatos, list):
+        departamento = meta.get("department") or "NACIONAL"
+        total_votes = safe_int(totals.get("total_votes"))
+        actas = totals.get("actas_procesadas") or totals.get("actas") or data.get("actas")
+        actas_procesadas = safe_int(actas)
         records.append({
             "timestamp": timestamp,
             "departamento": departamento,
@@ -92,7 +125,7 @@ def apply_benford_law(votos_lista):
 
     first_digits = []
     for c in votos_lista:
-        votos_str = str(c.get('votos', '')).strip()
+        votos_str = str(c.get('votos') or c.get("votes") or '').strip()
         if votos_str and votos_str not in ['0', 'None']:
             first_digits.append(int(votos_str[0]))
     
@@ -106,6 +139,23 @@ def apply_benford_law(votos_lista):
     is_anomaly = dist_1 < 20.0
     
     return {"is_anomaly": is_anomaly, "prop_1": dist_1}
+
+def check_arithmetic_consistency(data, file_name):
+    totals = data.get("totals") or {}
+    candidates = data.get("candidates")
+    if not totals or not isinstance(candidates, list):
+        return None
+
+    total_votes = safe_int(totals.get("total_votes") or totals.get("valid_votes"))
+    candidates_total = sum(safe_int(c.get("votes") or c.get("votos")) for c in candidates)
+    if total_votes and candidates_total != total_votes:
+        return {
+            "file": file_name,
+            "type": "ARITHMETIC_MISMATCH",
+            "expected_total": total_votes,
+            "observed_total": candidates_total,
+        }
+    return None
 
 def compute_trend_metrics(series_df):
     if series_df.shape[0] < 2:
@@ -173,17 +223,17 @@ def build_prediction(series_df, trend_metrics):
         "interval_95": interval,
     }
 
-def run_audit(target_directory='data/'):
+def run_audit(target_directory='data/normalized'):
     peak_votos = {}
     anomalies_log = []
     records = []
 
     file_list = sorted(glob.glob(os.path.join(target_directory, '*.json')))
     if not file_list:
-        print(f"[!] No se encontraron archivos en {target_directory}")
+        log_event(logging.WARNING, "no_files_found", target_directory=target_directory)
         return
 
-    print(f"[*] PROCESANDO {len(file_list)} SNAPSHOTS ELECTORALES...")
+    log_event(logging.INFO, "processing_snapshots", count=len(file_list), target_directory=target_directory)
 
     for file_path in file_list:
         data = load_json(file_path)
@@ -194,14 +244,18 @@ def run_audit(target_directory='data/'):
         votos_actuales = data.get('votos') or data.get('candidates') or []
         records.extend(extract_department_records(data, file_name))
 
+        arithmetic_issue = check_arithmetic_consistency(data, file_name)
+        if arithmetic_issue:
+            anomalies_log.append(arithmetic_issue)
+
         for c in votos_actuales:
-            c_id = str(c.get('id') or c.get('nombre') or 'unknown')
-            v_actual = safe_int(c.get('votos'))
+            c_id = str(c.get('id') or c.get('candidate_id') or c.get('nombre') or c.get("name") or 'unknown')
+            v_actual = safe_int(c.get('votos') or c.get("votes"))
 
             if c_id in peak_votos:
                 if v_actual < peak_votos[c_id]['valor']:
                     diff = v_actual - peak_votos[c_id]['valor']
-                    print(f"[!] REGRESIÓN: {c_id} perdió {diff} votos en {file_name}")
+                    log_event(logging.WARNING, "negative_delta", candidate_id=c_id, loss=diff, file=file_name)
                     anomalies_log.append({
                         "file": file_name,
                         "type": "NEGATIVE_DELTA",
@@ -214,10 +268,15 @@ def run_audit(target_directory='data/'):
 
         benford = apply_benford_law(votos_actuales)
         if benford and benford['is_anomaly']:
-            print(f"[?] SOSPECHA: Distribución Benford anómala en {file_name} (Dígito 1: {benford['prop_1']:.1f}%)")
+            log_event(
+                logging.WARNING,
+                "benford_anomaly",
+                file=file_name,
+                prop_1=f"{benford['prop_1']:.1f}",
+            )
 
     if not records:
-        print("[!] No se detectaron registros por departamento.")
+        log_event(logging.WARNING, "no_department_records")
         return
 
     df = pd.DataFrame(records)
@@ -302,11 +361,106 @@ def run_audit(target_directory='data/'):
     try:
         df.to_parquet('analysis_results.parquet', index=False)
     except Exception as e:
-        print(f"[!] No se pudo guardar Parquet: {e}")
+        log_event(logging.WARNING, "parquet_write_failed", error=str(e))
 
     with open('anomalies_report.json', 'w') as f:
         json.dump(anomalies_log + anomalies, f, indent=4)
-    print("\n[*] AUDITORÍA FINALIZADA. Reportes guardados en anomalies_report.json y analysis_results.json")
+
+    reports_dir = "reports"
+    os.makedirs(reports_dir, exist_ok=True)
+    with open(os.path.join(reports_dir, "summary_es.txt"), "w", encoding="utf-8") as f:
+        f.write(build_plain_summary(output, language="es"))
+    with open(os.path.join(reports_dir, "summary_en.txt"), "w", encoding="utf-8") as f:
+        f.write(build_plain_summary(output, language="en"))
+
+    persist_to_sqlite(output, os.path.join(reports_dir, "sentinel.db"))
+    log_event(logging.INFO, "audit_completed", reports_dir=reports_dir)
+
+
+def persist_to_sqlite(output, sqlite_path):
+    connection = sqlite3.connect(sqlite_path)
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS anomalies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            generated_at TEXT,
+            payload TEXT
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS department_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            generated_at TEXT,
+            department TEXT,
+            payload TEXT
+        )
+        """
+    )
+
+    generated_at = output.get("generated_at")
+    anomalies = output.get("anomalies", [])
+    cursor.execute(
+        "INSERT INTO anomalies (generated_at, payload) VALUES (?, ?)",
+        (generated_at, json.dumps(anomalies, ensure_ascii=False)),
+    )
+
+    for dept, metrics in output.get("departments", {}).items():
+        cursor.execute(
+            "INSERT INTO department_metrics (generated_at, department, payload) VALUES (?, ?, ?)",
+            (generated_at, dept, json.dumps(metrics, ensure_ascii=False)),
+        )
+
+    connection.commit()
+    connection.close()
+
+
+def build_plain_summary(output, language="es"):
+    generated_at = output.get("generated_at")
+    anomalies = output.get("anomalies", [])
+    departments = output.get("departments", {})
+    total_anomalies = len(anomalies)
+    lines = []
+
+    if language == "en":
+        lines.append("HND-SENTINEL-2029 | Plain-language summary")
+        lines.append(f"Generated at (UTC): {generated_at}")
+        lines.append(f"Total events detected: {total_anomalies}")
+        lines.append("")
+        lines.append("What this means:")
+        lines.append("- The system checks for sudden changes, regressions, and arithmetic mismatches.")
+        lines.append("- Events indicate unusual data behavior, not intent or responsibility.")
+        lines.append("")
+        lines.append("Department overview:")
+        for dept, metrics in departments.items():
+            slope = metrics.get("slope_votes")
+            ratio = metrics.get("ratio_votos_actas")
+            lines.append(f"- {dept}: trend slope={format_metric(slope)}, votes/actas={format_metric(ratio)}")
+    else:
+        lines.append("HND-SENTINEL-2029 | Resumen en lenguaje común")
+        lines.append(f"Generado (UTC): {generated_at}")
+        lines.append(f"Eventos detectados: {total_anomalies}")
+        lines.append("")
+        lines.append("Qué significa:")
+        lines.append("- El sistema revisa cambios abruptos, regresiones y desajustes aritméticos.")
+        lines.append("- Los eventos indican comportamientos inusuales en los datos, no intención ni responsabilidad.")
+        lines.append("")
+        lines.append("Resumen por departamento:")
+        for dept, metrics in departments.items():
+            slope = metrics.get("slope_votes")
+            ratio = metrics.get("ratio_votos_actas")
+            lines.append(f"- {dept}: tendencia={format_metric(slope)}, votos/actas={format_metric(ratio)}")
+
+    return "\n".join(lines)
+
+
+def format_metric(value):
+    if value is None:
+        return "N/D"
+    return f"{value:.2f}"
 
 if __name__ == "__main__":
     run_audit()
