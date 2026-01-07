@@ -1,4 +1,4 @@
-# Formato Interno de Datos – Sentinel
+# Formato Interno de Datos – Proyecto C.E.N.T.I.N.E.L.
 
 ## [ES] Español
 

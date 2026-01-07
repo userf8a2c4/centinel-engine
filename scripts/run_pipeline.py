@@ -201,7 +201,7 @@ def run_pipeline():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Pipeline Sentinel: descarga → normaliza → hash → análisis → reportes → alertas")
+    parser = argparse.ArgumentParser(description="Pipeline Proyecto C.E.N.T.I.N.E.L.: descarga → normaliza → hash → análisis → reportes → alertas")
     parser.add_argument("--once", action="store_true", help="Ejecuta una sola vez y sale")
     parser.add_argument("--run-now", action="store_true", help="Ejecuta inmediatamente antes del scheduler")
     args = parser.parse_args()

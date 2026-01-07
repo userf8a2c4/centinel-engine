@@ -1,4 +1,4 @@
-# Núcleo técnico (sentinel.core)
+# Núcleo técnico de Proyecto C.E.N.T.I.N.E.L. (sentinel.core)
 
 ## [ES] Español
 

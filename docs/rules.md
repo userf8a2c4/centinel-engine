@@ -1,4 +1,4 @@
-# Reglas Técnicas – Sentinel
+# Reglas Técnicas – Proyecto C.E.N.T.I.N.E.L.
 
 ## [ES] Español
 

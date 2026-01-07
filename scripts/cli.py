@@ -306,7 +306,7 @@ def show_status(args: argparse.Namespace) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="CLI para ejecutar el pipeline HND-SENTINEL y consultar estado."
+        description="CLI para ejecutar el pipeline Proyecto C.E.N.T.I.N.E.L. y consultar estado."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

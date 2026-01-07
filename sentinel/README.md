@@ -1,4 +1,4 @@
-# Sentinel (paquete principal)
+# Proyecto C.E.N.T.I.N.E.L. (paquete principal)
 
 ## [ES] Español
 

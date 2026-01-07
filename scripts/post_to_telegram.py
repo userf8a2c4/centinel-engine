@@ -39,7 +39,7 @@ def format_as_neutral(raw_data, stored_hash=None):
     """
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     header = (
-        "<b>HND-SENTINEL-2029 | TECHNICAL NOTICE</b>\n"
+        "<b>Proyecto C.E.N.T.I.N.E.L. | TECHNICAL NOTICE</b>\n"
         f"<code>Timestamp (UTC): {timestamp}</code>\n"
         "--------------------------------------------------\n\n"
     )

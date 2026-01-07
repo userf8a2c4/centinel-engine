@@ -74,7 +74,12 @@ def generate_benford_plot():
         plt.fill_between(digits, benford_ideal, real_frequencies, color='red', alpha=0.1, label='Desviación')
     
     # 5. Estética y Títulos Dinámicos
-    plt.title(f'Sentinel 2029: Auditoría Estadística\nEjecución: {data_timestamp}', fontsize=14, fontweight='bold', pad=20)
+    plt.title(
+        f'Proyecto C.E.N.T.I.N.E.L. 2029: Auditoría Estadística\nEjecución: {data_timestamp}',
+        fontsize=14,
+        fontweight='bold',
+        pad=20,
+    )
     plt.xlabel('Primer Dígito Significativo', fontsize=12)
     plt.ylabel('Frecuencia de Aparición (%)', fontsize=12)
     plt.xticks(digits)
@@ -84,7 +89,14 @@ def generate_benford_plot():
     
     # Marcas de identificación en el pie de la imagen
     plt.figtext(0.02, 0.02, f"Archivo origen: {report_path}", fontsize=8, color='gray')
-    plt.figtext(0.98, 0.02, "HND-SENTINEL-2029 | Hash-Verified Evidence", fontsize=8, color='gray', ha='right')
+    plt.figtext(
+        0.98,
+        0.02,
+        "Proyecto C.E.N.T.I.N.E.L. | Hash-Verified Evidence",
+        fontsize=8,
+        color="gray",
+        ha="right",
+    )
 
     # 6. Guardar y Cerrar
     plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Ajustar espacio para el pie de foto

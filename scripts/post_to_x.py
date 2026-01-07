@@ -27,7 +27,7 @@ def format_as_neutral(raw_data, stored_hash=None):
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     hash_line = f"\nVerification hash (SHA-256): {stored_hash}" if stored_hash else ""
     return (
-        "HND-SENTINEL-2029 | TECHNICAL NOTICE\n"
+        "Proyecto C.E.N.T.I.N.E.L. | TECHNICAL NOTICE\n"
         f"Timestamp (UTC): {timestamp}\n"
         f"{raw_data}"
         f"{hash_line}\n"

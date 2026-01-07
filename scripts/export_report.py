@@ -40,7 +40,7 @@ def build_pdf(
     story = []
 
     generated_at = analysis_data.get("generated_at") or datetime.utcnow().isoformat() + "Z"
-    story.append(Paragraph("Reporte de auditoría HND-SENTINEL-2029", styles["Title"]))
+    story.append(Paragraph("Reporte de auditoría Proyecto C.E.N.T.I.N.E.L.", styles["Title"]))
     story.append(Paragraph(f"Generado: {generated_at}", styles["Normal"]))
     story.append(Spacer(1, 12))
 

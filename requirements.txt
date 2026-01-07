@@ -11,4 +11,4 @@ playwright==1.49.0  # Fallback de scraping con navegador headless.
 pytest==8.3.3  # Para ejecutar la suite de pruebas en CI.
 playwright==1.46.0  # Para fallback de scraping con navegador.
 playwright-stealth==1.0.6  # Para modo stealth en Playwright.
-# The Sentinel's arsenal for truth exposure. No libs extras para mantener ligereza.
+# Arsenal de Proyecto C.E.N.T.I.N.E.L. para exposición de verdad. Sin extras para mantener ligereza.

@@ -27,7 +27,7 @@ base_url: "https://<URL_DEL_ENDPOINT>"
 timeout: 15
 retries: 3
 headers:
-  User-Agent: "HND-SENTINEL-2029"
+  User-Agent: "C.E.N.T.I.N.E.L."
 backoff_base_seconds: 1
 backoff_max_seconds: 30
 ```
@@ -117,7 +117,7 @@ base_url: "https://<ENDPOINT_URL>"
 timeout: 15
 retries: 3
 headers:
-  User-Agent: "HND-SENTINEL-2029"
+  User-Agent: "C.E.N.T.I.N.E.L."
 backoff_base_seconds: 1
 backoff_max_seconds: 30
 ```

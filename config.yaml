@@ -6,10 +6,10 @@ timeout: 15 # Segundos máximos por solicitud.
 retries: 3 # Reintentos totales antes de fallar.
 headers: # Encabezados HTTP enviados en cada solicitud.
   Accept: "application/json" # Tipo de respuesta esperado.
-  User-Agent: "HND-Sentinel/1.0" # Identificador del cliente.
+  User-Agent: "C.E.N.T.I.N.E.L./1.0" # Identificador del cliente.
 use_playwright: false # Usa Playwright como fallback cuando falle la descarga HTTP.
 playwright_stealth: true # Activa el modo stealth (playwright-stealth) si está disponible.
-playwright_user_agent: "HND-Sentinel/1.0" # User-Agent para el contexto Playwright (por defecto usa headers.User-Agent).
+playwright_user_agent: "C.E.N.T.I.N.E.L./1.0" # User-Agent para el contexto Playwright (por defecto usa headers.User-Agent).
 playwright_viewport: # Viewport para Playwright.
   width: 1280
   height: 720
@@ -112,4 +112,4 @@ sources: # Fuentes configuradas para consultas.
 
 logging:
   level: INFO # Opciones: DEBUG, INFO, WARNING, ERROR
-  file: sentinel.log # Ruta relativa al root
+  file: centinel.log # Ruta relativa al root

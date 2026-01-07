@@ -126,6 +126,11 @@ def extract_timestamp(snapshot_path: Path, payload: dict) -> datetime | None:
     return parse_timestamp_from_name(snapshot_path.name)
 
 
+def format_timestamp(timestamp: datetime | None) -> str:
+    """Convierte timestamps a texto seguro para UI."""
+    return timestamp.isoformat(sep=" ") if timestamp else ""
+
+
 def normalize_votos(payload: dict) -> dict:
     """Normaliza el diccionario de votos."""
     votos = payload.get("votos") or {}
@@ -172,9 +177,15 @@ def display_header() -> None:
     """Renderiza el encabezado principal del dashboard."""
     st.markdown(
         "<h1 style='text-align:center;'>"
-        "HND-SENTINEL-2029 – Auditoría Ciudadana Independiente del CNE Honduras – "
+        "Proyecto C.E.N.T.I.N.E.L. – Auditoría Ciudadana Independiente del CNE Honduras – "
         "Solo hechos y números"
         "</h1>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<p style='text-align:center;'>"
+        "Centinela Electrónico Neutral Transparente Íntegro Nacional Electoral Libre"
+        "</p>",
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -189,7 +200,7 @@ def display_footer() -> None:
     """Renderiza el pie institucional del dashboard."""
     st.markdown("---")
     st.markdown(
-        "Proyecto open-source MIT – Solo datos públicos del CNE – "
+        "Proyecto C.E.N.T.I.N.E.L. open-source MIT – Solo datos públicos del CNE – "
         "Preparado para Elecciones 2029 – No alineado políticamente."
     )
     st.markdown("Versión: v0.1-dev (enero 2026)")
@@ -330,7 +341,7 @@ def build_dataframe(snapshot_data: list[dict], errors: list[str]) -> pd.DataFram
             hash_value, hash_error = read_hash_file(item["path"], errors=errors)
         rows.append(
             {
-                "Fecha/Hora": timestamp.isoformat(sep=" ") if timestamp else "",
+                "Fecha/Hora": format_timestamp(timestamp),
                 "Nombre archivo": item["path"].name,
                 "Hash": hash_value,
                 "Porcentaje escrutado": item["porcentaje_escrutado"],
@@ -346,8 +357,9 @@ def display_estado_actual(latest: dict, errors: list[str]) -> None:
     """Renderiza la sección con detalle del último snapshot."""
     with st.expander("Estado actual", expanded=True):
         timestamp = latest.get("timestamp")
+        timestamp_text = format_timestamp(timestamp)
         st.write(
-            f"**Último snapshot:** {timestamp.isoformat(sep=' ') if timestamp else 'Sin fecha'}"
+            f"**Último snapshot:** {timestamp_text or 'Sin fecha'}"
         )
         snapshot_path = latest.get("path")
         hash_value = ""
@@ -360,9 +372,7 @@ def display_estado_actual(latest: dict, errors: list[str]) -> None:
         )
         total_votos = latest.get("total_votos")
         st.write(f"**Total votos acumulados:** {total_votos if total_votos is not None else 'N/A'}")
-        st.write(
-            f"**Última actualización:** {timestamp.isoformat(sep=' ') if timestamp else 'N/A'}"
-        )
+        st.write(f"**Última actualización:** {timestamp_text or 'N/A'}")
 
 
 def display_table(df: pd.DataFrame) -> None:
@@ -409,7 +419,7 @@ def display_chart(df: pd.DataFrame) -> None:
     st.line_chart(chart_data)
 
 
-def render_sidebar() -> dict:
+def render_sidebar(errors: list[str]) -> dict:
     """Renderiza la barra lateral para filtros y acciones."""
     st.sidebar.header("Filtros y acciones")
     if DEFAULT_PDF_REPORT.exists() and not DEFAULT_PDF_REPORT.is_file():
@@ -524,7 +534,7 @@ def trigger_refresh(errors: list[str]) -> None:
 
 def main() -> None:
     """Función principal del dashboard."""
-    st.set_page_config(page_title="HND-SENTINEL-2029", layout="wide")
+    st.set_page_config(page_title="Proyecto C.E.N.T.I.N.E.L.", layout="wide")
     display_header()
 
     errors: list[str] = []
@@ -553,7 +563,7 @@ def main() -> None:
     snapshot_data = [load_snapshot_data(path, errors) for path in snapshots]
     latest = snapshot_data[0] if snapshot_data else {}
 
-    filters = render_sidebar()
+    filters = render_sidebar(errors)
 
     df = build_dataframe(snapshot_data, errors)
     try:

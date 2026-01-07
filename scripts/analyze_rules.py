@@ -11,7 +11,7 @@ import pandas as pd
 from dateutil import parser
 
 from sentinel.utils.logging_config import setup_logging
-# PROTOCOLO HND-SENTINEL-2029 // AUDITORÍA RESILIENTE
+# PROTOCOLO PROYECTO C.E.N.T.I.N.E.L. // AUDITORÍA RESILIENTE
 # Versión optimizada para datos históricos 2025 y futuros 2029
 
 setup_logging()
@@ -615,7 +615,7 @@ def run_audit(target_directory='data/normalized'):
     with open(os.path.join(reports_dir, "summary_en.txt"), "w", encoding="utf-8") as f:
         f.write(build_plain_summary(output, language="en"))
 
-    persist_to_sqlite(output, os.path.join(reports_dir, "sentinel.db"))
+    persist_to_sqlite(output, os.path.join(reports_dir, "centinel.db"))
     logger.info("audit_completed reports_dir=%s", reports_dir)
 
 
@@ -668,7 +668,7 @@ def build_plain_summary(output, language="es"):
     lines = []
 
     if language == "en":
-        lines.append("HND-SENTINEL-2029 | Plain-language summary")
+        lines.append("Proyecto C.E.N.T.I.N.E.L. | Plain-language summary")
         lines.append(f"Generated at (UTC): {generated_at}")
         lines.append(f"Total events detected: {total_anomalies}")
         lines.append("")
@@ -683,7 +683,7 @@ def build_plain_summary(output, language="es"):
             ratio = metrics.get("ratio_votos_actas")
             lines.append(f"- {dept}: trend slope={format_metric(slope)}, votes/actas={format_metric(ratio)}")
     else:
-        lines.append("HND-SENTINEL-2029 | Resumen en lenguaje común")
+        lines.append("Proyecto C.E.N.T.I.N.E.L. | Resumen en lenguaje común")
         lines.append(f"Generado (UTC): {generated_at}")
         lines.append(f"Eventos detectados: {total_anomalies}")
         lines.append("")

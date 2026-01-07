@@ -1,6 +1,6 @@
 # Reportes locales
 
-`sentinel.db` se genera al ejecutar `scripts/analyze_rules.py`.
+`centinel.db` se genera al ejecutar `scripts/analyze_rules.py`.
 No se versiona porque es un archivo binario.
 
 Para recrearlo:

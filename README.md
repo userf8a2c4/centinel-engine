@@ -1,4 +1,5 @@
-# SENTINEL
+# Proyecto C.E.N.T.I.N.E.L.
+## Centinela Electrónico Neutral Transparente Íntegro Nacional Electoral Libre
 ## Sistema Autónomo de Integridad de Datos Electorales | Automated Electoral Data Integrity System
 
 ---
@@ -13,7 +14,7 @@
 5. (Opcional) Abre el dashboard: `streamlit run dashboard.py`
 
 ### ¿Qué es esto?
-**HND-SENTINEL-2029** es un sistema técnico independiente para observar y auditar datos electorales públicos en Honduras. Su función es registrar, normalizar, verificar y analizar cambios en los datos publicados, produciendo reportes técnicos reproducibles.
+**Proyecto C.E.N.T.I.N.E.L.** es un sistema técnico independiente para observar y auditar datos electorales públicos en Honduras. Su función es registrar, normalizar, verificar y analizar cambios en los datos publicados, produciendo reportes técnicos reproducibles.
 
 ### ¿Para qué sirve?
 - Capturar snapshots de datos públicos por departamento.
@@ -96,7 +97,7 @@ Ejecuta el panel interactivo con Streamlit después de generar snapshots:
 ## [EN] English
 
 ### What is this?
-**HND-SENTINEL-2029** is an independent technical system to observe and audit public electoral data in Honduras. Its role is to record, normalize, verify, and analyze changes in published data, producing reproducible technical reports.
+**Proyecto C.E.N.T.I.N.E.L.** is an independent technical system to observe and audit public electoral data in Honduras. Its role is to record, normalize, verify, and analyze changes in published data, producing reproducible technical reports.
 
 ### What is it for?
 - Capture public data snapshots per department.

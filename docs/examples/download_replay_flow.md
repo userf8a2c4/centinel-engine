@@ -39,7 +39,7 @@ Resultados guardados en `docs/examples/analysis_2025/`:
 - `anomalies_report.json`
 - `reports/summary_es.txt`
 - `reports/summary_en.txt`
-- `reports/sentinel.db` (binario, se genera localmente y no se versiona)
+- `reports/centinel.db` (binario, se genera localmente y no se versiona)
 
 Los textos de resumen son neutrales: describen eventos y métricas sin atribuir intención.
 
@@ -90,7 +90,7 @@ Results stored in `docs/examples/analysis_2025/`:
 - `anomalies_report.json`
 - `reports/summary_es.txt`
 - `reports/summary_en.txt`
-- `reports/sentinel.db` (binary, generated locally and not committed)
+- `reports/centinel.db` (binary, generated locally and not committed)
 
 The summaries are neutral: they report events and metrics without attributing intent.
 

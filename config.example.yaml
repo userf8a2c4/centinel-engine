@@ -1,4 +1,4 @@
-# Ejemplo de configuración para HND-SENTINEL-2029.
+# Ejemplo de configuración para Proyecto C.E.N.T.I.N.E.L.
 # Copia este archivo como config.yaml y ajusta los valores a tu entorno.
 
 # URL base del endpoint de resultados (placeholder).
@@ -9,10 +9,10 @@ timeout: 20
 retries: 5
 headers:
   Accept: "application/json"
-  User-Agent: "HND-Sentinel/1.0 (config-example)"
+  User-Agent: "C.E.N.T.I.N.E.L./1.0 (config-example)"
 use_playwright: false
 playwright_stealth: true
-playwright_user_agent: "HND-Sentinel/1.0 (config-example)"
+playwright_user_agent: "C.E.N.T.I.N.E.L./1.0 (config-example)"
 playwright_viewport:
   width: 1280
   height: 720

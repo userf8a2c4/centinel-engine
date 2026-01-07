@@ -1,4 +1,4 @@
-HND-SENTINEL-2029 | Plain-language summary
+Proyecto C.E.N.T.I.N.E.L. | Plain-language summary
 Generated at (UTC): 2026-01-07T15:03:20.478915Z
 Total events detected: 5
 

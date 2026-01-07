@@ -13,7 +13,7 @@ def setup_logging(config_path: str = "config.yaml") -> None:
 
         log_config = config.get("logging", {})
         level_str = str(log_config.get("level", "INFO")).upper()
-        log_file = log_config.get("file", "sentinel.log")
+        log_file = log_config.get("file", "centinel.log")
         log_level = getattr(logging, level_str, logging.INFO)
 
         logging.basicConfig(

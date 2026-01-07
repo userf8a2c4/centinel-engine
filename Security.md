@@ -14,7 +14,7 @@ Para garantizar que el sistema no ha sido comprometido:
 * **Auditoría de Dependencias:** El sistema minimiza el uso de librerías externas para reducir la superficie de ataque. Las dependencias activas son monitoreadas mediante GitHub Dependabot.
 
 #### 3. SEGURIDAD DE LOS DATOS (ANTI-TAMPERING)
-El Sentinel implementa un protocolo anti-manipulación basado en:
+El Proyecto C.E.N.T.I.N.E.L. implementa un protocolo anti-manipulación basado en:
 * **Inmutabilidad de Git:** Cada snapshot es commiteado con un timestamp del servidor, creando una cadena de custodia auditable.
 * **Verificación Cruzada:** Se recomienda a los auditores independientes realizar sus propias capturas para cotejar los hashes SHA-256 publicados en este repositorio.
 
@@ -34,7 +34,7 @@ To ensure the system has not been compromised:
 * **Dependency Auditing:** The system minimizes the use of external libraries to reduce the attack surface. Active dependencies are monitored via GitHub Dependabot.
 
 #### 3. DATA SECURITY (ANTI-TAMPERING)
-The Sentinel implements an anti-tampering protocol based on:
+Proyecto C.E.N.T.I.N.E.L. implements an anti-tampering protocol based on:
 * **Git Immutability:** Every snapshot is committed with a server timestamp, creating an auditable chain of custody.
 * **Cross-Verification:** Independent auditors are encouraged to perform their own captures to cross-reference the SHA-256 hashes published in this repository.
 

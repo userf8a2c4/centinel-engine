@@ -7,7 +7,7 @@ from typing import Any
 
 
 def configure_logging(logger_name: str, log_file: str | None = None, level: int | None = None) -> logging.Logger:
-    log_path = log_file or os.getenv("LOG_FILE", "logs/sentinel.jsonl")
+    log_path = log_file or os.getenv("LOG_FILE", "logs/centinel.jsonl")
     log_level = level or getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
 
     logger = logging.getLogger(logger_name)

@@ -1,38 +1,38 @@
-# Principios Operativos de Sentinel
+# Principios Operativos de C.E.N.T.I.N.E.L.
 
 ## [ES] Español
 
 ### 1. Naturaleza del Sistema
 
-Sentinel es un sistema técnico de observación y auditoría de datos electorales
+C.E.N.T.I.N.E.L. es un sistema técnico de observación y auditoría de datos electorales
 **exclusivamente públicos**.
 
 No es una organización política.
 No es un medio de comunicación.
 No es un actor electoral.
 
-Sentinel es un sistema diseñado para registrar, comparar y publicar automáticamente
+C.E.N.T.I.N.E.L. es un sistema diseñado para registrar, comparar y publicar automáticamente
 cambios observables en datos oficiales divulgados por terceros.
 
 ---
 
 ### 2. Propósito Fundamental
 
-El propósito de Sentinel es:
+El propósito de C.E.N.T.I.N.E.L. es:
 
 - preservar evidencia pública en el tiempo
 - permitir comparaciones históricas verificables
 - hacer visibles cambios, inconsistencias y patrones temporales
 - reducir la dependencia de interpretaciones subjetivas
 
-Sentinel no busca persuadir.
+C.E.N.T.I.N.E.L. no busca persuadir.
 Busca **permitir observar**.
 
 ---
 
 ### 3. Neutralidad Técnica Estricta
 
-Sentinel opera bajo neutralidad técnica absoluta.
+C.E.N.T.I.N.E.L. opera bajo neutralidad técnica absoluta.
 
 Esto implica que el sistema:
 
@@ -48,7 +48,7 @@ independientemente de su impacto político.
 
 ### 4. Reproducibilidad Total (Principio Rector)
 
-> **Todo resultado publicado por Sentinel debe ser reproducible
+> **Todo resultado publicado por C.E.N.T.I.N.E.L. debe ser reproducible
 > por cualquier tercero independiente.**
 
 Para cumplir este principio:
@@ -65,7 +65,7 @@ Si un resultado no puede reproducirse, se considera inválido.
 
 ### 5. Transparencia Radical y Continua
 
-Sentinel publica de forma explícita:
+C.E.N.T.I.N.E.L. publica de forma explícita:
 
 - cuándo se obtuvieron los datos
 - desde qué fuente pública
@@ -73,7 +73,7 @@ Sentinel publica de forma explícita:
 - qué reglas se aplicaron
 - qué resultados se generaron
 
-Sentinel también publica cuando **no se detectan eventos**.
+C.E.N.T.I.N.E.L. también publica cuando **no se detectan eventos**.
 
 La ausencia de cambios es información relevante
 y forma parte del registro histórico.
@@ -98,7 +98,7 @@ Esto garantiza trazabilidad completa.
 
 ### 7. Automatización Basada en Reglas
 
-Sentinel opera exclusivamente mediante reglas objetivas predefinidas.
+C.E.N.T.I.N.E.L. opera exclusivamente mediante reglas objetivas predefinidas.
 
 - no existen decisiones manuales en tiempo de ejecución
 - no existe curaduría humana de resultados
@@ -111,7 +111,7 @@ una regla documentada se activa.
 
 ### 8. Lenguaje Técnico Controlado
 
-Sentinel utiliza deliberadamente un vocabulario técnico restringido.
+C.E.N.T.I.N.E.L. utiliza deliberadamente un vocabulario técnico restringido.
 
 Evita términos acusatorios o interpretativos como:
 - fraude
@@ -132,14 +132,14 @@ El lenguaje es parte del diseño del sistema.
 
 ### 9. Alcance y Limitaciones
 
-Sentinel declara explícitamente sus límites:
+C.E.N.T.I.N.E.L. declara explícitamente sus límites:
 
 - no accede a sistemas internos
 - no valida procesos no publicados
 - no certifica resultados electorales
 - no reemplaza a autoridades electorales
 
-Sentinel observa **lo que se publica** y **cómo cambia en el tiempo**.
+C.E.N.T.I.N.E.L. observa **lo que se publica** y **cómo cambia en el tiempo**.
 Nada más. Nada menos.
 
 ---
@@ -154,14 +154,14 @@ Cualquier persona puede:
 - proponer mejoras técnicas
 - cuestionar resultados con evidencia verificable
 
-Sentinel no solicita confianza.
+C.E.N.T.I.N.E.L. no solicita confianza.
 Funciona bajo verificación independiente.
 
 ---
 
 ### 11. Persistencia Operativa
 
-Sentinel opera de forma continua y predecible.
+C.E.N.T.I.N.E.L. opera de forma continua y predecible.
 
 - no se activa por coyuntura política
 - no se desactiva por presión externa
@@ -174,11 +174,11 @@ no en hallazgos aislados.
 
 ### Declaración Operativa
 
-Sentinel no interpreta.
-Sentinel no opina.
-Sentinel no acusa.
+C.E.N.T.I.N.E.L. no interpreta.
+C.E.N.T.I.N.E.L. no opina.
+C.E.N.T.I.N.E.L. no acusa.
 
-Sentinel **registra**, **compara** y **publica**.
+C.E.N.T.I.N.E.L. **registra**, **compara** y **publica**.
 
 La interpretación queda siempre en manos del observador.
 
@@ -188,35 +188,35 @@ La interpretación queda siempre en manos del observador.
 
 ### 1. System Nature
 
-Sentinel is a technical system for observation and auditing of **exclusively public**
+C.E.N.T.I.N.E.L. is a technical system for observation and auditing of **exclusively public**
 electoral data.
 
 It is not a political organization.
 It is not a media outlet.
 It is not an electoral actor.
 
-Sentinel is designed to register, compare, and automatically publish
+C.E.N.T.I.N.E.L. is designed to register, compare, and automatically publish
 observable changes in official data released by third parties.
 
 ---
 
 ### 2. Core Purpose
 
-The purpose of Sentinel is to:
+The purpose of C.E.N.T.I.N.E.L. is to:
 
 - preserve public evidence over time
 - enable verifiable historical comparisons
 - make visible changes, inconsistencies, and temporal patterns
 - reduce dependence on subjective interpretation
 
-Sentinel does not seek to persuade.
+C.E.N.T.I.N.E.L. does not seek to persuade.
 It seeks to **enable observation**.
 
 ---
 
 ### 3. Strict Technical Neutrality
 
-Sentinel operates under absolute technical neutrality.
+C.E.N.T.I.N.E.L. operates under absolute technical neutrality.
 
 This means the system:
 
@@ -231,7 +231,7 @@ All data is treated identically, regardless of political implications.
 
 ### 4. Total Reproducibility (Governing Principle)
 
-> **Any result published by Sentinel must be reproducible
+> **Any result published by C.E.N.T.I.N.E.L. must be reproducible
 > by any independent third party.**
 
 To ensure this:
@@ -248,7 +248,7 @@ If a result cannot be reproduced, it is considered invalid.
 
 ### 5. Radical and Continuous Transparency
 
-Sentinel explicitly publishes:
+C.E.N.T.I.N.E.L. explicitly publishes:
 
 - when data was retrieved
 - from which public source
@@ -256,7 +256,7 @@ Sentinel explicitly publishes:
 - which rules were applied
 - what outputs were generated
 
-Sentinel also publishes when **no events are detected**.
+C.E.N.T.I.N.E.L. also publishes when **no events are detected**.
 
 The absence of change is relevant information
 and part of the historical record.
@@ -281,7 +281,7 @@ This guarantees full traceability.
 
 ### 7. Rule-Based Automation
 
-Sentinel operates exclusively through predefined objective rules.
+C.E.N.T.I.N.E.L. operates exclusively through predefined objective rules.
 
 - no manual decisions at runtime
 - no human curation of outputs
@@ -293,7 +293,7 @@ A publication occurs only when a documented rule is triggered.
 
 ### 8. Controlled Technical Language
 
-Sentinel deliberately uses a restricted technical vocabulary.
+C.E.N.T.I.N.E.L. deliberately uses a restricted technical vocabulary.
 
 It avoids accusatory or interpretive terms such as:
 - fraud
@@ -314,14 +314,14 @@ Language is a design component of the system.
 
 ### 9. Scope and Limitations
 
-Sentinel explicitly declares its limits:
+C.E.N.T.I.N.E.L. explicitly declares its limits:
 
 - no access to internal systems
 - no validation of unpublished processes
 - no certification of electoral outcomes
 - no replacement of electoral authorities
 
-Sentinel observes **what is published** and **how it changes over time**.
+C.E.N.T.I.N.E.L. observes **what is published** and **how it changes over time**.
 Nothing more. Nothing less.
 
 ---
@@ -336,14 +336,14 @@ Any person may:
 - propose technical improvements
 - challenge outputs with verifiable evidence
 
-Sentinel does not require trust.
+C.E.N.T.I.N.E.L. does not require trust.
 It operates on independent verification.
 
 ---
 
 ### 11. Operational Persistence
 
-Sentinel operates continuously and predictably.
+C.E.N.T.I.N.E.L. operates continuously and predictably.
 
 - it does not activate based on political context
 - it does not deactivate due to external pressure
@@ -355,10 +355,10 @@ Its credibility is based on consistency, not isolated findings.
 
 ### Operational Statement
 
-Sentinel does not interpret.
-Sentinel does not opine.
-Sentinel does not accuse.
+C.E.N.T.I.N.E.L. does not interpret.
+C.E.N.T.I.N.E.L. does not opine.
+C.E.N.T.I.N.E.L. does not accuse.
 
-Sentinel **records**, **compares**, and **publishes**.
+C.E.N.T.I.N.E.L. **records**, **compares**, and **publishes**.
 
 Interpretation is left entirely to the observer.
