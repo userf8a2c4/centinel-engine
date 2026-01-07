@@ -7,4 +7,5 @@ tweepy==4.14.0  # Para posting en X (Twitter).
 python-dateutil==2.8.2  # Para manejo robusto de timestamps en los snapshots.
 PyYAML==6.0.2  # Para cargar configuración centralizada.
 pytest==8.3.3  # Para ejecutar la suite de pruebas en CI.
+reportlab==4.1.0  # Para generar reportes PDF desde JSONs.
 # The Sentinel's arsenal for truth exposure. No libs extras para mantener ligereza.

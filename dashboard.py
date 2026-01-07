@@ -14,6 +14,8 @@ DATA_DIR = Path("data")
 HASH_DIR = Path("hashes")
 ALERTS_LOG = Path("alerts.log")
 ALERTS_JSON = DATA_DIR / "alerts.json"
+REPORTS_DIR = Path("reports")
+DEFAULT_PDF_REPORT = REPORTS_DIR / "latest_report.pdf"
 READ_ERROR_PREFIX = "No se pudo leer"
 
 
@@ -181,7 +183,16 @@ def display_alerts(errors: list[str]) -> None:
                 "Descripción": alert.get("descripcion", alert.get("description", "")),
             }
         )
-    st.dataframe(pd.DataFrame(alert_rows), use_container_width=True)
+    alerts_df = pd.DataFrame(alert_rows)
+    st.dataframe(alerts_df, use_container_width=True)
+    if not alerts_df.empty:
+        csv_data = alerts_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Descargar alertas (CSV)",
+            data=csv_data,
+            file_name="alertas.csv",
+            mime="text/csv",
+        )
 
 
 def build_dataframe(snapshot_data: list[dict], errors: list[str]) -> pd.DataFrame:
@@ -247,6 +258,18 @@ def display_table(df: pd.DataFrame) -> None:
         lambda value: f"{value[:12]}..." if isinstance(value, str) and value else ""
     )
     st.dataframe(table_df.head(10), use_container_width=True)
+    export_df = df.copy()
+    if "Votos" in export_df.columns:
+        export_df["Votos"] = export_df["Votos"].apply(
+            lambda value: json.dumps(value, ensure_ascii=False) if isinstance(value, dict) else ""
+        )
+    csv_data = export_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="Descargar snapshots (CSV)",
+        data=csv_data,
+        file_name="snapshots.csv",
+        mime="text/csv",
+    )
 
 
 def display_chart(df: pd.DataFrame) -> None:
@@ -280,6 +303,16 @@ def display_chart(df: pd.DataFrame) -> None:
 def render_sidebar(snapshot_data: list[dict]) -> dict:
     """Sidebar interactiva para filtros y acciones."""
     st.sidebar.header("Filtros y acciones")
+    if DEFAULT_PDF_REPORT.exists():
+        report_bytes = DEFAULT_PDF_REPORT.read_bytes()
+        st.sidebar.download_button(
+            label="Descargar reporte PDF",
+            data=report_bytes,
+            file_name=DEFAULT_PDF_REPORT.name,
+            mime="application/pdf",
+        )
+    else:
+        st.sidebar.caption("Genera un reporte PDF para habilitar la descarga.")
     departamentos = sorted(
         {item.get("departamento") for item in snapshot_data if item.get("departamento")}
     )

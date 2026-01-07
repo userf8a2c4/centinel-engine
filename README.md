@@ -21,6 +21,7 @@
 - `scripts/post_to_telegram.py`: publicación de alertas.
 
 ### Documentación
+- Inicio rápido: `QUICKSTART.md`
 - Manual de configuración y scraping: `docs/manual.md`
 - Fuentes configurables en `config.yaml` (incluye nacional y departamentos).
 - Arquitectura: `docs/architecture.md`
@@ -52,6 +53,16 @@ Ejecuta el panel interactivo con Streamlit después de generar snapshots:
 1. Instala dependencias: `pip install -r requirements.txt`
 2. Ejecuta el dashboard: `streamlit run dashboard.py`
 3. Abre el navegador en la URL indicada por Streamlit.
+
+### Reportes y exportaciones
+- Exportar CSV desde el dashboard:
+  - Usa los botones **Descargar snapshots (CSV)** y **Descargar alertas (CSV)**.
+- Generar PDF:
+  1. Asegura que existan `analysis_results.json` y `anomalies_report.json`.
+  2. Ejecuta: `python scripts/export_report.py`
+  3. El PDF queda en `reports/report_<timestamp>.pdf` y se copia como `reports/latest_report.pdf`.
+- Descargar PDF desde el dashboard:
+  - En la barra lateral aparece **Descargar reporte PDF** cuando existe `reports/latest_report.pdf`.
 
 ---
 
