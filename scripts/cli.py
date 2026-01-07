@@ -131,13 +131,26 @@ def _apply_benford(votos_lista: List[Dict[str, Any]]) -> Optional[Dict[str, Any]
     return {"is_anomaly": is_anomaly, "prop_1": dist_1}
 
 
+def _coerce_candidates(raw_candidates: Any) -> List[Dict[str, Any]]:
+    if isinstance(raw_candidates, dict):
+        return [
+            {"id": candidate_id, "votos": votos}
+            for candidate_id, votos in raw_candidates.items()
+        ]
+    if isinstance(raw_candidates, list):
+        return [candidate for candidate in raw_candidates if isinstance(candidate, dict)]
+    return []
+
+
 def audit_snapshots(snapshots: List[SnapshotInput]) -> List[Dict[str, Any]]:
     peak_votes: Dict[str, Dict[str, Any]] = {}
     anomalies: List[Dict[str, Any]] = []
 
     for snapshot in snapshots:
         raw = snapshot.raw
-        votos_actuales = raw.get("votos") or raw.get("candidates") or []
+        votos_actuales = _coerce_candidates(
+            raw.get("votos") or raw.get("candidates") or []
+        )
 
         for candidate in votos_actuales:
             candidate_id = str(candidate.get("id") or candidate.get("nombre") or "unknown")
