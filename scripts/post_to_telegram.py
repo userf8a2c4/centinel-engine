@@ -1,3 +1,9 @@
+"""Publica mensajes en Telegram con hashes verificables.
+
+English:
+    Posts messages to Telegram with verifiable hashes.
+"""
+
 import datetime
 import logging
 import os
@@ -19,9 +25,22 @@ logger = logging.getLogger(__name__)
 
 
 def get_stored_hash(hash_path):
-    """
-    Lee el hash previamente generado por download_and_hash.py
-    para asegurar consistencia total entre Git y Telegram.
+    """Lee el hash generado para asegurar consistencia con Git y Telegram.
+
+    Args:
+        hash_path (str): Ruta al archivo .sha256.
+
+    Returns:
+        str: Hash leído o mensaje de error.
+
+    English:
+        Reads the stored hash to keep Git and Telegram consistent.
+
+    Args:
+        hash_path (str): Path to the .sha256 file.
+
+    Returns:
+        str: Read hash or an error message.
     """
     try:
         with open(hash_path, "r") as f:
@@ -34,8 +53,24 @@ def get_stored_hash(hash_path):
 
 
 def format_as_neutral(raw_data, stored_hash=None):
-    """
-    Formatea el reporte con estilo técnico neutro.
+    """Formatea el reporte con estilo técnico neutro.
+
+    Args:
+        raw_data (str): Texto base del reporte.
+        stored_hash (str | None): Hash opcional para verificación.
+
+    Returns:
+        str: Texto formateado en HTML.
+
+    English:
+        Formats the report using a neutral technical style.
+
+    Args:
+        raw_data (str): Base report text.
+        stored_hash (str | None): Optional verification hash.
+
+    Returns:
+        str: HTML-formatted message.
     """
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     header = (
@@ -61,10 +96,48 @@ def format_as_neutral(raw_data, stored_hash=None):
 
 
 def resolve_template(template_name):
+    """Selecciona el formateador de mensaje según la plantilla.
+
+    Args:
+        template_name (str | None): Nombre de la plantilla solicitada.
+
+    Returns:
+        callable: Función que formatea el texto final.
+
+    English:
+        Selects the formatter function based on a template name.
+
+    Args:
+        template_name (str | None): Requested template name.
+
+    Returns:
+        callable: Function that formats the final message.
+    """
     return format_as_neutral
 
 
 def send_message(text, stored_hash=None, template_name=None):
+    """Envía un mensaje a Telegram usando la API oficial.
+
+    Args:
+        text (str): Texto del mensaje.
+        stored_hash (str | None): Hash opcional para verificación.
+        template_name (str | None): Plantilla de formato.
+
+    Raises:
+        SystemExit: Si faltan credenciales o falla el envío.
+
+    English:
+        Sends a message to Telegram using the official API.
+
+    Args:
+        text (str): Message text.
+        stored_hash (str | None): Optional verification hash.
+        template_name (str | None): Formatting template.
+
+    Raises:
+        SystemExit: When credentials are missing or send fails.
+    """
     if not TOKEN or not CHAT_ID:
         logger.error("telegram_credentials_missing")
         sys.exit(1)

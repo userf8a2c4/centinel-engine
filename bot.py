@@ -1,4 +1,8 @@
-"""Bot Telegram para consultas rápidas de Sentinel (solo lectura)."""
+"""Bot Telegram para consultas rápidas de Sentinel (solo lectura).
+
+English:
+    Telegram bot for quick Sentinel queries (read-only).
+"""
 
 from __future__ import annotations
 
@@ -51,6 +55,29 @@ MODE_TTL_MINUTES = 120
 
 @dataclass
 class SnapshotRecord:
+    """Representa un snapshot cargado desde disco.
+
+    Attributes:
+        path (Path): Ruta del archivo de snapshot.
+        payload (dict): JSON completo del snapshot.
+        timestamp (datetime | None): Fecha/hora del snapshot.
+        porcentaje_escrutado (float | None): % escrutado si aplica.
+        total_votos (int | None): Total de votos si aplica.
+        votos_lista (list[int]): Lista de votos de candidatos.
+        departamento (str | None): Departamento asociado.
+
+    English:
+        Represents a snapshot loaded from disk.
+
+    Attributes:
+        path (Path): Snapshot file path.
+        payload (dict): Full snapshot JSON.
+        timestamp (datetime | None): Snapshot datetime.
+        porcentaje_escrutado (float | None): Scrutiny percentage when available.
+        total_votos (int | None): Total votes when available.
+        votos_lista (list[int]): Candidate vote list.
+        departamento (str | None): Related department.
+    """
     path: Path
     payload: dict
     timestamp: datetime | None
@@ -62,6 +89,21 @@ class SnapshotRecord:
 
 @dataclass
 class RangeQuery:
+    """Rango de fechas para filtrar snapshots.
+
+    Attributes:
+        start (datetime | None): Inicio del rango.
+        end (datetime | None): Fin del rango.
+        label (str): Etiqueta legible del rango.
+
+    English:
+        Date range for filtering snapshots.
+
+    Attributes:
+        start (datetime | None): Range start.
+        end (datetime | None): Range end.
+        label (str): Human-readable label.
+    """
     start: datetime | None
     end: datetime | None
     label: str
@@ -72,6 +114,17 @@ RATE_LIMIT: dict[int, datetime] = {}
 
 
 def cleanup_mode_store(now: datetime) -> None:
+    """Limpia modos expirados según el TTL configurado.
+
+    Args:
+        now (datetime): Tiempo actual en UTC.
+
+    English:
+        Clears expired mode entries based on the configured TTL.
+
+    Args:
+        now (datetime): Current UTC time.
+    """
     expired = []
     for chat_id, item in MODE_STORE.items():
         last_seen = item.get("last_seen")
@@ -84,10 +137,40 @@ def cleanup_mode_store(now: datetime) -> None:
 
 
 def set_mode(chat_id: int, mode: str) -> None:
+    """Guarda el modo seleccionado para un chat.
+
+    Args:
+        chat_id (int): ID del chat de Telegram.
+        mode (str): Modo seleccionado.
+
+    English:
+        Stores the selected mode for a chat.
+
+    Args:
+        chat_id (int): Telegram chat ID.
+        mode (str): Selected mode.
+    """
     MODE_STORE[chat_id] = {"mode": mode, "last_seen": datetime.utcnow()}
 
 
 def get_mode(chat_id: int) -> str:
+    """Obtiene el modo actual de un chat.
+
+    Args:
+        chat_id (int): ID del chat.
+
+    Returns:
+        str: Modo activo (ciudadano o auditor).
+
+    English:
+        Gets the current mode for a chat.
+
+    Args:
+        chat_id (int): Chat ID.
+
+    Returns:
+        str: Active mode (citizen or auditor).
+    """
     entry = MODE_STORE.get(chat_id)
     if not entry:
         return MODE_CIUDADANO
@@ -96,12 +179,42 @@ def get_mode(chat_id: int) -> str:
 
 
 def update_last_seen(chat_id: int) -> None:
+    """Actualiza el timestamp de última actividad del chat.
+
+    Args:
+        chat_id (int): ID del chat.
+
+    English:
+        Updates the last-seen timestamp for the chat.
+
+    Args:
+        chat_id (int): Chat ID.
+    """
     entry = MODE_STORE.get(chat_id)
     if entry:
         entry["last_seen"] = datetime.utcnow()
 
 
 def is_rate_limited(chat_id: int, now: datetime) -> bool:
+    """Valida si un chat está en límite de frecuencia.
+
+    Args:
+        chat_id (int): ID del chat.
+        now (datetime): Hora actual.
+
+    Returns:
+        bool: True si debe limitarse, False si puede continuar.
+
+    English:
+        Checks if a chat is rate-limited.
+
+    Args:
+        chat_id (int): Chat ID.
+        now (datetime): Current time.
+
+    Returns:
+        bool: True if rate-limited, False otherwise.
+    """
     last_seen = RATE_LIMIT.get(chat_id)
     if last_seen and (now - last_seen).total_seconds() < RATE_LIMIT_SECONDS:
         return True
@@ -110,6 +223,23 @@ def is_rate_limited(chat_id: int, now: datetime) -> bool:
 
 
 def parse_timestamp_from_name(filename: str) -> datetime | None:
+    """Extrae un timestamp desde el nombre del archivo.
+
+    Args:
+        filename (str): Nombre del archivo.
+
+    Returns:
+        datetime | None: Timestamp parseado o None.
+
+    English:
+        Extracts a timestamp from a file name.
+
+    Args:
+        filename (str): File name.
+
+    Returns:
+        datetime | None: Parsed timestamp or None.
+    """
     stem = Path(filename).stem
     parts = stem.split("_")
     if len(parts) < 3:
@@ -125,6 +255,25 @@ def parse_timestamp_from_name(filename: str) -> datetime | None:
 
 
 def extract_timestamp(snapshot_path: Path, payload: dict) -> datetime | None:
+    """Obtiene el timestamp desde metadata o nombre del archivo.
+
+    Args:
+        snapshot_path (Path): Ruta del snapshot.
+        payload (dict): Payload del snapshot.
+
+    Returns:
+        datetime | None: Timestamp encontrado o None.
+
+    English:
+        Gets the timestamp from metadata or file name.
+
+    Args:
+        snapshot_path (Path): Snapshot path.
+        payload (dict): Snapshot payload.
+
+    Returns:
+        datetime | None: Timestamp if found, otherwise None.
+    """
     metadata = payload.get("metadata") or payload.get("meta") or {}
     for key in ("timestamp_utc", "timestamp"):
         raw = metadata.get(key) or payload.get(key)
@@ -139,6 +288,23 @@ def extract_timestamp(snapshot_path: Path, payload: dict) -> datetime | None:
 
 
 def safe_float(value: object) -> float | None:
+    """Convierte valores a float de forma segura.
+
+    Args:
+        value (object): Valor a convertir.
+
+    Returns:
+        float | None: Float convertido o None si falla.
+
+    English:
+        Safely converts values to float.
+
+    Args:
+        value (object): Value to convert.
+
+    Returns:
+        float | None: Converted float or None on failure.
+    """
     if isinstance(value, (int, float)):
         return float(value)
     if isinstance(value, str):
@@ -150,6 +316,23 @@ def safe_float(value: object) -> float | None:
 
 
 def safe_int(value: object) -> int | None:
+    """Convierte valores a int de forma segura.
+
+    Args:
+        value (object): Valor a convertir.
+
+    Returns:
+        int | None: Entero convertido o None si falla.
+
+    English:
+        Safely converts values to int.
+
+    Args:
+        value (object): Value to convert.
+
+    Returns:
+        int | None: Converted int or None on failure.
+    """
     if isinstance(value, int):
         return value
     if isinstance(value, float):
@@ -163,6 +346,23 @@ def safe_int(value: object) -> int | None:
 
 
 def extract_porcentaje_escrutado(payload: dict) -> float | None:
+    """Extrae el porcentaje escrutado desde distintas claves.
+
+    Args:
+        payload (dict): Payload del snapshot.
+
+    Returns:
+        float | None: Porcentaje escrutado si existe.
+
+    English:
+        Extracts the scrutiny percentage from possible fields.
+
+    Args:
+        payload (dict): Snapshot payload.
+
+    Returns:
+        float | None: Scrutiny percentage if present.
+    """
     porcentaje = (
         payload.get("porcentaje_escrutado")
         or payload.get("porcentaje")
@@ -175,6 +375,23 @@ def extract_porcentaje_escrutado(payload: dict) -> float | None:
 
 
 def extract_total_votos(payload: dict) -> int | None:
+    """Obtiene el total de votos desde campos conocidos o lista de votos.
+
+    Args:
+        payload (dict): Payload del snapshot.
+
+    Returns:
+        int | None: Total de votos si se encuentra.
+
+    English:
+        Gets total votes from known fields or the vote list.
+
+    Args:
+        payload (dict): Snapshot payload.
+
+    Returns:
+        int | None: Total votes if found.
+    """
     votos_totales = payload.get("votos_totales") or {}
     total = (
         payload.get("total_votos")
@@ -193,6 +410,23 @@ def extract_total_votos(payload: dict) -> int | None:
 
 
 def extract_votos_lista(payload: dict) -> list[int]:
+    """Extrae una lista de votos desde el payload.
+
+    Args:
+        payload (dict): Payload del snapshot.
+
+    Returns:
+        list[int]: Lista de votos normalizados.
+
+    English:
+        Extracts a list of votes from the payload.
+
+    Args:
+        payload (dict): Snapshot payload.
+
+    Returns:
+        list[int]: Normalized vote list.
+    """
     votos = payload.get("votos") or payload.get("candidates") or payload.get("candidatos")
     if isinstance(votos, list):
         results = []
@@ -217,6 +451,23 @@ def extract_votos_lista(payload: dict) -> list[int]:
 
 
 def load_snapshot(path: Path) -> SnapshotRecord | None:
+    """Carga un snapshot desde disco y lo normaliza.
+
+    Args:
+        path (Path): Ruta del archivo de snapshot.
+
+    Returns:
+        SnapshotRecord | None: Registro cargado o None si falla.
+
+    English:
+        Loads a snapshot from disk and normalizes it.
+
+    Args:
+        path (Path): Snapshot file path.
+
+    Returns:
+        SnapshotRecord | None: Loaded record or None on failure.
+    """
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -244,6 +495,17 @@ def load_snapshot(path: Path) -> SnapshotRecord | None:
 
 
 def load_snapshots() -> list[SnapshotRecord]:
+    """Carga todos los snapshots disponibles desde el directorio de datos.
+
+    Returns:
+        list[SnapshotRecord]: Lista de snapshots cargados.
+
+    English:
+        Loads all available snapshots from the data directory.
+
+    Returns:
+        list[SnapshotRecord]: Loaded snapshot records.
+    """
     if not DATA_DIR.exists():
         return []
     snapshots = sorted(DATA_DIR.glob("*.json"), key=os.path.getmtime, reverse=True)
@@ -256,6 +518,25 @@ def load_snapshots() -> list[SnapshotRecord]:
 
 
 def parse_range(text: str, reference: datetime) -> RangeQuery | None:
+    """Interpreta rangos de tiempo en lenguaje simple.
+
+    Args:
+        text (str): Texto ingresado por el usuario.
+        reference (datetime): Fecha/hora de referencia.
+
+    Returns:
+        RangeQuery | None: Rango interpretado o None si no se entiende.
+
+    English:
+        Parses human-friendly time ranges.
+
+    Args:
+        text (str): User-entered text.
+        reference (datetime): Reference datetime.
+
+    Returns:
+        RangeQuery | None: Parsed range or None if not understood.
+    """
     if not text:
         return RangeQuery(None, None, "todo")
     normalized = text.strip().lower()
@@ -294,6 +575,25 @@ def parse_range(text: str, reference: datetime) -> RangeQuery | None:
 
 
 def filter_snapshots(records: Iterable[SnapshotRecord], query: RangeQuery | None) -> list[SnapshotRecord]:
+    """Filtra snapshots según un rango temporal.
+
+    Args:
+        records (Iterable[SnapshotRecord]): Lista de registros.
+        query (RangeQuery | None): Rango solicitado.
+
+    Returns:
+        list[SnapshotRecord]: Lista filtrada.
+
+    English:
+        Filters snapshots by a time range.
+
+    Args:
+        records (Iterable[SnapshotRecord]): Record list.
+        query (RangeQuery | None): Requested range.
+
+    Returns:
+        list[SnapshotRecord]: Filtered list.
+    """
     if not query or (query.start is None and query.end is None):
         return list(records)
     filtered = []
@@ -309,6 +609,23 @@ def filter_snapshots(records: Iterable[SnapshotRecord], query: RangeQuery | None
 
 
 def format_number(value: int | float | None) -> str:
+    """Formatea números para mostrar en mensajes.
+
+    Args:
+        value (int | float | None): Valor a formatear.
+
+    Returns:
+        str: Texto formateado.
+
+    English:
+        Formats numbers for display in messages.
+
+    Args:
+        value (int | float | None): Value to format.
+
+    Returns:
+        str: Formatted text.
+    """
     if value is None:
         return "N/D"
     if isinstance(value, float):
@@ -317,10 +634,44 @@ def format_number(value: int | float | None) -> str:
 
 
 def build_disclaimer(message: str) -> str:
+    """Agrega el descargo institucional al mensaje.
+
+    Args:
+        message (str): Mensaje base.
+
+    Returns:
+        str: Mensaje con descargo agregado.
+
+    English:
+        Appends the institutional disclaimer to a message.
+
+    Args:
+        message (str): Base message.
+
+    Returns:
+        str: Message with disclaimer appended.
+    """
     return f"{message}\n\n{DISCLAIMER}"
 
 
 def get_latest_timestamp(records: list[SnapshotRecord]) -> str:
+    """Obtiene el timestamp más reciente en formato corto.
+
+    Args:
+        records (list[SnapshotRecord]): Lista de snapshots.
+
+    Returns:
+        str: Timestamp formateado o texto alternativo.
+
+    English:
+        Gets the latest timestamp in short format.
+
+    Args:
+        records (list[SnapshotRecord]): Snapshot list.
+
+    Returns:
+        str: Formatted timestamp or fallback text.
+    """
     for record in records:
         if record.timestamp:
             return record.timestamp.strftime("%Y-%m-%d %H:%M")
@@ -328,6 +679,17 @@ def get_latest_timestamp(records: list[SnapshotRecord]) -> str:
 
 
 def get_alerts() -> list[dict]:
+    """Carga alertas desde JSON o logs de texto.
+
+    Returns:
+        list[dict]: Lista de alertas disponibles.
+
+    English:
+        Loads alerts from JSON or text logs.
+
+    Returns:
+        list[dict]: Available alerts.
+    """
     if ALERTS_JSON.exists():
         try:
             data = json.loads(ALERTS_JSON.read_text(encoding="utf-8"))
@@ -345,6 +707,23 @@ def get_alerts() -> list[dict]:
 
 
 async def enforce_access(update: Update) -> bool:
+    """Valida si el chat tiene permisos para usar el bot.
+
+    Args:
+        update (Update): Evento recibido de Telegram.
+
+    Returns:
+        bool: True si tiene acceso, False si se bloquea.
+
+    English:
+        Validates whether the chat has access to the bot.
+
+    Args:
+        update (Update): Telegram update event.
+
+    Returns:
+        bool: True if access is allowed, False otherwise.
+    """
     chat = update.effective_chat
     if not chat:
         return False
@@ -362,6 +741,23 @@ async def enforce_access(update: Update) -> bool:
 
 
 async def preflight(update: Update) -> bool:
+    """Ejecuta validaciones de acceso y rate limit antes de responder.
+
+    Args:
+        update (Update): Evento recibido de Telegram.
+
+    Returns:
+        bool: True si el comando puede continuar.
+
+    English:
+        Runs access and rate-limit checks before responding.
+
+    Args:
+        update (Update): Telegram update event.
+
+    Returns:
+        bool: True if the command can proceed.
+    """
     chat = update.effective_chat
     if not chat or not update.message:
         return False
@@ -377,6 +773,23 @@ async def preflight(update: Update) -> bool:
 
 
 def build_commands_list(mode: str) -> str:
+    """Genera la lista de comandos disponibles por modo.
+
+    Args:
+        mode (str): Modo actual (ciudadano o auditor).
+
+    Returns:
+        str: Lista de comandos en formato texto.
+
+    English:
+        Builds the list of available commands for a mode.
+
+    Args:
+        mode (str): Current mode (citizen or auditor).
+
+    Returns:
+        str: Text list of commands.
+    """
     base = [
         "/inicio",
         "/ultimo",
@@ -392,6 +805,19 @@ def build_commands_list(mode: str) -> str:
 
 
 async def inicio(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Comando de bienvenida e inicio del bot.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Welcome command for the bot.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     chat_id = update.effective_chat.id
@@ -407,6 +833,19 @@ async def inicio(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def seleccionar_modo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Permite al usuario seleccionar modo ciudadano o auditor.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Lets the user pick citizen or auditor mode.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     chat_id = update.effective_chat.id
@@ -434,6 +873,19 @@ async def seleccionar_modo(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 
 async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Muestra el último snapshot disponible.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Shows the latest available snapshot.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     records = load_snapshots()
@@ -455,6 +907,25 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def resolve_range_argument(records: list[SnapshotRecord], args: list[str]) -> tuple[RangeQuery | None, str | None]:
+    """Resuelve el argumento de rango y valida errores de formato.
+
+    Args:
+        records (list[SnapshotRecord]): Lista de snapshots.
+        args (list[str]): Argumentos del comando.
+
+    Returns:
+        tuple[RangeQuery | None, str | None]: Rango interpretado y error si aplica.
+
+    English:
+        Resolves the range argument and validates format errors.
+
+    Args:
+        records (list[SnapshotRecord]): Snapshot list.
+        args (list[str]): Command arguments.
+
+    Returns:
+        tuple[RangeQuery | None, str | None]: Parsed range and error message if any.
+    """
     text = " ".join(args).strip()
     reference = None
     for record in records:
@@ -473,6 +944,19 @@ def resolve_range_argument(records: list[SnapshotRecord], args: list[str]) -> tu
 
 
 async def cambios(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Muestra cambios entre snapshots en un rango.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Shows snapshot changes within a range.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     records = load_snapshots()
@@ -510,6 +994,19 @@ async def cambios(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def alertas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Muestra alertas recientes registradas.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Shows recent recorded alerts.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     alerts = get_alerts()
@@ -530,6 +1027,25 @@ async def alertas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def build_benford_chart(votes: list[int], title: str) -> BytesIO:
+    """Genera un gráfico de la Ley de Benford.
+
+    Args:
+        votes (list[int]): Lista de votos para analizar.
+        title (str): Título del gráfico.
+
+    Returns:
+        BytesIO: Imagen PNG en memoria.
+
+    English:
+        Generates a Benford's Law chart.
+
+    Args:
+        votes (list[int]): Vote list to analyze.
+        title (str): Chart title.
+
+    Returns:
+        BytesIO: In-memory PNG image.
+    """
     digits = [int(str(v)[0]) for v in votes if v > 0]
     counts = [digits.count(d) for d in range(1, 10)]
     total = sum(counts)
@@ -562,6 +1078,19 @@ def build_benford_chart(votes: list[int], title: str) -> BytesIO:
 
 
 async def grafico(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Envía un gráfico Benford según el rango solicitado.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Sends a Benford chart for the requested range.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     records = load_snapshots()
@@ -590,6 +1119,25 @@ async def grafico(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def build_trend_chart(points: list[tuple[datetime, float]], label: str) -> BytesIO:
+    """Genera un gráfico de tendencia simple.
+
+    Args:
+        points (list[tuple[datetime, float]]): Puntos de la serie.
+        label (str): Etiqueta del gráfico.
+
+    Returns:
+        BytesIO: Imagen PNG en memoria.
+
+    English:
+        Builds a simple trend chart.
+
+    Args:
+        points (list[tuple[datetime, float]]): Series points.
+        label (str): Chart label.
+
+    Returns:
+        BytesIO: In-memory PNG image.
+    """
     fig, ax = plt.subplots(figsize=(6, 4))
     times = [point[0] for point in points]
     values = [point[1] for point in points]
@@ -607,6 +1155,19 @@ def build_trend_chart(points: list[tuple[datetime, float]], label: str) -> Bytes
 
 
 async def tendencia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Envía una gráfica de tendencia de votos o escrutinio.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Sends a trend chart for votes or scrutiny percentage.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     records = load_snapshots()
@@ -642,6 +1203,19 @@ async def tendencia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Envía un resumen rápido del rango solicitado.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Sends a quick summary for the requested range.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     records = load_snapshots()
@@ -671,6 +1245,25 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def find_snapshot_by_query(query: str, records: list[SnapshotRecord]) -> SnapshotRecord | None:
+    """Busca un snapshot por coincidencia en el nombre.
+
+    Args:
+        query (str): Texto de búsqueda.
+        records (list[SnapshotRecord]): Lista de snapshots.
+
+    Returns:
+        SnapshotRecord | None: Registro encontrado o None.
+
+    English:
+        Finds a snapshot by matching its file name.
+
+    Args:
+        query (str): Search text.
+        records (list[SnapshotRecord]): Snapshot list.
+
+    Returns:
+        SnapshotRecord | None: Found record or None.
+    """
     if not query:
         return records[0] if records else None
     lower = query.lower()
@@ -681,6 +1274,23 @@ def find_snapshot_by_query(query: str, records: list[SnapshotRecord]) -> Snapsho
 
 
 def find_hash_for_snapshot(snapshot_path: Path) -> str | None:
+    """Busca el hash asociado a un snapshot.
+
+    Args:
+        snapshot_path (Path): Ruta del snapshot.
+
+    Returns:
+        str | None: Hash encontrado o None.
+
+    English:
+        Finds the hash associated with a snapshot.
+
+    Args:
+        snapshot_path (Path): Snapshot path.
+
+    Returns:
+        str | None: Hash value or None.
+    """
     hash_path = HASH_DIR / f"{snapshot_path.name}.sha256"
     if hash_path.exists():
         try:
@@ -692,6 +1302,19 @@ def find_hash_for_snapshot(snapshot_path: Path) -> str | None:
 
 
 async def hash_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Responde con el hash SHA-256 de un snapshot.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Replies with the SHA-256 hash of a snapshot.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     if get_mode(update.effective_chat.id) != MODE_AUDITOR:
@@ -724,6 +1347,25 @@ async def hash_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 def select_json_record(records: list[SnapshotRecord], query_text: str) -> SnapshotRecord | None:
+    """Selecciona un snapshot por departamento o nombre.
+
+    Args:
+        records (list[SnapshotRecord]): Lista de snapshots.
+        query_text (str): Texto de búsqueda.
+
+    Returns:
+        SnapshotRecord | None: Registro encontrado o None.
+
+    English:
+        Selects a snapshot by department or file name.
+
+    Args:
+        records (list[SnapshotRecord]): Snapshot list.
+        query_text (str): Search text.
+
+    Returns:
+        SnapshotRecord | None: Found record or None.
+    """
     if not query_text:
         return records[0] if records else None
     lower = query_text.lower()
@@ -734,6 +1376,19 @@ def select_json_record(records: list[SnapshotRecord], query_text: str) -> Snapsh
 
 
 async def json_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Entrega el JSON crudo de un snapshot (modo auditor).
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Sends raw snapshot JSON (auditor mode).
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     if not update.message or not await enforce_access(update) or not await preflight(update):
         return
     if get_mode(update.effective_chat.id) != MODE_AUDITOR:
@@ -761,6 +1416,19 @@ async def json_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Maneja errores inesperados del bot.
+
+    Args:
+        update (object): Evento que causó el error.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Handles unexpected bot errors.
+
+    Args:
+        update (object): Update that caused the error.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
     logger.error("telegram_error update=%s error=%s", update, context.error)
     if isinstance(update, Update) and update.message:
         await update.message.reply_text(
@@ -769,6 +1437,23 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 def build_application(token: str):
+    """Construye la aplicación del bot con handlers registrados.
+
+    Args:
+        token (str): Token de Telegram.
+
+    Returns:
+        Application: Aplicación lista para iniciar.
+
+    English:
+        Builds the bot application with registered handlers.
+
+    Args:
+        token (str): Telegram token.
+
+    Returns:
+        Application: Ready-to-run application.
+    """
     application = ApplicationBuilder().token(token).build()
     application.add_handler(CommandHandler("inicio", inicio))
     application.add_handler(CommandHandler("ultimo", ultimo))
@@ -787,6 +1472,17 @@ def build_application(token: str):
 
 
 def main() -> None:
+    """Punto de entrada principal del bot.
+
+    Raises:
+        SystemExit: Si no se encuentra el token de Telegram.
+
+    English:
+        Main entry point for the bot.
+
+    Raises:
+        SystemExit: When the Telegram token is missing.
+    """
     load_dotenv()
     token = os.getenv("TELEGRAM_TOKEN")
     if not token:
