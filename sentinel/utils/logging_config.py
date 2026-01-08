@@ -1,3 +1,9 @@
+"""Configura el sistema de logging desde un archivo de configuración.
+
+English:
+    Sets up application logging based on a config file.
+"""
+
 import logging
 from pathlib import Path
 
@@ -5,7 +11,17 @@ import yaml
 
 
 def setup_logging(config_path: str = "config.yaml") -> None:
-    """Configura logging global desde config.yaml."""
+    """Configura el logging global desde un archivo de configuración.
+
+    Args:
+        config_path (str): Ruta del archivo YAML con la configuración.
+
+    English:
+        Sets up global logging from a YAML config file.
+
+    Args:
+        config_path (str): Path to the YAML configuration file.
+    """
     try:
         config_file = Path(config_path)
         with config_file.open("r", encoding="utf-8") as f:

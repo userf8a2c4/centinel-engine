@@ -1,3 +1,9 @@
+"""Analiza snapshots y detecta patrones inusuales en votos.
+
+English:
+    Analyzes snapshots and flags unusual voting patterns.
+"""
+
 import collections
 import glob
 import json
@@ -21,6 +27,23 @@ RELATIVE_VOTE_CHANGE_PCT = float(os.getenv("RELATIVE_VOTE_CHANGE_PCT", "15"))
 SCRUTINIO_JUMP_PCT = float(os.getenv("SCRUTINIO_JUMP_PCT", "5"))
 
 def load_json(file_path):
+    """Carga un archivo JSON y registra fallos de lectura.
+
+    Args:
+        file_path (str): Ruta del archivo JSON.
+
+    Returns:
+        dict | None: Diccionario cargado o None si falla.
+
+    English:
+        Loads a JSON file and logs read failures.
+
+    Args:
+        file_path (str): JSON file path.
+
+    Returns:
+        dict | None: Loaded dictionary or None on failure.
+    """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -29,7 +52,25 @@ def load_json(file_path):
         return None
 
 def safe_int(value, default=0):
-    """Convierte a entero de forma segura, manejando strings y nulos."""
+    """Convierte a entero de forma segura, manejando strings y nulos.
+
+    Args:
+        value (Any): Valor a convertir.
+        default (int): Valor por defecto si falla.
+
+    Returns:
+        int: Entero resultante o el valor por defecto.
+
+    English:
+        Safely converts a value to int, handling strings and nulls.
+
+    Args:
+        value (Any): Value to convert.
+        default (int): Default value if conversion fails.
+
+    Returns:
+        int: Converted integer or the default value.
+    """
     try:
         if value is None: return default
         return int(str(value).replace(',', '').split('.')[0])
@@ -37,7 +78,23 @@ def safe_int(value, default=0):
         return default
 
 def safe_int_or_none(value):
-    """Convierte a entero de forma segura, devolviendo None si no es válido."""
+    """Convierte a entero de forma segura, devolviendo None si no es válido.
+
+    Args:
+        value (Any): Valor a convertir.
+
+    Returns:
+        int | None: Entero convertido o None si falla.
+
+    English:
+        Safely converts to int, returning None when invalid.
+
+    Args:
+        value (Any): Value to convert.
+
+    Returns:
+        int | None: Converted integer or None on failure.
+    """
     try:
         if value is None:
             return None
@@ -46,7 +103,23 @@ def safe_int_or_none(value):
         return None
 
 def safe_float_or_none(value):
-    """Convierte a float de forma segura, devolviendo None si no es válido."""
+    """Convierte a float de forma segura, devolviendo None si no es válido.
+
+    Args:
+        value (Any): Valor a convertir.
+
+    Returns:
+        float | None: Float convertido o None si falla.
+
+    English:
+        Safely converts to float, returning None when invalid.
+
+    Args:
+        value (Any): Value to convert.
+
+    Returns:
+        float | None: Converted float or None on failure.
+    """
     try:
         if value is None:
             return None
@@ -55,6 +128,23 @@ def safe_float_or_none(value):
         return None
 
 def extract_porcentaje_escrutado(data):
+    """Extrae el porcentaje escrutado desde distintas claves posibles.
+
+    Args:
+        data (dict): Payload del snapshot.
+
+    Returns:
+        float | None: Porcentaje escrutado si está disponible.
+
+    English:
+        Extracts the scrutiny percentage from possible fields.
+
+    Args:
+        data (dict): Snapshot payload.
+
+    Returns:
+        float | None: Scrutiny percentage if available.
+    """
     porcentaje = (
         data.get("porcentaje_escrutado")
         or data.get("porcentaje")
@@ -66,6 +156,23 @@ def extract_porcentaje_escrutado(data):
     return safe_float_or_none(porcentaje)
 
 def extract_vote_breakdown(data):
+    """Obtiene el desglose de votos válidos, nulos y en blanco.
+
+    Args:
+        data (dict): Payload del snapshot.
+
+    Returns:
+        dict: Totales encontrados para votos válidos, nulos y blancos.
+
+    English:
+        Gets the breakdown of valid, null, and blank votes.
+
+    Args:
+        data (dict): Snapshot payload.
+
+    Returns:
+        dict: Totals for valid, null, and blank votes.
+    """
     totals = data.get("totals") or {}
     votos_totales = data.get("votos_totales") or {}
     valid_votes = safe_int_or_none(
@@ -102,6 +209,23 @@ def extract_vote_breakdown(data):
     }
 
 def extract_actas_mesas_counts(data):
+    """Extrae conteos de actas y mesas del payload.
+
+    Args:
+        data (dict): Payload del snapshot.
+
+    Returns:
+        dict: Conteos de actas y mesas (totales y procesadas).
+
+    English:
+        Extracts counts for tally sheets and polling tables.
+
+    Args:
+        data (dict): Snapshot payload.
+
+    Returns:
+        dict: Counts for total/processed tally sheets and tables.
+    """
     actas = data.get("actas") or {}
     mesas = data.get("mesas") or {}
     return {
@@ -130,6 +254,23 @@ def extract_actas_mesas_counts(data):
     }
 
 def extract_candidate_total(data):
+    """Calcula el total de votos sumando los resultados de candidatos.
+
+    Args:
+        data (dict): Payload del snapshot.
+
+    Returns:
+        int | None: Total de votos de candidatos si aplica.
+
+    English:
+        Computes total votes by summing candidate results.
+
+    Args:
+        data (dict): Snapshot payload.
+
+    Returns:
+        int | None: Total candidate votes if available.
+    """
     if isinstance(data.get("resultados"), dict):
         return sum(safe_int(v) for v in data.get("resultados", {}).values())
     candidatos = data.get("candidates")
@@ -143,6 +284,25 @@ def extract_candidate_total(data):
     return None
 
 def check_vote_breakdown_consistency(data, file_name):
+    """Valida que los totales de votos cuadren con el desglose.
+
+    Args:
+        data (dict): Payload del snapshot.
+        file_name (str): Nombre del archivo analizado.
+
+    Returns:
+        list[dict]: Lista de anomalías encontradas.
+
+    English:
+        Validates that vote totals match the reported breakdown.
+
+    Args:
+        data (dict): Snapshot payload.
+        file_name (str): Analyzed file name.
+
+    Returns:
+        list[dict]: List of detected anomalies.
+    """
     breakdown = extract_vote_breakdown(data)
     candidate_total = extract_candidate_total(data)
     actas_mesas = extract_actas_mesas_counts(data)
@@ -182,6 +342,25 @@ def check_vote_breakdown_consistency(data, file_name):
     return anomalies
 
 def parse_timestamp(data, file_name):
+    """Obtiene el timestamp del payload o del nombre del archivo.
+
+    Args:
+        data (dict): Payload del snapshot.
+        file_name (str): Nombre del archivo.
+
+    Returns:
+        datetime | None: Timestamp parseado si es válido.
+
+    English:
+        Gets the timestamp from payload data or file name.
+
+    Args:
+        data (dict): Snapshot payload.
+        file_name (str): File name.
+
+    Returns:
+        datetime | None: Parsed timestamp if valid.
+    """
     raw_ts = data.get('timestamp') or data.get('timestamp_utc') or data.get('fecha')
     meta = data.get("meta") or data.get("metadata") or {}
     raw_ts = raw_ts or meta.get("timestamp_utc")
@@ -199,6 +378,25 @@ def parse_timestamp(data, file_name):
         return None
 
 def extract_department_records(data, file_name):
+    """Construye registros por departamento para análisis temporal.
+
+    Args:
+        data (dict): Payload del snapshot.
+        file_name (str): Nombre del archivo.
+
+    Returns:
+        list[dict]: Registros con totales por departamento.
+
+    English:
+        Builds department-level records for time series analysis.
+
+    Args:
+        data (dict): Snapshot payload.
+        file_name (str): File name.
+
+    Returns:
+        list[dict]: Records with department totals.
+    """
     timestamp = parse_timestamp(data, file_name)
     if not timestamp:
         return []
@@ -288,7 +486,23 @@ def extract_department_records(data, file_name):
     return records
 
 def apply_benford_law(votos_lista):
-    """Analiza la distribución del primer dígito (Ley de Benford)."""
+    """Analiza la distribución del primer dígito (Ley de Benford).
+
+    Args:
+        votos_lista (list): Lista de votos de candidatos.
+
+    Returns:
+        dict | None: Resultado del análisis o None si no hay datos.
+
+    English:
+        Analyzes first-digit distribution (Benford's Law).
+
+    Args:
+        votos_lista (list): List of candidate votes.
+
+    Returns:
+        dict | None: Analysis result or None if insufficient data.
+    """
     # Solo procesamos si hay suficientes datos para evitar falsos positivos
     if len(votos_lista) < 10: 
         return None
@@ -311,6 +525,25 @@ def apply_benford_law(votos_lista):
     return {"is_anomaly": is_anomaly, "prop_1": dist_1}
 
 def check_arithmetic_consistency(data, file_name):
+    """Verifica que el total de votos cuadre con la suma de candidatos.
+
+    Args:
+        data (dict): Payload del snapshot.
+        file_name (str): Nombre del archivo.
+
+    Returns:
+        dict | None: Anomalía encontrada o None si no hay problema.
+
+    English:
+        Checks that total votes match the sum of candidate votes.
+
+    Args:
+        data (dict): Snapshot payload.
+        file_name (str): File name.
+
+    Returns:
+        dict | None: Detected anomaly or None if consistent.
+    """
     totals = data.get("totals") or {}
     candidates = data.get("candidates")
     if not totals or not isinstance(candidates, list):
@@ -328,6 +561,23 @@ def check_arithmetic_consistency(data, file_name):
     return None
 
 def compute_trend_metrics(series_df):
+    """Calcula métricas de tendencia para una serie temporal.
+
+    Args:
+        series_df (pd.DataFrame): Serie temporal con timestamps y votos.
+
+    Returns:
+        dict: Métricas de tendencia (pendiente, aceleración, ratio).
+
+    English:
+        Computes trend metrics for a time series.
+
+    Args:
+        series_df (pd.DataFrame): Time series with timestamps and votes.
+
+    Returns:
+        dict: Trend metrics (slope, acceleration, ratio).
+    """
     if series_df.shape[0] < 2:
         return {
             "slope_votes": None,
@@ -360,6 +610,25 @@ def compute_trend_metrics(series_df):
     }
 
 def build_prediction(series_df, trend_metrics):
+    """Genera una predicción simple de votos usando tendencia lineal.
+
+    Args:
+        series_df (pd.DataFrame): Serie temporal con votos.
+        trend_metrics (dict): Métricas calculadas de tendencia.
+
+    Returns:
+        dict | None: Predicción con intervalo si es posible.
+
+    English:
+        Builds a simple vote prediction using linear trends.
+
+    Args:
+        series_df (pd.DataFrame): Time series with votes.
+        trend_metrics (dict): Computed trend metrics.
+
+    Returns:
+        dict | None: Prediction with interval when possible.
+    """
     if series_df.shape[0] < 3:
         return None
 
@@ -394,6 +663,17 @@ def build_prediction(series_df, trend_metrics):
     }
 
 def run_audit(target_directory='data/normalized'):
+    """Ejecuta la auditoría de snapshots y genera reportes.
+
+    Args:
+        target_directory (str): Directorio con snapshots normalizados.
+
+    English:
+        Runs the snapshot audit and generates reports.
+
+    Args:
+        target_directory (str): Directory containing normalized snapshots.
+    """
     peak_votos = {}
     anomalies_log = []
     records = []
@@ -620,6 +900,19 @@ def run_audit(target_directory='data/normalized'):
 
 
 def persist_to_sqlite(output, sqlite_path):
+    """Guarda resultados de auditoría en una base SQLite.
+
+    Args:
+        output (dict): Resultados de la auditoría.
+        sqlite_path (str): Ruta del archivo SQLite.
+
+    English:
+        Persists audit results into a SQLite database.
+
+    Args:
+        output (dict): Audit results.
+        sqlite_path (str): SQLite file path.
+    """
     connection = sqlite3.connect(sqlite_path)
     cursor = connection.cursor()
 
@@ -661,6 +954,25 @@ def persist_to_sqlite(output, sqlite_path):
 
 
 def build_plain_summary(output, language="es"):
+    """Construye un resumen en lenguaje sencillo de los hallazgos.
+
+    Args:
+        output (dict): Resultados de la auditoría.
+        language (str): Idioma del resumen ("es" o "en").
+
+    Returns:
+        str: Resumen de texto en lenguaje común.
+
+    English:
+        Builds a plain-language summary of the findings.
+
+    Args:
+        output (dict): Audit results.
+        language (str): Summary language ("es" or "en").
+
+    Returns:
+        str: Plain-language text summary.
+    """
     generated_at = output.get("generated_at")
     anomalies = output.get("anomalies", [])
     departments = output.get("departments", {})

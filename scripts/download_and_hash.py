@@ -1,3 +1,9 @@
+"""Descarga datos del CNE, normaliza y genera hashes de snapshots.
+
+English:
+    Downloads CNE data, normalizes it, and creates snapshot hashes.
+"""
+
 import json
 import logging
 import os
@@ -30,6 +36,23 @@ logger = logging.getLogger(__name__)
 
 
 def load_config() -> Dict[str, Any]:
+    """Carga la configuración desde archivo y variables de entorno.
+
+    Returns:
+        Dict[str, Any]: Configuración consolidada para la ejecución.
+
+    Raises:
+        ValueError: Si no hay endpoints configurados.
+
+    English:
+        Loads configuration from file and environment variables.
+
+    Returns:
+        Dict[str, Any]: Consolidated runtime configuration.
+
+    Raises:
+        ValueError: When no endpoints are configured.
+    """
     config: Dict[str, Any] = {}
     if config_path.exists():
         with open(config_path, "r", encoding="utf-8") as handle:
@@ -111,8 +134,22 @@ def load_config() -> Dict[str, Any]:
 
 
 def get_previous_hash(department_code: str) -> str | None:
-    """
-    Busca el hash previo más reciente para el departamento.
+    """Busca el hash previo más reciente para el departamento.
+
+    Args:
+        department_code (str): Código del departamento.
+
+    Returns:
+        str | None: Hash previo o None si no existe.
+
+    English:
+        Finds the most recent previous hash for a department.
+
+    Args:
+        department_code (str): Department code.
+
+    Returns:
+        str | None: Previous hash or None if not found.
     """
     pattern = f"snapshot_{department_code}_*.sha256"
     hash_files = sorted(hash_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
@@ -139,6 +176,59 @@ def fetch_source_data(
     playwright_timezone: str | None,
     playwright_viewport: Dict[str, int] | None,
 ) -> Dict[str, Any]:
+    """Descarga datos desde endpoints con reintentos y fallback.
+
+    Args:
+        session (requests.Session): Sesión HTTP reutilizable.
+        endpoints (list[str]): Lista de endpoints disponibles.
+        source (Dict[str, Any]): Configuración de la fuente.
+        base_url (str | None): URL base para fallback con Playwright.
+        timeout (float): Timeout en segundos.
+        headers (Dict[str, str]): Encabezados HTTP.
+        retries (int): Cantidad de reintentos por endpoint.
+        backoff_base (float): Base del backoff exponencial.
+        backoff_max (float): Límite del backoff.
+        use_playwright (bool): Activa fallback con Playwright.
+        playwright_stealth (bool): Activa modo stealth en Playwright.
+        playwright_user_agent (str | None): User-Agent de Playwright.
+        playwright_locale (str | None): Locale de Playwright.
+        playwright_timezone (str | None): Zona horaria de Playwright.
+        playwright_viewport (Dict[str, int] | None): Viewport de Playwright.
+
+    Returns:
+        Dict[str, Any]: Payload JSON recibido.
+
+    Raises:
+        ValueError: Si no hay endpoints configurados.
+        Exception: Si fallan todos los endpoints.
+
+    English:
+        Downloads data with retries and optional Playwright fallback.
+
+    Args:
+        session (requests.Session): Reusable HTTP session.
+        endpoints (list[str]): Available endpoints.
+        source (Dict[str, Any]): Source configuration.
+        base_url (str | None): Base URL for Playwright fallback.
+        timeout (float): Timeout in seconds.
+        headers (Dict[str, str]): HTTP headers.
+        retries (int): Retry count per endpoint.
+        backoff_base (float): Exponential backoff base.
+        backoff_max (float): Backoff cap.
+        use_playwright (bool): Enables Playwright fallback.
+        playwright_stealth (bool): Enables Playwright stealth mode.
+        playwright_user_agent (str | None): Playwright user agent.
+        playwright_locale (str | None): Playwright locale.
+        playwright_timezone (str | None): Playwright timezone.
+        playwright_viewport (Dict[str, int] | None): Playwright viewport.
+
+    Returns:
+        Dict[str, Any]: Received JSON payload.
+
+    Raises:
+        ValueError: When no endpoints are configured.
+        Exception: When all endpoints fail.
+    """
     if not endpoints:
         raise ValueError("No hay endpoints configurados para la fuente.")
     params = {"level": source.get("level", "PD")}
@@ -297,6 +387,25 @@ def fetch_source_data(
 
 
 def build_snapshot(payload: Dict[str, Any], source: Dict[str, Any]) -> Dict[str, Any]:
+    """Construye un snapshot crudo con metadatos y timestamp.
+
+    Args:
+        payload (Dict[str, Any]): Datos crudos descargados.
+        source (Dict[str, Any]): Configuración de la fuente.
+
+    Returns:
+        Dict[str, Any]: Snapshot con metadata y data.
+
+    English:
+        Builds a raw snapshot with metadata and timestamp.
+
+    Args:
+        payload (Dict[str, Any]): Raw downloaded data.
+        source (Dict[str, Any]): Source configuration.
+
+    Returns:
+        Dict[str, Any]: Snapshot with metadata and data.
+    """
     timestamp = datetime.now(timezone.utc).isoformat()
     return {
         "metadata": {
@@ -317,6 +426,31 @@ def persist_snapshot(
     timestamp: str,
     source_id: str,
 ) -> str:
+    """Guarda el snapshot y su hash en disco.
+
+    Args:
+        snapshot (Dict[str, Any]): Snapshot crudo.
+        canonical_json (str): JSON canónico del snapshot.
+        department_code (str): Código del departamento.
+        timestamp (str): Timestamp para el nombre del archivo.
+        source_id (str): Identificador de la fuente.
+
+    Returns:
+        str: Hash SHA-256 generado.
+
+    English:
+        Saves the snapshot and its hash to disk.
+
+    Args:
+        snapshot (Dict[str, Any]): Raw snapshot.
+        canonical_json (str): Canonical snapshot JSON.
+        department_code (str): Department code.
+        timestamp (str): Timestamp for the file name.
+        source_id (str): Source identifier.
+
+    Returns:
+        str: Generated SHA-256 hash.
+    """
     json_path = data_dir / f"snapshot_{department_code}_{timestamp}.json"
     hash_path = hash_dir / f"snapshot_{department_code}_{timestamp}.sha256"
 
@@ -341,12 +475,32 @@ def persist_snapshot(
 
 
 def persist_normalized(snapshot: Dict[str, Any], source_id: str, timestamp: str) -> None:
+    """Guarda un snapshot normalizado en el directorio de salida.
+
+    Args:
+        snapshot (Dict[str, Any]): Snapshot normalizado.
+        source_id (str): Identificador de la fuente.
+        timestamp (str): Timestamp del snapshot.
+
+    English:
+        Saves a normalized snapshot to the output directory.
+
+    Args:
+        snapshot (Dict[str, Any]): Normalized snapshot.
+        source_id (str): Source identifier.
+        timestamp (str): Snapshot timestamp.
+    """
     normalized_path = normalized_dir / f"snapshot_{source_id}_{timestamp}.json"
     with open(normalized_path, "w", encoding="utf-8") as handle:
         json.dump(snapshot, handle, indent=2, ensure_ascii=False)
 
 
 def main() -> None:
+    """Ejecuta la descarga y el guardado de snapshots.
+
+    English:
+        Runs the snapshot download and persistence flow.
+    """
     config = load_config()
     failures = []
     session = requests.Session()

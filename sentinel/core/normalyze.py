@@ -1,5 +1,12 @@
+"""Normaliza datos crudos del CNE y genera snapshots canónicos.
+
+English:
+    Normalizes raw CNE data and builds canonical snapshots.
+"""
+
 import json
 from typing import Dict, Any, List, Iterable
+
 from sentinel.core.models import Meta, Totals, CandidateResult, Snapshot
 
 
@@ -112,8 +119,36 @@ def normalize_snapshot(
     department_code: str | None = None,
     field_map: Dict[str, List[str]] | None = None,
 ) -> Snapshot:
-    """
-    Convierte un JSON crudo del CNE en un Snapshot canónico e inmutable.
+    """Convierte un JSON crudo del CNE en un Snapshot canónico e inmutable.
+
+    Args:
+        raw (Dict[str, Any]): JSON crudo del CNE.
+        department_name (str): Nombre del departamento.
+        timestamp_utc (str): Timestamp en UTC.
+        year (int): Año electoral.
+        candidate_count (int): Cantidad esperada de candidatos.
+        scope (str): Alcance del snapshot (p. ej., DEPARTMENT).
+        department_code (str | None): Código de departamento, si se conoce.
+        field_map (Dict[str, List[str]] | None): Mapeos opcionales de campos.
+
+    Returns:
+        Snapshot: Snapshot canónico con metadatos, totales y candidatos.
+
+    English:
+        Converts raw CNE JSON into an immutable canonical Snapshot.
+
+    Args:
+        raw (Dict[str, Any]): Raw CNE JSON data.
+        department_name (str): Department name.
+        timestamp_utc (str): UTC timestamp.
+        year (int): Election year.
+        candidate_count (int): Expected number of candidates.
+        scope (str): Snapshot scope (e.g., DEPARTMENT).
+        department_code (str | None): Department code, if known.
+        field_map (Dict[str, List[str]] | None): Optional field mappings.
+
+    Returns:
+        Snapshot: Canonical snapshot with metadata, totals, and candidates.
     """
 
     resolved_department_code = department_code or DEPARTMENT_CODES.get(department_name, "00")
@@ -171,8 +206,22 @@ def normalize_snapshot(
 
 
 def snapshot_to_canonical_json(snapshot: Snapshot) -> str:
-    """
-    Serializa un Snapshot a JSON canónico (orden fijo, sin espacios).
+    """Serializa un Snapshot a JSON canónico (orden fijo, sin espacios).
+
+    Args:
+        snapshot (Snapshot): Snapshot a serializar.
+
+    Returns:
+        str: JSON canónico del snapshot.
+
+    English:
+        Serializes a Snapshot into canonical JSON (stable order, no spaces).
+
+    Args:
+        snapshot (Snapshot): Snapshot to serialize.
+
+    Returns:
+        str: Canonical JSON string.
     """
 
     payload = {
@@ -185,6 +234,23 @@ def snapshot_to_canonical_json(snapshot: Snapshot) -> str:
 
 
 def snapshot_to_dict(snapshot: Snapshot) -> Dict[str, Any]:
+    """Convierte un Snapshot en un diccionario simple.
+
+    Args:
+        snapshot (Snapshot): Snapshot a convertir.
+
+    Returns:
+        Dict[str, Any]: Representación del snapshot en dict.
+
+    English:
+        Converts a Snapshot into a plain dictionary.
+
+    Args:
+        snapshot (Snapshot): Snapshot to convert.
+
+    Returns:
+        Dict[str, Any]: Dictionary representation of the snapshot.
+    """
     return {
         "meta": snapshot.meta.__dict__,
         "totals": snapshot.totals.__dict__,

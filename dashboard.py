@@ -1,4 +1,8 @@
-"""Streamlit dashboard para monitoreo de snapshots electorales."""
+"""Dashboard en Streamlit para monitorear snapshots electorales.
+
+English:
+    Streamlit dashboard for monitoring election snapshots.
+"""
 
 import json
 import logging
@@ -28,9 +32,26 @@ NO_DATA_MESSAGE = (
 
 
 def parse_timestamp_from_name(filename: str) -> datetime | None:
-    """Extrae timestamp del nombre del archivo si es posible.
+    """Extrae el timestamp desde el nombre del archivo si es posible.
 
     Espera nombres de archivo tipo: snapshot_2026-01-07_14-30-00.json.
+
+    Args:
+        filename (str): Nombre del archivo.
+
+    Returns:
+        datetime | None: Timestamp parseado o None si no aplica.
+
+    English:
+        Extracts a timestamp from the file name when possible.
+
+        Expected file name format: snapshot_2026-01-07_14-30-00.json.
+
+    Args:
+        filename (str): File name.
+
+    Returns:
+        datetime | None: Parsed timestamp or None if not applicable.
     """
     stem = Path(filename).stem
     parts = stem.split("_")
@@ -47,7 +68,27 @@ def parse_timestamp_from_name(filename: str) -> datetime | None:
 
 
 def format_read_error(label: str, path: Path, detail: str) -> str:
-    """Genera mensajes consistentes para errores de lectura."""
+    """Genera mensajes consistentes para errores de lectura.
+
+    Args:
+        label (str): Etiqueta del recurso leído.
+        path (Path): Ruta asociada al recurso.
+        detail (str): Detalle del error.
+
+    Returns:
+        str: Mensaje de error formateado.
+
+    English:
+        Builds consistent messages for read errors.
+
+    Args:
+        label (str): Resource label.
+        path (Path): Resource path.
+        detail (str): Error detail.
+
+    Returns:
+        str: Formatted error message.
+    """
     return f"{READ_ERROR_PREFIX} {label} en {path}: {detail}"
 
 
@@ -57,7 +98,29 @@ def handle_read_exception(
     exc: Exception,
     errors: list[str] | None = None,
 ) -> str:
-    """Registra y muestra errores de lectura con severidad adecuada."""
+    """Registra y muestra errores de lectura con severidad adecuada.
+
+    Args:
+        label (str): Etiqueta del recurso leído.
+        path (Path): Ruta del recurso.
+        exc (Exception): Excepción capturada.
+        errors (list[str] | None): Lista compartida para acumular mensajes.
+
+    Returns:
+        str: Mensaje de error generado.
+
+    English:
+        Logs and displays read errors with the right severity.
+
+    Args:
+        label (str): Resource label.
+        path (Path): Resource path.
+        exc (Exception): Captured exception.
+        errors (list[str] | None): Shared list for messages.
+
+    Returns:
+        str: Generated error message.
+    """
     message = format_read_error(label, path, str(exc))
     if isinstance(exc, FileNotFoundError):
         st.warning(message)
@@ -75,7 +138,27 @@ def safe_read_json(
     label: str = "JSON",
     errors: list[str] | None = None,
 ) -> tuple[dict, str | None]:
-    """Carga JSON con manejo de errores y mensaje uniforme."""
+    """Carga JSON con manejo de errores y mensaje uniforme.
+
+    Args:
+        path (Path): Ruta del archivo JSON.
+        label (str): Etiqueta para el recurso.
+        errors (list[str] | None): Lista compartida para errores.
+
+    Returns:
+        tuple[dict, str | None]: Datos JSON y mensaje de error si ocurrió.
+
+    English:
+        Loads JSON with consistent error handling and messaging.
+
+    Args:
+        path (Path): JSON file path.
+        label (str): Resource label.
+        errors (list[str] | None): Shared list for errors.
+
+    Returns:
+        tuple[dict, str | None]: JSON data and error message if any.
+    """
     try:
         with path.open("r", encoding="utf-8") as handle:
             return json.load(handle), None
@@ -86,7 +169,25 @@ def safe_read_json(
 
 
 def read_hash_file(snapshot_path: Path, errors: list[str] | None = None) -> tuple[str, str | None]:
-    """Lee el hash SHA256 desde el archivo .sha256 si existe."""
+    """Lee el hash SHA256 desde el archivo .sha256 si existe.
+
+    Args:
+        snapshot_path (Path): Ruta del snapshot.
+        errors (list[str] | None): Lista compartida para errores.
+
+    Returns:
+        tuple[str, str | None]: Hash leído y mensaje de error si aplica.
+
+    English:
+        Reads the SHA-256 hash from the .sha256 file if available.
+
+    Args:
+        snapshot_path (Path): Snapshot path.
+        errors (list[str] | None): Shared list for errors.
+
+    Returns:
+        tuple[str, str | None]: Hash value and error message if any.
+    """
     hash_path = HASH_DIR / f"{snapshot_path.name}.sha256"
     try:
         if hash_path.exists():
@@ -99,7 +200,17 @@ def read_hash_file(snapshot_path: Path, errors: list[str] | None = None) -> tupl
 
 
 def load_snapshots_list() -> list[Path]:
-    """Lista snapshots disponibles ordenados por fecha descendente."""
+    """Lista snapshots disponibles ordenados por fecha descendente.
+
+    Returns:
+        list[Path]: Lista de rutas de snapshots.
+
+    English:
+        Lists available snapshots ordered by most recent.
+
+    Returns:
+        list[Path]: Snapshot paths.
+    """
     # Ordena por fecha de modificación para priorizar el snapshot más reciente.
     if not DATA_DIR.exists():
         return []
@@ -112,7 +223,25 @@ def load_snapshots_list() -> list[Path]:
 
 
 def extract_timestamp(snapshot_path: Path, payload: dict) -> datetime | None:
-    """Obtiene timestamp del JSON o del nombre."""
+    """Obtiene timestamp del JSON o del nombre.
+
+    Args:
+        snapshot_path (Path): Ruta del snapshot.
+        payload (dict): Payload del snapshot.
+
+    Returns:
+        datetime | None: Timestamp encontrado o None.
+
+    English:
+        Gets a timestamp from JSON content or the file name.
+
+    Args:
+        snapshot_path (Path): Snapshot path.
+        payload (dict): Snapshot payload.
+
+    Returns:
+        datetime | None: Timestamp if found, otherwise None.
+    """
     raw = payload.get("timestamp")
     if isinstance(raw, str):
         try:
@@ -125,12 +254,44 @@ def extract_timestamp(snapshot_path: Path, payload: dict) -> datetime | None:
 
 
 def format_timestamp(timestamp: datetime | None) -> str:
-    """Convierte timestamps a texto seguro para UI."""
+    """Convierte timestamps a texto seguro para UI.
+
+    Args:
+        timestamp (datetime | None): Timestamp a formatear.
+
+    Returns:
+        str: Texto listo para mostrar.
+
+    English:
+        Converts timestamps into UI-safe text.
+
+    Args:
+        timestamp (datetime | None): Timestamp to format.
+
+    Returns:
+        str: Display-ready text.
+    """
     return timestamp.isoformat(sep=" ") if timestamp else ""
 
 
 def normalize_votos(payload: dict) -> dict:
-    """Normaliza el diccionario de votos."""
+    """Normaliza el diccionario de votos.
+
+    Args:
+        payload (dict): Payload con votos.
+
+    Returns:
+        dict: Votos normalizados con números seguros.
+
+    English:
+        Normalizes the vote dictionary into safe numeric values.
+
+    Args:
+        payload (dict): Payload containing votes.
+
+    Returns:
+        dict: Normalized votes with numeric values.
+    """
     votos = payload.get("votos") or {}
     if isinstance(votos, dict):
         return {str(k): float(v) for k, v in votos.items() if isinstance(v, (int, float))}
@@ -141,6 +302,25 @@ def load_snapshot_data(snapshot_path: Path, errors: list[str]) -> dict:
     """Carga y normaliza datos de un snapshot.
 
     Los mensajes de error se agregan a la lista compartida para mostrar en UI.
+
+    Args:
+        snapshot_path (Path): Ruta del snapshot.
+        errors (list[str]): Lista compartida de errores.
+
+    Returns:
+        dict: Datos normalizados del snapshot.
+
+    English:
+        Loads and normalizes snapshot data.
+
+        Error messages are appended to the shared list for UI display.
+
+    Args:
+        snapshot_path (Path): Snapshot path.
+        errors (list[str]): Shared error list.
+
+    Returns:
+        dict: Normalized snapshot data.
     """
     payload, error = safe_read_json(snapshot_path, label="snapshot", errors=errors)
     timestamp = extract_timestamp(snapshot_path, payload)
@@ -162,7 +342,23 @@ def load_snapshot_data(snapshot_path: Path, errors: list[str]) -> dict:
 
 
 def compute_diffs(df: pd.DataFrame) -> pd.DataFrame:
-    """Agrega columna de cambio porcentual vs snapshot anterior."""
+    """Agrega columna de cambio porcentual vs snapshot anterior.
+
+    Args:
+        df (pd.DataFrame): DataFrame con snapshots.
+
+    Returns:
+        pd.DataFrame: DataFrame con columna de cambios.
+
+    English:
+        Adds a percent-change column versus the previous snapshot.
+
+    Args:
+        df (pd.DataFrame): Snapshot DataFrame.
+
+    Returns:
+        pd.DataFrame: DataFrame with change column.
+    """
     df = df.copy()
     if "Porcentaje escrutado" not in df.columns:
         df["Cambio %"] = None
@@ -172,7 +368,11 @@ def compute_diffs(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def display_header() -> None:
-    """Renderiza el encabezado principal del dashboard."""
+    """Renderiza el encabezado principal del dashboard.
+
+    English:
+        Renders the dashboard header.
+    """
     st.markdown(
         "<h1 style='text-align:center;'>"
         "Proyecto C.E.N.T.I.N.E.L. – Auditoría Ciudadana Independiente del CNE Honduras – "
@@ -195,7 +395,11 @@ def display_header() -> None:
 
 
 def display_footer() -> None:
-    """Renderiza el pie institucional del dashboard."""
+    """Renderiza el pie institucional del dashboard.
+
+    English:
+        Renders the dashboard footer.
+    """
     st.markdown("---")
     st.markdown(
         "Proyecto C.E.N.T.I.N.E.L. open-source MIT – Solo datos públicos del CNE – "
@@ -205,7 +409,23 @@ def display_footer() -> None:
 
 
 def get_alerts(errors: list[str]) -> list[dict]:
-    """Carga alertas desde archivo JSON o log, registrando fallos."""
+    """Carga alertas desde archivo JSON o log, registrando fallos.
+
+    Args:
+        errors (list[str]): Lista compartida para mensajes de error.
+
+    Returns:
+        list[dict]: Lista de alertas disponibles.
+
+    English:
+        Loads alerts from JSON or log files and logs failures.
+
+    Args:
+        errors (list[str]): Shared list for error messages.
+
+    Returns:
+        list[dict]: Available alerts.
+    """
     if ALERTS_JSON.exists():
         data, _ = safe_read_json(ALERTS_JSON, label="alertas", errors=errors)
         if isinstance(data, list):
@@ -221,7 +441,23 @@ def get_alerts(errors: list[str]) -> list[dict]:
 
 
 def alerts_to_dataframe(alerts: list[dict]) -> pd.DataFrame:
-    """Convierte alertas a DataFrame para exportación."""
+    """Convierte alertas a DataFrame para exportación.
+
+    Args:
+        alerts (list[dict]): Lista de alertas.
+
+    Returns:
+        pd.DataFrame: DataFrame listo para exportar.
+
+    English:
+        Converts alerts into a DataFrame for export.
+
+    Args:
+        alerts (list[dict]): Alert list.
+
+    Returns:
+        pd.DataFrame: Export-ready DataFrame.
+    """
     rows = []
     for alert in alerts:
         rows.append(
@@ -234,7 +470,23 @@ def alerts_to_dataframe(alerts: list[dict]) -> pd.DataFrame:
 
 
 def summarize_alerts(alerts: list[dict]) -> str:
-    """Resume alertas en un texto compacto para exportaciones."""
+    """Resume alertas en un texto compacto para exportaciones.
+
+    Args:
+        alerts (list[dict]): Lista de alertas.
+
+    Returns:
+        str: Resumen en una sola línea.
+
+    English:
+        Summarizes alerts into a compact string for exports.
+
+    Args:
+        alerts (list[dict]): Alert list.
+
+    Returns:
+        str: Single-line summary.
+    """
     descriptions = []
     for alert in alerts:
         description = alert.get("descripcion") or alert.get("description") or ""
@@ -249,7 +501,25 @@ def summarize_alerts(alerts: list[dict]) -> str:
 
 
 def build_snapshot_export(df: pd.DataFrame, alerts: list[dict]) -> pd.DataFrame:
-    """Construye el CSV de snapshots con columnas útiles."""
+    """Construye el CSV de snapshots con columnas útiles.
+
+    Args:
+        df (pd.DataFrame): DataFrame con snapshots.
+        alerts (list[dict]): Alertas registradas.
+
+    Returns:
+        pd.DataFrame: DataFrame listo para exportar.
+
+    English:
+        Builds a snapshot CSV with useful columns.
+
+    Args:
+        df (pd.DataFrame): Snapshot DataFrame.
+        alerts (list[dict]): Recorded alerts.
+
+    Returns:
+        pd.DataFrame: Export-ready DataFrame.
+    """
     export_columns = ["timestamp", "hash", "delta", "porcentaje", "alertas"]
     alerts_summary = summarize_alerts(alerts)
     if df.empty:
@@ -284,7 +554,19 @@ def build_snapshot_export(df: pd.DataFrame, alerts: list[dict]) -> pd.DataFrame:
 
 
 def display_alerts(errors: list[str], alerts: list[dict] | None = None) -> None:
-    """Renderiza alertas o un placeholder."""
+    """Renderiza alertas o un placeholder.
+
+    Args:
+        errors (list[str]): Lista compartida de errores.
+        alerts (list[dict] | None): Alertas ya cargadas (opcional).
+
+    English:
+        Renders alerts or a placeholder message.
+
+    Args:
+        errors (list[str]): Shared error list.
+        alerts (list[dict] | None): Preloaded alerts (optional).
+    """
     st.subheader("Alertas y anomalías")
     alerts = alerts if alerts is not None else get_alerts(errors)
     if not alerts:
@@ -294,7 +576,19 @@ def display_alerts(errors: list[str], alerts: list[dict] | None = None) -> None:
 
 
 def display_exports(df: pd.DataFrame, alerts: list[dict]) -> None:
-    """Sección de exportación rápida para compartir reportes."""
+    """Sección de exportación rápida para compartir reportes.
+
+    Args:
+        df (pd.DataFrame): DataFrame con snapshots.
+        alerts (list[dict]): Alertas registradas.
+
+    English:
+        Quick export section for sharing reports.
+
+    Args:
+        df (pd.DataFrame): Snapshot DataFrame.
+        alerts (list[dict]): Recorded alerts.
+    """
     st.subheader("Exportar reportes")
     if df.empty and not alerts:
         st.info(NO_DATA_MESSAGE)
@@ -329,7 +623,25 @@ def display_exports(df: pd.DataFrame, alerts: list[dict]) -> None:
 
 
 def build_dataframe(snapshot_data: list[dict], errors: list[str]) -> pd.DataFrame:
-    """Construye DataFrame para tabla y gráficos."""
+    """Construye DataFrame para tabla y gráficos.
+
+    Args:
+        snapshot_data (list[dict]): Lista de datos de snapshots.
+        errors (list[str]): Lista compartida de errores.
+
+    Returns:
+        pd.DataFrame: DataFrame con columnas para UI.
+
+    English:
+        Builds a DataFrame for tables and charts.
+
+    Args:
+        snapshot_data (list[dict]): Snapshot data list.
+        errors (list[str]): Shared error list.
+
+    Returns:
+        pd.DataFrame: DataFrame with UI columns.
+    """
     rows = []
     for item in snapshot_data:
         timestamp = item["timestamp"]
@@ -352,7 +664,19 @@ def build_dataframe(snapshot_data: list[dict], errors: list[str]) -> pd.DataFram
 
 
 def display_estado_actual(latest: dict, errors: list[str]) -> None:
-    """Renderiza la sección con detalle del último snapshot."""
+    """Renderiza la sección con detalle del último snapshot.
+
+    Args:
+        latest (dict): Datos del snapshot más reciente.
+        errors (list[str]): Lista compartida de errores.
+
+    English:
+        Renders the section with details of the latest snapshot.
+
+    Args:
+        latest (dict): Latest snapshot data.
+        errors (list[str]): Shared error list.
+    """
     with st.expander("Estado actual", expanded=True):
         timestamp = latest.get("timestamp")
         timestamp_text = format_timestamp(timestamp)
@@ -374,7 +698,17 @@ def display_estado_actual(latest: dict, errors: list[str]) -> None:
 
 
 def display_table(df: pd.DataFrame) -> None:
-    """Renderiza la tabla con los últimos snapshots."""
+    """Renderiza la tabla con los últimos snapshots.
+
+    Args:
+        df (pd.DataFrame): DataFrame con snapshots.
+
+    English:
+        Renders the table with the latest snapshots.
+
+    Args:
+        df (pd.DataFrame): Snapshot DataFrame.
+    """
     st.subheader("Últimos snapshots")
     if df.empty:
         st.info(NO_DATA_MESSAGE)
@@ -401,7 +735,17 @@ def display_table(df: pd.DataFrame) -> None:
 
 
 def display_chart(df: pd.DataFrame) -> None:
-    """Renderiza el gráfico temporal del porcentaje escrutado."""
+    """Renderiza el gráfico temporal del porcentaje escrutado.
+
+    Args:
+        df (pd.DataFrame): DataFrame con snapshots.
+
+    English:
+        Renders the time chart for the scrutiny percentage.
+
+    Args:
+        df (pd.DataFrame): Snapshot DataFrame.
+    """
     st.subheader("Evolución del escrutinio")
     if df.empty:
         st.info(NO_DATA_MESSAGE)
@@ -418,7 +762,23 @@ def display_chart(df: pd.DataFrame) -> None:
 
 
 def render_sidebar(errors: list[str]) -> dict:
-    """Renderiza la barra lateral para filtros y acciones."""
+    """Renderiza la barra lateral para filtros y acciones.
+
+    Args:
+        errors (list[str]): Lista compartida de errores.
+
+    Returns:
+        dict: Estado de filtros y toggles activos.
+
+    English:
+        Renders the sidebar for filters and actions.
+
+    Args:
+        errors (list[str]): Shared error list.
+
+    Returns:
+        dict: Current filter/toggle state.
+    """
     st.sidebar.header("Filtros y acciones")
     if st.sidebar.button("Actualizar datos ahora"):
         with st.spinner("Ejecutando descarga de snapshots..."):
@@ -441,7 +801,17 @@ def render_sidebar(errors: list[str]) -> dict:
 
 
 def display_read_errors(errors: list[str]) -> None:
-    """Renderiza errores de lectura de forma consistente."""
+    """Renderiza errores de lectura de forma consistente.
+
+    Args:
+        errors (list[str]): Lista de errores detectados.
+
+    English:
+        Renders read errors in a consistent format.
+
+    Args:
+        errors (list[str]): Detected error list.
+    """
     if not errors:
         return
     unique_errors = sorted(set(errors))
@@ -453,7 +823,27 @@ def display_read_errors(errors: list[str]) -> None:
 def apply_departamento_filter(
     df: pd.DataFrame, snapshot_data: list[dict], latest: dict
 ) -> tuple[pd.DataFrame, list[dict], dict]:
-    """Aplica filtro por departamento si la columna está disponible."""
+    """Aplica filtro por departamento si la columna está disponible.
+
+    Args:
+        df (pd.DataFrame): DataFrame con snapshots.
+        snapshot_data (list[dict]): Lista original de snapshots.
+        latest (dict): Snapshot más reciente.
+
+    Returns:
+        tuple[pd.DataFrame, list[dict], dict]: Datos filtrados y latest ajustado.
+
+    English:
+        Applies a department filter when the column exists.
+
+    Args:
+        df (pd.DataFrame): Snapshot DataFrame.
+        snapshot_data (list[dict]): Original snapshot list.
+        latest (dict): Latest snapshot.
+
+    Returns:
+        tuple[pd.DataFrame, list[dict], dict]: Filtered data and updated latest.
+    """
     if "Departamento" not in df.columns or df.empty:
         return df, snapshot_data, latest
     departamentos = ["Todos"] + sorted(
@@ -474,7 +864,19 @@ def apply_departamento_filter(
 
 
 def display_estado_general(df: pd.DataFrame, alerts: list[dict]) -> None:
-    """Renderiza un resumen general con métricas clave."""
+    """Renderiza un resumen general con métricas clave.
+
+    Args:
+        df (pd.DataFrame): DataFrame con snapshots.
+        alerts (list[dict]): Lista de alertas.
+
+    English:
+        Renders a general summary with key metrics.
+
+    Args:
+        df (pd.DataFrame): Snapshot DataFrame.
+        alerts (list[dict]): Alert list.
+    """
     st.subheader("Estado general")
     total_snapshots = len(df)
     last_snapshot = df["Fecha/Hora"].iloc[0] if not df.empty else "N/A"
@@ -491,7 +893,17 @@ def display_estado_general(df: pd.DataFrame, alerts: list[dict]) -> None:
 
 
 def trigger_refresh(errors: list[str]) -> None:
-    """Lanza el proceso de descarga y hashing sin bloquear la UI."""
+    """Lanza el proceso de descarga y hashing sin bloquear la UI.
+
+    Args:
+        errors (list[str]): Lista compartida de errores.
+
+    English:
+        Triggers snapshot download and hashing without blocking the UI.
+
+    Args:
+        errors (list[str]): Shared error list.
+    """
     if not st.session_state.get("refresh_requested"):
         return
     st.session_state["refresh_requested"] = False
@@ -510,7 +922,11 @@ def trigger_refresh(errors: list[str]) -> None:
 
 
 def main() -> None:
-    """Función principal del dashboard."""
+    """Función principal del dashboard.
+
+    English:
+        Main entry point for the dashboard.
+    """
     st.set_page_config(page_title="Proyecto C.E.N.T.I.N.E.L.", layout="wide")
     display_header()
 

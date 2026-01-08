@@ -1,3 +1,9 @@
+"""Persistencia local de snapshots y exportación de datos.
+
+English:
+    Local persistence and export helpers for snapshots.
+"""
+
 import csv
 import json
 import sqlite3
@@ -10,16 +16,57 @@ from sentinel.core.normalyze import snapshot_to_canonical_json
 
 
 class LocalSnapshotStore:
+    """Gestiona almacenamiento SQLite de snapshots locales.
+
+    English:
+        Manages SQLite storage for local snapshots.
+    """
+
     def __init__(self, db_path: str) -> None:
+        """Inicializa la conexión SQLite y la tabla índice.
+
+        Args:
+            db_path (str): Ruta del archivo SQLite.
+
+        English:
+            Initializes the SQLite connection and index table.
+
+        Args:
+            db_path (str): Path to the SQLite file.
+        """
         self.db_path = db_path
         self._connection = sqlite3.connect(db_path)
         self._connection.row_factory = sqlite3.Row
         self._ensure_index_table()
 
     def close(self) -> None:
+        """Cierra la conexión a la base de datos.
+
+        English:
+            Closes the database connection.
+        """
         self._connection.close()
 
     def store_snapshot(self, snapshot: Snapshot, previous_hash: Optional[str] = None) -> str:
+        """Guarda un snapshot y actualiza su hash en la cadena.
+
+        Args:
+            snapshot (Snapshot): Snapshot canónico a persistir.
+            previous_hash (Optional[str]): Hash anterior para encadenar.
+
+        Returns:
+            str: Hash SHA-256 del snapshot almacenado.
+
+        English:
+            Stores a snapshot and updates the hash chain.
+
+        Args:
+            snapshot (Snapshot): Canonical snapshot to persist.
+            previous_hash (Optional[str]): Previous hash for chaining.
+
+        Returns:
+            str: SHA-256 hash of the stored snapshot.
+        """
         canonical_json = snapshot_to_canonical_json(snapshot)
         snapshot_hash = compute_hash(canonical_json, previous_hash=previous_hash)
         department_code = snapshot.meta.department_code
@@ -86,6 +133,23 @@ class LocalSnapshotStore:
         return snapshot_hash
 
     def get_index_entries(self, department_code: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Devuelve el índice de snapshots, filtrado por departamento si aplica.
+
+        Args:
+            department_code (Optional[str]): Código de departamento a filtrar.
+
+        Returns:
+            List[Dict[str, Any]]: Entradas del índice con hashes y metadatos.
+
+        English:
+            Returns snapshot index entries, optionally filtered by department.
+
+        Args:
+            department_code (Optional[str]): Department code to filter by.
+
+        Returns:
+            List[Dict[str, Any]]: Index entries with hashes and metadata.
+        """
         if department_code:
             rows = self._connection.execute(
                 """
@@ -108,6 +172,19 @@ class LocalSnapshotStore:
         return [dict(row) for row in rows]
 
     def export_department_json(self, department_code: str, output_path: str) -> None:
+        """Exporta snapshots de un departamento a un JSON legible.
+
+        Args:
+            department_code (str): Código de departamento.
+            output_path (str): Ruta de salida para el JSON.
+
+        English:
+            Exports department snapshots to a readable JSON file.
+
+        Args:
+            department_code (str): Department code.
+            output_path (str): Output JSON path.
+        """
         rows = self._fetch_department_rows(department_code)
         payload = [
             {
@@ -121,6 +198,19 @@ class LocalSnapshotStore:
         Path(output_path).write_text(json.dumps(payload, ensure_ascii=False, indent=2))
 
     def export_department_csv(self, department_code: str, output_path: str) -> None:
+        """Exporta snapshots de un departamento a un CSV.
+
+        Args:
+            department_code (str): Código de departamento.
+            output_path (str): Ruta de salida para el CSV.
+
+        English:
+            Exports department snapshots to a CSV file.
+
+        Args:
+            department_code (str): Department code.
+            output_path (str): Output CSV path.
+        """
         rows = self._fetch_department_rows(department_code)
         fieldnames = [
             "timestamp_utc",
