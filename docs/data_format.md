@@ -29,7 +29,7 @@ Definir una estructura única, estable y reproducible para todos los datos elect
 - Nunca se confía en porcentajes externos.
 
 ### Ejemplo
-Ver `docs/examples/normalized_example.json`
+Genera un snapshot normalizado localmente con `scripts/download_and_hash.py` y úsalo como referencia.
 
 ---
 
@@ -62,4 +62,4 @@ To define a unique, stable, and reproducible structure for all observed electora
 - External percentages are never trusted.
 
 ### Example
-See `docs/examples/normalized_example.json`
+Generate a normalized snapshot locally with `scripts/download_and_hash.py` and use it as reference.

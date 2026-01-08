@@ -21,8 +21,6 @@ DATA_DIR = Path("data")
 HASH_DIR = Path("hashes")
 ALERTS_LOG = Path("alerts.log")
 ALERTS_JSON = DATA_DIR / "alerts.json"
-REPORTS_DIR = Path("reports")
-DEFAULT_PDF_REPORT = REPORTS_DIR / "latest_report.pdf"
 READ_ERROR_PREFIX = "No se pudo leer"
 NO_DATA_MESSAGE = (
     "No hay datos disponibles aún. Ejecuta primero: python -m scripts.download_and_hash"
@@ -422,27 +420,6 @@ def display_chart(df: pd.DataFrame) -> None:
 def render_sidebar(errors: list[str]) -> dict:
     """Renderiza la barra lateral para filtros y acciones."""
     st.sidebar.header("Filtros y acciones")
-    if DEFAULT_PDF_REPORT.exists() and not DEFAULT_PDF_REPORT.is_file():
-        error = format_read_error("reporte PDF", DEFAULT_PDF_REPORT, "no es un archivo")
-        errors.append(error)
-        st.sidebar.warning(error)
-    elif DEFAULT_PDF_REPORT.exists():
-        try:
-            report_bytes = DEFAULT_PDF_REPORT.read_bytes()
-            st.sidebar.download_button(
-                label="Descargar reporte PDF",
-                data=report_bytes,
-                file_name=DEFAULT_PDF_REPORT.name,
-                mime="application/pdf",
-            )
-        except FileNotFoundError as exc:
-            st.sidebar.warning("No se pudo cargar el PDF de reporte.")
-            logger.warning("No se pudo cargar el PDF de reporte: %s", exc)
-        except OSError as exc:
-            st.sidebar.error("No se pudo cargar el PDF de reporte.")
-            logger.error("No se pudo cargar el PDF de reporte: %s", exc)
-    else:
-        st.sidebar.caption("Genera un reporte PDF para habilitar la descarga.")
     if st.sidebar.button("Actualizar datos ahora"):
         with st.spinner("Ejecutando descarga de snapshots..."):
             result = subprocess.run(

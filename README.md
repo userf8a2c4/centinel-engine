@@ -52,11 +52,6 @@
 - Publicación: plantillas técnicas neutrales para Telegram y X.
 - Fallback de scraping: habilitar `use_playwright: true` en `config.yaml` (incluye modo stealth básico y requiere `playwright install`).
 
-### Visualizaciones rápidas
-- `scripts/visualize_benford.py` genera un gráfico de distribución de primeros dígitos.
-  - Ubicación: `plots/`.
-  - Convención: `benford_analysis_YYYYMMDD_HHMMSS.png` y `latest.png` apunta a la última ejecución.
-
 ### Dashboard
 Ejecuta el panel interactivo con Streamlit después de generar snapshots:
 
@@ -85,12 +80,6 @@ Ejecuta el panel interactivo con Streamlit después de generar snapshots:
 ### Reportes y exportaciones
 - Exportar CSV desde el dashboard:
   - Usa los botones **Descargar snapshots (CSV)** y **Descargar alertas (CSV)**.
-- Generar PDF:
-  1. Asegura que existan `analysis_results.json` y `anomalies_report.json`.
-  2. Ejecuta: `python scripts/export_report.py`
-  3. El PDF queda en `reports/report_<timestamp>.pdf` y se copia como `reports/latest_report.pdf`.
-- Descargar PDF desde el dashboard:
-  - En la barra lateral aparece **Descargar reporte PDF** cuando existe `reports/latest_report.pdf`.
 
 ---
 
@@ -133,11 +122,6 @@ Ejecuta el panel interactivo con Streamlit después de generar snapshots:
 - Analysis: anomaly rules, trends, and plain-language summaries.
 - Publishing: neutral technical templates for Telegram and X.
 - Scraping fallback: enable `use_playwright: true` in `config.yaml` (includes basic stealth and requires `playwright install`).
-
-### Quick visualizations
-- `scripts/visualize_benford.py` generates a first-digit distribution chart.
-  - Location: `plots/`.
-  - Naming: `benford_analysis_YYYYMMDD_HHMMSS.png` and `latest.png` points to the latest run.
 
 ### Dashboard
 Run the interactive Streamlit panel after generating snapshots:
