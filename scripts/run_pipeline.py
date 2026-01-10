@@ -69,13 +69,20 @@ def build_alerts(anomalies):
     files = [a.get("file") for a in anomalies if a.get("file")]
     from_file = min(files) if files else "unknown"
     to_file = max(files) if files else "unknown"
-    rules = sorted({a.get("type", "ANOMALY") for a in anomalies})
+    alerts = []
+    for anomaly in anomalies:
+        rule = anomaly.get("type", "ANOMALY")
+        description = anomaly.get("description") or anomaly.get("descripcion")
+        alert = {"rule": rule}
+        if description:
+            alert["description"] = description
+        alerts.append(alert)
 
     return [
         {
             "from": from_file,
             "to": to_file,
-            "alerts": [{"rule": rule} for rule in rules],
+            "alerts": alerts,
         }
     ]
 

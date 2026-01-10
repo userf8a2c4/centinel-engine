@@ -14,6 +14,8 @@ from hashlib import sha256
 from pathlib import Path
 
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from sentinel.utils.logging_config import setup_logging
@@ -26,11 +28,54 @@ DATA_DIR = BASE_DIR / "data"
 HASH_DIR = BASE_DIR / "hashes"
 ALERTS_LOG = BASE_DIR / "alerts.log"
 ALERTS_JSON = DATA_DIR / "alerts.json"
+ANALYSIS_RESULTS_JSON = BASE_DIR / "analysis_results.json"
 READ_ERROR_PREFIX = "No se pudo leer"
 NO_DATA_MESSAGE = (
     "No hay datos disponibles aún. Ejecuta primero: python -m scripts.download_and_hash"
 )
 REQUIRED_PASSWORD = os.getenv("PASSWORD") or st.secrets.get("PASSWORD")
+HONDURAS_DEPARTMENT_CENTERS = {
+    "Atlántida": (-86.6, 15.7),
+    "Choluteca": (-86.7, 13.6),
+    "Colón": (-85.7, 15.8),
+    "Comayagua": (-87.5, 14.8),
+    "Copán": (-89.1, 14.8),
+    "Cortés": (-87.9, 15.4),
+    "El Paraíso": (-86.0, 14.0),
+    "Francisco Morazán": (-86.9, 14.2),
+    "Gracias a Dios": (-84.5, 15.5),
+    "Intibucá": (-88.2, 14.4),
+    "Islas de la Bahía": (-86.9, 16.3),
+    "La Paz": (-87.6, 14.4),
+    "Lempira": (-88.6, 14.6),
+    "Ocotepeque": (-89.2, 14.4),
+    "Olancho": (-85.5, 14.7),
+    "Santa Bárbara": (-88.2, 14.9),
+    "Valle": (-87.7, 13.6),
+    "Yoro": (-87.0, 15.1),
+}
+HONDURAS_GEOJSON = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {"name": name},
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [lon - 0.3, lat - 0.2],
+                        [lon - 0.3, lat + 0.2],
+                        [lon + 0.3, lat + 0.2],
+                        [lon + 0.3, lat - 0.2],
+                        [lon - 0.3, lat - 0.2],
+                    ]
+                ],
+            },
+        }
+        for name, (lon, lat) in HONDURAS_DEPARTMENT_CENTERS.items()
+    ],
+}
 
 
 def enforce_basic_access() -> None:
@@ -433,6 +478,45 @@ def display_footer() -> None:
     st.markdown("Versión: v0.1-dev (enero 2026)")
 
 
+def normalize_alerts_payload(alerts: list[dict]) -> list[dict]:
+    """Normaliza alertas para el dashboard.
+
+    Args:
+        alerts (list[dict]): Alertas crudas desde JSON.
+
+    Returns:
+        list[dict]: Alertas con descripción y timestamp uniformes.
+
+    English:
+        Normalizes alerts for the dashboard.
+
+    Args:
+        alerts (list[dict]): Raw alerts loaded from JSON.
+
+    Returns:
+        list[dict]: Alerts with uniform description and timestamp.
+    """
+    normalized = []
+    for entry in alerts:
+        if isinstance(entry, dict) and "alerts" in entry:
+            for alert in entry.get("alerts", []):
+                if not isinstance(alert, dict):
+                    continue
+                description = alert.get("description") or alert.get("descripcion")
+                rule = alert.get("rule")
+                if not description and rule:
+                    description = f"Regla activada: {rule}"
+                normalized.append(
+                    {
+                        "timestamp": entry.get("to") or entry.get("timestamp", ""),
+                        "descripcion": description or "",
+                    }
+                )
+        else:
+            normalized.append(entry)
+    return normalized
+
+
 def get_alerts(errors: list[str]) -> list[dict]:
     """Carga alertas desde archivo JSON o log, registrando fallos.
 
@@ -454,7 +538,7 @@ def get_alerts(errors: list[str]) -> list[dict]:
     if ALERTS_JSON.exists():
         data, _ = safe_read_json(ALERTS_JSON, label="alertas", errors=errors)
         if isinstance(data, list):
-            return data
+            return normalize_alerts_payload(data)
     if ALERTS_LOG.exists():
         try:
             lines = ALERTS_LOG.read_text(encoding="utf-8").splitlines()
@@ -525,6 +609,187 @@ def summarize_alerts(alerts: list[dict]) -> str:
         elif timestamp:
             descriptions.append(timestamp)
     return "; ".join(descriptions)
+
+
+def load_analysis_results(errors: list[str]) -> dict:
+    """Carga resultados de análisis avanzado desde JSON.
+
+    Args:
+        errors (list[str]): Lista compartida de errores.
+
+    Returns:
+        dict: Resultados de análisis o dict vacío.
+
+    English:
+        Loads advanced analysis results from JSON.
+
+    Args:
+        errors (list[str]): Shared list for errors.
+
+    Returns:
+        dict: Analysis results or empty dict.
+    """
+    if not ANALYSIS_RESULTS_JSON.exists():
+        return {}
+    data, _ = safe_read_json(
+        ANALYSIS_RESULTS_JSON, label="analysis_results", errors=errors
+    )
+    return data if isinstance(data, dict) else {}
+
+
+def display_advanced_analysis(analysis: dict) -> None:
+    """Renderiza visualizaciones avanzadas con Plotly.
+
+    Args:
+        analysis (dict): Resultados de análisis avanzado.
+
+    English:
+        Renders advanced Plotly visualizations.
+
+    Args:
+        analysis (dict): Advanced analysis results.
+    """
+    st.subheader("Advanced Analysis")
+    if not analysis:
+        st.info("No hay resultados avanzados disponibles.")
+        return
+
+    tab_benford, tab_outliers, tab_map = st.tabs(
+        ["Benford", "Outliers", "Mapa"]
+    )
+
+    with tab_benford:
+        benford_rows = []
+        for entry in analysis.get("benford", []):
+            dept = entry.get("department") or "NACIONAL"
+            for candidate, stats in (entry.get("candidates") or {}).items():
+                benford_rows.append(
+                    {
+                        "department": dept,
+                        "candidate": candidate,
+                        "stats": stats,
+                    }
+                )
+        if not benford_rows:
+            st.info("Sin datos de Benford en este momento.")
+        else:
+            departments = sorted({row["department"] for row in benford_rows})
+            selected_dept = st.selectbox(
+                "Departamento (Benford)", departments, key="benford_dept"
+            )
+            candidates = sorted(
+                {
+                    row["candidate"]
+                    for row in benford_rows
+                    if row["department"] == selected_dept
+                }
+            )
+            selected_candidate = st.selectbox(
+                "Candidato (Benford)", candidates, key="benford_candidate"
+            )
+            selected = next(
+                row
+                for row in benford_rows
+                if row["department"] == selected_dept
+                and row["candidate"] == selected_candidate
+            )
+            stats = selected["stats"]
+            digits = list(range(1, 10))
+            observed = [stats["observed_pct"].get(digit, 0) for digit in digits]
+            expected = [stats["expected_pct"].get(digit, 0) for digit in digits]
+            fig = go.Figure()
+            fig.add_bar(x=digits, y=expected, name="Esperado")
+            fig.add_bar(x=digits, y=observed, name="Observado")
+            fig.update_layout(
+                barmode="group",
+                xaxis_title="Primer dígito",
+                yaxis_title="Porcentaje",
+                height=360,
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            st.caption(
+                f"Chi-cuadrado: {stats.get('chi2', 0):.2f} | "
+                f"p-value: {stats.get('pvalue', 0):.3f} | "
+                f"Desviación máx: {stats.get('deviation_pct', 0):.1f}%"
+            )
+
+    with tab_outliers:
+        series_data = analysis.get("series") or {}
+        if not series_data:
+            st.info("Sin series temporales para analizar outliers.")
+        else:
+            departments = sorted(series_data.keys())
+            selected_dept = st.selectbox(
+                "Departamento (Outliers)", departments, key="outliers_dept"
+            )
+            series_df = pd.DataFrame(series_data.get(selected_dept, []))
+            if series_df.empty:
+                st.info("No hay datos para este departamento.")
+            else:
+                series_df["timestamp"] = pd.to_datetime(
+                    series_df["timestamp"], errors="coerce"
+                )
+                series_df = series_df.dropna(subset=["timestamp"])
+                fig = go.Figure()
+                fig.add_trace(
+                    go.Scatter(
+                        x=series_df["timestamp"],
+                        y=series_df["total_votes"],
+                        mode="lines+markers",
+                        name="Votos",
+                    )
+                )
+                if "ml_outlier" in series_df.columns:
+                    outliers_df = series_df[series_df["ml_outlier"]]
+                    if not outliers_df.empty:
+                        fig.add_trace(
+                            go.Scatter(
+                                x=outliers_df["timestamp"],
+                                y=outliers_df["total_votes"],
+                                mode="markers",
+                                marker={"color": "red", "size": 10},
+                                name="Outliers",
+                            )
+                        )
+                fig.update_layout(
+                    xaxis_title="Tiempo",
+                    yaxis_title="Votos acumulados",
+                    height=360,
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+    with tab_map:
+        series_data = analysis.get("series") or {}
+        if not series_data:
+            st.info("Sin datos para mapa.")
+        else:
+            rows = []
+            for dept, records in series_data.items():
+                if not records:
+                    continue
+                last = records[-1]
+                rows.append(
+                    {
+                        "Departamento": dept,
+                        "Total votos": last.get("total_votes", 0),
+                    }
+                )
+            if not rows:
+                st.info("No hay datos suficientes para el mapa.")
+            else:
+                map_df = pd.DataFrame(rows)
+                fig = px.choropleth(
+                    map_df,
+                    geojson=HONDURAS_GEOJSON,
+                    locations="Departamento",
+                    featureidkey="properties.name",
+                    color="Total votos",
+                    color_continuous_scale="Blues",
+                    hover_name="Departamento",
+                )
+                fig.update_geos(fitbounds="locations", visible=False)
+                fig.update_layout(height=420)
+                st.plotly_chart(fig, use_container_width=True)
 
 
 def build_snapshot_export(df: pd.DataFrame, alerts: list[dict]) -> pd.DataFrame:
@@ -996,6 +1261,7 @@ def main() -> None:
         logger.error("Dashboard data load error: %s", exc)
         alerts = []
 
+    analysis = load_analysis_results(errors)
     df, snapshot_data, latest = apply_departamento_filter(df, snapshot_data, latest)
 
     display_read_errors(errors)
@@ -1003,6 +1269,7 @@ def main() -> None:
     display_estado_actual(latest, errors)
     display_table(df)
     display_chart(df)
+    display_advanced_analysis(analysis)
     display_exports(df, alerts)
     display_alerts(errors, alerts)
 

@@ -11,6 +11,10 @@ else:
     for e in alerts:
         lines.append(f"Evento atípico detectado entre {e['from']} y {e['to']} UTC.")
         for a in e["alerts"]:
-            lines.append(f"- Regla activada: {a['rule']}")
+            description = a.get("description") or a.get("descripcion")
+            if description:
+                lines.append(f"- {description}")
+            else:
+                lines.append(f"- Regla activada: {a['rule']}")
 
 Path("reports/summary.txt").write_text("\n".join(lines), encoding="utf-8")

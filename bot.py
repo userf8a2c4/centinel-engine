@@ -700,11 +700,49 @@ def get_alerts() -> list[dict]:
     Returns:
         list[dict]: Available alerts.
     """
+    def normalize_alerts(alerts: list[dict]) -> list[dict]:
+        """Normaliza alertas para el bot.
+
+        Args:
+            alerts (list[dict]): Alertas crudas desde JSON.
+
+        Returns:
+            list[dict]: Alertas con descripción y timestamp uniformes.
+
+        English:
+            Normalizes alerts for the bot.
+
+        Args:
+            alerts (list[dict]): Raw alerts loaded from JSON.
+
+        Returns:
+            list[dict]: Alerts with uniform description and timestamp.
+        """
+        normalized = []
+        for entry in alerts:
+            if isinstance(entry, dict) and "alerts" in entry:
+                for alert in entry.get("alerts", []):
+                    if not isinstance(alert, dict):
+                        continue
+                    description = alert.get("description") or alert.get("descripcion")
+                    rule = alert.get("rule")
+                    if not description and rule:
+                        description = f"Regla activada: {rule}"
+                    normalized.append(
+                        {
+                            "timestamp": entry.get("to") or entry.get("timestamp", ""),
+                            "descripcion": description or "",
+                        }
+                    )
+            else:
+                normalized.append(entry)
+        return normalized
+
     if ALERTS_JSON.exists():
         try:
             data = json.loads(ALERTS_JSON.read_text(encoding="utf-8"))
             if isinstance(data, list):
-                return data
+                return normalize_alerts(data)
         except (OSError, json.JSONDecodeError) as exc:
             logger.error("alerts_json_failed error=%s", exc)
     if ALERTS_LOG.exists():

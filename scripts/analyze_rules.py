@@ -15,6 +15,8 @@ from datetime import datetime
 
 import pandas as pd
 from dateutil import parser
+from scipy.stats import chisquare
+from sklearn.ensemble import IsolationForest
 
 from sentinel.utils.logging_config import setup_logging
 
@@ -26,6 +28,9 @@ logger = logging.getLogger(__name__)
 
 RELATIVE_VOTE_CHANGE_PCT = float(os.getenv("RELATIVE_VOTE_CHANGE_PCT", "15"))
 SCRUTINIO_JUMP_PCT = float(os.getenv("SCRUTINIO_JUMP_PCT", "5"))
+BENFORD_DEVIATION_PCT = float(os.getenv("BENFORD_DEVIATION_PCT", "15"))
+BENFORD_MIN_SAMPLES = int(os.getenv("BENFORD_MIN_SAMPLES", "10"))
+ML_OUTLIER_CONTAMINATION = float(os.getenv("ML_OUTLIER_CONTAMINATION", "0.05"))
 
 
 def load_json(file_path):
@@ -515,6 +520,139 @@ def extract_department_records(data, file_name):
     return records
 
 
+def benford_analysis(data):
+    """Ejecuta análisis Benford por candidato y mesa.
+
+    Args:
+        data (dict): Payload del snapshot.
+
+    Returns:
+        dict: Resultados con distribución observada, esperada y chi-cuadrado.
+
+    English:
+        Runs Benford analysis by candidate and polling table.
+
+    Args:
+        data (dict): Snapshot payload.
+
+    Returns:
+        dict: Results with observed/expected distributions and chi-squared stats.
+    """
+    department = (
+        data.get("departamento")
+        or data.get("dep")
+        or data.get("department")
+        or "NACIONAL"
+    )
+    votes_by_candidate = collections.defaultdict(list)
+
+    def append_votes(entries):
+        if not isinstance(entries, list):
+            return
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            candidate_id = str(
+                entry.get("id")
+                or entry.get("candidate_id")
+                or entry.get("nombre")
+                or entry.get("name")
+                or "unknown"
+            )
+            votes = safe_int_or_none(entry.get("votos") or entry.get("votes"))
+            if votes is None or votes <= 0:
+                continue
+            votes_by_candidate[candidate_id].append(votes)
+
+    append_votes(data.get("votos") or data.get("candidates") or [])
+
+    mesas = data.get("mesas") or data.get("tables") or []
+    if isinstance(mesas, list):
+        for mesa in mesas:
+            if not isinstance(mesa, dict):
+                continue
+            append_votes(mesa.get("votos") or mesa.get("candidates") or [])
+
+    if not votes_by_candidate:
+        return {}
+
+    expected_distribution = {
+        digit: math.log10(1 + 1 / digit) * 100 for digit in range(1, 10)
+    }
+    results = {
+        "department": department,
+        "candidates": {},
+        "threshold_pct": BENFORD_DEVIATION_PCT,
+    }
+
+    for candidate, votes in votes_by_candidate.items():
+        if len(votes) < BENFORD_MIN_SAMPLES:
+            continue
+        first_digits = [int(str(vote)[0]) for vote in votes if vote and str(vote)[0].isdigit()]
+        if len(first_digits) < BENFORD_MIN_SAMPLES:
+            continue
+        counts = collections.Counter(first_digits)
+        observed_counts = [counts.get(digit, 0) for digit in range(1, 10)]
+        total = sum(observed_counts)
+        if total <= 0:
+            continue
+        expected_counts = [
+            expected_distribution[digit] / 100 * total for digit in range(1, 10)
+        ]
+        chi_result = chisquare(observed_counts, f_exp=expected_counts)
+        observed_pct = {
+            digit: (counts.get(digit, 0) / total) * 100 for digit in range(1, 10)
+        }
+        deviation_pct = max(
+            abs(observed_pct[digit] - expected_distribution[digit])
+            for digit in range(1, 10)
+        )
+        results["candidates"][candidate] = {
+            "observed_pct": observed_pct,
+            "expected_pct": expected_distribution,
+            "chi2": float(chi_result.statistic),
+            "pvalue": float(chi_result.pvalue),
+            "deviation_pct": deviation_pct,
+            "sample_size": total,
+            "is_anomaly": deviation_pct >= BENFORD_DEVIATION_PCT,
+        }
+
+    if not results["candidates"]:
+        return {}
+    return results
+
+
+def ml_outliers(series):
+    """Detecta outliers estadísticos con Isolation Forest.
+
+    Args:
+        series (pd.Series): Serie temporal de votos o cambios porcentuales.
+
+    Returns:
+        list: Índices detectados como outliers.
+
+    English:
+        Detects statistical outliers with Isolation Forest.
+
+    Args:
+        series (pd.Series): Time series of votes or percentage changes.
+
+    Returns:
+        list: Indices detected as outliers.
+    """
+    clean = series.dropna()
+    if clean.shape[0] < 5:
+        return []
+    model = IsolationForest(
+        contamination=ML_OUTLIER_CONTAMINATION,
+        random_state=42,
+    )
+    values = clean.values.reshape(-1, 1)
+    model.fit(values)
+    predictions = model.predict(values)
+    return clean.index[predictions == -1].tolist()
+
+
 def apply_benford_law(votos_lista):
     """Analiza la distribución del primer dígito (Ley de Benford).
 
@@ -718,6 +856,7 @@ def run_audit(target_directory="data/normalized"):
     peak_votos = {}
     anomalies_log = []
     records = []
+    benford_reports = []
 
     file_list = sorted(glob.glob(os.path.join(target_directory, "*.json")))
     if not file_list:
@@ -778,13 +917,34 @@ def run_audit(target_directory="data/normalized"):
             if c_id not in peak_votos or v_actual > peak_votos[c_id]["valor"]:
                 peak_votos[c_id] = {"valor": v_actual, "file": file_name}
 
-        benford = apply_benford_law(votos_actuales)
-        if benford and benford["is_anomaly"]:
-            logger.warning(
-                "benford_anomaly file=%s prop_1=%s",
-                file_name,
-                f"{benford['prop_1']:.1f}",
-            )
+        benford_report = benford_analysis(data)
+        if benford_report:
+            benford_reports.append(benford_report)
+            for candidate, stats in benford_report["candidates"].items():
+                if not stats.get("is_anomaly"):
+                    continue
+                departamento = benford_report.get("department") or "NACIONAL"
+                score = stats.get("deviation_pct") or 0
+                logger.warning(
+                    "benford_deviation file=%s departamento=%s candidate=%s deviation=%s",
+                    file_name,
+                    departamento,
+                    candidate,
+                    f"{score:.1f}",
+                )
+                anomalies_log.append(
+                    {
+                        "file": file_name,
+                        "type": "BENFORD_DEVIATION",
+                        "departamento": departamento,
+                        "candidate": candidate,
+                        "score_pct": score,
+                        "description": (
+                            "Benford deviation detected in department "
+                            f"{departamento} for candidate {candidate}: {score:.1f}%"
+                        ),
+                    }
+                )
 
     if not records:
         logger.warning("no_department_records")
@@ -839,6 +999,8 @@ def run_audit(target_directory="data/normalized"):
             group["outlier_zscore"] = False
             group["outlier_iqr"] = False
             group["change_point"] = False
+        ml_outlier_indices = ml_outliers(group["relative_change_pct"])
+        group["ml_outlier"] = group.index.isin(ml_outlier_indices)
 
         for _, row in group.iterrows():
             if row["change_point"]:
@@ -858,6 +1020,22 @@ def run_audit(target_directory="data/normalized"):
                         "timestamp": row["timestamp"].isoformat(),
                         "delta_votes": row["delta_votes"],
                         "method": "zscore" if row["outlier_zscore"] else "iqr",
+                    }
+                )
+            if row["ml_outlier"]:
+                mesa = row.get("mesa") or row.get("table") or departamento or "N/A"
+                delta_pct = row.get("relative_change_pct") or 0
+                anomalies.append(
+                    {
+                        "departamento": departamento,
+                        "type": "ML_OUTLIER",
+                        "timestamp": row["timestamp"].isoformat(),
+                        "mesa": mesa,
+                        "delta_pct": delta_pct,
+                        "description": (
+                            "Statistical outlier in table "
+                            f"{mesa} – votes jump of {delta_pct:.1f}%"
+                        ),
                     }
                 )
             if (row["delta_votes"] or 0) > 0 and (row["delta_actas"] or 0) <= 0:
@@ -931,6 +1109,7 @@ def run_audit(target_directory="data/normalized"):
         df.loc[group.index, "outlier_zscore"] = group["outlier_zscore"].values
         df.loc[group.index, "outlier_iqr"] = group["outlier_iqr"].values
         df.loc[group.index, "change_point"] = group["change_point"].values
+        df.loc[group.index, "ml_outlier"] = group["ml_outlier"].values
 
     series_payload = {}
     for dept, group in df.groupby("departamento"):
@@ -945,6 +1124,7 @@ def run_audit(target_directory="data/normalized"):
         "departments": metrics_by_dept,
         "predictions": predictions,
         "anomalies": anomalies_log + anomalies,
+        "benford": benford_reports,
         "series": series_payload,
     }
 
