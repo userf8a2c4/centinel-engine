@@ -10,4 +10,5 @@ python-dotenv==1.0.1  # Para cargar variables sensibles desde .env.
 playwright==1.49.0  # Fallback de scraping con navegador headless.
 pytest==8.3.3  # Para ejecutar la suite de pruebas en CI.
 playwright-stealth==1.0.6  # Para modo stealth en Playwright.
+streamlit==1.39.0  # Dashboard público en Streamlit.
 # Arsenal de Proyecto C.E.N.T.I.N.E.L. para exposición de verdad. Sin extras para mantener ligereza.

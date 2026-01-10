@@ -2,6 +2,34 @@ base_url: "https://api.example.com/cne/resultados" # URL base del API oficial.
 # Ejemplo de URL completa (NACIONAL): https://api.example.com/cne/resultados?ambito=NACIONAL&nivel=PRES
 # Ejemplo de URL completa (DEPARTAMENTO): https://api.example.com/cne/resultados?ambito=DEPARTMENT&nivel=PD&cod_departamento=01
 # Parámetros comunes: ambito (NATIONAL/DEPARTMENT), nivel (PRES/PD), cod_departamento (01-18).
+endpoints:
+  # Endpoint principal de resultados presidenciales nacionales
+  # National presidential results main endpoint
+  # Si falla → fallback a Playwright scraping
+  nacional: "https://resultadosgenerales2025.cne.hn/api/presidencial/nacional"
+  # Variante conocida para totales nacionales
+  # Known national totals variant
+  fallback_nacional: "https://resultadosgenerales2025.cne.hn/api/resultados/presidencial/totales"
+  # Endpoints por departamento (01-18)
+  # Department endpoints (01-18)
+  "01": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/01"
+  "02": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/02"
+  "03": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/03"
+  "04": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/04"
+  "05": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/05"
+  "06": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/06"
+  "07": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/07"
+  "08": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/08"
+  "09": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/09"
+  "10": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/10"
+  "11": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/11"
+  "12": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/12"
+  "13": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/13"
+  "14": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/14"
+  "15": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/15"
+  "16": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/16"
+  "17": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/17"
+  "18": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/18"
 timeout: 15 # Segundos máximos por solicitud.
 retries: 3 # Reintentos totales antes de fallar.
 headers: # Encabezados HTTP enviados en cada solicitud.

@@ -6,14 +6,15 @@ name: Sentinel Pipeline
 
 on:
   push:
-    branches: [main, dev, dev-v2]
+    branches: [main, dev, dev-v2, dev-v3]
   pull_request:
-    branches: [main, dev, dev-v2]
+    branches: [main, dev, dev-v2, dev-v3]
   workflow_dispatch:
 
 jobs:
-  run:
+  lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -24,6 +25,40 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+        # Configura Python 3.11 para consistencia / Sets up Python 3.11 for consistency
+
+      - name: Install lint dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black ruff
+        # Instala dependencias de lint / Installs lint dependencies
+
+      - name: Run black
+        run: black --check .
+        # Valida formato Black / Validates Black formatting
+
+      - name: Run ruff
+        run: ruff check .
+        # Ejecuta Ruff / Runs Ruff
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # Descarga el repositorio completo / Checks out the full repository
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
         # Configura Python 3.11 para consistencia / Sets up Python 3.11 for consistency
 
       - name: Install dependencies
@@ -32,49 +67,19 @@ jobs:
           pip install -r requirements.txt
         # Instala todas las dependencias del proyecto / Installs all project dependencies
 
+      - name: Install Playwright browsers
+        run: python -m playwright install --with-deps chromium
+        # Instala Chromium para Playwright / Installs Chromium for Playwright
+
       - name: Run download and hash (mock mode in CI)
         env:
           PYTHONPATH: ${{ github.workspace }}
-        run: |
-          if [[ "${{ github.event_name }}" == "push" || "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "CI detected - activating mock mode (no real CNE fetch)"
-            python -m scripts.download_and_hash --mock
-          else
-            python -m scripts.download_and_hash
-          fi
+        run: python -m scripts.download_and_hash --mock
         # Ejecuta el script de descarga con modo mock en CI para evitar errores de red
         # Runs download_and_hash script with mock mode in CI to avoid network errors
 
-      # Los siguientes steps están temporalmente desactivados en CI para evitar fallos por archivos inexistentes
-      # Temporarily disabled in CI to prevent failures due to missing files
-
-      - name: Run normalize (disabled in CI)
-        if: false
-        run: python scripts/normalize.py
-        # Normaliza los datos descargados (desactivado en CI hasta que exista el script)
-        # Normalizes downloaded data (disabled in CI until script exists)
-
-      - name: Run analyze rules (disabled in CI)
-        if: false
-        run: python scripts/analyze_rules.py
-        # Analiza reglas de anomalías (desactivado en CI hasta implementación completa)
-        # Analyzes anomaly detection rules (disabled in CI until fully implemented)
-
       - name: Run pytests
-        run: pytest tests/
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest
         # Ejecuta pruebas unitarias / Runs unit tests
-
-      - name: Run git config
-        run: git config user.name "sentinel-bot"
-        # Configura usuario git para commits automáticos (si aplica)
-        # Sets git user for automated commits (if applicable)
-
-      # Post actions - pasos finales de limpieza o logs
-      - name: Post Run actions/setup-python@v5
-        run: echo "Post setup-python completed"
-
-      - name: Post Run actions/checkout@v4
-        run: echo "Post checkout completed"
-
-      - name: Complete job
-        run: echo "Pipeline completed successfully"

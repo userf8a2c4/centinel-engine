@@ -81,6 +81,17 @@ Ejecuta el panel interactivo con Streamlit después de generar snapshots:
 - Exportar CSV desde el dashboard:
   - Usa los botones **Descargar snapshots (CSV)** y **Descargar alertas (CSV)**.
 
+### Fallback de scraping (fallo permanente de endpoints)
+- Si los endpoints oficiales quedan inaccesibles, habilita `use_playwright: true` en `config.yaml`.
+- Ejecuta `python -m playwright install --with-deps chromium` antes de correr `download_and_hash.py`.
+- Usa los endpoints definidos en `config.yaml > endpoints` y el fallback `fallback_nacional` como respaldo.
+
+## Public Deployment / Despliegue Público
+Pasos para Streamlit Community Cloud:
+1. Fork o conectar repo / Fork or connect the repo.
+2. Seleccionar `dashboard.py` como entrypoint / Select `dashboard.py` as entrypoint.
+3. Agregar secrets si usas auth (ej. `PASSWORD`) / Add secrets if using auth (e.g., `PASSWORD`).
+
 ---
 
 ## [EN] English
@@ -136,6 +147,11 @@ Run the interactive Streamlit panel after generating snapshots:
 - Copy `.env.example` to `.env` if you will publish alerts (Telegram).
 - Ensure snapshots exist in `data/` and hashes in `hashes/`.
 - Debug mode shows raw JSON for the latest snapshot.
+
+### Scraping fallback (permanent endpoint failure)
+- If official endpoints become unavailable, enable `use_playwright: true` in `config.yaml`.
+- Run `python -m playwright install --with-deps chromium` before `download_and_hash.py`.
+- Use the endpoints defined in `config.yaml > endpoints` and the `fallback_nacional` variant.
 
 ---
 

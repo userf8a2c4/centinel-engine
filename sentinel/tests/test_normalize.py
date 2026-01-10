@@ -36,8 +36,18 @@ def test_normalization_parses_nested_totals_and_candidates():
         },
         "resultados": {
             "candidatos": [
-                {"posicion": 1, "votos": "600", "candidato": "Alice", "partido": "Partido A"},
-                {"posicion": 2, "votos": "350", "candidato": "Bob", "partido": "Partido B"},
+                {
+                    "posicion": 1,
+                    "votos": "600",
+                    "candidato": "Alice",
+                    "partido": "Partido A",
+                },
+                {
+                    "posicion": 2,
+                    "votos": "350",
+                    "candidato": "Bob",
+                    "partido": "Partido B",
+                },
             ]
         },
     }

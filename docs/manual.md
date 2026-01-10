@@ -38,6 +38,12 @@ También puedes usar variables de entorno:
 - `RETRIES`
 - `HEADERS` (JSON en string)
 
+#### Fallback con Playwright si los endpoints fallan
+- Activa `use_playwright: true` en `config.yaml` y revisa `endpoints`/`fallback_nacional`.
+- Instala los navegadores necesarios: `python -m playwright install --with-deps chromium`.
+- Asegúrate de ajustar `playwright_user_agent` y `playwright_locale` si el sitio requiere contexto local.
+- Si el endpoint nacional cambia, actualiza `endpoints.nacional` y conserva el fallback.
+
 ### Descarga y hash de datos
 ```bash
 python scripts/download_and_hash.py
@@ -127,6 +133,12 @@ You can also use environment variables:
 - `TIMEOUT`
 - `RETRIES`
 - `HEADERS` (JSON string)
+
+#### Playwright fallback when endpoints fail
+- Enable `use_playwright: true` in `config.yaml` and review `endpoints`/`fallback_nacional`.
+- Install required browsers: `python -m playwright install --with-deps chromium`.
+- Adjust `playwright_user_agent` and `playwright_locale` if the site requires local context.
+- If the national endpoint changes, update `endpoints.nacional` and keep the fallback.
 
 ### Data download and hashing
 ```bash

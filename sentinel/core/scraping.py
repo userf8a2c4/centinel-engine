@@ -9,14 +9,15 @@ from typing import Any, Dict, Mapping
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
 
 
 def _build_url(base_url: str, params: Mapping[str, str]) -> str:
     split = urlsplit(base_url)
     query = dict(parse_qsl(split.query))
     query.update({key: str(value) for key, value in params.items()})
-    return urlunsplit((split.scheme, split.netloc, split.path, urlencode(query), split.fragment))
+    return urlunsplit(
+        (split.scheme, split.netloc, split.path, urlencode(query), split.fragment)
+    )
 
 
 def _apply_stealth(page) -> None:
@@ -97,7 +98,9 @@ def fetch_payload_with_playwright(
             page = context.new_page()
             if stealth:
                 _apply_stealth(page)
-            response = page.goto(url, wait_until="networkidle", timeout=int(timeout * 1000))
+            response = page.goto(
+                url, wait_until="networkidle", timeout=int(timeout * 1000)
+            )
             if response is None:
                 raise RuntimeError("Playwright no recibió respuesta al cargar la URL.")
             try:

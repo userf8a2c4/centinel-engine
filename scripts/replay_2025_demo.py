@@ -44,7 +44,9 @@ def load_snapshot(path: Path) -> dict | None:
     totals = payload.get("totals", {})
     candidates = payload.get("candidates", [])
     candidate_votes = {
-        str(c.get("candidate_id") or c.get("name") or c.get("slot")): int(c.get("votes", 0))
+        str(c.get("candidate_id") or c.get("name") or c.get("slot")): int(
+            c.get("votes", 0)
+        )
         for c in candidates
         if isinstance(c, dict)
     }
@@ -70,7 +72,8 @@ def diff_snapshots(previous: dict, current: dict) -> dict:
 
     candidate_ids = set(previous["candidates"]) | set(current["candidates"])
     candidates_delta = {
-        candidate_id: current["candidates"].get(candidate_id, 0) - previous["candidates"].get(candidate_id, 0)
+        candidate_id: current["candidates"].get(candidate_id, 0)
+        - previous["candidates"].get(candidate_id, 0)
         for candidate_id in sorted(candidate_ids)
     }
 
@@ -105,12 +108,16 @@ def generate_report(source_dir: Path, output_path: Path) -> None:
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     logger.info("replay_report_generated output=%s", output_path)
 
 
 def main() -> None:
-    parser_cli = argparse.ArgumentParser(description="Genera reporte neutral de diffs con snapshots 2025.")
+    parser_cli = argparse.ArgumentParser(
+        description="Genera reporte neutral de diffs con snapshots 2025."
+    )
     parser_cli.add_argument(
         "--source-dir",
         default="docs/examples/replay_2025/normalized",

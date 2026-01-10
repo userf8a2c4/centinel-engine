@@ -29,6 +29,7 @@ class CandidateResult:
         name (Optional[str]): Candidate name.
         party (Optional[str]): Candidate party.
     """
+
     slot: int
     votes: int
     candidate_id: Optional[str] = None
@@ -57,6 +58,7 @@ class Totals:
         null_votes (int): Null votes.
         blank_votes (int): Blank votes.
     """
+
     registered_voters: int
     total_votes: int
     valid_votes: int
@@ -87,6 +89,7 @@ class Meta:
         department_code (str): Department code.
         timestamp_utc (str): UTC timestamp.
     """
+
     election: str
     year: int
     source: str
@@ -112,6 +115,7 @@ class Snapshot:
         totals (Totals): Aggregated totals.
         candidates (List[CandidateResult]): Candidate results.
     """
+
     meta: Meta
     totals: Totals
     candidates: List[CandidateResult]

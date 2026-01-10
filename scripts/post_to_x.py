@@ -74,7 +74,6 @@ if __name__ == "__main__":
         send_message(truncate_for_x(formatted))
     else:
         heartbeat = (
-            "SYSTEM_STATUS: Operational. Data flow synchronized. "
-            "Technical notice."
+            "SYSTEM_STATUS: Operational. Data flow synchronized. " "Technical notice."
         )
         send_message(truncate_for_x(format_as_neutral(heartbeat)))

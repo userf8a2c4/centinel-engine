@@ -1,17 +1,19 @@
 import json
 import re
 from pathlib import Path
-from datetime import datetime
 
 INPUT_DIR = Path("data")
 OUTPUT_DIR = Path("normalized")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
+
 def to_int(x):
     return int(re.sub(r"[^\d]", "", x))
 
+
 def to_float(x):
     return float(x.replace(",", "."))
+
 
 for file in sorted(INPUT_DIR.glob("*.json")):
     raw = json.loads(file.read_text(encoding="utf-8"))
@@ -37,7 +39,9 @@ for file in sorted(INPUT_DIR.glob("*.json")):
         "totales": to_int(est["totalizacion_actas"]["actas_totales"]),
         "divulgadas": to_int(est["totalizacion_actas"]["actas_divulgadas"]),
         "correctas": to_int(est["estado_actas_divulgadas"]["actas_correctas"]),
-        "inconsistentes": to_int(est["estado_actas_divulgadas"]["actas_inconsistentes"]),
+        "inconsistentes": to_int(
+            est["estado_actas_divulgadas"]["actas_inconsistentes"]
+        ),
     }
 
     normalized["votos_totales"] = {

@@ -6,9 +6,13 @@ from pathlib import Path
 from typing import Any
 
 
-def configure_logging(logger_name: str, log_file: str | None = None, level: int | None = None) -> logging.Logger:
+def configure_logging(
+    logger_name: str, log_file: str | None = None, level: int | None = None
+) -> logging.Logger:
     log_path = log_file or os.getenv("LOG_FILE", "logs/centinel.jsonl")
-    log_level = level or getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+    log_level = level or getattr(
+        logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO
+    )
 
     logger = logging.getLogger(logger_name)
     logger.setLevel(log_level)

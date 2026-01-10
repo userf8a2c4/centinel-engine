@@ -12,6 +12,7 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout del repositorio
@@ -23,11 +24,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install requests pandas  # Agrega pandas si lo usas en diffs
+          pip install -r requirements.txt
 
       - name: Ejecutar snapshot y hash
         run: python -m scripts.download_and_hash
@@ -51,5 +54,9 @@ jobs:
           fi
 
       - name: Enviar actualización a Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_TEMPLATE: ${{ secrets.TELEGRAM_TEMPLATE }}
         run: |
           python scripts/post_to_telegram.py "Actualización automática completada. Snapshot generado y hasheado. Ver repo: https://github.com/userf8a2c4/hnd-sentinel-2029"

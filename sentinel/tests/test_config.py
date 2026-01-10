@@ -2,9 +2,9 @@ import json
 
 import pytest
 
-yaml = pytest.importorskip("yaml")
-
 from scripts import download_and_hash
+
+yaml = pytest.importorskip("yaml")
 
 
 def test_load_config_reads_yaml_and_env_overrides(tmp_path, monkeypatch):

@@ -47,7 +47,9 @@ class LocalSnapshotStore:
         """
         self._connection.close()
 
-    def store_snapshot(self, snapshot: Snapshot, previous_hash: Optional[str] = None) -> str:
+    def store_snapshot(
+        self, snapshot: Snapshot, previous_hash: Optional[str] = None
+    ) -> str:
         """Guarda un snapshot y actualiza su hash en la cadena.
 
         Args:
@@ -132,7 +134,9 @@ class LocalSnapshotStore:
 
         return snapshot_hash
 
-    def get_index_entries(self, department_code: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_index_entries(
+        self, department_code: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Devuelve el índice de snapshots, filtrado por departamento si aplica.
 
         Args:

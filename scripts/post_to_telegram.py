@@ -149,7 +149,7 @@ def send_message(text, stored_hash=None, template_name=None):
         "chat_id": CHAT_ID,
         "text": formatter(text, stored_hash),
         "parse_mode": "HTML",
-        "disable_web_page_preview": True
+        "disable_web_page_preview": True,
     }
 
     try:

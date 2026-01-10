@@ -9,9 +9,7 @@ if not alerts:
     lines.append("No se detectaron eventos atípicos en los datos públicos analizados.")
 else:
     for e in alerts:
-        lines.append(
-            f"Evento atípico detectado entre {e['from']} y {e['to']} UTC."
-        )
+        lines.append(f"Evento atípico detectado entre {e['from']} y {e['to']} UTC.")
         for a in e["alerts"]:
             lines.append(f"- Regla activada: {a['rule']}")
 

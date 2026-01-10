@@ -4,7 +4,7 @@ import os
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
 from scripts import analyze_rules
 from scripts.cli import load_snapshots, normalize_snapshots, write_normalized_outputs
@@ -32,7 +32,9 @@ def _candidate_key(candidate: Dict[str, Any]) -> int:
     return int(candidate.get("slot") or 0)
 
 
-def _build_candidate_lookup(candidates: List[Dict[str, Any]]) -> Dict[int, Dict[str, Any]]:
+def _build_candidate_lookup(
+    candidates: List[Dict[str, Any]],
+) -> Dict[int, Dict[str, Any]]:
     lookup: Dict[int, Dict[str, Any]] = {}
     for candidate in candidates:
         slot = _candidate_key(candidate)
@@ -109,7 +111,9 @@ def write_report(report_path: Path, normalized_dir: Path) -> Path:
         "diffs": diffs,
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     return report_path
 
 

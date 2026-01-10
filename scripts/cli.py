@@ -140,7 +140,9 @@ def audit_snapshots(snapshots: List[SnapshotInput]) -> List[Dict[str, Any]]:
         votos_actuales = raw.get("votos") or raw.get("candidates") or []
 
         for candidate in votos_actuales:
-            candidate_id = str(candidate.get("id") or candidate.get("nombre") or "unknown")
+            candidate_id = str(
+                candidate.get("id") or candidate.get("nombre") or "unknown"
+            )
             current_votes = _safe_int(candidate.get("votos"))
 
             if candidate_id in peak_votes:
@@ -155,7 +157,10 @@ def audit_snapshots(snapshots: List[SnapshotInput]) -> List[Dict[str, Any]]:
                         }
                     )
 
-            if candidate_id not in peak_votes or current_votes > peak_votes[candidate_id]["value"]:
+            if (
+                candidate_id not in peak_votes
+                or current_votes > peak_votes[candidate_id]["value"]
+            ):
                 peak_votes[candidate_id] = {
                     "value": current_votes,
                     "file": snapshot.path.name,
@@ -297,8 +302,7 @@ def show_status(args: argparse.Namespace) -> None:
     status_path = Path(args.output_dir) / "status.json"
     if not status_path.exists():
         raise SystemExit(
-            f"No existe status.json en {status_path.parent}. "
-            "Ejecuta 'run' primero."
+            f"No existe status.json en {status_path.parent}. " "Ejecuta 'run' primero."
         )
     status = json.loads(status_path.read_text(encoding="utf-8"))
     print(json.dumps(status, indent=2, sort_keys=True))

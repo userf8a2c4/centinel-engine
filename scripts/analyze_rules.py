@@ -17,6 +17,7 @@ import pandas as pd
 from dateutil import parser
 
 from sentinel.utils.logging_config import setup_logging
+
 # PROTOCOLO PROYECTO C.E.N.T.I.N.E.L. // AUDITORÍA RESILIENTE
 # Versión optimizada para datos históricos 2025 y futuros 2029
 
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 RELATIVE_VOTE_CHANGE_PCT = float(os.getenv("RELATIVE_VOTE_CHANGE_PCT", "15"))
 SCRUTINIO_JUMP_PCT = float(os.getenv("SCRUTINIO_JUMP_PCT", "5"))
+
 
 def load_json(file_path):
     """Carga un archivo JSON y registra fallos de lectura.
@@ -45,11 +47,12 @@ def load_json(file_path):
         dict | None: Loaded dictionary or None on failure.
     """
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         logger.error("load_error file_path=%s error=%s", file_path, e)
         return None
+
 
 def safe_int(value, default=0):
     """Convierte a entero de forma segura, manejando strings y nulos.
@@ -72,10 +75,12 @@ def safe_int(value, default=0):
         int: Converted integer or the default value.
     """
     try:
-        if value is None: return default
-        return int(str(value).replace(',', '').split('.')[0])
+        if value is None:
+            return default
+        return int(str(value).replace(",", "").split(".")[0])
     except (ValueError, TypeError):
         return default
+
 
 def safe_int_or_none(value):
     """Convierte a entero de forma segura, devolviendo None si no es válido.
@@ -98,9 +103,10 @@ def safe_int_or_none(value):
     try:
         if value is None:
             return None
-        return int(str(value).replace(',', '').split('.')[0])
+        return int(str(value).replace(",", "").split(".")[0])
     except (ValueError, TypeError):
         return None
+
 
 def safe_float_or_none(value):
     """Convierte a float de forma segura, devolviendo None si no es válido.
@@ -123,9 +129,10 @@ def safe_float_or_none(value):
     try:
         if value is None:
             return None
-        return float(str(value).replace(',', '.'))
+        return float(str(value).replace(",", "."))
     except (ValueError, TypeError):
         return None
+
 
 def extract_porcentaje_escrutado(data):
     """Extrae el porcentaje escrutado desde distintas claves posibles.
@@ -154,6 +161,7 @@ def extract_porcentaje_escrutado(data):
         meta = data.get("meta") or data.get("metadata") or {}
         porcentaje = meta.get("porcentaje_escrutado") or meta.get("porcentaje")
     return safe_float_or_none(porcentaje)
+
 
 def extract_vote_breakdown(data):
     """Obtiene el desglose de votos válidos, nulos y en blanco.
@@ -208,6 +216,7 @@ def extract_vote_breakdown(data):
         "total_votes": total_votes,
     }
 
+
 def extract_actas_mesas_counts(data):
     """Extrae conteos de actas y mesas del payload.
 
@@ -230,9 +239,7 @@ def extract_actas_mesas_counts(data):
     mesas = data.get("mesas") or {}
     return {
         "actas_totales": safe_int_or_none(
-            actas.get("totales")
-            or actas.get("total")
-            or data.get("actas_totales")
+            actas.get("totales") or actas.get("total") or data.get("actas_totales")
         ),
         "actas_procesadas": safe_int_or_none(
             actas.get("divulgadas")
@@ -252,6 +259,7 @@ def extract_actas_mesas_counts(data):
             or data.get("mesas_procesadas")
         ),
     }
+
 
 def extract_candidate_total(data):
     """Calcula el total de votos sumando los resultados de candidatos.
@@ -282,6 +290,7 @@ def extract_candidate_total(data):
     if isinstance(votos, dict):
         return sum(safe_int(v) for v in votos.values())
     return None
+
 
 def check_vote_breakdown_consistency(data, file_name):
     """Valida que los totales de votos cuadren con el desglose.
@@ -317,29 +326,34 @@ def check_vote_breakdown_consistency(data, file_name):
     sum_components = sum(components) if components else None
 
     if total is not None and sum_components is not None and total != sum_components:
-        anomalies.append({
-            "file": file_name,
-            "type": "VOTE_BREAKDOWN_MISMATCH",
-            "expected_total": total,
-            "observed_total": sum_components,
-            "valid_votes": valid,
-            "blank_votes": blank,
-            "null_votes": null,
-            **{k: v for k, v in actas_mesas.items() if v is not None},
-        })
+        anomalies.append(
+            {
+                "file": file_name,
+                "type": "VOTE_BREAKDOWN_MISMATCH",
+                "expected_total": total,
+                "observed_total": sum_components,
+                "valid_votes": valid,
+                "blank_votes": blank,
+                "null_votes": null,
+                **{k: v for k, v in actas_mesas.items() if v is not None},
+            }
+        )
 
     if candidate_total is not None and valid is not None and candidate_total != valid:
-        anomalies.append({
-            "file": file_name,
-            "type": "VOTE_BREAKDOWN_MISMATCH",
-            "expected_valid": valid,
-            "observed_candidate_votes": candidate_total,
-            "blank_votes": blank,
-            "null_votes": null,
-            **{k: v for k, v in actas_mesas.items() if v is not None},
-        })
+        anomalies.append(
+            {
+                "file": file_name,
+                "type": "VOTE_BREAKDOWN_MISMATCH",
+                "expected_valid": valid,
+                "observed_candidate_votes": candidate_total,
+                "blank_votes": blank,
+                "null_votes": null,
+                **{k: v for k, v in actas_mesas.items() if v is not None},
+            }
+        )
 
     return anomalies
+
 
 def parse_timestamp(data, file_name):
     """Obtiene el timestamp del payload o del nombre del archivo.
@@ -361,7 +375,7 @@ def parse_timestamp(data, file_name):
     Returns:
         datetime | None: Parsed timestamp if valid.
     """
-    raw_ts = data.get('timestamp') or data.get('timestamp_utc') or data.get('fecha')
+    raw_ts = data.get("timestamp") or data.get("timestamp_utc") or data.get("fecha")
     meta = data.get("meta") or data.get("metadata") or {}
     raw_ts = raw_ts or meta.get("timestamp_utc")
     if raw_ts:
@@ -371,11 +385,12 @@ def parse_timestamp(data, file_name):
             pass
 
     stem = os.path.splitext(file_name)[0]
-    stem = stem.replace('snapshot_', '').replace('_', ' ').replace('-', '-')
+    stem = stem.replace("snapshot_", "").replace("_", " ").replace("-", "-")
     try:
         return parser.parse(stem)
     except (ValueError, TypeError):
         return None
+
 
 def extract_department_records(data, file_name):
     """Construye registros por departamento para análisis temporal.
@@ -404,35 +419,39 @@ def extract_department_records(data, file_name):
     records = []
     meta = data.get("meta") or data.get("metadata") or {}
     porcentaje_escrutado = extract_porcentaje_escrutado(data)
-    if isinstance(data.get('resultados'), dict):
+    if isinstance(data.get("resultados"), dict):
         departamento = (
             meta.get("department")
-            or data.get('departamento')
-            or data.get('departamento_nombre')
-            or 'NACIONAL'
+            or data.get("departamento")
+            or data.get("departamento_nombre")
+            or "NACIONAL"
         )
-        total_votes = sum(safe_int(v) for v in data['resultados'].values())
-        actas = data.get('actas', {})
+        total_votes = sum(safe_int(v) for v in data["resultados"].values())
+        actas = data.get("actas", {})
         votos_totales = data.get("votos_totales", {})
         actas_procesadas = safe_int(
-            actas.get('correctas')
-            or actas.get('divulgadas')
-            or actas.get('totales')
+            actas.get("correctas") or actas.get("divulgadas") or actas.get("totales")
         )
         actas_totales = safe_int(actas.get("totales") or actas.get("total"))
-        porcentaje_escrutado = data.get("porcentaje_escrutado") or data.get("porcentaje")
-        porcentaje_escrutado = float(porcentaje_escrutado) if porcentaje_escrutado else None
-        records.append({
-            "timestamp": timestamp,
-            "departamento": departamento,
-            "total_votes": total_votes,
-            "actas_procesadas": actas_procesadas,
-            "actas_totales": actas_totales or None,
-            "porcentaje_escrutado": porcentaje_escrutado,
-            "valid_votes": safe_int(votos_totales.get("validos")),
-            "null_votes": safe_int(votos_totales.get("nulos")),
-            "blank_votes": safe_int(votos_totales.get("blancos")),
-        })
+        porcentaje_escrutado = data.get("porcentaje_escrutado") or data.get(
+            "porcentaje"
+        )
+        porcentaje_escrutado = (
+            float(porcentaje_escrutado) if porcentaje_escrutado else None
+        )
+        records.append(
+            {
+                "timestamp": timestamp,
+                "departamento": departamento,
+                "total_votes": total_votes,
+                "actas_procesadas": actas_procesadas,
+                "actas_totales": actas_totales or None,
+                "porcentaje_escrutado": porcentaje_escrutado,
+                "valid_votes": safe_int(votos_totales.get("validos")),
+                "null_votes": safe_int(votos_totales.get("nulos")),
+                "blank_votes": safe_int(votos_totales.get("blancos")),
+            }
+        )
         return records
 
     totals = data.get("totals") or {}
@@ -443,47 +462,58 @@ def extract_department_records(data, file_name):
         valid_votes = safe_int(totals.get("valid_votes"))
         null_votes = safe_int(totals.get("null_votes"))
         blank_votes = safe_int(totals.get("blank_votes"))
-        actas = totals.get("actas_procesadas") or totals.get("actas") or data.get("actas")
+        actas = (
+            totals.get("actas_procesadas") or totals.get("actas") or data.get("actas")
+        )
         actas_procesadas = safe_int(actas)
-        actas_totales = safe_int(totals.get("actas_totales") or totals.get("actas_total"))
-        porcentaje_escrutado = data.get("porcentaje_escrutado") or totals.get("porcentaje_escrutado")
-        porcentaje_escrutado = float(porcentaje_escrutado) if porcentaje_escrutado else None
-        records.append({
-            "timestamp": timestamp,
-            "departamento": departamento,
-            "total_votes": total_votes,
-            "actas_procesadas": actas_procesadas,
-            "actas_totales": actas_totales or None,
-            "porcentaje_escrutado": porcentaje_escrutado,
-            "valid_votes": valid_votes,
-            "null_votes": null_votes,
-            "blank_votes": blank_votes,
-        })
-        return records
-
-    votos_actuales = data.get('votos') or data.get('candidates') or []
-    if isinstance(votos_actuales, list):
-        dept_totals = collections.defaultdict(int)
-        for c in votos_actuales:
-            departamento = c.get('departamento') or c.get('dep') or 'NACIONAL'
-            dept_totals[departamento] += safe_int(c.get('votos'))
-        for departamento, total_votes in dept_totals.items():
-            records.append({
+        actas_totales = safe_int(
+            totals.get("actas_totales") or totals.get("actas_total")
+        )
+        porcentaje_escrutado = data.get("porcentaje_escrutado") or totals.get(
+            "porcentaje_escrutado"
+        )
+        porcentaje_escrutado = (
+            float(porcentaje_escrutado) if porcentaje_escrutado else None
+        )
+        records.append(
+            {
                 "timestamp": timestamp,
                 "departamento": departamento,
                 "total_votes": total_votes,
-                "actas_procesadas": safe_int(
-                    data.get('actas_procesadas')
-                    or data.get('actas')
-                    or 0
-                ),
-                "actas_totales": None,
-                "porcentaje_escrutado": None,
-                "valid_votes": None,
-                "null_votes": None,
-                "blank_votes": None,
-            })
+                "actas_procesadas": actas_procesadas,
+                "actas_totales": actas_totales or None,
+                "porcentaje_escrutado": porcentaje_escrutado,
+                "valid_votes": valid_votes,
+                "null_votes": null_votes,
+                "blank_votes": blank_votes,
+            }
+        )
+        return records
+
+    votos_actuales = data.get("votos") or data.get("candidates") or []
+    if isinstance(votos_actuales, list):
+        dept_totals = collections.defaultdict(int)
+        for c in votos_actuales:
+            departamento = c.get("departamento") or c.get("dep") or "NACIONAL"
+            dept_totals[departamento] += safe_int(c.get("votos"))
+        for departamento, total_votes in dept_totals.items():
+            records.append(
+                {
+                    "timestamp": timestamp,
+                    "departamento": departamento,
+                    "total_votes": total_votes,
+                    "actas_procesadas": safe_int(
+                        data.get("actas_procesadas") or data.get("actas") or 0
+                    ),
+                    "actas_totales": None,
+                    "porcentaje_escrutado": None,
+                    "valid_votes": None,
+                    "null_votes": None,
+                    "blank_votes": None,
+                }
+            )
     return records
+
 
 def apply_benford_law(votos_lista):
     """Analiza la distribución del primer dígito (Ley de Benford).
@@ -504,25 +534,27 @@ def apply_benford_law(votos_lista):
         dict | None: Analysis result or None if insufficient data.
     """
     # Solo procesamos si hay suficientes datos para evitar falsos positivos
-    if len(votos_lista) < 10: 
+    if len(votos_lista) < 10:
         return None
 
     first_digits = []
     for c in votos_lista:
-        votos_str = str(c.get('votos') or c.get("votes") or '').strip()
-        if votos_str and votos_str not in ['0', 'None']:
+        votos_str = str(c.get("votos") or c.get("votes") or "").strip()
+        if votos_str and votos_str not in ["0", "None"]:
             first_digits.append(int(votos_str[0]))
-    
-    if not first_digits: return None
-    
+
+    if not first_digits:
+        return None
+
     counts = collections.Counter(first_digits)
     total = len(first_digits)
-    
+
     # Análisis de anomalía: el '1' debe ser ~30%. Si es < 20%, se marca como sospecha.
     dist_1 = (counts[1] / total) * 100
     is_anomaly = dist_1 < 20.0
-    
+
     return {"is_anomaly": is_anomaly, "prop_1": dist_1}
+
 
 def check_arithmetic_consistency(data, file_name):
     """Verifica que el total de votos cuadre con la suma de candidatos.
@@ -550,7 +582,9 @@ def check_arithmetic_consistency(data, file_name):
         return None
 
     total_votes = safe_int(totals.get("total_votes") or totals.get("valid_votes"))
-    candidates_total = sum(safe_int(c.get("votes") or c.get("votos")) for c in candidates)
+    candidates_total = sum(
+        safe_int(c.get("votes") or c.get("votos")) for c in candidates
+    )
     if total_votes and candidates_total != total_votes:
         return {
             "file": file_name,
@@ -559,6 +593,7 @@ def check_arithmetic_consistency(data, file_name):
             "observed_total": candidates_total,
         }
     return None
+
 
 def compute_trend_metrics(series_df):
     """Calcula métricas de tendencia para una serie temporal.
@@ -595,7 +630,11 @@ def compute_trend_metrics(series_df):
     acc = None
     if len(delta_votes) > 1:
         x_delta = x.iloc[1:]
-        acc = pd.Series(x_delta).cov(delta_votes) / pd.Series(x_delta).var() if pd.Series(x_delta).var() else 0.0
+        acc = (
+            pd.Series(x_delta).cov(delta_votes) / pd.Series(x_delta).var()
+            if pd.Series(x_delta).var()
+            else 0.0
+        )
 
     ratio = None
     last_actas = series_df["actas_procesadas"].iloc[-1]
@@ -608,6 +647,7 @@ def compute_trend_metrics(series_df):
         "acceleration_votes": acc,
         "ratio_votos_actas": ratio,
     }
+
 
 def build_prediction(series_df, trend_metrics):
     """Genera una predicción simple de votos usando tendencia lineal.
@@ -662,7 +702,8 @@ def build_prediction(series_df, trend_metrics):
         "interval_95": interval,
     }
 
-def run_audit(target_directory='data/normalized'):
+
+def run_audit(target_directory="data/normalized"):
     """Ejecuta la auditoría de snapshots y genera reportes.
 
     Args:
@@ -677,10 +718,8 @@ def run_audit(target_directory='data/normalized'):
     peak_votos = {}
     anomalies_log = []
     records = []
-    relative_threshold = float(os.getenv("RELATIVE_DELTA_THRESHOLD", "10.0"))
-    scrutiny_jump_threshold = float(os.getenv("SCRUTINY_JUMP_THRESHOLD", "5.0"))
 
-    file_list = sorted(glob.glob(os.path.join(target_directory, '*.json')))
+    file_list = sorted(glob.glob(os.path.join(target_directory, "*.json")))
     if not file_list:
         logger.warning("no_files_found target_directory=%s", target_directory)
         return
@@ -697,7 +736,7 @@ def run_audit(target_directory='data/normalized'):
             continue
 
         file_name = os.path.basename(file_path)
-        votos_actuales = data.get('votos') or data.get('candidates') or []
+        votos_actuales = data.get("votos") or data.get("candidates") or []
         records.extend(extract_department_records(data, file_name))
 
         arithmetic_issue = check_arithmetic_consistency(data, file_name)
@@ -709,30 +748,38 @@ def run_audit(target_directory='data/normalized'):
             anomalies_log.extend(breakdown_issues)
 
         for c in votos_actuales:
-            c_id = str(c.get('id') or c.get('candidate_id') or c.get('nombre') or c.get("name") or 'unknown')
-            v_actual = safe_int(c.get('votos') or c.get("votes"))
+            c_id = str(
+                c.get("id")
+                or c.get("candidate_id")
+                or c.get("nombre")
+                or c.get("name")
+                or "unknown"
+            )
+            v_actual = safe_int(c.get("votos") or c.get("votes"))
 
             if c_id in peak_votos:
-                if v_actual < peak_votos[c_id]['valor']:
-                    diff = v_actual - peak_votos[c_id]['valor']
+                if v_actual < peak_votos[c_id]["valor"]:
+                    diff = v_actual - peak_votos[c_id]["valor"]
                     logger.warning(
                         "negative_delta candidate_id=%s loss=%s file=%s",
                         c_id,
                         diff,
                         file_name,
                     )
-                    anomalies_log.append({
-                        "file": file_name,
-                        "type": "NEGATIVE_DELTA",
-                        "entity": c_id,
-                        "loss": diff
-                    })
+                    anomalies_log.append(
+                        {
+                            "file": file_name,
+                            "type": "NEGATIVE_DELTA",
+                            "entity": c_id,
+                            "loss": diff,
+                        }
+                    )
 
-            if c_id not in peak_votos or v_actual > peak_votos[c_id]['valor']:
-                peak_votos[c_id] = {'valor': v_actual, 'file': file_name}
+            if c_id not in peak_votos or v_actual > peak_votos[c_id]["valor"]:
+                peak_votos[c_id] = {"valor": v_actual, "file": file_name}
 
         benford = apply_benford_law(votos_actuales)
-        if benford and benford['is_anomaly']:
+        if benford and benford["is_anomaly"]:
             logger.warning(
                 "benford_anomaly file=%s prop_1=%s",
                 file_name,
@@ -748,16 +795,18 @@ def run_audit(target_directory='data/normalized'):
     df["delta_votes"] = df.groupby("departamento")["total_votes"].diff()
     df["delta_actas"] = df.groupby("departamento")["actas_procesadas"].diff()
     df["previous_total_votes"] = df.groupby("departamento")["total_votes"].shift()
-    df["relative_change_pct"] = (
-        df["delta_votes"] / df["previous_total_votes"] * 100
-    )
+    df["relative_change_pct"] = df["delta_votes"] / df["previous_total_votes"] * 100
     df.loc[df["previous_total_votes"].fillna(0) <= 0, "relative_change_pct"] = None
     df["porcentaje_escrutado_calc"] = df["porcentaje_escrutado"]
     mask_scrutinio = df["porcentaje_escrutado_calc"].isna() & df["actas_totales"].gt(0)
     df.loc[mask_scrutinio, "porcentaje_escrutado_calc"] = (
-        df.loc[mask_scrutinio, "actas_procesadas"] / df.loc[mask_scrutinio, "actas_totales"] * 100
+        df.loc[mask_scrutinio, "actas_procesadas"]
+        / df.loc[mask_scrutinio, "actas_totales"]
+        * 100
     )
-    df["delta_escrutado"] = df.groupby("departamento")["porcentaje_escrutado_calc"].diff()
+    df["delta_escrutado"] = df.groupby("departamento")[
+        "porcentaje_escrutado_calc"
+    ].diff()
 
     anomalies = []
     metrics_by_dept = {}
@@ -773,10 +822,18 @@ def run_audit(target_directory='data/normalized'):
             q3 = delta_votes.quantile(0.75)
             iqr = q3 - q1
 
-            group["zscore_delta"] = (group["delta_votes"] - mean_delta) / std_delta if std_delta else 0.0
+            group["zscore_delta"] = (
+                (group["delta_votes"] - mean_delta) / std_delta if std_delta else 0.0
+            )
             group["outlier_zscore"] = group["zscore_delta"].abs() > 3
-            group["outlier_iqr"] = (group["delta_votes"] < q1 - 1.5 * iqr) | (group["delta_votes"] > q3 + 1.5 * iqr)
-            group["change_point"] = group["delta_votes"].abs() > mean_delta + 3 * std_delta if std_delta else False
+            group["outlier_iqr"] = (group["delta_votes"] < q1 - 1.5 * iqr) | (
+                group["delta_votes"] > q3 + 1.5 * iqr
+            )
+            group["change_point"] = (
+                group["delta_votes"].abs() > mean_delta + 3 * std_delta
+                if std_delta
+                else False
+            )
         else:
             group["zscore_delta"] = None
             group["outlier_zscore"] = False
@@ -785,47 +842,57 @@ def run_audit(target_directory='data/normalized'):
 
         for _, row in group.iterrows():
             if row["change_point"]:
-                anomalies.append({
-                    "departamento": departamento,
-                    "type": "CHANGE_POINT",
-                    "timestamp": row["timestamp"].isoformat(),
-                    "delta_votes": row["delta_votes"],
-                })
-            if row["outlier_zscore"] or row["outlier_iqr"]:
-                anomalies.append({
-                    "departamento": departamento,
-                    "type": "OUTLIER",
-                    "timestamp": row["timestamp"].isoformat(),
-                    "delta_votes": row["delta_votes"],
-                    "method": "zscore" if row["outlier_zscore"] else "iqr",
-                })
-            if (row["delta_votes"] or 0) > 0 and (row["delta_actas"] or 0) <= 0:
-                anomalies.append({
-                    "departamento": departamento,
-                    "type": "ACTAS_DESVIO",
-                    "timestamp": row["timestamp"].isoformat(),
-                    "delta_votes": row["delta_votes"],
-                    "delta_actas": row["delta_actas"],
-                })
-            if row.get("relative_change_pct") is not None:
-                if abs(row["relative_change_pct"]) >= RELATIVE_VOTE_CHANGE_PCT:
-                    anomalies.append({
+                anomalies.append(
+                    {
                         "departamento": departamento,
-                        "type": "RELATIVE_CHANGE",
+                        "type": "CHANGE_POINT",
                         "timestamp": row["timestamp"].isoformat(),
                         "delta_votes": row["delta_votes"],
-                        "relative_pct": row["relative_change_pct"],
-                        "threshold_pct": RELATIVE_VOTE_CHANGE_PCT,
-                    })
+                    }
+                )
+            if row["outlier_zscore"] or row["outlier_iqr"]:
+                anomalies.append(
+                    {
+                        "departamento": departamento,
+                        "type": "OUTLIER",
+                        "timestamp": row["timestamp"].isoformat(),
+                        "delta_votes": row["delta_votes"],
+                        "method": "zscore" if row["outlier_zscore"] else "iqr",
+                    }
+                )
+            if (row["delta_votes"] or 0) > 0 and (row["delta_actas"] or 0) <= 0:
+                anomalies.append(
+                    {
+                        "departamento": departamento,
+                        "type": "ACTAS_DESVIO",
+                        "timestamp": row["timestamp"].isoformat(),
+                        "delta_votes": row["delta_votes"],
+                        "delta_actas": row["delta_actas"],
+                    }
+                )
+            if row.get("relative_change_pct") is not None:
+                if abs(row["relative_change_pct"]) >= RELATIVE_VOTE_CHANGE_PCT:
+                    anomalies.append(
+                        {
+                            "departamento": departamento,
+                            "type": "RELATIVE_CHANGE",
+                            "timestamp": row["timestamp"].isoformat(),
+                            "delta_votes": row["delta_votes"],
+                            "relative_pct": row["relative_change_pct"],
+                            "threshold_pct": RELATIVE_VOTE_CHANGE_PCT,
+                        }
+                    )
             if row.get("delta_escrutado") is not None:
                 if row["delta_escrutado"] >= SCRUTINIO_JUMP_PCT:
-                    anomalies.append({
-                        "departamento": departamento,
-                        "type": "SCRUTINIO_SALTO",
-                        "timestamp": row["timestamp"].isoformat(),
-                        "delta_escrutado": row["delta_escrutado"],
-                        "threshold_pct": SCRUTINIO_JUMP_PCT,
-                    })
+                    anomalies.append(
+                        {
+                            "departamento": departamento,
+                            "type": "SCRUTINIO_SALTO",
+                            "timestamp": row["timestamp"].isoformat(),
+                            "delta_escrutado": row["delta_escrutado"],
+                            "threshold_pct": SCRUTINIO_JUMP_PCT,
+                        }
+                    )
             valid_votes = row.get("valid_votes")
             null_votes = row.get("null_votes")
             blank_votes = row.get("blank_votes")
@@ -833,22 +900,26 @@ def run_audit(target_directory='data/normalized'):
                 total_votes = row.get("total_votes") or 0
                 sum_votes = (valid_votes or 0) + (null_votes or 0) + (blank_votes or 0)
                 if total_votes and sum_votes and total_votes != sum_votes:
-                    anomalies.append({
-                        "departamento": departamento,
-                        "type": "VOTOS_TOTALES_MISMATCH",
-                        "timestamp": row["timestamp"].isoformat(),
-                        "total_votes": total_votes,
-                        "sum_votes": sum_votes,
-                    })
+                    anomalies.append(
+                        {
+                            "departamento": departamento,
+                            "type": "VOTOS_TOTALES_MISMATCH",
+                            "timestamp": row["timestamp"].isoformat(),
+                            "total_votes": total_votes,
+                            "sum_votes": sum_votes,
+                        }
+                    )
             if row.get("actas_totales"):
                 if row["actas_procesadas"] > row["actas_totales"]:
-                    anomalies.append({
-                        "departamento": departamento,
-                        "type": "ACTAS_OVERFLOW",
-                        "timestamp": row["timestamp"].isoformat(),
-                        "actas_procesadas": row["actas_procesadas"],
-                        "actas_totales": row["actas_totales"],
-                    })
+                    anomalies.append(
+                        {
+                            "departamento": departamento,
+                            "type": "ACTAS_OVERFLOW",
+                            "timestamp": row["timestamp"].isoformat(),
+                            "actas_procesadas": row["actas_procesadas"],
+                            "actas_totales": row["actas_totales"],
+                        }
+                    )
 
         trend_metrics = compute_trend_metrics(group)
         metrics_by_dept[departamento] = trend_metrics
@@ -877,15 +948,15 @@ def run_audit(target_directory='data/normalized'):
         "series": series_payload,
     }
 
-    with open('analysis_results.json', 'w', encoding='utf-8') as f:
+    with open("analysis_results.json", "w", encoding="utf-8") as f:
         json.dump(output, f, indent=4, ensure_ascii=False)
 
     try:
-        df.to_parquet('analysis_results.parquet', index=False)
+        df.to_parquet("analysis_results.parquet", index=False)
     except Exception as e:
         logger.warning("parquet_write_failed error=%s", e)
 
-    with open('anomalies_report.json', 'w') as f:
+    with open("anomalies_report.json", "w") as f:
         json.dump(anomalies_log + anomalies, f, indent=4)
 
     reports_dir = "reports"
@@ -985,30 +1056,46 @@ def build_plain_summary(output, language="es"):
         lines.append(f"Total events detected: {total_anomalies}")
         lines.append("")
         lines.append("What this means:")
-        lines.append("- The system checks for sudden changes, regressions, and arithmetic mismatches.")
-        lines.append("- It also flags large relative vote shifts, jumps in scrutiny percentage, and vote breakdown inconsistencies.")
-        lines.append("- Events indicate unusual data behavior, not intent or responsibility.")
+        lines.append(
+            "- The system checks for sudden changes, regressions, and arithmetic mismatches."
+        )
+        lines.append(
+            "- It also flags large relative vote shifts, jumps in scrutiny percentage, and vote breakdown inconsistencies."
+        )
+        lines.append(
+            "- Events indicate unusual data behavior, not intent or responsibility."
+        )
         lines.append("")
         lines.append("Department overview:")
         for dept, metrics in departments.items():
             slope = metrics.get("slope_votes")
             ratio = metrics.get("ratio_votos_actas")
-            lines.append(f"- {dept}: trend slope={format_metric(slope)}, votes/actas={format_metric(ratio)}")
+            lines.append(
+                f"- {dept}: trend slope={format_metric(slope)}, votes/actas={format_metric(ratio)}"
+            )
     else:
         lines.append("Proyecto C.E.N.T.I.N.E.L. | Resumen en lenguaje común")
         lines.append(f"Generado (UTC): {generated_at}")
         lines.append(f"Eventos detectados: {total_anomalies}")
         lines.append("")
         lines.append("Qué significa:")
-        lines.append("- El sistema revisa cambios abruptos, regresiones y desajustes aritméticos.")
-        lines.append("- También marca variaciones relativas grandes, saltos en % escrutado y inconsistencias en el desglose de votos.")
-        lines.append("- Los eventos indican comportamientos inusuales en los datos, no intención ni responsabilidad.")
+        lines.append(
+            "- El sistema revisa cambios abruptos, regresiones y desajustes aritméticos."
+        )
+        lines.append(
+            "- También marca variaciones relativas grandes, saltos en % escrutado y inconsistencias en el desglose de votos."
+        )
+        lines.append(
+            "- Los eventos indican comportamientos inusuales en los datos, no intención ni responsabilidad."
+        )
         lines.append("")
         lines.append("Resumen por departamento:")
         for dept, metrics in departments.items():
             slope = metrics.get("slope_votes")
             ratio = metrics.get("ratio_votos_actas")
-            lines.append(f"- {dept}: tendencia={format_metric(slope)}, votos/actas={format_metric(ratio)}")
+            lines.append(
+                f"- {dept}: tendencia={format_metric(slope)}, votos/actas={format_metric(ratio)}"
+            )
 
     return "\n".join(lines)
 
@@ -1017,6 +1104,7 @@ def format_metric(value):
     if value is None:
         return "N/D"
     return f"{value:.2f}"
+
 
 if __name__ == "__main__":
     run_audit()

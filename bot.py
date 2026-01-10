@@ -78,6 +78,7 @@ class SnapshotRecord:
         votos_lista (list[int]): Candidate vote list.
         departamento (str | None): Related department.
     """
+
     path: Path
     payload: dict
     timestamp: datetime | None
@@ -104,6 +105,7 @@ class RangeQuery:
         end (datetime | None): Range end.
         label (str): Human-readable label.
     """
+
     start: datetime | None
     end: datetime | None
     label: str
@@ -427,12 +429,16 @@ def extract_votos_lista(payload: dict) -> list[int]:
     Returns:
         list[int]: Normalized vote list.
     """
-    votos = payload.get("votos") or payload.get("candidates") or payload.get("candidatos")
+    votos = (
+        payload.get("votos") or payload.get("candidates") or payload.get("candidatos")
+    )
     if isinstance(votos, list):
         results = []
         for item in votos:
             if isinstance(item, dict):
-                value = safe_int(item.get("votos") or item.get("votes") or item.get("total"))
+                value = safe_int(
+                    item.get("votos") or item.get("votes") or item.get("total")
+                )
                 if value is not None:
                     results.append(value)
             elif isinstance(item, (int, float, str)):
@@ -473,7 +479,9 @@ def load_snapshot(path: Path) -> SnapshotRecord | None:
     except (OSError, json.JSONDecodeError) as exc:
         logger.error("snapshot_read_failed path=%s error=%s", path, exc)
         return None
-    data_payload = payload.get("data") if isinstance(payload.get("data"), dict) else payload
+    data_payload = (
+        payload.get("data") if isinstance(payload.get("data"), dict) else payload
+    )
     timestamp = extract_timestamp(path, payload)
     porcentaje = extract_porcentaje_escrutado(data_payload)
     total_votos = extract_total_votos(data_payload)
@@ -574,7 +582,9 @@ def parse_range(text: str, reference: datetime) -> RangeQuery | None:
     return None
 
 
-def filter_snapshots(records: Iterable[SnapshotRecord], query: RangeQuery | None) -> list[SnapshotRecord]:
+def filter_snapshots(
+    records: Iterable[SnapshotRecord], query: RangeQuery | None
+) -> list[SnapshotRecord]:
     """Filtra snapshots según un rango temporal.
 
     Args:
@@ -700,7 +710,9 @@ def get_alerts() -> list[dict]:
     if ALERTS_LOG.exists():
         try:
             lines = ALERTS_LOG.read_text(encoding="utf-8").splitlines()
-            return [{"timestamp": "", "descripcion": line} for line in lines if line.strip()]
+            return [
+                {"timestamp": "", "descripcion": line} for line in lines if line.strip()
+            ]
         except OSError as exc:
             logger.error("alerts_log_failed error=%s", exc)
     return []
@@ -732,7 +744,9 @@ async def enforce_access(update: Update) -> bool:
         try:
             if int(allowed) != chat.id:
                 await update.message.reply_text(
-                    build_disclaimer("Este bot está en modo privado. No tienes acceso."),
+                    build_disclaimer(
+                        "Este bot está en modo privado. No tienes acceso."
+                    ),
                 )
                 return False
         except ValueError:
@@ -818,7 +832,11 @@ async def inicio(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     chat_id = update.effective_chat.id
     set_mode(chat_id, MODE_CIUDADANO)
@@ -846,7 +864,11 @@ async def seleccionar_modo(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     chat_id = update.effective_chat.id
     text = (update.message.text or "").strip().lower()
@@ -886,7 +908,11 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     records = load_snapshots()
     if not records:
@@ -895,7 +921,9 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
         return
     latest = records[0]
-    timestamp = latest.timestamp.strftime("%Y-%m-%d %H:%M") if latest.timestamp else "N/D"
+    timestamp = (
+        latest.timestamp.strftime("%Y-%m-%d %H:%M") if latest.timestamp else "N/D"
+    )
     porcentaje = format_number(latest.porcentaje_escrutado)
     votos = format_number(latest.total_votos)
     message = (
@@ -906,7 +934,9 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(build_disclaimer(message))
 
 
-def resolve_range_argument(records: list[SnapshotRecord], args: list[str]) -> tuple[RangeQuery | None, str | None]:
+def resolve_range_argument(
+    records: list[SnapshotRecord], args: list[str]
+) -> tuple[RangeQuery | None, str | None]:
     """Resuelve el argumento de rango y valida errores de formato.
 
     Args:
@@ -957,11 +987,17 @@ async def cambios(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     records = load_snapshots()
     if not records:
-        await update.message.reply_text(build_disclaimer("No hay datos disponibles todavía."))
+        await update.message.reply_text(
+            build_disclaimer("No hay datos disponibles todavía.")
+        )
         return
     query, error = resolve_range_argument(records, context.args)
     if error:
@@ -971,7 +1007,9 @@ async def cambios(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if len(filtered) < 2:
         latest_time = get_latest_timestamp(records)
         await update.message.reply_text(
-            build_disclaimer(f"No hay información en ese rango. Último disponible: {latest_time}."),
+            build_disclaimer(
+                f"No hay información en ese rango. Último disponible: {latest_time}."
+            ),
         )
         return
     first, last = filtered[0], filtered[-1]
@@ -989,7 +1027,11 @@ async def cambios(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if delta_porcentaje is None and delta_votos is None:
         parts.append("No hay métricas comparables en ese rango.")
     message = "\n".join(parts)
-    logger.info("cmd_cambios chat_id=%s range=%s", update.effective_chat.id, query.label if query else "todo")
+    logger.info(
+        "cmd_cambios chat_id=%s range=%s",
+        update.effective_chat.id,
+        query.label if query else "todo",
+    )
     await update.message.reply_text(build_disclaimer(message))
 
 
@@ -1007,11 +1049,17 @@ async def alertas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     alerts = get_alerts()
     if not alerts:
-        await update.message.reply_text(build_disclaimer("No hay alertas registradas por ahora."))
+        await update.message.reply_text(
+            build_disclaimer("No hay alertas registradas por ahora.")
+        )
         return
     lines = []
     for item in alerts[:5]:
@@ -1091,11 +1139,17 @@ async def grafico(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     records = load_snapshots()
     if not records:
-        await update.message.reply_text(build_disclaimer("No hay datos disponibles todavía."))
+        await update.message.reply_text(
+            build_disclaimer("No hay datos disponibles todavía.")
+        )
         return
     query, error = resolve_range_argument(records, context.args)
     if error:
@@ -1108,13 +1162,19 @@ async def grafico(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if len(votes) < 10:
         latest_time = get_latest_timestamp(records)
         await update.message.reply_text(
-            build_disclaimer(f"No hay información suficiente en ese rango. Último disponible: {latest_time}."),
+            build_disclaimer(
+                f"No hay información suficiente en ese rango. Último disponible: {latest_time}."
+            ),
         )
         return
     title = f"Benford ({query.label if query else 'todo'})"
     chart = build_benford_chart(votes, title)
     caption = build_disclaimer("Gráfico Benford generado.")
-    logger.info("cmd_grafico chat_id=%s range=%s", update.effective_chat.id, query.label if query else "todo")
+    logger.info(
+        "cmd_grafico chat_id=%s range=%s",
+        update.effective_chat.id,
+        query.label if query else "todo",
+    )
     await update.message.reply_photo(photo=chart, caption=caption)
 
 
@@ -1168,11 +1228,17 @@ async def tendencia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     records = load_snapshots()
     if not records:
-        await update.message.reply_text(build_disclaimer("No hay datos disponibles todavía."))
+        await update.message.reply_text(
+            build_disclaimer("No hay datos disponibles todavía.")
+        )
         return
     query, error = resolve_range_argument(records, context.args)
     if error:
@@ -1184,16 +1250,18 @@ async def tendencia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not record.timestamp:
             continue
         value = record.porcentaje_escrutado
-        label = "% escrutado"
         if value is None:
-            value = float(record.total_votos) if record.total_votos is not None else None
-            label = "Votos totales"
+            value = (
+                float(record.total_votos) if record.total_votos is not None else None
+            )
         if value is not None:
             points.append((record.timestamp, value))
     if len(points) < 2:
         latest_time = get_latest_timestamp(records)
         await update.message.reply_text(
-            build_disclaimer(f"No hay información en ese rango. Último disponible: {latest_time}."),
+            build_disclaimer(
+                f"No hay información en ese rango. Último disponible: {latest_time}."
+            ),
         )
         return
     chart = build_trend_chart(points, f"Tendencia ({query.label if query else 'todo'})")
@@ -1216,11 +1284,17 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     records = load_snapshots()
     if not records:
-        await update.message.reply_text(build_disclaimer("No hay datos disponibles todavía."))
+        await update.message.reply_text(
+            build_disclaimer("No hay datos disponibles todavía.")
+        )
         return
     query, error = resolve_range_argument(records, context.args)
     if error:
@@ -1230,7 +1304,9 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not filtered:
         latest_time = get_latest_timestamp(records)
         await update.message.reply_text(
-            build_disclaimer(f"No hay información en ese rango. Último disponible: {latest_time}."),
+            build_disclaimer(
+                f"No hay información en ese rango. Último disponible: {latest_time}."
+            ),
         )
         return
     latest = filtered[0]
@@ -1244,7 +1320,9 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(build_disclaimer(message))
 
 
-def find_snapshot_by_query(query: str, records: list[SnapshotRecord]) -> SnapshotRecord | None:
+def find_snapshot_by_query(
+    query: str, records: list[SnapshotRecord]
+) -> SnapshotRecord | None:
     """Busca un snapshot por coincidencia en el nombre.
 
     Args:
@@ -1315,16 +1393,24 @@ async def hash_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     if get_mode(update.effective_chat.id) != MODE_AUDITOR:
         await update.message.reply_text(
-            build_disclaimer("Este comando es solo para modo auditor. Escribe 'auditor' para activarlo."),
+            build_disclaimer(
+                "Este comando es solo para modo auditor. Escribe 'auditor' para activarlo."
+            ),
         )
         return
     records = load_snapshots()
     if not records:
-        await update.message.reply_text(build_disclaimer("No hay datos disponibles todavía."))
+        await update.message.reply_text(
+            build_disclaimer("No hay datos disponibles todavía.")
+        )
         return
     query = " ".join(context.args).strip()
     record = find_snapshot_by_query(query, records)
@@ -1339,14 +1425,14 @@ async def hash_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             build_disclaimer("No se encontró hash para ese archivo."),
         )
         return
-    message = (
-        f"Hash SHA-256 de {record.path.name}: {hash_value}."
-    )
+    message = f"Hash SHA-256 de {record.path.name}: {hash_value}."
     logger.info("cmd_hash chat_id=%s query=%s", update.effective_chat.id, query)
     await update.message.reply_text(build_disclaimer(message))
 
 
-def select_json_record(records: list[SnapshotRecord], query_text: str) -> SnapshotRecord | None:
+def select_json_record(
+    records: list[SnapshotRecord], query_text: str
+) -> SnapshotRecord | None:
     """Selecciona un snapshot por departamento o nombre.
 
     Args:
@@ -1389,16 +1475,24 @@ async def json_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         update (Update): Incoming update.
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
-    if not update.message or not await enforce_access(update) or not await preflight(update):
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
         return
     if get_mode(update.effective_chat.id) != MODE_AUDITOR:
         await update.message.reply_text(
-            build_disclaimer("Este comando es solo para modo auditor. Escribe 'auditor' para activarlo."),
+            build_disclaimer(
+                "Este comando es solo para modo auditor. Escribe 'auditor' para activarlo."
+            ),
         )
         return
     records = load_snapshots()
     if not records:
-        await update.message.reply_text(build_disclaimer("No hay datos disponibles todavía."))
+        await update.message.reply_text(
+            build_disclaimer("No hay datos disponibles todavía.")
+        )
         return
     query_text = " ".join(context.args).strip()
     record = select_json_record(records, query_text)
