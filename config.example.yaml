@@ -4,6 +4,11 @@
 # URL base del endpoint de resultados (placeholder).
 base_url: "https://results.example.org/api/v1/summary"
 
+# SWITCH MAESTRO (ON/OFF): controla todo proceso automático del repo.
+# ON  = permite ejecución automática
+# OFF = detiene ejecución automática
+master_switch: "ON"
+
 # Parámetros de red.
 timeout: 20
 retries: 5

@@ -7,6 +7,8 @@ from datetime import datetime
 import os
 import glob
 
+from scripts.download_and_hash import load_config, normalize_master_switch
+
 # Configuración de página
 st.set_page_config(
     page_title="Centinel Dashboard",
@@ -19,8 +21,27 @@ st.markdown("""
     <style>
     .stApp { background-color: #0e1117; color: #fafafa; }
     .metric-delta { font-size: 1.1rem !important; }
+    .master-switch-pill {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+    }
     </style>
 """, unsafe_allow_html=True)
+
+
+def load_master_switch():
+    try:
+        config = load_config()
+    except Exception as exc:
+        st.warning(f"No se pudo leer config.yaml: {exc}")
+        return "UNKNOWN"
+    if "master_switch" not in config:
+        return "UNCONFIGURED"
+    return normalize_master_switch(config.get("master_switch"))
 
 @st.cache_data(ttl=300)
 def load_data():
@@ -46,7 +67,7 @@ def load_data():
                     ts_part = name.split('snapshot_')[-1].split('.')[0].replace('_', ':')
                     try:
                         data['timestamp'] = datetime.strptime(ts_part, '%Y-%m-%dT%H:%M:%S').isoformat()
-                    except:
+                    except ValueError:
                         data['timestamp'] = datetime.now().isoformat()
                 snapshots.append(data)
         except Exception as e:
@@ -103,6 +124,36 @@ df_snapshots, last_snapshot, df_candidates = load_data()
 # HEADER
 st.title("📡 Centinel Dashboard")
 st.markdown("Visualización automática de snapshots • Datos desde GitHub")
+
+master_switch = load_master_switch()
+if master_switch == "ON":
+    status_color = "#16a34a"
+    status_label = "ON"
+    status_detail = "Procesos automáticos activos"
+elif master_switch == "OFF":
+    status_color = "#dc2626"
+    status_label = "OFF"
+    status_detail = "Procesos automáticos detenidos"
+elif master_switch == "UNCONFIGURED":
+    status_color = "#facc15"
+    status_label = "SIN CONFIG"
+    status_detail = "Configura master_switch en config.yaml"
+else:
+    status_color = "#f97316"
+    status_label = "UNKNOWN"
+    status_detail = "Estado no disponible"
+
+st.markdown(
+    f"""
+    <div style="margin-top: 0.25rem; margin-bottom: 1rem;">
+        <span class="master-switch-pill" style="background-color: {status_color}; color: #0e1117;">
+            MASTER SWITCH: {status_label}
+        </span>
+        <span style="margin-left: 0.75rem; font-weight: 600;">{status_detail}</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 if last_snapshot:
     st.success(f"✓ Snapshot cargado: {last_snapshot.get('source_path', 'desconocido')}")

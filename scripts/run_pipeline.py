@@ -11,6 +11,12 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 
+from scripts.download_and_hash import (
+    is_master_switch_on,
+    load_config,
+    normalize_master_switch,
+)
+
 load_dotenv()
 
 DATA_DIR = Path("data")
@@ -235,6 +241,12 @@ def main():
         help="Ejecuta inmediatamente antes del scheduler",
     )
     args = parser.parse_args()
+    config = load_config()
+    master_status = normalize_master_switch(config.get("master_switch"))
+    print(f"[i] MASTER SWITCH: {master_status}")
+    if not is_master_switch_on(config):
+        print("[!] Ejecución detenida por switch maestro (OFF)")
+        return
 
     if args.once:
         run_pipeline()

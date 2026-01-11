@@ -70,6 +70,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     env_backoff_max = os.getenv("BACKOFF_MAX_SECONDS")
     env_candidate_count = os.getenv("CANDIDATE_COUNT")
     env_required_keys = os.getenv("REQUIRED_KEYS")
+    env_master_switch = os.getenv("MASTER_SWITCH")
 
     if env_base_url:
         config["base_url"] = env_base_url
@@ -95,8 +96,30 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         config["required_keys"] = [
             key.strip() for key in env_required_keys.split(",") if key.strip()
         ]
+    if env_master_switch:
+        config["master_switch"] = env_master_switch
 
     return config
+
+
+def normalize_master_switch(value: Any) -> str:
+    """Normaliza el switch maestro a 'ON' o 'OFF'."""
+    if value is None:
+        return "ON"
+    if isinstance(value, bool):
+        return "ON" if value else "OFF"
+    if isinstance(value, (int, float)):
+        return "ON" if value else "OFF"
+    if isinstance(value, str):
+        cleaned = value.strip().upper()
+        if cleaned in {"ON", "OFF"}:
+            return cleaned
+    return "ON"
+
+
+def is_master_switch_on(config: dict[str, Any]) -> bool:
+    """Indica si el switch maestro permite procesos automáticos."""
+    return normalize_master_switch(config.get("master_switch")) == "ON"
 
 
 def load_config(config_path_override: str | None = None) -> dict[str, Any]:
@@ -421,6 +444,13 @@ def main() -> None:
     args = parser.parse_args()
 
     config = load_config()
+    master_status = normalize_master_switch(config.get("master_switch"))
+    logger.info("MASTER SWITCH: %s", master_status)
+    if not is_master_switch_on(config):
+        logger.warning(
+            "Ejecución detenida por switch maestro (OFF) / Execution halted by master switch (OFF)"
+        )
+        return
 
     if args.mock:
         run_mock_mode()

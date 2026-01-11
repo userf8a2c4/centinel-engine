@@ -42,8 +42,9 @@
 ### Configuración rápida
 1. Copia `config.example.yaml` a `config.yaml` en la raíz del repositorio.
 2. Edita `config.yaml` con la URL base, headers y fuentes reales de tu entorno.
-3. Ejecuta los scripts; el sistema continúa leyendo desde `config.yaml`.
-4. Copia `.env.example` a `.env` para configurar tokens y logging.
+3. Ajusta `master_switch` a **ON/OFF** para habilitar o detener toda ejecución automática.
+4. Ejecuta los scripts; el sistema continúa leyendo desde `config.yaml`.
+5. Copia `.env.example` a `.env` para configurar tokens y logging.
 
 ### Estado del proyecto (actual)
 - Captura de datos: configurable vía `config.yaml` (fuentes, niveles y mapeo de campos).
@@ -60,6 +61,7 @@ Ejecuta el panel interactivo con Streamlit después de generar snapshots:
 3. Abre el navegador en la URL indicada por Streamlit.
 4. Usa el botón “Actualizar datos ahora” para refrescar snapshots.
 5. Descarga reportes en CSV desde la sección “Exportar reportes”.
+6. El panel muestra el estado del **MASTER SWITCH** (ON/OFF); si falta `master_switch` en `config.yaml` se verá como "SIN CONFIG".
 
 #### Cómo usar el dashboard
 - Copia `.env.example` a `.env` si publicarás alertas (Telegram).
@@ -124,8 +126,9 @@ Pasos para Streamlit Community Cloud:
 ### Quick setup
 1. Copy `config.example.yaml` to `config.yaml` in the repository root.
 2. Edit `config.yaml` with the real base URL, headers, and sources for your environment.
-3. Run the scripts; the system still reads from `config.yaml`.
-4. Copy `.env.example` to `.env` to configure tokens and logging.
+3. Set `master_switch` to **ON/OFF** to enable or halt all automatic execution.
+4. Run the scripts; the system still reads from `config.yaml`.
+5. Copy `.env.example` to `.env` to configure tokens and logging.
 
 ### Project status (current)
 - Data capture: configurable via `config.yaml` (sources, levels, and field mapping).
@@ -142,6 +145,7 @@ Run the interactive Streamlit panel after generating snapshots:
 3. Open the URL shown by Streamlit in your browser.
 4. Use “Actualizar datos ahora” to refresh snapshots.
 5. Download CSV reports from “Exportar reportes”.
+6. The panel shows the **MASTER SWITCH** (ON/OFF) status; if `master_switch` is missing from `config.yaml`, it appears as "SIN CONFIG".
 
 #### How to use the dashboard
 - Copy `.env.example` to `.env` if you will publish alerts (Telegram).
