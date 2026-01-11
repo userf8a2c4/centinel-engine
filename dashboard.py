@@ -203,10 +203,11 @@ def normalize_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
         or snapshot.get("valid_votes")
         or 0,
         "null_votes": snapshot.get("votos_nulos") or snapshot.get("null_votes") or 0,
-        "blank_votes": snapshot.get("votos_blancos")
-        if isinstance(snapshot.get("votos_blancos"), int)
-        else snapshot.get("blank_votes")
-        or 0,
+        "blank_votes": (
+            snapshot.get("votos_blancos")
+            if isinstance(snapshot.get("votos_blancos"), int)
+            else snapshot.get("blank_votes") or 0
+        ),
         "department": department,
         "candidates": candidates,
         "source_path": snapshot.get("source_path", ""),
@@ -358,13 +359,17 @@ def render_simple_mode(
     master_status: tuple[str, str],
 ) -> None:
     if df.empty:
-        st.markdown("<div class='hero-title'>📡 C.E.N.T.I.N.E.L.</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='hero-title'>📡 C.E.N.T.I.N.E.L.</div>", unsafe_allow_html=True
+        )
         st.info(
             "Aún no hay snapshots disponibles. Verifica la carpeta data/ o ejecuta el pipeline."
         )
         return
     status_label, badge_class = master_status
-    st.markdown("<div class='hero-title'>📡 C.E.N.T.I.N.E.L.</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='hero-title'>📡 C.E.N.T.I.N.E.L.</div>", unsafe_allow_html=True
+    )
     st.markdown(
         "Monitoreo ciudadano de datos electorales públicos en tiempo casi real.",
     )
@@ -386,18 +391,24 @@ def render_simple_mode(
     changes_week = compute_changes(df, 7)
 
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Último snapshot", last_ts.strftime("%Y-%m-%d %H:%M") if last_ts else "--")
+    col1.metric(
+        "Último snapshot", last_ts.strftime("%Y-%m-%d %H:%M") if last_ts else "--"
+    )
     col2.metric("Cambios hoy", changes_today)
     col3.metric("Cambios 7 días", changes_week)
     col4.metric("Alertas recientes", len(alerts_df))
 
     st.markdown("---")
     with st.container():
-        st.markdown("<div class='title-subtle'>Alertas recientes</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='title-subtle'>Alertas recientes</div>", unsafe_allow_html=True
+        )
         render_alerts_list(alerts_df, limit=8)
 
     with st.container():
-        st.markdown("<div class='title-subtle'>Timeline simple</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='title-subtle'>Timeline simple</div>", unsafe_allow_html=True
+        )
         render_timeline(df)
 
     with st.container():
@@ -411,7 +422,9 @@ def render_simple_mode(
             st.dataframe(dept_summary, use_container_width=True, hide_index=True)
 
     if hashes:
-        st.markdown("<div class='title-subtle'>Hash actual</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='title-subtle'>Hash actual</div>", unsafe_allow_html=True
+        )
         st.code(hashes[-1]["hash"], language="text")
         if st.button("Copiar hash actual"):
             st.toast("Hash listo para copiar. Usa Ctrl+C o el botón copiar del bloque.")
@@ -456,13 +469,15 @@ def render_advanced_mode(
 
     st.subheader("Snapshots recientes")
     st.dataframe(
-        df[[
-            "timestamp",
-            "department",
-            "registered_voters",
-            "total_votes",
-            "valid_votes",
-        ]].tail(20),
+        df[
+            [
+                "timestamp",
+                "department",
+                "registered_voters",
+                "total_votes",
+                "valid_votes",
+            ]
+        ].tail(20),
         use_container_width=True,
         hide_index=True,
     )
