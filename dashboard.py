@@ -1,6 +1,6 @@
 """
 Proyecto C.E.N.T.I.N.E.L. - Dashboard de Auditoría Electoral
-Versión: 3.0.2 (2026)
+Versión: 3.0.3 (2026)
 """
 
 import json
@@ -16,7 +16,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from sklearn.ensemble import IsolationForest
 
-# --- Configuración de Rutas y Logger ---
+# --- Configuración de Rutas ---
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 HASH_DIR = BASE_DIR / "hashes"
@@ -25,10 +25,10 @@ HASH_DIR = BASE_DIR / "hashes"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 HASH_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- Funciones de Carga y Procesamiento ---
-
 def load_latest_data():
     """Busca y carga el último archivo JSON en /data"""
+    if not DATA_DIR.exists():
+        return None
     files = list(DATA_DIR.glob("snapshot_*.json"))
     if not files:
         return None
@@ -46,32 +46,20 @@ def detect_anomalies(df):
     if df is None or df.empty:
         return pd.DataFrame()
     
-    # Seleccionamos columnas numéricas para el análisis
-    # Si las columnas tienen nombres distintos, ajustarlas aquí
+    # Columnas esperadas según la plantilla de Sentinel
     cols_interes = ['porcentaje_escrutado', 'votos_totales']
-    
-    # Verificamos que las columnas existan en el snapshot
     existentes = [c for c in cols_interes if c in df.columns]
     
     if len(existentes) < 2:
-        return pd.DataFrame() # No hay suficientes datos para Isolation Forest
+        return pd.DataFrame()
 
     features = df[existentes].fillna(0)
     model = IsolationForest(contamination=0.05, random_state=42)
     df['anomaly_score'] = model.fit_predict(features)
     
-    # -1 indica anomalía
     return df[df['anomaly_score'] == -1]
 
-def read_hash_file(snapshot_path):
-    """Verifica la integridad del archivo"""
-    hash_path = HASH_DIR / f"{snapshot_path.name}.sha256"
-    if hash_path.exists():
-        return hash_path.read_text().strip()
-    return "Hash no encontrado"
-
-# --- Interfaz de Usuario (Streamlit) ---
-
+# --- Interfaz de Usuario ---
 st.set_page_config(page_title="C.E.N.T.I.N.E.L. Dashboard", layout="wide")
 
 st.markdown("""
@@ -80,15 +68,12 @@ st.markdown("""
     <hr>
 """, unsafe_allow_html=True)
 
-# Carga de datos
 data = load_latest_data()
 
 if data is not None:
-    # Sidebar con info técnica
     st.sidebar.header("⚙️ Info Técnica")
     st.sidebar.write(f"**Snapshot:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     
-    # --- SECCIÓN 1: ALERTAS ---
     st.header("🚨 Sistema de Alertas de Integridad")
     alertas = detect_anomalies(data)
     
@@ -103,4 +88,18 @@ if data is not None:
             st.metric("Nivel de Riesgo", "NORMAL", delta="Estadísticamente Seguro")
 
     with col2:
-        if not alertas.empty
+        if not alertas.empty:
+            st.dataframe(alertas.drop(columns=['anomaly_score'], errors='ignore'))
+            
+    st.header("📊 Visualización de Datos")
+    if 'departamento' in data.columns:
+        fig = px.bar(data, x='departamento', y='votos_totales', title="Votos por Departamento")
+        st.plotly_chart(fig, use_container_width=True)
+
+    with st.expander("🔍 Ver datos crudos"):
+        st.dataframe(data)
+else:
+    st.warning("⏳ Esperando datos... GitHub Actions debe generar el primer snapshot.")
+
+st.markdown("---")
+st.caption("PROYECTO C.E.N.T.I.N.E.L. | Preparado para Elecciones 2029")
