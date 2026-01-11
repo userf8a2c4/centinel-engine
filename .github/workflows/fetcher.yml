@@ -2,8 +2,8 @@ name: SENTINEL Engine
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # Se ejecuta automático cada 15 min
-  workflow_dispatch:      # Este activa el botón manual que ocupamos
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -19,17 +21,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run collector
         env:
-          PYTHONPATH: .
+          PYTHONPATH: ${{ github.workspace }}
         run: python scripts/download_and_hash.py
 
       - name: Commit and Push changes
         run: |
           git config --global user.name 'Sentinel-Bot'
           git config --global user.email 'bot@sentinel.ai'
-          git add data/ hashes/
+          # Crear directorios si no existen para evitar errores de git add
+          mkdir -p data hashes
+          git add data/*.json hashes/*.sha256 || true
           git commit -m "Auto-update: Snapshot C.E.N.T.I.N.E.L." || exit 0
           git push
