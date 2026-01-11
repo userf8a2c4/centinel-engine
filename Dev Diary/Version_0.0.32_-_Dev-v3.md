@@ -1,6 +1,6 @@
 # [ES] Dashboard Streamlit robusto + nuevas vistas analíticas
 
-  /dev: Notas del parche: Versión: v0.0.32 (commit ____)
+  /dev: Notas del parche: Versión: v0.0.32 (commit 681ecdd)
 
 
 
