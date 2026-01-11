@@ -8,67 +8,78 @@ import os
 import glob
 
 # Configuración de página
-st.set_page_config(
-    page_title="Centinel Dashboard",
-    page_icon="📡",
-    layout="wide"
-)
+st.set_page_config(page_title="Centinel Dashboard", page_icon="📡", layout="wide")
 
 # Tema oscuro
-st.markdown("""
+st.markdown(
+    """
     <style>
     .stApp { background-color: #0e1117; color: #fafafa; }
     .metric-delta { font-size: 1.1rem !important; }
     </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
+
 
 @st.cache_data(ttl=300)
 def load_data():
-    snapshot_files = glob.glob("tests/fixtures/snapshots_2025/*.json") or \
-                     glob.glob("data/snapshots_2025/*.json") or \
-                     glob.glob("*.json")
-    
+    snapshot_files = (
+        glob.glob("tests/fixtures/snapshots_2025/*.json")
+        or glob.glob("data/snapshots_2025/*.json")
+        or glob.glob("*.json")
+    )
+
     if not snapshot_files:
         st.error("No se encontraron snapshots JSON en las carpetas esperadas.")
         return pd.DataFrame(), {}, pd.DataFrame()
-    
+
     snapshot_files = sorted(snapshot_files)  # ascendente por fecha
-    
+
     snapshots = []
     for file_path in snapshot_files:
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                data['source_path'] = os.path.basename(file_path)
+                data["source_path"] = os.path.basename(file_path)
                 # Timestamp fallback desde nombre
-                if 'timestamp' not in data:
+                if "timestamp" not in data:
                     name = os.path.basename(file_path)
-                    ts_part = name.split('snapshot_')[-1].split('.')[0].replace('_', ':')
+                    ts_part = (
+                        name.split("snapshot_")[-1].split(".")[0].replace("_", ":")
+                    )
                     try:
-                        data['timestamp'] = datetime.strptime(ts_part, '%Y-%m-%dT%H:%M:%S').isoformat()
+                        data["timestamp"] = datetime.strptime(
+                            ts_part, "%Y-%m-%dT%H:%M:%S"
+                        ).isoformat()
                     except:
-                        data['timestamp'] = datetime.now().isoformat()
+                        data["timestamp"] = datetime.now().isoformat()
                 snapshots.append(data)
         except Exception as e:
             st.warning(f"Error cargando {os.path.basename(file_path)}: {e}")
-    
+
     if not snapshots:
         return pd.DataFrame(), {}, pd.DataFrame()
-    
-    df_snapshots = pd.DataFrame([{
-        "timestamp": pd.to_datetime(s["timestamp"]),
-        "registered_voters": s.get("registered_voters", 0),
-        "total_votes": s.get("total_votes", 0),
-        "valid_votes": s.get("valid_votes", 0),
-        "null_votes": s.get("null_votes", 0),
-        "blank_votes": s.get("blank_votes", 0),
-        "source_path": s["source_path"]
-    } for s in snapshots])
-    
+
+    df_snapshots = pd.DataFrame(
+        [
+            {
+                "timestamp": pd.to_datetime(s["timestamp"]),
+                "registered_voters": s.get("registered_voters", 0),
+                "total_votes": s.get("total_votes", 0),
+                "valid_votes": s.get("valid_votes", 0),
+                "null_votes": s.get("null_votes", 0),
+                "blank_votes": s.get("blank_votes", 0),
+                "source_path": s["source_path"],
+            }
+            for s in snapshots
+        ]
+    )
+
     df_snapshots = df_snapshots.sort_values("timestamp")
-    
+
     last_snapshot = snapshots[-1]
-    
+
     # Extracción segura de candidatos (soporta ambas estructuras)
     candidates = []
     if isinstance(last_snapshot, dict):
@@ -79,7 +90,7 @@ def load_data():
             votos_blancos = last_snapshot.get("votos_blancos", {})
             if isinstance(votos_blancos, dict):
                 candidates = votos_blancos.get("candidatos", [])
-        
+
         # Estructura CNE real (si algún snapshot es así)
         if not candidates:
             candidatos_cne = last_snapshot.get("resultados", [])
@@ -89,14 +100,15 @@ def load_data():
                         "candidato": r.get("candidato", ""),
                         "partido": r.get("partido", ""),
                         "votes": int(r.get("votos", "0").replace(",", "")),
-                        "porcentaje": r.get("porcentaje", "")
+                        "porcentaje": r.get("porcentaje", ""),
                     }
                     for r in candidatos_cne
                 ]
-    
+
     df_candidates = pd.DataFrame(candidates)
-    
+
     return df_snapshots, last_snapshot, df_candidates
+
 
 df_snapshots, last_snapshot, df_candidates = load_data()
 
@@ -116,18 +128,23 @@ st.subheader("Panorama General")
 if not df_snapshots.empty:
     current = last_snapshot
     prev = df_snapshots.iloc[-2] if len(df_snapshots) > 1 else current
-    
+
     delta_emitidos = current.get("total_votes", 0) - prev.get("total_votes", 0)
-    
+
     cols = st.columns(5)
     cols[0].metric("Registrados", f"{current.get('registered_voters', 0):,}")
-    cols[1].metric("Votos Emitidos", f"{current.get('total_votes', 0):,}", 
-                   delta=f"+{delta_emitidos:,}" if delta_emitidos else None)
+    cols[1].metric(
+        "Votos Emitidos",
+        f"{current.get('total_votes', 0):,}",
+        delta=f"+{delta_emitidos:,}" if delta_emitidos else None,
+    )
     cols[2].metric("Votos Válidos", f"{current.get('valid_votes', 0):,}")
     cols[3].metric("Votos Nulos", f"{current.get('null_votes', 0):,}")
     cols[4].metric("Votos Blancos", f"{current.get('blank_votes', 0):,}")
-    
-    porc_avance = (current.get("total_votes", 0) / current.get("registered_voters", 1)) * 100
+
+    porc_avance = (
+        current.get("total_votes", 0) / current.get("registered_voters", 1)
+    ) * 100
     st.progress(porc_avance / 100)
     st.caption(f"**Escrutinio aproximado: {porc_avance:.1f}%**")
 
@@ -136,17 +153,19 @@ st.subheader("Distribución de Votos Válidos (Último Snapshot)")
 
 if not df_candidates.empty:
     # Asegurar columna 'votes' numérica
-    if 'votes' in df_candidates.columns:
-        df_candidates['votes'] = pd.to_numeric(df_candidates['votes'], errors='coerce').fillna(0)
-    
+    if "votes" in df_candidates.columns:
+        df_candidates["votes"] = pd.to_numeric(
+            df_candidates["votes"], errors="coerce"
+        ).fillna(0)
+
     fig = px.pie(
         df_candidates,
         values="votes",
         names="candidato",
         hover_data=["partido"] if "partido" in df_candidates else None,
-        hole=0.4
+        hole=0.4,
     )
-    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.update_traces(textposition="inside", textinfo="percent+label")
     fig.update_layout(template="plotly_dark")
     st.plotly_chart(fig, use_container_width=True)
 else:
@@ -157,10 +176,22 @@ st.subheader("Evolución Temporal")
 
 if len(df_snapshots) > 1:
     fig_line = go.Figure()
-    fig_line.add_trace(go.Scatter(x=df_snapshots["timestamp"], y=df_snapshots["total_votes"],
-                                  mode='lines+markers', name='Total Votos'))
-    fig_line.add_trace(go.Scatter(x=df_snapshots["timestamp"], y=df_snapshots["valid_votes"],
-                                  mode='lines+markers', name='Votos Válidos'))
+    fig_line.add_trace(
+        go.Scatter(
+            x=df_snapshots["timestamp"],
+            y=df_snapshots["total_votes"],
+            mode="lines+markers",
+            name="Total Votos",
+        )
+    )
+    fig_line.add_trace(
+        go.Scatter(
+            x=df_snapshots["timestamp"],
+            y=df_snapshots["valid_votes"],
+            mode="lines+markers",
+            name="Votos Válidos",
+        )
+    )
     fig_line.update_layout(template="plotly_dark", hovermode="x unified")
     st.plotly_chart(fig_line, use_container_width=True)
 
@@ -170,7 +201,10 @@ col_left, col_right = st.columns(2)
 with col_left:
     st.subheader("Totales por Snapshot")
     if not df_snapshots.empty:
-        st.dataframe(df_snapshots.style.format(precision=0, thousands=","), use_container_width=True)
+        st.dataframe(
+            df_snapshots.style.format(precision=0, thousands=","),
+            use_container_width=True,
+        )
 
 with col_right:
     st.subheader("Último Snapshot - Candidatos")
@@ -179,12 +213,14 @@ with col_right:
 
 # Explicación simple
 with st.expander("¿Qué significan estos números?"):
-    st.markdown("""
+    st.markdown(
+        """
     - Registrados: Personas habilitadas para votar.
     - Votos Emitidos: Total de votos contados.
     - Votos Válidos: Votos que cuentan para candidatos.
     - Δ: Cambio respecto al snapshot anterior.
-    """)
+    """
+    )
 
 with st.expander("JSON del último snapshot"):
     st.json(last_snapshot)
