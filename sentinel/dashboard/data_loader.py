@@ -21,9 +21,7 @@ BRANCH = "dev-v3"
 SNAPSHOT_DIRS = ("data", "tests/fixtures/snapshots_2025")
 
 RAW_BASE = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{BRANCH}"
-TREE_URL = (
-    f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/git/trees/{BRANCH}?recursive=1"
-)
+TREE_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/git/trees/{BRANCH}?recursive=1"
 
 
 @dataclass(frozen=True)
@@ -63,7 +61,9 @@ def _payload_has_signal(payload: dict[str, Any]) -> bool:
 
     candidates = payload.get("candidatos") or payload.get("candidates")
     if isinstance(candidates, list):
-        return any(_safe_int(item.get("votos") or item.get("votes")) > 0 for item in candidates)
+        return any(
+            _safe_int(item.get("votos") or item.get("votes")) > 0 for item in candidates
+        )
     return False
 
 
@@ -111,9 +111,7 @@ def list_snapshot_paths(snapshot_dirs: Iterable[str] = SNAPSHOT_DIRS) -> list[st
     for directory in snapshot_dirs:
         base_path = Path(directory)
         if base_path.exists():
-            local_paths.extend(
-                sorted(str(path) for path in base_path.glob("*.json"))
-            )
+            local_paths.extend(sorted(str(path) for path in base_path.glob("*.json")))
     if local_paths:
         return local_paths
 
@@ -166,7 +164,9 @@ def load_snapshot_records(max_files: int = 50) -> list[SnapshotRecord]:
             continue
         department = _extract_department(payload)
         timestamp = _extract_timestamp(payload, path)
-        normalized = snapshot_to_dict(normalize_snapshot(payload, department, timestamp.isoformat()))
+        normalized = snapshot_to_dict(
+            normalize_snapshot(payload, department, timestamp.isoformat())
+        )
         records.append(
             SnapshotRecord(
                 source_path=path,

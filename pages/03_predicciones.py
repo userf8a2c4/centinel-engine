@@ -67,14 +67,20 @@ median_step = totals_df["time_delta"].diff().median()
 if pd.isna(median_step) or median_step == 0:
     median_step = 3600
 
-future_steps = st.slider("Horizonte de predicción (pasos)", min_value=1, max_value=6, value=3)
+future_steps = st.slider(
+    "Horizonte de predicción (pasos)", min_value=1, max_value=6, value=3
+)
 last_time = totals_df["time_delta"].iloc[-1]
-future_times = np.array([last_time + median_step * (i + 1) for i in range(future_steps)])
+future_times = np.array(
+    [last_time + median_step * (i + 1) for i in range(future_steps)]
+)
 future_predictions = model.predict(future_times.reshape(-1, 1))
 
 future_df = pd.DataFrame(
     {
-        "timestamp": [base_time + pd.to_timedelta(seconds, unit="s") for seconds in future_times],
+        "timestamp": [
+            base_time + pd.to_timedelta(seconds, unit="s") for seconds in future_times
+        ],
         "total_votes": future_predictions,
         "Serie": "Predicción",
     }
@@ -107,7 +113,9 @@ col3.metric("Pendiente estimada", f"{model.coef_[0]:,.2f} votos/seg")
 
 st.subheader("Resumen automático (NLP)")
 
-latest_candidates = candidates_df[candidates_df["source_path"] == latest.source_path].copy()
+latest_candidates = candidates_df[
+    candidates_df["source_path"] == latest.source_path
+].copy()
 latest_candidates = latest_candidates.sort_values("votes", ascending=False)
 
 if latest_candidates.empty:
@@ -142,7 +150,9 @@ st.markdown("\n".join(f"- {line}" for line in summary_lines))
 st.markdown("### Palabras clave detectadas")
 
 text_corpus = (
-    latest_candidates["candidate"].fillna("") + " " + latest_candidates["party"].fillna("")
+    latest_candidates["candidate"].fillna("")
+    + " "
+    + latest_candidates["party"].fillna("")
 ).tolist()
 
 vectorizer = TfidfVectorizer(stop_words=None)

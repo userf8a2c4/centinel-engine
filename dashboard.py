@@ -95,7 +95,9 @@ with col1:
 
 with col2:
     st.markdown("### Último snapshot (candidatos)")
-    latest_candidates = candidates_df[candidates_df["source_path"] == latest.source_path]
+    latest_candidates = candidates_df[
+        candidates_df["source_path"] == latest.source_path
+    ]
     if not latest_candidates.empty:
         st.dataframe(
             latest_candidates[["candidate", "party", "votes"]].sort_values(

@@ -80,9 +80,11 @@ if series.empty:
 # Función para extraer primer dígito (ignora 0 y negativos)
 # -----------------------------------------------------------------------------
 
+
 def get_first_digit(series: pd.Series) -> pd.Series:
     s = series.astype(str).str.replace(r"[-.]", "", regex=True).str.lstrip("0")
     return s.str[0].replace("", np.nan).astype(float)
+
 
 # -----------------------------------------------------------------------------
 # Cálculos
@@ -109,8 +111,17 @@ with col1:
     x = np.arange(1, 10)
     width = 0.35
 
-    ax.bar(x - width / 2, observed, width, label="Observado", color="skyblue", alpha=0.8)
-    ax.bar(x + width / 2, benford, width, label="Benford (teórico)", color="orange", alpha=0.7)
+    ax.bar(
+        x - width / 2, observed, width, label="Observado", color="skyblue", alpha=0.8
+    )
+    ax.bar(
+        x + width / 2,
+        benford,
+        width,
+        label="Benford (teórico)",
+        color="orange",
+        alpha=0.7,
+    )
 
     ax.set_xticks(x)
     ax.set_xticklabels([str(i) for i in x])
@@ -155,4 +166,6 @@ comparison = (
 st.dataframe(comparison)
 
 st.markdown("---")
-st.caption("Análisis básico de Ley de Benford – Sentinel v3 • No sustituye auditoría completa")
+st.caption(
+    "Análisis básico de Ley de Benford – Sentinel v3 • No sustituye auditoría completa"
+)
