@@ -44,6 +44,32 @@ if data is not None:
     st.write(f"✅ Visualizando snapshot: {data['timestamp'].iloc[0]}")
 
 
+from sklearn.ensemble import IsolationForest
+
+def detect_anomalies(df):
+    # Usamos variables clave: porcentaje de actas y votos totales
+    features = df[['porcentaje_escrutado', 'votos_totales']]
+    
+    # El modelo Isolation Forest identifica puntos aislados (anomalías)
+    model = IsolationForest(contamination=0.05) # Detecta el 5% más sospechoso
+    df['anomaly_score'] = model.fit_predict(features)
+    
+    # -1 significa anomalía detectada
+    anomalies = df[df['anomaly_score'] == -1]
+    return anomalies
+
+# --- Sección de Alertas en el Dashboard ---
+st.header("🚨 Sistema de Alertas CENTINEL")
+if data is not None:
+    alertas = detect_anomalies(data)
+    if not alertas.empty:
+        st.error(f"Se han detectado {len(alertas)} departamentos con comportamiento atípico.")
+        st.dataframe(alertas)
+    else:
+        st.success("No se detectan anomalías estadísticas en el flujo actual.")
+        
+
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
