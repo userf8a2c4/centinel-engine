@@ -35,8 +35,16 @@ def load_latest_data():
     # Ordenar por fecha de creación para tener el más reciente
     latest_file = max(files, key=os.path.getctime)
     try:
-        df = pd.read_json(latest_file)
-        return df
+        with open(latest_file, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        if isinstance(payload, list):
+            return pd.DataFrame(payload)
+        if isinstance(payload, dict):
+            if "data" in payload and isinstance(payload["data"], list):
+                return pd.DataFrame(payload["data"])
+            return pd.DataFrame([payload])
+        st.error(f"Error cargando el archivo {latest_file.name}: formato no soportado.")
+        return None
     except Exception as e:
         st.error(f"Error cargando el archivo {latest_file.name}: {e}")
         return None
