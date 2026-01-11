@@ -7,7 +7,7 @@ base_url: "https://results.example.org/api/v1/summary"
 # SWITCH MAESTRO (ON/OFF): controla todo proceso automático del repo.
 # ON  = permite ejecución automática
 # OFF = detiene ejecución automática
-master_switch: "ON"
+master_switch: "OFF"
 
 # Parámetros de red.
 timeout: 20
