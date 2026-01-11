@@ -1,11 +1,15 @@
 # dashboard.py
 import streamlit as st
-import json
-import os
-from datetime import datetime
-import requests
-from pathlib import Path
 import pandas as pd
+import plotly.express as px
+from datetime import datetime
+
+from sentinel.dashboard.data_loader import (
+    build_candidates_frame,
+    build_totals_frame,
+    latest_record,
+    load_snapshot_records,
+)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # CONFIGURACIÓN BÁSICA
@@ -14,92 +18,96 @@ st.set_page_config(
     page_title="Centinel - Dashboard",
     page_icon="📡",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 st.title("📡 Centinel Dashboard")
 st.markdown("Visualización automática de snapshots generados desde GitHub")
 
-# Configuración del repositorio (ajústalas si cambian)
-REPO_OWNER = "userf8a2c4"
-REPO_NAME = "sentinel"
-BRANCH = "dev-v3"
-SNAPSHOTS_DIR = "data/snapshots"  # ← muy importante: debe coincidir con tu workflow
 
-GITHUB_RAW_BASE = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{BRANCH}/{SNAPSHOTS_DIR}"
-
-# ──────────────────────────────────────────────────────────────────────────────
-# FUNCIONES AUXILIARES
-# ──────────────────────────────────────────────────────────────────────────────
-@st.cache_data(ttl="10min", show_spinner="Buscando snapshot más reciente...")
-def get_latest_snapshot():
-    try:
-        # Opción 1: Intentamos obtener la lista de archivos vía GitHub API (más confiable)
-        api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/git/trees/{BRANCH}?recursive=1"
-        headers = {"Accept": "application/vnd.github.v3+json"}
-        
-        # Si tienes token → puedes descomentar y usar
-        # headers["Authorization"] = f"token {st.secrets.get('GITHUB_TOKEN', '')}"
-
-        response = requests.get(api_url, headers=headers, timeout=15)
-        response.raise_for_status()
-
-        data = response.json()
-        files = [item["path"] for item in data.get("tree", [])
-                 if item["path"].startswith(f"{SNAPSHOTS_DIR}/") and item["path"].endswith(".json")]
-
-        if not files:
-            return None, "No se encontraron archivos .json en la carpeta de snapshots"
-
-        # Tomamos el último (por convención los nombres tienen fecha descendente)
-        latest_path = sorted(files)[-1]
-        filename = Path(latest_path).name
-
-        # Descargamos el contenido
-        raw_url = f"{GITHUB_RAW_BASE}/{filename}"
-        resp = requests.get(raw_url, timeout=12)
-        resp.raise_for_status()
-
-        content = json.loads(resp.text)
-        return content, f"✓ Snapshot cargado: {filename}"
-
-    except requests.exceptions.RequestException as e:
-        return None, f"Error de conexión/red → {str(e)}"
-    except json.JSONDecodeError:
-        return None, f"El archivo JSON está mal formado"
-    except Exception as e:
-        return None, f"Error inesperado: {str(e)}"
+@st.cache_data(ttl=600, show_spinner="Buscando snapshots...")
+def get_records() -> list:
+    return load_snapshot_records(max_files=100)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# INTERFAZ PRINCIPAL
-# ──────────────────────────────────────────────────────────────────────────────
-data, status_message = get_latest_snapshot()
+records = get_records()
+latest = latest_record(records)
 
-if data is None:
-    st.error("**No se pudo cargar ningún snapshot**")
-    st.warning(status_message)
-    st.info("📡 Sincronizando... Esperando que el motor de GitHub genere el primer snapshot de datos.")
+if not records or not latest:
+    st.error("**No se pudo cargar ningún snapshot con datos útiles**")
+    st.info(
+        "No se encontraron snapshots con métricas numéricas. "
+        "Verifica que existan archivos JSON reales en `data/` o en "
+        "`tests/fixtures/snapshots_2025`."
+    )
     st.caption("Última comprobación: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-else:
-    st.success(status_message)
-    st.caption("Última comprobación: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    st.stop()
 
-    # Aquí pones tu visualización real
-    # Ejemplo básico (adapta a tu estructura de datos real)
-    st.subheader("Últimos datos disponibles")
+st.success(f"✓ Snapshot cargado: {latest.source_path}")
+st.caption("Última comprobación: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-    try:
-        # Suponiendo que tu JSON tiene una clave "data" o "results"
-        df = pd.DataFrame(data.get("results", data.get("data", [])))
-        if not df.empty:
-            st.dataframe(df, use_container_width=True)
-        else:
-            st.info("Los datos están vacíos o no tienen formato de tabla")
-            st.json(data)
-    except Exception as e:
-        st.error(f"No se pudo convertir a tabla: {e}")
-        st.json(data)  # fallback
+# ──────────────────────────────────────────────────────────────────────────────
+# VISIÓN GENERAL
+# ──────────────────────────────────────────────────────────────────────────────
+
+st.subheader("Panorama general")
+
+totals_df = build_totals_frame(records)
+totals_df["timestamp"] = pd.to_datetime(totals_df["timestamp"])
+
+candidates_df = build_candidates_frame(records)
+
+if totals_df.empty:
+    st.warning("No hay datos agregados disponibles para mostrar.")
+    st.stop()
+
+latest_totals = totals_df.sort_values("timestamp").iloc[-1]
+
+metrics_cols = st.columns(5)
+metrics_cols[0].metric("Registrados", f"{latest_totals['registered_voters']:,}")
+metrics_cols[1].metric("Votos emitidos", f"{latest_totals['total_votes']:,}")
+metrics_cols[2].metric("Votos válidos", f"{latest_totals['valid_votes']:,}")
+metrics_cols[3].metric("Votos nulos", f"{latest_totals['null_votes']:,}")
+metrics_cols[4].metric("Votos blancos", f"{latest_totals['blank_votes']:,}")
+
+st.markdown("### Evolución temporal")
+trend_df = totals_df.sort_values("timestamp")
+fig = px.line(
+    trend_df,
+    x="timestamp",
+    y=["total_votes", "valid_votes", "null_votes", "blank_votes"],
+    markers=True,
+    labels={"value": "Votos", "timestamp": "Timestamp"},
+)
+fig.update_layout(legend_title_text="Métrica")
+st.plotly_chart(fig, use_container_width=True)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TABLAS PRINCIPALES
+# ──────────────────────────────────────────────────────────────────────────────
+
+col1, col2 = st.columns([3, 2])
+
+with col1:
+    st.markdown("### Totales por snapshot")
+    display_df = totals_df.sort_values("timestamp", ascending=False).head(25)
+    st.dataframe(display_df, use_container_width=True)
+
+with col2:
+    st.markdown("### Último snapshot (candidatos)")
+    latest_candidates = candidates_df[candidates_df["source_path"] == latest.source_path]
+    if not latest_candidates.empty:
+        st.dataframe(
+            latest_candidates[["candidate", "party", "votes"]].sort_values(
+                "votes", ascending=False
+            ),
+            use_container_width=True,
+        )
+    else:
+        st.info("No se encontraron candidatos en el último snapshot.")
+
+with st.expander("Ver JSON del último snapshot"):
+    st.json(latest.raw_payload)
 
 st.markdown("---")
 st.caption("Powered by Streamlit • Datos desde GitHub • Actualización automática")
