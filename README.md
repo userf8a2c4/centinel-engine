@@ -42,8 +42,9 @@
 ### Configuración rápida
 1. Copia `config.example.yaml` a `config.yaml` en la raíz del repositorio.
 2. Edita `config.yaml` con la URL base, headers y fuentes reales de tu entorno.
-3. Ejecuta los scripts; el sistema continúa leyendo desde `config.yaml`.
-4. Copia `.env.example` a `.env` para configurar tokens y logging.
+3. Ajusta `master_switch` a **ON/OFF** para habilitar o detener toda ejecución automática.
+4. Ejecuta los scripts; el sistema continúa leyendo desde `config.yaml`.
+5. Copia `.env.example` a `.env` para configurar tokens y logging.
 
 ### Estado del proyecto (actual)
 - Captura de datos: configurable vía `config.yaml` (fuentes, niveles y mapeo de campos).
@@ -124,8 +125,9 @@ Pasos para Streamlit Community Cloud:
 ### Quick setup
 1. Copy `config.example.yaml` to `config.yaml` in the repository root.
 2. Edit `config.yaml` with the real base URL, headers, and sources for your environment.
-3. Run the scripts; the system still reads from `config.yaml`.
-4. Copy `.env.example` to `.env` to configure tokens and logging.
+3. Set `master_switch` to **ON/OFF** to enable or halt all automatic execution.
+4. Run the scripts; the system still reads from `config.yaml`.
+5. Copy `.env.example` to `.env` to configure tokens and logging.
 
 ### Project status (current)
 - Data capture: configurable via `config.yaml` (sources, levels, and field mapping).

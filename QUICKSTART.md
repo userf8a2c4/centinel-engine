@@ -17,12 +17,13 @@
    cp .env.example .env
    ```
 4. Ajusta `config.yaml` (URL base, headers, fuentes).
-5. Ejecuta la descarga y el análisis:
+5. Define `master_switch` en **ON/OFF** para habilitar o detener procesos automáticos.
+6. Ejecuta la descarga y el análisis:
    ```bash
    python scripts/download_and_hash.py
    python scripts/analyze_rules.py
    ```
-6. Lanza el dashboard:
+7. Lanza el dashboard:
    ```bash
    streamlit run dashboard.py
    ```
@@ -44,12 +45,13 @@
    cp .env.example .env
    ```
 4. Update `config.yaml` (base URL, headers, sources).
-5. Run download + analysis:
+5. Set `master_switch` to **ON/OFF** to enable or halt automatic processes.
+6. Run download + analysis:
    ```bash
    python scripts/download_and_hash.py
    python scripts/analyze_rules.py
    ```
-6. Launch the dashboard:
+7. Launch the dashboard:
    ```bash
    streamlit run dashboard.py
    ```
