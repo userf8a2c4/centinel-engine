@@ -203,10 +203,11 @@ def normalize_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
         or snapshot.get("valid_votes")
         or 0,
         "null_votes": snapshot.get("votos_nulos") or snapshot.get("null_votes") or 0,
-        "blank_votes": snapshot.get("votos_blancos")
-        if isinstance(snapshot.get("votos_blancos"), int)
-        else snapshot.get("blank_votes")
-        or 0,
+        "blank_votes": (
+            snapshot.get("votos_blancos")
+            if isinstance(snapshot.get("votos_blancos"), int)
+            else snapshot.get("blank_votes") or 0
+        ),
         "department": department,
         "candidates": candidates,
         "source_path": snapshot.get("source_path", ""),
