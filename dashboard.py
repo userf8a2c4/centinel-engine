@@ -41,7 +41,6 @@ def load_master_switch():
     return normalize_master_switch(config.get("master_switch"))
 
 
-
 def load_master_switch():
     try:
         config = load_config()
@@ -51,6 +50,7 @@ def load_master_switch():
     if "master_switch" not in config:
         return "UNCONFIGURED"
     return normalize_master_switch(config.get("master_switch"))
+
 
 @st.cache_data(ttl=300)
 def load_data():
