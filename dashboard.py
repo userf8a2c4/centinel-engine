@@ -1,39 +1,23 @@
-"""
-Proyecto C.E.N.T.I.N.E.L. - Dashboard de Auditoría Electoral
-Versión: 3.0.3 (2026)
-"""
-
-import json
-import logging
-import os
-from datetime import datetime
-from hashlib import sha256
-from pathlib import Path
-
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
+import pandas as pd
+import os
+from pathlib import Path
 from sklearn.ensemble import IsolationForest
+from datetime import datetime
 
 # --- Configuración de Rutas ---
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
-HASH_DIR = BASE_DIR / "hashes"
 
-# Asegurar que existan los directorios
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-HASH_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def load_latest_data():
-    """Busca y carga el último archivo JSON en /data"""
+    """Carga datos de forma segura sin importar el nombre de las columnas"""
     if not DATA_DIR.exists():
         return None
     files = list(DATA_DIR.glob("snapshot_*.json"))
     if not files:
         return None
-    # Ordenar por fecha de creación para tener el más reciente
     latest_file = max(files, key=os.path.getctime)
     try:
         with open(latest_file, "r", encoding="utf-8") as f:
@@ -70,8 +54,8 @@ def detect_anomalies(df):
     return df[df["anomaly_score"] == -1]
 
 
-# --- Interfaz de Usuario ---
-st.set_page_config(page_title="C.E.N.T.I.N.E.L. Dashboard", layout="wide")
+# --- Interfaz ---
+st.set_page_config(page_title="C.E.N.T.I.N.E.L. Audit", layout="wide")
 
 st.markdown(
     """
@@ -117,10 +101,14 @@ if data is not None:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with st.expander("🔍 Ver datos crudos"):
-        st.dataframe(data)
+    if not alertas.empty:
+        st.header("🔍 Registro de Anomalías Detectadas")
+        st.warning("La IA detectó patrones fuera de la norma estadística en los siguientes registros:")
+        st.dataframe(alertas.drop(columns=['anomaly_score'], errors='ignore'))
+    else:
+        st.success("✅ No se detectan anomalías estadísticas en los datos públicos actuales.")
 else:
-    st.warning("⏳ Esperando datos... GitHub Actions debe generar el primer snapshot.")
+    st.info("📡 Sincronizando... Esperando que el motor de GitHub genere el primer snapshot de datos.")
 
 st.markdown("---")
-st.caption("PROYECTO C.E.N.T.I.N.E.L. | Preparado para Elecciones 2029")
+st.caption(f"C.E.N.T.I.N.E.L. | Protocolo de Neutralidad Técnica | {datetime.now().year}")

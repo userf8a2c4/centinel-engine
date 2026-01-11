@@ -2,39 +2,48 @@ name: SENTINEL Engine
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
-  workflow_dispatch:
+    - cron: '*/15 * * * *' # Ejecución automática cada 15 minutos
+  workflow_dispatch:      # Botón para ejecución manual
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout del Repositorio
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Set up Python
+      - name: Configurar Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Instalar Dependencias
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Run collector
+      - name: Ejecutar Recolector de Datos
         env:
           PYTHONPATH: ${{ github.workspace }}
-        run: python scripts/download_and_hash.py
+        run: |
+          # Ejecutamos el script asegurando que Python vea la carpeta 'scripts'
+          python scripts/download_and_hash.py
 
-      - name: Commit and Push changes
+      - name: Persistir Datos en Repositorio
         run: |
           git config --global user.name 'Sentinel-Bot'
           git config --global user.email 'bot@sentinel.ai'
-          # Crear directorios si no existen para evitar errores de git add
+          
+          # Crear carpetas si no existen para evitar errores de git
           mkdir -p data hashes
+          
+          # Agregar archivos nuevos o modificados
           git add data/*.json hashes/*.sha256 || true
-          git commit -m "Auto-update: Snapshot C.E.N.T.I.N.E.L." || exit 0
-          git push
+          
+          # Hacer commit solo si hay cambios reales
+          git commit -m "Auto-update: Snapshot Electoral C.E.N.T.I.N.E.L." || exit 0
+          
+          # Subir cambios a la rama dev-v3
+          git push origin dev-v3
