@@ -8,7 +8,7 @@
 
 **Versión:** v0.0.31  
 **Fecha:** 11-ene-2026  
-**Autor:** OpenAI.
+**Autor:** userf8a2c4.
 
 ### Resumen
 Se modularizaron las reglas de análisis y se añadieron nuevas reglas forenses para detección de fraude en tiempo real.
