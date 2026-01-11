@@ -1,113 +1,105 @@
+# dashboard.py
 import streamlit as st
-import pandas as pd
+import json
 import os
-from pathlib import Path
-from sklearn.ensemble import IsolationForest
 from datetime import datetime
+import requests
+from pathlib import Path
+import pandas as pd
 
-# --- Configuración de Rutas ---
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
-
-
-def load_latest_data():
-    """Carga datos de forma segura sin importar el nombre de las columnas"""
-    if not DATA_DIR.exists():
-        return None
-    files = list(DATA_DIR.glob("snapshot_*.json"))
-    if not files:
-        return None
-    latest_file = max(files, key=os.path.getctime)
-    try:
-        with open(latest_file, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-        if isinstance(payload, list):
-            return pd.DataFrame(payload)
-        if isinstance(payload, dict):
-            if "data" in payload and isinstance(payload["data"], list):
-                return pd.DataFrame(payload["data"])
-            return pd.DataFrame([payload])
-        st.error(f"Error cargando el archivo {latest_file.name}: formato no soportado.")
-        return None
-    except Exception as e:
-        st.error(f"Error cargando el archivo {latest_file.name}: {e}")
-        return None
-
-
-def detect_anomalies(df):
-    """Detecta anomalías estadísticas en los votos"""
-    if df is None or df.empty:
-        return pd.DataFrame()
-
-    # Columnas esperadas según la plantilla de Sentinel
-    cols_interes = ["porcentaje_escrutado", "votos_totales"]
-    existentes = [c for c in cols_interes if c in df.columns]
-
-    if len(existentes) < 2:
-        return pd.DataFrame()
-
-    features = df[existentes].fillna(0)
-    model = IsolationForest(contamination=0.05, random_state=42)
-    df["anomaly_score"] = model.fit_predict(features)
-
-    return df[df["anomaly_score"] == -1]
-
-
-# --- Interfaz ---
-st.set_page_config(page_title="C.E.N.T.I.N.E.L. Audit", layout="wide")
-
-st.markdown(
-    """
-    <h1 style='text-align: center;'>Proyecto C.E.N.T.I.N.E.L.</h1>
-    <p style='text-align: center;'>Auditoría Ciudadana Independiente - Honduras 2028/2029</p>
-    <hr>
-""",
-    unsafe_allow_html=True,
+# ──────────────────────────────────────────────────────────────────────────────
+# CONFIGURACIÓN BÁSICA
+# ──────────────────────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Centinel - Dashboard",
+    page_icon="📡",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-data = load_latest_data()
+st.title("📡 Centinel Dashboard")
+st.markdown("Visualización automática de snapshots generados desde GitHub")
 
-if data is not None:
-    st.sidebar.header("⚙️ Info Técnica")
-    st.sidebar.write(f"**Snapshot:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+# Configuración del repositorio (ajústalas si cambian)
+REPO_OWNER = "userf8a2c4"
+REPO_NAME = "sentinel"
+BRANCH = "dev-v3"
+SNAPSHOTS_DIR = "data/snapshots"  # ← muy importante: debe coincidir con tu workflow
 
-    st.header("🚨 Sistema de Alertas de Integridad")
-    alertas = detect_anomalies(data)
+GITHUB_RAW_BASE = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/{BRANCH}/{SNAPSHOTS_DIR}"
 
-    col1, col2 = st.columns([1, 2])
+# ──────────────────────────────────────────────────────────────────────────────
+# FUNCIONES AUXILIARES
+# ──────────────────────────────────────────────────────────────────────────────
+@st.cache_data(ttl="10min", show_spinner="Buscando snapshot más reciente...")
+def get_latest_snapshot():
+    try:
+        # Opción 1: Intentamos obtener la lista de archivos vía GitHub API (más confiable)
+        api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/git/trees/{BRANCH}?recursive=1"
+        headers = {"Accept": "application/vnd.github.v3+json"}
+        
+        # Si tienes token → puedes descomentar y usar
+        # headers["Authorization"] = f"token {st.secrets.get('GITHUB_TOKEN', '')}"
 
-    with col1:
-        if not alertas.empty:
-            st.error(f"Se detectaron {len(alertas)} anomalías.")
-            st.metric(
-                "Nivel de Riesgo",
-                "ELEVADO",
-                delta="Anomalía Detectada",
-                delta_color="inverse",
-            )
-        else:
-            st.success("No se detectan anomalías estadísticas.")
-            st.metric("Nivel de Riesgo", "NORMAL", delta="Estadísticamente Seguro")
+        response = requests.get(api_url, headers=headers, timeout=15)
+        response.raise_for_status()
 
-    with col2:
-        if not alertas.empty:
-            st.dataframe(alertas.drop(columns=["anomaly_score"], errors="ignore"))
+        data = response.json()
+        files = [item["path"] for item in data.get("tree", [])
+                 if item["path"].startswith(f"{SNAPSHOTS_DIR}/") and item["path"].endswith(".json")]
 
-    st.header("📊 Visualización de Datos")
-    if "departamento" in data.columns:
-        fig = px.bar(
-            data, x="departamento", y="votos_totales", title="Votos por Departamento"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        if not files:
+            return None, "No se encontraron archivos .json en la carpeta de snapshots"
 
-    if not alertas.empty:
-        st.header("🔍 Registro de Anomalías Detectadas")
-        st.warning("La IA detectó patrones fuera de la norma estadística en los siguientes registros:")
-        st.dataframe(alertas.drop(columns=['anomaly_score'], errors='ignore'))
-    else:
-        st.success("✅ No se detectan anomalías estadísticas en los datos públicos actuales.")
-else:
+        # Tomamos el último (por convención los nombres tienen fecha descendente)
+        latest_path = sorted(files)[-1]
+        filename = Path(latest_path).name
+
+        # Descargamos el contenido
+        raw_url = f"{GITHUB_RAW_BASE}/{filename}"
+        resp = requests.get(raw_url, timeout=12)
+        resp.raise_for_status()
+
+        content = json.loads(resp.text)
+        return content, f"✓ Snapshot cargado: {filename}"
+
+    except requests.exceptions.RequestException as e:
+        return None, f"Error de conexión/red → {str(e)}"
+    except json.JSONDecodeError:
+        return None, f"El archivo JSON está mal formado"
+    except Exception as e:
+        return None, f"Error inesperado: {str(e)}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# INTERFAZ PRINCIPAL
+# ──────────────────────────────────────────────────────────────────────────────
+data, status_message = get_latest_snapshot()
+
+if data is None:
+    st.error("**No se pudo cargar ningún snapshot**")
+    st.warning(status_message)
     st.info("📡 Sincronizando... Esperando que el motor de GitHub genere el primer snapshot de datos.")
+    st.caption("Última comprobación: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+else:
+    st.success(status_message)
+    st.caption("Última comprobación: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+    # Aquí pones tu visualización real
+    # Ejemplo básico (adapta a tu estructura de datos real)
+    st.subheader("Últimos datos disponibles")
+
+    try:
+        # Suponiendo que tu JSON tiene una clave "data" o "results"
+        df = pd.DataFrame(data.get("results", data.get("data", [])))
+        if not df.empty:
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.info("Los datos están vacíos o no tienen formato de tabla")
+            st.json(data)
+    except Exception as e:
+        st.error(f"No se pudo convertir a tabla: {e}")
+        st.json(data)  # fallback
 
 st.markdown("---")
-st.caption(f"C.E.N.T.I.N.E.L. | Protocolo de Neutralidad Técnica | {datetime.now().year}")
+st.caption("Powered by Streamlit • Datos desde GitHub • Actualización automática")
