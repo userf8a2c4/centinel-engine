@@ -1,18 +1,16 @@
-requests>=2.31.0  # Para peticiones HTTP: descarga snapshots del CNE y posting a Telegram API.
-pandas==2.1.0  # Para procesamiento de datos: diffs, deltas y análisis por departamento.
-scipy>=1.11.4  # Para análisis avanzados: Ley de Benford y chi-squared.
-matplotlib==3.7.2  # Para visualización forense: generación de gráficas de Benford y tendencias.
-plotly==5.24.1  # Para visualizaciones avanzadas en el dashboard (Benford, outliers, mapa).
-python-telegram-bot==20.7  # Para alertas automáticas en Telegram.
-tweepy==4.14.0  # Para posting en X (Twitter).
-python-dateutil==2.8.2  # Para manejo robusto de timestamps en los snapshots.
-PyYAML==6.0.2  # Para cargar configuración centralizada.
-python-dotenv==1.0.1  # Para cargar variables sensibles desde .env.
-playwright==1.49.0  # Fallback de scraping con navegador headless.
+requests>=2.31.0 # Para peticiones HTTP: descarga snapshots del CNE y posting a Telegram API.
+pandas>=2.1.0 # Para procesamiento de datos: diffs, deltas y análisis por departamento.
+scipy>=1.11.4 # Para análisis avanzados: Ley de Benford y chi-squared.
+matplotlib>=3.7.2 # Para visualización forense: generación de gráficas de Benford y tendencias.
+plotly>=5.24.1 # Para visualizaciones avanzadas en el dashboard (Benford, outliers, mapa).
+python-telegram-bot>=20.7  # Para alertas automáticas en Telegram.
+tweepy>=4.14.0 # Para posting en X (Twitter).
+python-dateutil>=2.8.2 # Para manejo robusto de timestamps en los snapshots.
+PyYAML>=6.0.2 # Para cargar configuración centralizada.
+python-dotenv>=1.0.1 # Para cargar variables sensibles desde .env.
+playwright>=1.49.0 # Fallback de scraping con navegador headless.
+playwright-stealth>=1.0.6 # Para modo stealth en Playwright.
 pytest==8.3.3  # Para ejecutar la suite de pruebas en CI.
-playwright-stealth==1.0.6  # Para modo stealth en Playwright.
-streamlit==1.30.0  # Dashboard público en Streamlit.
-scikit-learn==1.5.2  # Para detección de outliers con Isolation Forest.
-# Arsenal de Proyecto C.E.N.T.I.N.E.L. para exposición de verdad. Sin extras para mantener ligereza.
-pyyaml
+streamlit>=1.30.0 # Dashboard público en Streamlit.
+scikit-learn>=1.5.0 # Para detección de outliers con Isolation Forest.
 rich
