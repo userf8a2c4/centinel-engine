@@ -46,7 +46,7 @@ Se modularizaron las reglas de análisis y se añadieron nuevas reglas forenses 
 
 **Version:** v0.0.31  
 **Date:** January 11, 2026  
-**Author:** OpenAI.
+**Author:** userf8a2c4.
 
 ### Summary
 The analysis rules were modularized and new forensic rules were added for real-time fraud detection.
