@@ -4,12 +4,16 @@ English:
     Hash publication to blockchain with configuration helpers.
 """
 
+from __future__ import annotations
+
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, TYPE_CHECKING, Dict
 
 import yaml
-from web3 import Web3
+
+if TYPE_CHECKING:
+    from web3 import Web3
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +128,7 @@ def resolve_rpc_url(config: Dict[str, Any]) -> str:
     return network.get("default_rpc", "")
 
 
-def _build_web3_client(config: Dict[str, Any]) -> tuple[Web3, int]:
+def _build_web3_client(config: Dict[str, Any]) -> tuple["Web3", int]:
     """Construye un cliente Web3 y devuelve el chain_id.
 
     Args:
@@ -151,6 +155,8 @@ def _build_web3_client(config: Dict[str, Any]) -> tuple[Web3, int]:
     if chain_id is None:
         raise ValueError(f"Unsupported network: {network_name}")
 
+    from web3 import Web3
+
     web3 = Web3(Web3.HTTPProvider(rpc_url))
     if not web3.is_connected():
         raise ConnectionError("Unable to connect to blockchain provider.")
@@ -158,7 +164,7 @@ def _build_web3_client(config: Dict[str, Any]) -> tuple[Web3, int]:
 
 
 def _send_payload_to_chain(
-    web3: Web3, chain_id: int, private_key: str, payload: bytes
+    web3: "Web3", chain_id: int, private_key: str, payload: bytes
 ) -> str:
     """Envía un payload en una transacción y devuelve el tx hash.
 
@@ -228,6 +234,8 @@ def publish_hash_to_chain(current_chain_hash: str) -> str:
         raise ValueError("Missing private key for blockchain publishing.")
 
     web3, chain_id = _build_web3_client(config)
+    from web3 import Web3
+
     payload = Web3.to_bytes(hexstr=current_chain_hash)
     return _send_payload_to_chain(web3, chain_id, private_key, payload)
 
@@ -260,5 +268,7 @@ def publish_cid_to_chain(cid: str) -> str:
         raise ValueError("Missing private key for blockchain publishing.")
 
     web3, chain_id = _build_web3_client(config)
+    from web3 import Web3
+
     payload = Web3.to_bytes(text=cid)
     return _send_payload_to_chain(web3, chain_id, private_key, payload)

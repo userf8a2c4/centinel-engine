@@ -29,10 +29,14 @@ jobs:
         pip install -r requirements.txt
 
     - name: Ejecutar Auditoría Forense
-      run: python scripts/analyze_rules.py
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+      run: python -m scripts.analyze_rules
 
     - name: Generar Gráficas de Benford
-      run: python scripts/visualize_benford.py
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+      run: python -m scripts.visualize_benford
 
     - name: Guardar Evidencia Visual
       run: |

@@ -297,7 +297,19 @@ def run_mock_mode() -> None:
     )
 
 
-def process_sources(sources: list[dict[str, Any]]) -> None:
+def resolve_endpoint(source: dict[str, Any], endpoints: dict[str, str]) -> str | None:
+    """Resuelve el endpoint para una fuente configurada."""
+    scope = source.get("scope")
+    if scope == "NATIONAL":
+        return endpoints.get("nacional") or endpoints.get("fallback_nacional")
+    if scope == "DEPARTMENT":
+        department_code = source.get("department_code")
+        if department_code:
+            return endpoints.get(department_code)
+    return source.get("endpoint")
+
+
+def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) -> None:
     """Procesa fuentes reales y actualiza la cadena de hashes.
 
     Args:
@@ -311,8 +323,13 @@ def process_sources(sources: list[dict[str, Any]]) -> None:
     """
     previous_hash = "0" * 64
 
+    data_dir = Path("data")
+    hash_dir = Path("hashes")
+    data_dir.mkdir(exist_ok=True)
+    hash_dir.mkdir(exist_ok=True)
+
     for source in sources:
-        endpoint = source.get("endpoint")
+        endpoint = resolve_endpoint(source, endpoints)
         if not endpoint:
             logger.error(
                 "Fuente sin endpoint definido: %s / Source without endpoint: %s",
@@ -323,21 +340,53 @@ def process_sources(sources: list[dict[str, Any]]) -> None:
 
         try:
             response = fetch_with_retry(endpoint)
-            data = response.content
-            current_hash = compute_hash(data)
-            chained_hash = chain_hash(previous_hash, data)
-            # Guarda data y hashes... (tu código original aquí)
+            try:
+                payload = response.json()
+            except ValueError:
+                payload = {
+                    "raw": response.text,
+                    "note": "Respuesta no JSON convertida a texto.",
+                }
+
+            normalized_payload = payload if isinstance(payload, list) else [payload]
+            snapshot_payload = {
+                "timestamp": datetime.now().isoformat(),
+                "source": source.get("source_id") or source.get("name", "unknown"),
+                "data": normalized_payload,
+            }
+            snapshot_bytes = json.dumps(
+                snapshot_payload, ensure_ascii=False, indent=2
+            ).encode("utf-8")
+
+            current_hash = compute_hash(snapshot_bytes)
+            chained_hash = chain_hash(previous_hash, snapshot_bytes)
+
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            source_id = source.get("source_id") or source.get("department_code", "NA")
+            snapshot_file = data_dir / f"snapshot_{timestamp}_{source_id}.json"
+            hash_file = hash_dir / f"snapshot_{timestamp}_{source_id}.sha256"
+            snapshot_file.write_bytes(snapshot_bytes)
+            hash_file.write_text(
+                json.dumps(
+                    {"hash": current_hash, "chained_hash": chained_hash},
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+
             previous_hash = chained_hash
+            source_label = source.get("source_id") or source.get("name", "unknown")
             logger.info(
                 "Snapshot descargado y hasheado para %s / Snapshot downloaded and hashed for %s",
-                source.get("id", "unknown"),
-                source.get("id", "unknown"),
+                source_label,
+                source_label,
             )
             logger.debug(
                 "current_hash=%s chained_hash=%s source=%s",
                 current_hash,
                 chained_hash,
-                source.get("id", "unknown"),
+                source_label,
             )
         except Exception as e:
             logger.error(
@@ -388,7 +437,8 @@ def main() -> None:
         )
         raise ValueError("No sources defined in config.yaml")
 
-    process_sources(sources)
+    endpoints = config.get("endpoints", {})
+    process_sources(sources, endpoints)
     logger.info("Proceso completado / Process completed")
 
 

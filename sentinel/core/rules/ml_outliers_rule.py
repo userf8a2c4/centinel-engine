@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import collections
+import logging
 from typing import Dict, List, Optional
-
-from sklearn.ensemble import IsolationForest
 
 from sentinel.core.rules.common import extract_department, extract_total_votes
 
 
 _HISTORY: Dict[str, List[float]] = collections.defaultdict(list)
+logger = logging.getLogger(__name__)
 
 
 def apply(
@@ -67,6 +67,12 @@ def apply(
         return alerts
 
     contamination = float(config.get("contamination", 0.1))
+    try:
+        from sklearn.ensemble import IsolationForest
+    except ModuleNotFoundError:
+        logger.warning("sklearn_missing rule=ml_outliers")
+        return alerts
+
     model = IsolationForest(contamination=contamination, random_state=42)
     values = [[value] for value in history]
     model.fit(values)

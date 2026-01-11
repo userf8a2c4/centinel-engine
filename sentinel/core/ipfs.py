@@ -8,8 +8,6 @@ import json
 import os
 from typing import Any, Dict
 
-import ipfshttpclient
-
 DEFAULT_IPFS_ADDR = "/dns/localhost/tcp/5001/http"
 
 
@@ -34,6 +32,10 @@ def upload_snapshot_to_ipfs(json_data: Dict[str, Any]) -> str:
     if os.getenv("IPFS_ENABLED", "false").lower() not in {"1", "true", "yes"}:
         return ""
     ipfs_addr = os.getenv("IPFS_API_URL", DEFAULT_IPFS_ADDR)
+    try:
+        import ipfshttpclient
+    except ModuleNotFoundError:
+        return ""
     client = ipfshttpclient.connect(ipfs_addr)
     try:
         payload = json.dumps(json_data, ensure_ascii=False)
