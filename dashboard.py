@@ -11,7 +11,7 @@ from io import BytesIO
 
 st.set_page_config(page_title="Centinel", layout="wide")
 
-# Tema minimalista oscuro
+# Tema minimalista oscuro y elegante
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; color: #e6e6e6; }
@@ -47,7 +47,6 @@ def load_data():
     if not snapshots:
         return pd.DataFrame(), {}, pd.DataFrame(), "No hash disponible", snapshots
 
-    # DataFrame resumen (sin asumir timestamp)
     df_summary = pd.DataFrame([{
         "source_path": s['source_path'],
         "registered": s.get("registered_voters", 0),
@@ -84,7 +83,7 @@ if simple_mode:
 else:
     st.info("Sin alertas detectadas. (Modo pro: revisar reglas aplicadas en detalle)")
 
-# KPIs + barra + hash
+# Resumen ejecutivo + KPIs
 if not df_summary.empty:
     current = last_snapshot
     prev = df_summary.iloc[1] if len(df_summary) > 1 else current
@@ -127,12 +126,12 @@ with st.expander("¿Qué significan estos números?"):
     - Último hash: Firma digital que verifica la integridad de los datos capturados.
     """)
 
-# Modo pro: todo visible secuencialmente
+# Modo pro: todo visible secuencialmente (sin expanders ni menús desplegables)
 if not simple_mode:
     st.markdown("---")
     st.subheader("Modo pro – Detalles técnicos completos")
 
-    # Evolución temporal
+    # Evolución temporal completa
     st.markdown("### Evolución temporal completa")
     if len(df_summary) > 1:
         fig_line = go.Figure()
@@ -143,14 +142,14 @@ if not simple_mode:
     else:
         st.info("Se necesitan más snapshots para mostrar evolución.")
 
-    # Tabla candidatos
+    # Tabla detallada de candidatos
     st.markdown("### Tabla detallada de candidatos")
     if not df_candidates.empty:
         st.dataframe(df_candidates.style.format({"votes": "{:,}"}), use_container_width=True)
     else:
         st.info("No hay datos de candidatos.")
 
-    # Snapshots históricos + descarga JSON intacto
+    # Snapshots históricos con descarga JSON intacto
     st.markdown("### Snapshots históricos (últimos 10)")
     if not df_summary.empty:
         df_hist = df_summary.head(10)
@@ -183,24 +182,15 @@ if not simple_mode:
     else:
         st.info("No hay snapshots disponibles.")
 
-    # Hashes
+    # Hashes con botón para copiar
     st.markdown("### Integridad: Último hash")
     st.code(last_hash, language="text")
 
-    # Botón copiar hash
-    if st.button("Copiar hash al portapapeles"):
-        st.session_state['copied'] = last_hash
-        st.success("Hash copiado!")
+    if st.button("Copiar último hash al portapapeles"):
+        st.session_state['copied_hash'] = last_hash
+        st.success("Hash copiado al portapapeles!")
 
-    # Benford
-    st.markdown("### Análisis Benford")
-    st.info("Análisis completo de Ley de Benford disponible en desarrollo. Próximamente gráficos y resultados detallados.")
-
-    # Predicciones
-    st.markdown("### Predicciones y tendencias")
-    st.info("Módulo de predicciones disponible en desarrollo. Próximamente resultados detallados.")
-
-    # JSON crudo
+    # JSON crudo del último snapshot
     st.markdown("### JSON completo del último snapshot")
     st.json(last_snapshot)
 
