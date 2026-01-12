@@ -13,9 +13,9 @@ st.set_page_config(page_title="Centinel", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; color: #e6e6e6; }
-    .stMetric { font-size: 1.4rem !important; font-weight: 500; }
-    h1, h2, h3 { margin-bottom: 1rem; }
-    .stExpander { margin-bottom: 1rem; }
+    .stMetric { font-size: 1.5rem !important; font-weight: 500; }
+    h1, h2, h3 { margin-bottom: 1.2rem; }
+    .stExpander { margin-bottom: 1.5rem; border: 1px solid #333; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -42,7 +42,7 @@ def load_data():
             pass
 
     if not snapshots:
-        return pd.DataFrame(), {}, pd.DataFrame(), "No hash disponible"
+        return pd.DataFrame(), {}, pd.DataFrame(), "No hash disponible", []
 
     df_summary = pd.DataFrame([{
         "source_path": s['source_path'],
@@ -73,12 +73,12 @@ if last_snapshot:
 else:
     st.warning("No se encontraron snapshots")
 
-# Panel de alertas (simple en ambos modos)
+# Panel de alertas (siempre visible)
 st.markdown("### Alertas")
 if simple_mode:
     st.info("Sin alertas detectadas en este momento.")
 else:
-    st.info("Sin alertas detectadas en este momento. (Modo avanzado: revisar reglas aplicadas)")
+    st.info("Sin alertas detectadas. (Modo pro: revisar reglas aplicadas en detalle)")
 
 # Resumen ejecutivo + KPIs (siempre visible)
 if not df_summary.empty:
@@ -98,8 +98,7 @@ if not df_summary.empty:
     st.progress(porc / 100)
     st.caption(f"Progreso aproximado: {porc:.1f}%")
 
-    # Último hash (siempre visible, debajo de la barra)
-    st.caption(f"Último hash: {last_hash}")
+    st.caption(f"Último hash verificado: {last_hash}")
 
 # Distribución (pie chart siempre visible)
 if not df_candidates.empty and "votes" in df_candidates.columns:
@@ -113,7 +112,7 @@ if not df_candidates.empty and "votes" in df_candidates.columns:
     fig.update_layout(showlegend=False, template="plotly_dark", margin=dict(t=10, b=10))
     st.plotly_chart(fig, use_container_width=True)
 
-# Explicación básica (siempre visible, colapsable)
+# Explicación básica (siempre visible)
 with st.expander("¿Qué significan estos números?"):
     st.markdown("""
     - Registrados: Personas habilitadas para votar.  
@@ -121,39 +120,40 @@ with st.expander("¿Qué significan estos números?"):
     - Válidos: Votos que cuentan para candidatos.  
     - Nulos / Blancos: Votos no válidos.  
     - Progreso: Porcentaje aproximado de conteo.  
-    - Último hash: Firma digital que verifica que los datos no fueron alterados después de capturarse.
+    - Último hash: Firma digital que verifica la integridad de los datos capturados.
     """)
 
-# Contenido avanzado (solo si modo simple desactivado)
+# Contenido avanzado completo (modo pro)
 if not simple_mode:
     st.markdown("---")
-    st.subheader("Modo avanzado – Selecciona qué ver")
+    st.subheader("Modo pro – Detalles técnicos completos")
 
-    # Selector simple para elegir sección
-    section = st.radio(
-        "Elegir sección técnica",
-        options=["Evolución temporal", "Tabla completa de candidatos", "JSON del último snapshot"],
-        index=0
-    )
-
-    if section == "Evolución temporal":
-        if len(df_summary) > 1:
+    # Evolución temporal completa
+    if len(df_summary) > 1:
+        with st.expander("Evolución temporal completa"):
             fig_line = go.Figure()
             fig_line.add_trace(go.Scatter(x=df_summary.index, y=df_summary["total"], name="Total"))
             fig_line.add_trace(go.Scatter(x=df_summary.index, y=df_summary["valid"], name="Válidos"))
-            fig_line.update_layout(template="plotly_dark", height=400)
+            fig_line.update_layout(template="plotly_dark", height=500)
             st.plotly_chart(fig_line, use_container_width=True)
-        else:
-            st.info("Necesitamos más snapshots para mostrar evolución.")
 
-    elif section == "Tabla completa de candidatos":
-        if not df_candidates.empty:
-            st.dataframe(df_candidates, use_container_width=True)
-        else:
-            st.info("No hay datos de candidatos disponibles.")
+    # Tabla detallada de candidatos
+    if not df_candidates.empty:
+        with st.expander("Tabla detallada de candidatos"):
+            st.dataframe(df_candidates.style.format({"votes": "{:,}"}), use_container_width=True)
 
-    elif section == "JSON del último snapshot":
-        with st.expander("Ver JSON completo"):
-            st.json(last_snapshot)
+    # Últimos snapshots históricos
+    if not df_summary.empty:
+        with st.expander("Snapshots históricos (resumen)"):
+            st.dataframe(df_summary[["source_path", "total", "valid"]], use_container_width=True)
+
+    # Cadena de hashes y análisis avanzado
+    with st.expander("Integridad: Último hash y cadena"):
+        st.markdown(f"**Último hash verificado**: {last_hash}")
+        st.markdown("**Análisis avanzado (Benford, predicciones, reglas aplicadas)**: Disponible en desarrollo. Próximamente se mostrarán aquí resultados detallados.")
+
+    # JSON crudo
+    with st.expander("JSON completo del último snapshot"):
+        st.json(last_snapshot)
 
 st.caption("Datos públicos del CNE · Actualización automática")
