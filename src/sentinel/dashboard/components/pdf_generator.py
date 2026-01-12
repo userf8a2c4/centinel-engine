@@ -10,8 +10,8 @@ from datetime import date
 import pandas as pd
 from fpdf import FPDF
 
-from dashboard.utils.benford import benford_analysis
-from dashboard.utils.constants import BENFORD_THRESHOLD
+from sentinel.dashboard.utils.benford import benford_analysis
+from sentinel.dashboard.utils.constants import BENFORD_THRESHOLD
 
 
 def _format_filters(

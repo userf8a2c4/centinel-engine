@@ -1,18 +1,26 @@
-"""Utilities to load snapshot data for Streamlit dashboards."""
+"""English docstring: Data loading utilities for Sentinel dashboards.
+
+---
+Docstring en español: Utilidades de carga de datos para los dashboards de Sentinel.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Iterable
 
 from dateutil import parser
+import numpy as np
 import pandas as pd
 import requests
+import streamlit as st
 
-from sentinel.core.normalyze import normalize_snapshot, snapshot_to_dict
+from sentinel.core.normalize import normalize_snapshot, snapshot_to_dict
+from sentinel.dashboard.utils.constants import DATA_CACHE_TTL, DEPARTMENTS, PARTIES
 
 
 REPO_OWNER = "userf8a2c4"
@@ -31,6 +39,73 @@ class SnapshotRecord:
     normalized: dict[str, Any]
     timestamp: datetime
     department_name: str
+
+
+def _simulate_snapshot_rows(timestamps: pd.DatetimeIndex) -> list[dict[str, object]]:
+    """English docstring: Generate realistic snapshot rows for every timestamp/department.
+
+    Args:
+        timestamps: Pandas datetime index used as snapshot time points.
+
+    Returns:
+        A list of dictionaries representing snapshot rows.
+    ---
+    Docstring en español: Genera filas realistas de snapshots por timestamp/departamento.
+
+    Args:
+        timestamps: Índice de fechas usado como puntos de tiempo.
+
+    Returns:
+        Lista de diccionarios con filas de snapshots.
+    """
+
+    random_number_generator = np.random.default_rng(42)
+    simulated_snapshot_rows: list[dict[str, object]] = []
+
+    for snapshot_timestamp in timestamps:
+        for department_name in DEPARTMENTS:
+            total_votes = int(random_number_generator.integers(8000, 60000))
+            vote_share_weights = random_number_generator.dirichlet([4.2, 3.6, 1.5, 0.7])
+            party_votes = random_number_generator.multinomial(total_votes, vote_share_weights)
+            hash_input = (
+                f"{snapshot_timestamp.isoformat()}_{department_name}_{party_votes.tolist()}"
+            )
+            snapshot_row_hash_sha256 = hashlib.sha256(hash_input.encode()).hexdigest()
+
+            simulated_snapshot_rows.append(
+                {
+                    "timestamp": snapshot_timestamp,
+                    "departamento": department_name,
+                    "total_votos": total_votes,
+                    **{party: int(votes) for party, votes in zip(PARTIES, party_votes)},
+                    "hash": snapshot_row_hash_sha256,
+                }
+            )
+
+    return simulated_snapshot_rows
+
+
+@st.cache_data(ttl=DATA_CACHE_TTL)
+def load_data() -> pd.DataFrame:
+    """English docstring: Load (simulated) CNE snapshots with caching.
+
+    Returns:
+        DataFrame containing snapshot rows.
+    ---
+    Docstring en español: Carga snapshots simulados del CNE con caching.
+
+    Returns:
+        DataFrame con filas de snapshots.
+    """
+
+    snapshot_start_time = datetime(2025, 11, 30, 18, 0)
+    snapshot_end_time = datetime(2025, 12, 1, 6, 0)
+    snapshot_timestamps = pd.date_range(
+        snapshot_start_time, snapshot_end_time, freq="15min"
+    )
+
+    snapshot_rows = _simulate_snapshot_rows(snapshot_timestamps)
+    return pd.DataFrame(snapshot_rows)
 
 
 def _safe_int(value: Any) -> int:

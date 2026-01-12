@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from sentinel.core.hashchain import compute_hash
-from sentinel.core.normalyze import normalize_snapshot, snapshot_to_canonical_json
+from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
 
 
 @dataclass(frozen=True)

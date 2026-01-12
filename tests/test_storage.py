@@ -2,7 +2,7 @@ import csv
 import json
 
 from sentinel.core.hashchain import compute_hash
-from sentinel.core.normalyze import normalize_snapshot, snapshot_to_canonical_json
+from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
 from sentinel.core.storage import LocalSnapshotStore
 
 

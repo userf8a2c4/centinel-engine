@@ -10,8 +10,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from dashboard.utils.benford import benford_analysis
-from dashboard.utils.constants import BENFORD_THRESHOLD
+from sentinel.dashboard.utils.benford import benford_analysis
+from sentinel.dashboard.utils.constants import BENFORD_THRESHOLD
 
 
 def render_integrity_tab(df: pd.DataFrame) -> None:

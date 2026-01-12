@@ -15,7 +15,7 @@ from sentinel.core.blockchain import publish_cid_to_chain, publish_hash_to_chain
 from sentinel.core.hashchain import compute_hash
 from sentinel.core.ipfs import upload_snapshot_to_ipfs
 from sentinel.core.models import Snapshot
-from sentinel.core.normalyze import snapshot_to_canonical_json
+from sentinel.core.normalize import snapshot_to_canonical_json
 
 logger = logging.getLogger(__name__)
 

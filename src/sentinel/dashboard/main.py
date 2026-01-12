@@ -8,16 +8,16 @@ from __future__ import annotations
 
 import streamlit as st
 
-from dashboard.components.department_tab import render_department_tab
-from dashboard.components.integrity_tab import render_integrity_tab
-from dashboard.components.overview import render_overview
-from dashboard.components.pdf_generator import create_pdf
-from dashboard.components.temporal_tab import render_temporal_tab
-from dashboard.data_loader import load_data
-from dashboard.filters import filtrar_df
+from sentinel.dashboard.components.department_tab import render_department_tab
+from sentinel.dashboard.components.integrity_tab import render_integrity_tab
+from sentinel.dashboard.components.overview import render_overview
+from sentinel.dashboard.components.pdf_generator import create_pdf
+from sentinel.dashboard.components.temporal_tab import render_temporal_tab
+from sentinel.dashboard.data_loader import load_data
+from sentinel.dashboard.filters import filtrar_df
 from datetime import date
 
-from dashboard.utils.constants import PARTIES, DEPARTMENTS
+from sentinel.dashboard.utils.constants import PARTIES, DEPARTMENTS
 
 
 def _normalize_date_range(date_range: tuple | list | None) -> tuple[date, date]:

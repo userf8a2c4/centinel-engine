@@ -1,4 +1,4 @@
-from sentinel.core.normalyze import normalize_snapshot, snapshot_to_canonical_json
+from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
 
 
 def test_normalization_is_deterministic():

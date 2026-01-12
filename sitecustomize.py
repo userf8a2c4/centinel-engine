@@ -10,8 +10,11 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parent
+SRC_ROOT = REPO_ROOT / "src"
 PARENT_ROOT = REPO_ROOT.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+if str(REPO_ROOT) in sys.path:
+    sys.path.remove(str(REPO_ROOT))
 if str(PARENT_ROOT) in sys.path:
     sys.path.remove(str(PARENT_ROOT))
