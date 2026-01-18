@@ -1,70 +1,34 @@
-import json
-import os
-import re
-
-# Configuración
-DATA_FOLDER = './mis_96_archivos' # Cambia a tu ruta
-OUTPUT_FILE = 'summary.json'
-
-def estandarizar_datos():
-    history_points = []
-    
-    # 1. Leer y ordenar archivos (asumiendo que tienen un número o timestamp en el nombre)
-    files = [f for f in os.listdir(DATA_FOLDER) if f.endswith('.json')]
-    # Orden natural para que el timeline sea correcto
-    files.sort(key=lambda var:[int(x) if x.isdigit() else x for x in re.split('([0-9]+)', var)])
-
-    latest_data = None
-
-    for filename in files:
-        with open(os.path.join(DATA_FOLDER, filename), 'r', encoding='utf-8') as f:
-            file_json = json.load(f)
-            
-            # Extraer votos para el historial
-            # Mapeamos los nombres largos a IDs cortos para el frontend
-            mapping = {
-                "NASRY JUAN ASFURA ZABLAH": "nasry",
-                "SALVADOR ALEJANDRO CESAR NASRALLA SALUM": "salvador",
-                "RIXI RAMONA MONCADA GODOY": "rixi",
-                "JORGE NELSON AVILA GUTIERREZ": "jorge",
-                "MARIO ENRIQUE RIVERA CALLEJAS": "mario"
-            }
-            
-            point = {"time": filename.replace('.json', '')} # Usamos el nombre de archivo como marca de tiempo
-            for res in file_json['resultados']:
-                c_id = mapping.get(res['candidato'])
-                if c_id:
-                    point[c_id] = int(res['votos'].replace(',', ''))
-            
-            history_points.append(point)
-            latest_data = file_json # El último será nuestra base global
-
-    # 2. Construir objeto final
-    stats = latest_data['estadisticas']
-    total_div = int(stats['totalizacion_actas']['actas_divulgadas'].replace(',', ''))
-    total_act = int(stats['totalizacion_actas']['actas_totales'].replace(',', ''))
-
-    summary = {
-        "lastUpdate": "2025-11-30T23:59:59Z",
-        "global": {
-            "processedPercent": round((total_div / total_act) * 100, 1),
-            "participationPercent": 62.4,
-            "totalProtocols": total_act,
-            "trend": f"Corte Final: {len(files)} archivos procesados"
-        },
-        "candidates": [
-            { "id": "nasry", "name": "NASRY ASFURA", "party": "PNH", "votes": int(latest_data['resultados'][0]['votos'].replace(',','')), "color": "#007AFF" },
-            { "id": "salvador", "name": "SALVADOR NASRALLA", "party": "PLH", "votes": int(latest_data['resultados'][1]['votos'].replace(',','')), "color": "#FF3B30" },
-            { "id": "rixi", "name": "RIXI MONCADA", "party": "LIBRE", "votes": int(latest_data['resultados'][2]['votos'].replace(',','')), "color": "#000000" }
-        ],
-        "departments": [], # Opcional: llenar con datos por depto si tus json los tienen
-        "latestProtocols": [], 
-        "benford": [], # La app generará fallback si esto está vacío
-        "history": history_points,
-        "outliers": []
+{
+  "lastUpdate": "2025-03-01T12:00:00Z",
+  "global": {
+    "processedPercent": 45.5,
+    "participationPercent": 68.2,
+    "totalProtocols": 19152,
+    "trend": "ESTABLE"
+  },
+  "candidates": [
+    { "id": "nasry", "name": "NASRY ASFURA", "party": "PNH", "votes": 450000, "color": "#007AFF" },
+    { "id": "salvador", "name": "SALVADOR NASRALLA", "party": "PLH", "votes": 420000, "color": "#FF3B30" },
+    { "id": "rixi", "name": "RIXI MONCADA", "party": "LIBRE", "votes": 380000, "color": "#000000" }
+  ],
+  "departments": [],
+  "latestProtocols": [
+    {
+      "id": "ACT-123",
+      "deptId": "FM",
+      "hash": "8f9743c6d...d341",
+      "timestamp": "2025-03-01T11:55:00Z",
+      "verified": true,
+      "jsonData": "{\"votos\": 100}"
     }
-
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(summary, f, indent=2, ensure_ascii=False)
-
-estandarizar_datos()
+  ],
+  "benford": [
+    { "digit": 1, "expected": 30.1, "actual": 29.5 },
+    { "digit": 2, "expected": 17.6, "actual": 18.1 }
+  ],
+  "history": [
+    { "time": "10:00", "nasry": 100000, "salvador": 95000, "rixi": 90000, "participation": 65 },
+    { "time": "11:00", "nasry": 250000, "salvador": 240000, "rixi": 220000, "participation": 67 }
+  ],
+  "outliers": []
+}
