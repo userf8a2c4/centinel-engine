@@ -5,28 +5,18 @@ English:
 """
 
 import logging
-from pathlib import Path
 
-import yaml
+from sentinel.utils.config_loader import load_config
 
 
-def setup_logging(config_path: str = "config.yaml") -> None:
-    """Configura el logging global desde un archivo de configuración.
-
-    Args:
-        config_path (str): Ruta del archivo YAML con la configuración.
+def setup_logging() -> None:
+    """Configura el logging global desde config/config.yaml.
 
     English:
-        Sets up global logging from a YAML config file.
-
-    Args:
-        config_path (str): Path to the YAML configuration file.
+        Sets up global logging from config/config.yaml.
     """
     try:
-        config_file = Path(config_path)
-        with config_file.open("r", encoding="utf-8") as f:
-            config = yaml.safe_load(f) or {}
-
+        config = load_config()
         log_config = config.get("logging", {})
         level_str = str(log_config.get("level", "INFO")).upper()
         log_file = log_config.get("file", "centinel.log")

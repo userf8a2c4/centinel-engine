@@ -6,22 +6,25 @@ English:
 
 import datetime
 import logging
-import os
 import sys
 
 import requests
-from dotenv import load_dotenv
 
 from sentinel.utils.logging_config import setup_logging
-
-load_dotenv()
-
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-DEFAULT_TEMPLATE = os.getenv("TELEGRAM_TEMPLATE", "neutral").strip().lower()
+from sentinel.utils.config_loader import load_config
 
 setup_logging()
 logger = logging.getLogger(__name__)
+
+
+def _get_telegram_settings():
+    """Carga la configuración de Telegram desde config/config.yaml.
+
+    English:
+        Loads Telegram configuration from config/config.yaml.
+    """
+    config = load_config()
+    return config.get("alerts", {}).get("telegram", {})
 
 
 def get_stored_hash(hash_path):
@@ -138,15 +141,24 @@ def send_message(text, stored_hash=None, template_name=None):
     Raises:
         SystemExit: When credentials are missing or send fails.
     """
-    if not TOKEN or not CHAT_ID:
+    telegram_config = _get_telegram_settings()
+    if not telegram_config.get("enabled", False):
+        logger.error("telegram_disabled_in_config")
+        sys.exit(1)
+
+    token = telegram_config.get("bot_token")
+    chat_id = telegram_config.get("chat_id")
+    default_template = str(telegram_config.get("template", "neutral")).strip().lower()
+
+    if not token or not chat_id:
         logger.error("telegram_credentials_missing")
         sys.exit(1)
 
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
 
-    formatter = resolve_template(template_name or DEFAULT_TEMPLATE)
+    formatter = resolve_template(template_name or default_template)
     payload = {
-        "chat_id": CHAT_ID,
+        "chat_id": chat_id,
         "text": formatter(text, stored_hash),
         "parse_mode": "HTML",
         "disable_web_page_preview": True,

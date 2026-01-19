@@ -5,16 +5,19 @@
 2. Envía `/newbot` y sigue las instrucciones.
 3. Guarda el **token** que te entrega.
 
-## 2) Configurar variables en `.env`
-Crea un archivo `.env` en la raíz del repo con:
+## 2) Configurar credenciales en `config/config.yaml`
+Completa la sección `alerts.telegram` en `config/config.yaml`:
 
-```env
-TELEGRAM_TOKEN=TU_TOKEN_AQUI
-TELEGRAM_CHAT_ID=123456789
+```yaml
+alerts:
+  telegram:
+    enabled: true
+    bot_token: "TU_TOKEN_AQUI"
+    chat_id: "123456789"
 ```
 
-- `TELEGRAM_TOKEN`: el token que te dio BotFather.
-- `TELEGRAM_CHAT_ID`: el chat/canal permitido (opcional). Si lo dejas vacío, el bot responde a cualquiera.
+- `bot_token`: el token que te dio BotFather.
+- `chat_id`: el chat/canal permitido (opcional). Si lo dejas vacío, el bot responde a cualquiera.
 
 > El bot **no guarda datos personales**. Solo usa el `chat_id` en memoria para recordar el modo durante la conversación y lo limpia después.
 

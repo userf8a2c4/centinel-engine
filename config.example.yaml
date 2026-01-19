@@ -1,8 +1,13 @@
 # Ejemplo de configuración para Proyecto C.E.N.T.I.N.E.L.
-# Copia este archivo como config.yaml y ajusta los valores a tu entorno.
+# Copia este archivo como config/config.yaml y ajusta los valores a tu entorno.
 
 # URL base del endpoint de resultados (placeholder).
 base_url: "https://results.example.org/api/v1/summary"
+
+# Endpoints principales (placeholders).
+endpoints:
+  nacional: "https://results.example.org/api/v1/nacional"
+  fallback_nacional: "https://results.example.org/api/v1/nacional/fallback"
 
 # SWITCH MAESTRO (ON/OFF): controla todo proceso automático del repo.
 # ON  = permite ejecución automática
@@ -70,6 +75,43 @@ sources:
     department_code: "99"
     level: "PD"
     scope: "DEPARTMENT"
+
+logging:
+  level: INFO
+  file: centinel.log
+
+blockchain:
+  enabled: false
+  network: polygon-mumbai
+  private_key: "0x..." # Advertencia: nunca commitear, usar secrets manager o .gitignore
+
+alerts:
+  critical_anomaly_types:
+    - ARITHMETIC_MISMATCH
+    - NEGATIVE_DELTA
+    - CHANGE_POINT
+    - RELATIVE_DELTA
+    - SCRUTINY_JUMP
+    - VOTE_BREAKDOWN_MISMATCH
+  telegram:
+    enabled: false
+    bot_token: "" # Advertencia: nunca commitear, usar secrets manager o .gitignore
+    chat_id: ""
+    template: "neutral"
+  x:
+    enabled: false
+    api_key: "" # Advertencia: nunca commitear, usar secrets manager o .gitignore
+    api_secret: ""
+    access_token: ""
+    access_token_secret: ""
+
+arbitrum:
+  enabled: false
+  rpc_url: "https://arb1.arbitrum.io/rpc"
+  private_key: "0x..." # Advertencia: nunca commitear, usar secrets manager o .gitignore
+  contract_address: "0x..." # Después del deploy
+  interval_minutes: 15
+  batch_size: 19
 
 rules:
   global_enabled: true

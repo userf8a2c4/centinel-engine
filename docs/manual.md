@@ -13,15 +13,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Configuración de variables de entorno
-Copia el archivo de ejemplo y ajusta los valores reales:
-```bash
-cp .env.example .env
-```
-Los scripts que publican alertas cargan automáticamente `.env` con `python-dotenv`.
-
 ### Configuración de scraping (CNE)
-Crea o edita `config.yaml` en la raíz del repositorio:
+Crea o edita `config/config.yaml` en la carpeta `config/`:
 ```yaml
 base_url: "https://<URL_DEL_ENDPOINT>"
 timeout: 15
@@ -32,14 +25,8 @@ backoff_base_seconds: 1
 backoff_max_seconds: 30
 ```
 
-También puedes usar variables de entorno:
-- `BASE_URL`
-- `TIMEOUT`
-- `RETRIES`
-- `HEADERS` (JSON en string)
-
 #### Fallback con Playwright si los endpoints fallan
-- Activa `use_playwright: true` en `config.yaml` y revisa `endpoints`/`fallback_nacional`.
+- Activa `use_playwright: true` en `config/config.yaml` y revisa `endpoints`/`fallback_nacional`.
 - Instala los navegadores necesarios: `python -m playwright install --with-deps chromium`.
 - Asegúrate de ajustar `playwright_user_agent` y `playwright_locale` si el sitio requiere contexto local.
 - Si el endpoint nacional cambia, actualiza `endpoints.nacional` y conserva el fallback.
@@ -68,9 +55,10 @@ streamlit run dashboard.py
 ```
 
 ### Publicación en Telegram
-Variables necesarias:
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
+Configura `alerts.telegram` en `config/config.yaml`:
+- `enabled`
+- `bot_token`
+- `chat_id`
 
 Ejemplo:
 ```bash
@@ -78,11 +66,12 @@ python scripts/post_to_telegram.py "Reporte técnico" "hashes/snapshot_XX.sha256
 ```
 
 ### Publicación en X
-Variables necesarias:
-- `X_API_KEY`
-- `X_API_SECRET`
-- `X_ACCESS_TOKEN`
-- `X_ACCESS_TOKEN_SECRET`
+Configura `alerts.x` en `config/config.yaml`:
+- `enabled`
+- `api_key`
+- `api_secret`
+- `access_token`
+- `access_token_secret`
 
 Ejemplo:
 ```bash
@@ -109,15 +98,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Environment variables setup
-Copy the example file and adjust real values:
-```bash
-cp .env.example .env
-```
-Alert publishing scripts automatically load `.env` via `python-dotenv`.
-
 ### Scraping configuration (CNE)
-Create or edit `config.yaml` in the repository root:
+Create or edit `config/config.yaml` inside the `config/` folder:
 ```yaml
 base_url: "https://<ENDPOINT_URL>"
 timeout: 15
@@ -128,14 +110,8 @@ backoff_base_seconds: 1
 backoff_max_seconds: 30
 ```
 
-You can also use environment variables:
-- `BASE_URL`
-- `TIMEOUT`
-- `RETRIES`
-- `HEADERS` (JSON string)
-
 #### Playwright fallback when endpoints fail
-- Enable `use_playwright: true` in `config.yaml` and review `endpoints`/`fallback_nacional`.
+- Enable `use_playwright: true` in `config/config.yaml` and review `endpoints`/`fallback_nacional`.
 - Install required browsers: `python -m playwright install --with-deps chromium`.
 - Adjust `playwright_user_agent` and `playwright_locale` if the site requires local context.
 - If the national endpoint changes, update `endpoints.nacional` and keep the fallback.
@@ -163,9 +139,10 @@ streamlit run dashboard.py
 ```
 
 ### Telegram publishing
-Required variables:
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
+Configure `alerts.telegram` in `config/config.yaml`:
+- `enabled`
+- `bot_token`
+- `chat_id`
 
 Example:
 ```bash
@@ -173,11 +150,12 @@ python scripts/post_to_telegram.py "Technical report" "hashes/snapshot_XX.sha256
 ```
 
 ### X publishing
-Required variables:
-- `X_API_KEY`
-- `X_API_SECRET`
-- `X_ACCESS_TOKEN`
-- `X_ACCESS_TOKEN_SECRET`
+Configure `alerts.x` in `config/config.yaml`:
+- `enabled`
+- `api_key`
+- `api_secret`
+- `access_token`
+- `access_token_secret`
 
 Example:
 ```bash

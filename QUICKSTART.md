@@ -13,10 +13,10 @@
    ```
 3. Configura archivos base:
    ```bash
-   cp config.example.yaml config.yaml
-   cp .env.example .env
+   mkdir -p config
+   cp config.example.yaml config/config.yaml
    ```
-4. Ajusta `config.yaml` (URL base, headers, fuentes).
+4. Ajusta `config/config.yaml` (URL base, headers, fuentes).
 5. Define `master_switch` en **ON/OFF** para habilitar o detener procesos automáticos.
 6. Ejecuta la descarga y el análisis:
    ```bash
@@ -41,10 +41,10 @@
    ```
 3. Set up base files:
    ```bash
-   cp config.example.yaml config.yaml
-   cp .env.example .env
+   mkdir -p config
+   cp config.example.yaml config/config.yaml
    ```
-4. Update `config.yaml` (base URL, headers, sources).
+4. Update `config/config.yaml` (base URL, headers, sources).
 5. Set `master_switch` to **ON/OFF** to enable or halt automatic processes.
 6. Run download + analysis:
    ```bash
