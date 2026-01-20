@@ -1,3 +1,4 @@
+master_switch: "ON" # ON/OFF para habilitar procesos automáticos.
 base_url: "https://api.example.com/cne/resultados" # URL base del API oficial.
 # Ejemplo de URL completa (NACIONAL): https://api.example.com/cne/resultados?ambito=NACIONAL&nivel=PRES
 # Ejemplo de URL completa (DEPARTAMENTO): https://api.example.com/cne/resultados?ambito=DEPARTMENT&nivel=PD&cod_departamento=01
@@ -145,7 +146,35 @@ logging:
 blockchain:
   enabled: false
   network: polygon-mumbai
-  private_key: ${PRIVATE_KEY} # usar env var
+  private_key: "0x..." # Advertencia: nunca commitear, usar secrets manager o .gitignore
+
+alerts:
+  critical_anomaly_types:
+    - ARITHMETIC_MISMATCH
+    - NEGATIVE_DELTA
+    - CHANGE_POINT
+    - RELATIVE_DELTA
+    - SCRUTINY_JUMP
+    - VOTE_BREAKDOWN_MISMATCH
+  telegram:
+    enabled: false
+    bot_token: "" # Advertencia: nunca commitear, usar secrets manager o .gitignore
+    chat_id: ""
+    template: "neutral"
+  x:
+    enabled: false
+    api_key: "" # Advertencia: nunca commitear, usar secrets manager o .gitignore
+    api_secret: ""
+    access_token: ""
+    access_token_secret: ""
+
+arbitrum:
+  enabled: false
+  rpc_url: "https://arb1.arbitrum.io/rpc"
+  private_key: "0x..." # Advertencia: nunca commitear, usar secrets manager o .gitignore
+  contract_address: "0x..." # Después del deploy
+  interval_minutes: 15
+  batch_size: 19
 
 rules:
   global_enabled: true

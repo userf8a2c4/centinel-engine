@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -18,7 +17,7 @@ from typing import Iterable
 
 import matplotlib
 from dateutil import parser
-from dotenv import load_dotenv
+from sentinel.utils.config_loader import load_config
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -897,7 +896,8 @@ async def enforce_access(update: Update) -> bool:
     chat = update.effective_chat
     if not chat:
         return False
-    allowed = os.getenv("TELEGRAM_CHAT_ID")
+    telegram_config = load_config().get("alerts", {}).get("telegram", {})
+    allowed = telegram_config.get("chat_id")
     if allowed:
         try:
             if int(allowed) != chat.id:
@@ -1829,10 +1829,13 @@ def main() -> None:
     Raises:
         SystemExit: When the Telegram token is missing.
     """
-    load_dotenv()
-    token = os.getenv("TELEGRAM_TOKEN")
+    config = load_config()
+    telegram_config = config.get("alerts", {}).get("telegram", {})
+    token = telegram_config.get("bot_token")
     if not token:
-        raise SystemExit("Falta TELEGRAM_TOKEN en .env o variables de entorno.")
+        raise SystemExit(
+            "Falta alerts.telegram.bot_token en config/config.yaml para el bot."
+        )
     application = build_application(token)
     logger.info("telegram_bot_start")
     application.run_polling()

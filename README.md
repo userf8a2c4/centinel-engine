@@ -19,7 +19,7 @@ La integridad electoral requiere evidencia verificable. Sentinel aporta transpar
 
 ### Primeros pasos (5 minutos)
 1. Instala dependencias: `pip install -r requirements.txt`.
-2. Copia `config.example.yaml` a `config.yaml` y ajusta fuentes.
+2. Copia `config.example.yaml` a `config/config.yaml` y ajusta fuentes.
 3. Genera un snapshot inicial: `python scripts/download_and_hash.py`.
 4. Abre el dashboard: `streamlit run dashboard.py`.
 
@@ -50,7 +50,7 @@ Electoral integrity needs verifiable evidence. Sentinel provides technical trans
 
 ### Quick start (5 minutes)
 1. Install dependencies: `pip install -r requirements.txt`.
-2. Copy `config.example.yaml` to `config.yaml` and adjust sources.
+2. Copy `config.example.yaml` to `config/config.yaml` and adjust sources.
 3. Generate a snapshot: `python scripts/download_and_hash.py`.
 4. Run the dashboard: `streamlit run dashboard.py`.
 
