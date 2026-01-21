@@ -1,6 +1,6 @@
-# Contribuir a Sentinel
+# Contribuir a Centinel
 
-Gracias por tu interés en mejorar Sentinel. Este documento describe cómo proponer issues, mejoras y pull requests, además de reglas mínimas de calidad.
+Gracias por tu interés en mejorar Centinel. Este documento describe cómo proponer issues, mejoras y pull requests, además de reglas mínimas de calidad.
 
 ## Cómo proponer cambios
 1. Abre un issue con el contexto y evidencia (capturas, datos, enlaces).
@@ -37,9 +37,9 @@ Si tienes dudas, abre un issue o contacta al equipo mantenedor.
 
 ---
 
-# Contributing to Sentinel
+# Contributing to Centinel
 
-Thanks for your interest in improving Sentinel. This document explains how to propose issues, improvements, and pull requests, plus minimum quality rules.
+Thanks for your interest in improving Centinel. This document explains how to propose issues, improvements, and pull requests, plus minimum quality rules.
 
 ## How to propose changes
 1. Open an issue with context and evidence (screenshots, data, links).

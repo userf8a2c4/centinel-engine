@@ -1,7 +1,18 @@
+/**
+ * Punto de entrada del motor: valida configuración y arranca el scheduler.
+ *
+ * Engine entry point: validate configuration and start the scheduler.
+ */
+
 import logger from "./logger.js";
 import scheduler from "./scheduler.js";
 import config from "./config.js";
 
+/**
+ * Valida configuración mínima y registra advertencias.
+ *
+ * Validate minimum configuration and log warnings.
+ */
 const validateConfig = () => {
   if (!config.rpcUrl) {
     logger.warn({ msg: "RPC_URL missing, blockchain uploads will fail." });

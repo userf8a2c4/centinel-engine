@@ -1,3 +1,8 @@
+"""Genera un resumen textual de alertas detectadas.
+
+Generate a textual summary of detected alerts.
+"""
+
 import json
 from pathlib import Path
 

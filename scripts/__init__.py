@@ -1,1 +1,1 @@
-"""Utilities and entrypoints for Sentinel automation scripts."""
+"""Utilities and entrypoints for Centinel automation scripts."""

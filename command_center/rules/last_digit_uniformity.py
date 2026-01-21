@@ -9,14 +9,17 @@ from typing import List, Tuple
 def last_digit_uniformity_test(vote_counts: List[int]) -> Tuple[float, str]:
     """
     Test de uniformidad en el último dígito (debe ser ~10% cada 0-9).
+
     Uniformity test for the last digit (should be ~10% each 0-9).
 
     Args:
         vote_counts (List[int]): Lista de conteos.
+
         vote_counts (List[int]): List of counts.
 
     Returns:
         Tuple[float, str]: (chi_cuadrado, nivel_alerta)
+
         Tuple[float, str]: (chi_square, alert_level)
     """
     if not vote_counts:

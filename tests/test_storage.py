@@ -1,3 +1,8 @@
+"""Pruebas del almacenamiento local de snapshots.
+
+Tests for local snapshot storage.
+"""
+
 import csv
 import json
 

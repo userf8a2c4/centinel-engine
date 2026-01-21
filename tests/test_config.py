@@ -1,3 +1,8 @@
+"""Pruebas de carga y validación de configuración YAML.
+
+Tests for YAML configuration loading and validation.
+"""
+
 import pytest
 
 from sentinel.utils import config_loader

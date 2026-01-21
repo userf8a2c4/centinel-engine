@@ -1,3 +1,8 @@
+"""Pruebas de integración del ciclo completo de descarga y anclaje.
+
+Integration tests for the full download and anchoring cycle.
+"""
+
 from __future__ import annotations
 
 import json

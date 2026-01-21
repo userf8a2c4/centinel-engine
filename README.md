@@ -1,32 +1,47 @@
 # Proyecto C.E.N.T.I.N.E.L.
 **Centinela Electrónico Neutral Transparente Íntegro Nacional Electoral Libre**
 
-**Automated Electoral Data Integrity System**
-
 ---
 
-## Español (principal)
+## Español
 
-### ¿Qué es Sentinel?
-Sentinel es un sistema técnico independiente para observar y auditar datos electorales públicos en Honduras. Registra, normaliza y verifica cambios en datos publicados para producir reportes técnicos reproducibles y trazables.
+### ¿Qué es Centinel?
+Centinel es un sistema técnico independiente para observar y auditar datos electorales públicos en Honduras. Registra, normaliza y verifica cambios en datos publicados para producir reportes técnicos reproducibles y trazables.
 
 ### ¿Por qué importa?
-La integridad electoral requiere evidencia verificable. Sentinel aporta transparencia técnica mediante snapshots, hashes encadenados y análisis de anomalías con enfoque ciudadano y neutral.
+La integridad electoral requiere evidencia verificable. Centinel aporta transparencia técnica mediante snapshots, hashes encadenados y análisis de anomalías con enfoque ciudadano y neutral.
 
-### Fundamento legal (Honduras)
-Este proyecto se basa en la **Ley de Transparencia y Acceso a la Información Pública** (Decreto 170-2006, reformado por Decreto 60-2022):
-- **Art. 3 y 4:** Derecho ciudadano al acceso a la información pública.
-- **Art. 5:** Obligación de facilitar acceso por medios electrónicos.
+### Marco legal y límites de operación (Honduras)
+Este proyecto se sustenta en el derecho de acceso a la información pública y en la obligación de publicar información por medios electrónicos.
 
-Sentinel opera con un enfoque defensivo, respetando límites y registrando evidencia para auditorías reproducibles.
+Referencias normativas principales:
+- **Ley de Transparencia y Acceso a la Información Pública** (Decreto 170-2006, reformas Decreto 60-2022).
+- **Art. 3 y 4:** Reconocen el derecho ciudadano a acceder a información pública.
+- **Art. 5:** Establece la obligación de facilitar el acceso por medios electrónicos.
+
+Alcance operativo:
+- Centinel opera con finalidad de auditoría técnica y evidencia reproducible.
+- No interfiere con sistemas oficiales ni sustituye a autoridades electorales.
+- No procesa datos personales; solo usa fuentes públicas.
+- Aplica scraping defensivo y respetuoso para evitar sobrecargas.
 
 ### Estado actual
 - **AUDIT ACTIVE**
 
-### Control maestro (todo configurable en un solo lugar)
-Todo lo modificable vive en `control_master/` para evitar tocar el resto del código.
-- Edita `control_master/config.yaml` y `control_master/.env`.
-- Consulta `control_master/README.md` para pasos detallados.
+### Control centralizado
+El único punto de control editable es **`command_center/`**.
+
+- `command_center/` es la fuente de verdad de configuración operativa.
+- Todo el control se concentra aquí para evitar redundancias y ambigüedad.
+
+### Componentes del repositorio
+- **command_center/**: configuración operativa centralizada y panel de control.
+- **centinel_engine/**: motor separado en Node.js para anclaje de hashes y publicación en L2.
+
+### Cadencia operativa recomendada
+- **Modo mantenimiento/desarrollo:** scraping y anclaje en L2 **1 vez al mes**.
+- **Modo monitoreo normal:** entre **24 y 72 horas**.
+- **Modo elección activa:** entre **5 y 15 minutos**.
 
 ### Primeros pasos (5 minutos)
 1. Instala dependencias con Poetry:
@@ -35,8 +50,8 @@ Todo lo modificable vive en `control_master/` para evitar tocar el resto del có
    ```
 2. Configura fuentes:
    ```bash
-   cp control_master/config.yaml.example control_master/config.yaml
-   cp control_master/.env.example control_master/.env
+   cp command_center/config.yaml.example command_center/config.yaml
+   cp command_center/.env.example command_center/.env
    ```
 3. Genera un snapshot inicial:
    ```bash
@@ -75,26 +90,43 @@ Gracias a la comunidad cívica, periodistas de datos y personas voluntarias que 
 
 ## English
 
-### What is Sentinel?
-Sentinel is an independent technical system to observe and audit public electoral data in Honduras. It records, normalizes, and verifies changes in published data to produce reproducible, traceable technical reports.
+### What is Centinel?
+Centinel is an independent technical system to observe and audit public electoral data in Honduras. It records, normalizes, and verifies changes in published data to produce reproducible, traceable technical reports.
 
 ### Why does it matter?
-Electoral integrity needs verifiable evidence. Sentinel provides technical transparency through snapshots, chained hashes, and anomaly analysis with a neutral, civic-first focus.
+Electoral integrity needs verifiable evidence. Centinel provides technical transparency through snapshots, chained hashes, and anomaly analysis with a neutral, civic-first focus.
 
-### Legal basis (Honduras)
-This project is grounded in the **Law on Transparency and Access to Public Information** (Decree 170-2006, amended by Decree 60-2022):
-- **Art. 3 & 4:** Citizen right to access public information.
-- **Art. 5:** Obligation to facilitate access through electronic means.
+### Legal basis and operating boundaries (Honduras)
+This project is grounded in the right to access public information and the obligation to publish information through electronic means.
 
-Sentinel operates defensively, respecting limits and recording evidence for reproducible audits.
+Primary legal references:
+- **Law on Transparency and Access to Public Information** (Decree 170-2006, amended by Decree 60-2022).
+- **Arts. 3 & 4:** Recognize the citizen right to access public information.
+- **Art. 5:** Establishes the obligation to facilitate access through electronic means.
+
+Operational scope:
+- Centinel operates for technical auditing and reproducible evidence.
+- It does not interfere with official systems or replace electoral authorities.
+- It does not process personal data; it only uses public sources.
+- It applies defensive, respectful scraping to avoid overload.
 
 ### Current status
 - **AUDIT ACTIVE**
 
-### Master control (single place to edit)
-Everything configurable lives under `control_master/` to avoid touching the rest of the code.
-- Edit `control_master/config.yaml` and `control_master/.env`.
-- See `control_master/README.md` for detailed steps.
+### Centralized control
+The only editable control point is **`command_center/`**.
+
+- `command_center/` is the source of truth for operational configuration.
+- All control is centralized here to avoid redundancy and ambiguity.
+
+### Repository components
+- **command_center/**: centralized operational configuration and control panel.
+- **centinel_engine/**: separate Node.js engine for hash anchoring and L2 publishing.
+
+### Recommended operating cadence
+- **Maintenance/development mode:** scraping and L2 anchoring **once per month**.
+- **Normal monitoring mode:** between **24 and 72 hours**.
+- **Active election mode:** between **5 and 15 minutes**.
 
 ### Quick start (5 minutes)
 1. Install dependencies with Poetry:
@@ -103,8 +135,8 @@ Everything configurable lives under `control_master/` to avoid touching the rest
    ```
 2. Configure sources:
    ```bash
-   cp control_master/config.yaml.example control_master/config.yaml
-   cp control_master/.env.example control_master/.env
+   cp command_center/config.yaml.example command_center/config.yaml
+   cp command_center/.env.example command_center/.env
    ```
 3. Generate a snapshot:
    ```bash

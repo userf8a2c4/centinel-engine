@@ -1,8 +1,8 @@
-# API pública / Public API
+# API pública
 
 ## Español
 
-La carpeta `api/` contiene la API pública de C.E.N.T.I.N.E.L. basada en FastAPI.
+La carpeta `api/` contiene la API pública de **Centinel (C.E.N.T.I.N.E.L.)** basada en FastAPI.
 Expone endpoints de solo lectura para consultar snapshots, alertas y verificar la
 cadena de hashes en SQLite.
 
@@ -21,9 +21,11 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000
 - `SNAPSHOTS_DB_PATH`: ruta al SQLite de snapshots (default `data/snapshots.db`).
 - `CORS_ORIGINS`: lista separada por comas o `*` para permitir CORS.
 
+---
+
 ## English
 
-The `api/` folder contains the public FastAPI application for C.E.N.T.I.N.E.L.
+The `api/` folder contains the public FastAPI application for **Centinel (C.E.N.T.I.N.E.L.)**.
 It exposes read-only endpoints for snapshots, alerts, and hashchain verification
 backed by the SQLite store.
 

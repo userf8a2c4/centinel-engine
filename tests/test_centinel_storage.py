@@ -1,3 +1,8 @@
+"""Pruebas de almacenamiento de snapshots en Centinel.
+
+Tests for Centinel snapshot storage.
+"""
+
 from pathlib import Path
 
 from centinel.storage import save_snapshot

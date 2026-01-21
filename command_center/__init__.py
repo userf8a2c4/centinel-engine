@@ -1,6 +1,6 @@
-"""Primitivas de configuración del centro de comando para dev-v4.
+"""Primitivas de configuración del centro de comando.
 
-Command center configuration primitives for dev-v4.
+Command center configuration primitives.
 """
 
 from .master_switch import MasterSwitch

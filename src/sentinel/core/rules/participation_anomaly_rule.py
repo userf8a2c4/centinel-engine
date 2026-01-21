@@ -1,3 +1,8 @@
+"""Regla para anomalías de participación y escrutinio.
+
+Rule for participation and scrutiny anomalies.
+"""
+
 from __future__ import annotations
 
 from typing import List, Optional

@@ -1,3 +1,8 @@
+"""Regla de consistencia aritmética y cambios básicos entre snapshots.
+
+Rule for arithmetic consistency and basic snapshot changes.
+"""
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional

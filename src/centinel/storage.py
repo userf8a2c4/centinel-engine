@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 """Almacenamiento histórico de snapshots y cadena de hashes.
 
-English: Historical snapshot storage and hash chain.
+Historical snapshot storage and hash chain.
 """
+
+from __future__ import annotations
 
 import json
 from datetime import datetime
@@ -16,15 +16,22 @@ from .download import chained_hash, write_atomic
 def _snapshot_directory(base_path: Path, timestamp: datetime) -> Path:
     """Construye ruta de snapshot con jerarquía temporal.
 
-    English: Build snapshot path with time hierarchy.
+    Build snapshot path with time hierarchy.
     """
-    return base_path / "snapshots" / timestamp.strftime("%Y") / timestamp.strftime("%m") / timestamp.strftime("%d") / timestamp.strftime("%H-%M-%S")
+    return (
+        base_path
+        / "snapshots"
+        / timestamp.strftime("%Y")
+        / timestamp.strftime("%m")
+        / timestamp.strftime("%d")
+        / timestamp.strftime("%H-%M-%S")
+    )
 
 
 def _append_hash(chain_path: Path, entry: Dict[str, Any]) -> None:
     """Agrega entrada a la cadena de hashes (append-only).
 
-    English: Append entry to the hash chain (append-only).
+    Append entry to the hash chain (append-only).
     """
     chain_path.parent.mkdir(parents=True, exist_ok=True)
     if chain_path.exists():
@@ -32,13 +39,21 @@ def _append_hash(chain_path: Path, entry: Dict[str, Any]) -> None:
     else:
         data = []
     data.append(entry)
-    write_atomic(chain_path, json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8"))
+    write_atomic(
+        chain_path,
+        json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8"),
+    )
 
 
-def save_snapshot(content: bytes, metadata: Dict[str, Any], previous_hash: str, base_path: Path | None = None) -> str:
+def save_snapshot(
+    content: bytes,
+    metadata: Dict[str, Any],
+    previous_hash: str,
+    base_path: Path | None = None,
+) -> str:
     """Guarda snapshot, metadata y hash encadenado.
 
-    English: Save snapshot, metadata, and chained hash.
+    Save snapshot, metadata, and chained hash.
     """
     base = base_path or Path("data")
     timestamp = datetime.utcnow()
@@ -52,7 +67,10 @@ def save_snapshot(content: bytes, metadata: Dict[str, Any], previous_hash: str, 
     new_hash = chained_hash(content, previous_hash)
 
     write_atomic(raw_path, content)
-    write_atomic(metadata_path, json.dumps(metadata, ensure_ascii=False, indent=2).encode("utf-8"))
+    write_atomic(
+        metadata_path,
+        json.dumps(metadata, ensure_ascii=False, indent=2).encode("utf-8"),
+    )
     write_atomic(hash_path, f"{new_hash}\n".encode("utf-8"))
 
     chain_entry = {

@@ -1,3 +1,8 @@
+"""Utilidades de logging estructurado para scripts de Centinel.
+
+Structured logging helpers for Centinel scripts.
+"""
+
 import json
 import logging
 import os
@@ -9,6 +14,10 @@ from typing import Any
 def configure_logging(
     logger_name: str, log_file: str | None = None, level: int | None = None
 ) -> logging.Logger:
+    """Configura un logger con salida a archivo JSONL y consola.
+
+    Configure a logger with JSONL file output and console output.
+    """
     log_path = log_file or os.getenv("LOG_FILE", "logs/centinel.jsonl")
     log_level = level or getattr(
         logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO
@@ -38,6 +47,10 @@ def configure_logging(
 
 
 def log_event(logger: logging.Logger, level: int, event: str, **fields: Any) -> None:
+    """Registra un evento estructurado con un payload JSON.
+
+    Log a structured event with a JSON payload.
+    """
     payload = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "level": logging.getLevelName(level),

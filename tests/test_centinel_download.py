@@ -1,3 +1,8 @@
+"""Pruebas de descarga y hashing en Centinel.
+
+Tests for Centinel download and hashing.
+"""
+
 import asyncio
 from pathlib import Path
 

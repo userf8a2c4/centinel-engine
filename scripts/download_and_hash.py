@@ -3,16 +3,27 @@
 """
 download_and_hash.py
 
-Descarga snapshots de resultados electorales del CNE Honduras y genera hashes encadenados SHA-256 para integridad.
-Download CNE Honduras election results snapshots and generate chained SHA-256 hashes for integrity.
+Descarga snapshots de resultados electorales del CNE Honduras y genera hashes encadenados
+SHA-256 para integridad.
 
-Uso / Usage:
+Uso:
     python -m scripts.download_and_hash [--mock]
 
-Dependencias / Dependencies: requests, pyyaml, hashlib, logging, argparse, pathlib, json, datetime
+Dependencias: requests, pyyaml, hashlib, logging, argparse, pathlib, json, datetime
 
-Este script es parte del proyecto C.E.N.T.I.N.E.L. – solo para auditoría ciudadana neutral.
-This script is part of C.E.N.T.I.N.E.L. project – for neutral citizen audit only.
+Este script es parte del proyecto C.E.N.T.I.N.E.L. y se usa solo para auditoría
+ciudadana neutral.
+
+Download CNE Honduras election results snapshots and generate chained SHA-256 hashes
+for integrity.
+
+Usage:
+    python -m scripts.download_and_hash [--mock]
+
+Dependencies: requests, pyyaml, hashlib, logging, argparse, pathlib, json, datetime
+
+This script is part of the C.E.N.T.I.N.E.L. project and is used only for neutral
+civic auditing.
 """
 
 import argparse
@@ -42,20 +53,20 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_PATH = "config.yaml"
-CONTROL_MASTER_PATH = Path("control_master") / "config.yaml"
+COMMAND_CENTER_PATH = Path("command_center") / "config.yaml"
 config_path = DEFAULT_CONFIG_PATH
 
 
 def resolve_config_path(config_path_override: str | None = None) -> str:
-    """Resuelve la ruta de configuración priorizando control_master.
+    """Resuelve la ruta de configuración priorizando command_center.
 
     English:
-        Resolve configuration path prioritizing control_master.
+        Resolve configuration path prioritizing command_center.
     """
     if config_path_override:
         return config_path_override
-    if CONTROL_MASTER_PATH.exists():
-        return str(CONTROL_MASTER_PATH)
+    if COMMAND_CENTER_PATH.exists():
+        return str(COMMAND_CENTER_PATH)
     return config_path
 
 
@@ -175,21 +186,13 @@ def load_config(config_path_override: str | None = None) -> dict[str, Any]:
         resolved_path = resolve_config_path(config_path_override)
         with open(resolved_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f) or {}
-        logger.info(
-            "Configuración cargada desde %s / Configuration loaded from %s",
-            resolved_path,
-            resolved_path,
-        )
+        logger.info("Configuración cargada desde %s", resolved_path)
         return apply_env_overrides(config)
     except FileNotFoundError:
-        logger.error(
-            "Archivo de configuración no encontrado: %s / Config file not found: %s",
-            resolved_path,
-            resolved_path,
-        )
+        logger.error("Archivo de configuración no encontrado: %s", resolved_path)
         raise
     except yaml.YAMLError as e:
-        logger.error("Error al parsear YAML: %s / Error parsing YAML: %s", e, e)
+        logger.error("Error al parsear YAML: %s", e)
         raise
 
 
@@ -287,7 +290,7 @@ def fetch_with_retry(
             response.raise_for_status()
             return response
         except requests.exceptions.RequestException as e:
-            logger.warning("Error en fetch: %s / Fetch error: %s", e, e)
+            logger.warning("Error en fetch: %s", e)
             raise
 
 
@@ -312,17 +315,12 @@ def create_mock_snapshot() -> Path:
         "level": "NACIONAL",
         "porcentaje_escrutado": 0.0,
         "votos_totales": 0,
-        "note": (
-            "Este es un snapshot mock para pruebas en CI - no datos reales / "
-            "This is a mock snapshot for CI testing - no real data"
-        ),
+        "note": "Este es un snapshot mock para pruebas en CI - no datos reales",
     }
 
     mock_file = data_dir / "snapshot_mock_ci.json"
     mock_file.write_text(json.dumps(mock_data, indent=2, ensure_ascii=False))
-    logger.info(
-        "Snapshot mock creado: %s / Mock snapshot created: %s", mock_file, mock_file
-    )
+    logger.info("Snapshot mock creado: %s", mock_file)
     return mock_file
 
 
@@ -332,15 +330,9 @@ def run_mock_mode() -> None:
     English:
         Run the mock flow for CI.
     """
-    logger.info(
-        "MODO MOCK ACTIVADO (CI) - No se intentará descargar del CNE real / "
-        "MOCK MODE ACTIVATED (CI) - No real CNE fetch will be attempted"
-    )
+    logger.info("MODO MOCK ACTIVADO (CI) - No se intentará descargar del CNE real")
     create_mock_snapshot()
-    logger.info(
-        "Modo mock completado - pipeline continúa con datos dummy / "
-        "Mock mode completed - pipeline continues with dummy data"
-    )
+    logger.info("Modo mock completado - pipeline continúa con datos dummy")
 
 
 def resolve_endpoint(source: dict[str, Any], endpoints: dict[str, str]) -> str | None:
@@ -379,11 +371,7 @@ def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) ->
     for source in sources:
         endpoint = resolve_endpoint(source, endpoints)
         if not endpoint:
-            logger.error(
-                "Fuente sin endpoint definido: %s / Source without endpoint: %s",
-                source,
-                source,
-            )
+            logger.error("Fuente sin endpoint definido: %s", source)
             continue
 
         try:
@@ -425,11 +413,7 @@ def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) ->
 
             previous_hash = chained_hash
             source_label = source.get("source_id") or source.get("name", "unknown")
-            logger.info(
-                "Snapshot descargado y hasheado para %s / Snapshot downloaded and hashed for %s",
-                source_label,
-                source_label,
-            )
+            logger.info("Snapshot descargado y hasheado para %s", source_label)
             health_state.record_success()
             logger.debug(
                 "current_hash=%s chained_hash=%s source=%s",
@@ -438,13 +422,7 @@ def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) ->
                 source_label,
             )
         except Exception as e:
-            logger.error(
-                "Fallo al descargar %s: %s / Failed to download %s: %s",
-                endpoint,
-                e,
-                endpoint,
-                e,
-            )
+            logger.error("Fallo al descargar %s: %s", endpoint, e)
             health_state.record_failure()
 
 
@@ -458,15 +436,15 @@ def main() -> None:
 
     Download CNE snapshots, generate chained hashes and save logs/alerts.
     """
-    logger.info("Iniciando download_and_hash / Starting download_and_hash")
+    logger.info("Iniciando download_and_hash")
 
     parser = argparse.ArgumentParser(
-        description="Descarga y hashea snapshots del CNE / Download and hash CNE snapshots"
+        description="Descarga y hashea snapshots del CNE"
     )
     parser.add_argument(
         "--mock",
         action="store_true",
-        help="Modo mock para CI - no intenta fetch real / Mock mode for CI - skips real fetch",
+        help="Modo mock para CI - no intenta fetch real",
     )
     args = parser.parse_args()
 
@@ -475,30 +453,24 @@ def main() -> None:
     master_status = normalize_master_switch(config.get("master_switch"))
     logger.info("MASTER SWITCH: %s", master_status)
     if not is_master_switch_on(config):
-        logger.warning(
-            "Ejecución detenida por switch maestro (OFF) / Execution halted by master switch (OFF)"
-        )
+        logger.warning("Ejecución detenida por switch maestro (OFF)")
         return
 
     if args.mock:
         run_mock_mode()
-        logger.info("Proceso completado / Process completed")
+        logger.info("Proceso completado")
         return
 
-    logger.info(
-        "Modo real activado - procediendo con fetch al CNE / Real mode activated - proceeding with CNE fetch"
-    )
+    logger.info("Modo real activado - procediendo con fetch al CNE")
     sources = config.get("sources", [])
     if not sources:
-        logger.error(
-            "No se encontraron fuentes en config/config.yaml / No sources found in config/config.yaml"
-        )
+        logger.error("No se encontraron fuentes en config/config.yaml")
         health_state.record_failure(critical=True)
         raise ValueError("No sources defined in config/config.yaml")
 
     endpoints = config.get("endpoints", {})
     process_sources(sources, endpoints)
-    logger.info("Proceso completado / Process completed")
+    logger.info("Proceso completado")
 
 
 if __name__ == "__main__":

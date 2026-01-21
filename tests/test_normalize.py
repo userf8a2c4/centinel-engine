@@ -1,3 +1,8 @@
+"""Pruebas de normalización y serialización canónica.
+
+Tests for normalization and canonical serialization.
+"""
+
 from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
 
 

@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 """Logging estructurado para Centinel con rotación diaria.
 
-English: Structured logging for Centinel with daily rotation.
+Structured logging for Centinel with daily rotation.
 """
+
+from __future__ import annotations
 
 import logging
 from logging.handlers import TimedRotatingFileHandler

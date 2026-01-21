@@ -1,3 +1,8 @@
+"""Normaliza snapshots presidenciales a un formato consistente.
+
+Normalize presidential snapshots into a consistent format.
+"""
+
 import json
 import re
 from pathlib import Path
@@ -8,10 +13,18 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 def to_int(x):
+    """Convierte un string con separadores a entero.
+
+    Convert a string with separators to an integer.
+    """
     return int(re.sub(r"[^\d]", "", x))
 
 
 def to_float(x):
+    """Convierte un string con coma decimal a float.
+
+    Convert a string with a decimal comma to float.
+    """
     return float(x.replace(",", "."))
 
 

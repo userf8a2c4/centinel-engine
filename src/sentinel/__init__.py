@@ -1,5 +1,5 @@
-"""Paquete principal de Sentinel.
+"""Paquete principal de Centinel.
 
 English:
-    Core package for the Sentinel project.
+    Core package for the Centinel project.
 """
