@@ -1,0 +1,114 @@
+# Ejemplo de configuración para Proyecto C.E.N.T.I.N.E.L.
+# Example configuration for the C.E.N.T.I.N.E.L. project.
+# Copia este archivo como config.yaml y ajusta los valores a tu entorno.
+# Copy this file as config.yaml and adjust values for your environment.
+
+# URL base del endpoint de resultados (placeholder).
+# Base URL for results endpoint (placeholder).
+base_url: "https://results.example.org/api/v1/summary"
+
+# SWITCH MAESTRO (ON/OFF): controla todo proceso automático del repo.
+# MASTER SWITCH (ON/OFF): controls all automatic processes in the repo.
+# ON  = permite ejecución automática
+# ON  = allows automatic execution
+# OFF = detiene ejecución automática
+# OFF = stops automatic execution
+master_switch: "OFF"
+
+# Parámetros de red.
+# Network parameters.
+timeout: 20
+retries: 5
+headers:
+  Accept: "application/json"
+  User-Agent: "C.E.N.T.I.N.E.L./1.0 (config-example)"
+use_playwright: false
+playwright_stealth: true
+playwright_user_agent: "C.E.N.T.I.N.E.L./1.0 (config-example)"
+playwright_viewport:
+  width: 1280
+  height: 720
+playwright_locale: "es-HN"
+playwright_timezone: "America/Tegucigalpa"
+
+# Fallback Playwright (anti-bloqueo básico).
+# Playwright fallback (basic anti-blocking).
+use_playwright: false
+playwright_stealth: true
+playwright_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+playwright_locale: "es-ES"
+playwright_timezone: "America/Tegucigalpa"
+playwright_viewport:
+  width: 1280
+  height: 720
+
+# Backoff exponencial para reintentos (segundos).
+# Exponential backoff for retries (seconds).
+backoff_base_seconds: 2
+backoff_max_seconds: 60
+
+# Cantidad esperada de candidatos (referencial).
+# Expected number of candidates (reference only).
+candidate_count: 4
+
+# Llaves que deben existir en el payload (puede quedar vacío).
+# Keys that must exist in the payload (can be empty).
+required_keys:
+  - "estadisticas"
+  - "resultados"
+
+# Mapeo de campos de origen a nuestro esquema interno.
+# Map source fields to our internal schema.
+field_map:
+  totals:
+    valid_votes:
+      - "estadisticas.distribucion_votos.validos"
+    null_votes:
+      - "estadisticas.distribucion_votos.nulos"
+    blank_votes:
+      - "estadisticas.distribucion_votos.blancos"
+    total_votes:
+      - "estadisticas.distribucion_votos.total"
+  candidate_roots:
+    - "resultados"
+
+# Fuentes configurables (nacional + departamentos).
+# Configurable sources (national + departments).
+sources:
+  - name: "Nacional (demo)"
+    source_id: "NACIONAL"
+    level: "PRES"
+    scope: "NATIONAL"
+  - name: "Departamento Demo"
+    department_code: "99"
+    level: "PD"
+    scope: "DEPARTMENT"
+
+rules:
+  global_enabled: true
+  trend_shift:
+    enabled: true
+    threshold_percent: 10
+    max_hours: 3
+  processing_speed:
+    enabled: true
+    max_actas_per_15min: 500
+  irreversibility:
+    enabled: true
+    historical_participation_rate: 0.60
+    sqlite_path: "reports/irreversibility_state.db"
+  benford_law:
+    enabled: true
+    chi_square_threshold: 0.05
+    deviation_pct: 15
+    min_samples: 10
+  ml_outliers:
+    enabled: true
+    contamination: 0.1
+    min_samples: 5
+  basic_diff:
+    enabled: true
+    relative_vote_change_pct: 15
+  participation_anomaly:
+    enabled: true
+    scrutiny_jump_pct: 5

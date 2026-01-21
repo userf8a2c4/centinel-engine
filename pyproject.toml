@@ -1,0 +1,55 @@
+[tool.poetry]
+name = "centinel-engine"
+version = "0.4.0"
+description = "Sistema open-source de auditoría continua de datos electorales del CNE Honduras"
+authors = ["CarZel <tu@email.com>"]
+license = "MIT"
+readme = "README.md"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent"
+]
+packages = [{ include = "centinel", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+requests = ">=2.31.0"
+playwright = ">=1.49.0"
+playwright-stealth = ">=1.0.6"
+pandas = ">=2.1.0"
+numpy = ">=1.24.0"
+scipy = ">=1.11.4"
+scikit-learn = ">=1.5.0"
+matplotlib = ">=3.7.2"
+plotly = ">=5.24.1"
+streamlit = ">=1.31.0"
+fpdf2 = ">=2.7.0"
+kaleido = ">=0.2.1"
+python-telegram-bot = ">=20.7"
+tweepy = ">=4.14.0"
+python-dateutil = ">=2.8.2"
+PyYAML = ">=6.0.2"
+python-dotenv = ">=1.0.1"
+rich = ">=13.7.0"
+httpx = "*"
+tenacity = "*"
+pydantic = "*"
+pydantic-settings = "*"
+structlog = "*"
+typer = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "8.3.3"
+ruff = "*"
+black = "*"
+mypy = "*"
+pytest-cov = "*"
+httpx-mock = "*"
+
+[tool.poetry.scripts]
+centinel = "centinel.cli:main"
+
+[build-system]
+requires = ["poetry-core>=1.5.0"]
+build-backend = "poetry.core.masonry.api"

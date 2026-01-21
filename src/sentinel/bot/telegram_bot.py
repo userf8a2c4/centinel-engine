@@ -6,9 +6,11 @@ English:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -19,7 +21,9 @@ import matplotlib
 from dateutil import parser
 from sentinel.utils.config_loader import load_config
 from telegram import Update
+from telegram.error import NetworkError, RetryAfter, TimedOut
 from telegram.ext import (
+    AIORateLimiter,
     ApplicationBuilder,
     CommandHandler,
     ContextTypes,
@@ -133,6 +137,27 @@ class RangeQuery:
 
 MODE_STORE: dict[int, dict[str, object]] = {}
 RATE_LIMIT: dict[int, datetime] = {}
+
+
+async def safe_reply(message, text: str) -> None:
+    """Envía respuestas manejando rate-limits del API de Telegram.
+
+    Args:
+        message: Mensaje de Telegram.
+        text (str): Texto a enviar.
+
+    English:
+        Sends replies handling Telegram API rate limits.
+
+    Args:
+        message: Telegram message.
+        text (str): Text to send.
+    """
+    try:
+        await message.reply_text(text)
+    except RetryAfter as exc:
+        await asyncio.sleep(exc.retry_after)
+        await message.reply_text(text)
 
 
 def cleanup_mode_store(now: datetime) -> None:
@@ -901,11 +926,13 @@ async def enforce_access(update: Update) -> bool:
     if allowed:
         try:
             if int(allowed) != chat.id:
-                await update.message.reply_text(
-                    build_disclaimer(
-                        "Este bot está en modo privado. No tienes acceso."
-                    ),
-                )
+                if update.message:
+                    await safe_reply(
+                        update.message,
+                        build_disclaimer(
+                            "Este bot está en modo privado. No tienes acceso."
+                        ),
+                    )
                 return False
         except ValueError:
             return True
@@ -936,7 +963,8 @@ async def preflight(update: Update) -> bool:
     now = datetime.utcnow()
     cleanup_mode_store(now)
     if is_rate_limited(chat.id, now):
-        await update.message.reply_text(
+        await safe_reply(
+            update.message,
             build_disclaimer("Espera un minuto antes de enviar otro comando."),
         )
         return False
@@ -964,15 +992,18 @@ def build_commands_list(mode: str) -> str:
     """
     base = [
         "/inicio",
+        "/status",
+        "/last",
         "/ultimo",
         "/cambios [rango]",
         "/alertas",
         "/grafico [rango]",
         "/tendencia [rango]",
         "/info [rango]",
+        "/help",
     ]
     if mode == MODE_AUDITOR:
-        base.extend(["/hash [acta o JRV]", "/json [rango o depto]"])
+        base.extend(["/hash [acta o JRV]", "/verify <hash>", "/json [rango o depto]"])
     return "\n".join(base)
 
 
@@ -1567,7 +1598,140 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"Últimos votos totales: {format_number(latest.total_votos)}"
     )
     logger.info("cmd_info chat_id=%s", update.effective_chat.id)
-    await update.message.reply_text(build_disclaimer(message))
+    await safe_reply(update.message, build_disclaimer(message))
+
+
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Entrega un resumen rápido de estado del sistema.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Sends a quick system status summary.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
+        return
+    records = load_snapshots()
+    alerts = get_alerts()
+    latest = get_latest_timestamp(records)
+    message = (
+        "Estado del sistema:\n"
+        f"Snapshots disponibles: {len(records)}\n"
+        f"Último snapshot: {latest}\n"
+        f"Alertas registradas: {len(alerts)}"
+    )
+    logger.info("cmd_status chat_id=%s", update.effective_chat.id)
+    await safe_reply(update.message, build_disclaimer(message))
+
+
+async def last_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Alias para el comando /ultimo.
+
+    English:
+        Alias for the /ultimo command.
+    """
+    await ultimo(update, context)
+
+
+def _load_hash_chain() -> list[dict]:
+    chain_path = DATA_DIR / "hashes" / "chain.json"
+    if not chain_path.exists():
+        chain_path = HASH_DIR / "chain.json"
+    if not chain_path.exists():
+        return []
+    try:
+        data = json.loads(chain_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    return data if isinstance(data, list) else []
+
+
+async def verify_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Verifica un hash en la cadena histórica.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Verifies a hash in the historical chain.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
+        return
+    if get_mode(update.effective_chat.id) != MODE_AUDITOR:
+        await safe_reply(
+            update.message,
+            build_disclaimer(
+                "Este comando es solo para modo auditor. Escribe 'auditor' para activarlo."
+            ),
+        )
+        return
+    query = " ".join(context.args).strip()
+    if not query:
+        await safe_reply(
+            update.message,
+            build_disclaimer("Uso: /verify <hash>"),
+        )
+        return
+    chain = _load_hash_chain()
+    for index, entry in enumerate(chain, start=1):
+        if entry.get("hash") == query:
+            timestamp = entry.get("timestamp", "sin timestamp")
+            message = f"Hash encontrado ✅\nPosición: {index}\nTimestamp: {timestamp}"
+            logger.info("cmd_verify chat_id=%s hash=%s", update.effective_chat.id, query)
+            await safe_reply(update.message, build_disclaimer(message))
+            return
+    await safe_reply(
+        update.message,
+        build_disclaimer("Hash no encontrado en la cadena histórica."),
+    )
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Muestra comandos disponibles y guía rápida.
+
+    Args:
+        update (Update): Evento recibido.
+        context (ContextTypes.DEFAULT_TYPE): Contexto del bot.
+
+    English:
+        Shows available commands and quick help.
+
+    Args:
+        update (Update): Incoming update.
+        context (ContextTypes.DEFAULT_TYPE): Bot context.
+    """
+    if (
+        not update.message
+        or not await enforce_access(update)
+        or not await preflight(update)
+    ):
+        return
+    mode = get_mode(update.effective_chat.id)
+    message = (
+        f"Comandos disponibles ({mode}):\n{build_commands_list(mode)}\n\n"
+        "Tip: escribe 'auditor' para habilitar comandos avanzados."
+    )
+    logger.info("cmd_help chat_id=%s", update.effective_chat.id)
+    await safe_reply(update.message, build_disclaimer(message))
 
 
 def find_snapshot_by_query(
@@ -1650,7 +1814,8 @@ async def hash_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     ):
         return
     if get_mode(update.effective_chat.id) != MODE_AUDITOR:
-        await update.message.reply_text(
+        await safe_reply(
+            update.message,
             build_disclaimer(
                 "Este comando es solo para modo auditor. Escribe 'auditor' para activarlo."
             ),
@@ -1658,26 +1823,29 @@ async def hash_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     records = load_snapshots()
     if not records:
-        await update.message.reply_text(
+        await safe_reply(
+            update.message,
             build_disclaimer("No hay datos disponibles todavía.")
         )
         return
     query = " ".join(context.args).strip()
     record = find_snapshot_by_query(query, records)
     if not record:
-        await update.message.reply_text(
+        await safe_reply(
+            update.message,
             build_disclaimer("No encontré esa acta o JRV en los archivos disponibles."),
         )
         return
     hash_value = find_hash_for_snapshot(record.path)
     if not hash_value:
-        await update.message.reply_text(
+        await safe_reply(
+            update.message,
             build_disclaimer("No se encontró hash para ese archivo."),
         )
         return
     message = f"Hash SHA-256 de {record.path.name}: {hash_value}."
     logger.info("cmd_hash chat_id=%s query=%s", update.effective_chat.id, query)
-    await update.message.reply_text(build_disclaimer(message))
+    await safe_reply(update.message, build_disclaimer(message))
 
 
 def select_json_record(
@@ -1732,7 +1900,8 @@ async def json_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     ):
         return
     if get_mode(update.effective_chat.id) != MODE_AUDITOR:
-        await update.message.reply_text(
+        await safe_reply(
+            update.message,
             build_disclaimer(
                 "Este comando es solo para modo auditor. Escribe 'auditor' para activarlo."
             ),
@@ -1740,14 +1909,16 @@ async def json_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     records = load_snapshots()
     if not records:
-        await update.message.reply_text(
+        await safe_reply(
+            update.message,
             build_disclaimer("No hay datos disponibles todavía.")
         )
         return
     query_text = " ".join(context.args).strip()
     record = select_json_record(records, query_text)
     if not record:
-        await update.message.reply_text(
+        await safe_reply(
+            update.message,
             build_disclaimer("No encontré un JSON crudo con ese criterio."),
         )
         return
@@ -1756,7 +1927,7 @@ async def json_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         content = content[:3000] + "\n... (contenido recortado)"
     message = f"JSON crudo ({record.path.name}):\n{content}"
     logger.info("cmd_json chat_id=%s query=%s", update.effective_chat.id, query_text)
-    await update.message.reply_text(build_disclaimer(message))
+    await safe_reply(update.message, build_disclaimer(message))
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1774,8 +1945,11 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         context (ContextTypes.DEFAULT_TYPE): Bot context.
     """
     logger.error("telegram_error update=%s error=%s", update, context.error)
+    if isinstance(context.error, RetryAfter):
+        logger.warning("telegram_rate_limited retry_after=%s", context.error.retry_after)
     if isinstance(update, Update) and update.message:
-        await update.message.reply_text(
+        await safe_reply(
+            update.message,
             build_disclaimer("Ocurrió un error inesperado. Intenta nuevamente."),
         )
 
@@ -1798,8 +1972,10 @@ def build_application(token: str):
     Returns:
         Application: Ready-to-run application.
     """
-    application = ApplicationBuilder().token(token).build()
+    application = ApplicationBuilder().token(token).rate_limiter(AIORateLimiter()).build()
     application.add_handler(CommandHandler("inicio", inicio))
+    application.add_handler(CommandHandler("status", status_command))
+    application.add_handler(CommandHandler("last", last_command))
     application.add_handler(CommandHandler("ultimo", ultimo))
     application.add_handler(CommandHandler("cambios", cambios))
     application.add_handler(CommandHandler("alertas", alertas))
@@ -1809,7 +1985,9 @@ def build_application(token: str):
     application.add_handler(CommandHandler("tendencia", tendencia))
     application.add_handler(CommandHandler("info", info))
     application.add_handler(CommandHandler("hash", hash_command))
+    application.add_handler(CommandHandler("verify", verify_command))
     application.add_handler(CommandHandler("json", json_command))
+    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, seleccionar_modo)
     )
@@ -1833,12 +2011,22 @@ def main() -> None:
     telegram_config = config.get("alerts", {}).get("telegram", {})
     token = telegram_config.get("bot_token")
     if not token:
-        raise SystemExit(
-            "Falta alerts.telegram.bot_token en config/config.yaml para el bot."
-        )
-    application = build_application(token)
-    logger.info("telegram_bot_start")
-    application.run_polling()
+        raise SystemExit("Falta TELEGRAM_TOKEN en .env o variables de entorno.")
+    backoff_seconds = 5
+    while True:
+        try:
+            application = build_application(token)
+            logger.info("telegram_bot_start")
+            application.run_polling()
+            backoff_seconds = 5
+        except (NetworkError, TimedOut) as exc:
+            logger.warning("telegram_bot_retry error=%s backoff=%s", exc, backoff_seconds)
+            time.sleep(backoff_seconds)
+            backoff_seconds = min(backoff_seconds * 2, 300)
+            continue
+        except KeyboardInterrupt:
+            logger.info("telegram_bot_stopped")
+            break
 
 
 if __name__ == "__main__":

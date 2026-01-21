@@ -6,6 +6,8 @@ Docstring en español: Punto de entrada principal para el dashboard Sentinel.
 
 from __future__ import annotations
 
+from datetime import date, datetime, timedelta
+
 import streamlit as st
 
 from sentinel.dashboard.components.department_tab import render_department_tab
@@ -15,9 +17,7 @@ from sentinel.dashboard.components.pdf_generator import create_pdf
 from sentinel.dashboard.components.temporal_tab import render_temporal_tab
 from sentinel.dashboard.data_loader import load_data
 from sentinel.dashboard.filters import filtrar_df
-from datetime import date
-
-from sentinel.dashboard.utils.constants import PARTIES, DEPARTMENTS
+from sentinel.dashboard.utils.constants import DEPARTMENTS, PARTIES
 
 
 def _normalize_date_range(date_range: tuple | list | None) -> tuple[date, date]:
@@ -48,6 +48,107 @@ def _normalize_date_range(date_range: tuple | list | None) -> tuple[date, date]:
     if isinstance(date_range, tuple):
         return date_range
     return today, today
+
+
+@st.cache_data(show_spinner=False)
+def _cached_filter(df, deptos, partidos, date_range):
+    return filtrar_df(df, deptos, partidos, date_range)
+
+
+@st.cache_data(show_spinner=False)
+def _cached_pdf(df, deptos, partidos, date_range):
+    return create_pdf(df, deptos, partidos, date_range)
+
+
+def _render_theme_css() -> None:
+    """English docstring: Render CSS for auto dark/light mode.
+
+    ---
+    Docstring en español: Renderiza CSS para modo oscuro/claro automático.
+    """
+
+    st.markdown(
+        """
+<style>
+@media (prefers-color-scheme: dark) {
+  .stApp {
+    background-color: #0f172a;
+    color: #e2e8f0;
+  }
+  section[data-testid="stSidebar"] {
+    background-color: #111827;
+  }
+}
+@media (prefers-color-scheme: light) {
+  .stApp {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+}
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def _render_pagination(df_filtered) -> None:
+    """English docstring: Render paginated table with lazy loading controls.
+
+    ---
+    Docstring en español: Renderiza tabla paginada con controles de carga diferida.
+    """
+
+    if df_filtered.empty:
+        return
+
+    st.subheader("Datos paginados")
+    total_rows = len(df_filtered)
+    page_size = st.session_state.get("page_size", 25)
+    max_page = max(1, (total_rows + page_size - 1) // page_size)
+
+    col_page, col_action, col_info = st.columns([1, 1, 2])
+    with col_page:
+        page_number = st.number_input(
+            "Página",
+            min_value=1,
+            max_value=max_page,
+            value=min(st.session_state.get("page_number", 1), max_page),
+            step=1,
+        )
+        st.session_state["page_number"] = page_number
+
+    with col_action:
+        if st.button("Cargar más filas"):
+            st.session_state["page_size"] = page_size + 25
+            page_size = st.session_state["page_size"]
+            max_page = max(1, (total_rows + page_size - 1) // page_size)
+
+    with col_info:
+        st.caption(f"Mostrando hasta {page_size} filas por página · Total: {total_rows}")
+
+    start = (page_number - 1) * page_size
+    end = start + page_size
+    st.dataframe(df_filtered.iloc[start:end])
+
+
+def _render_alerts(df_filtered) -> None:
+    """English docstring: Render visual alerts for data freshness and gaps.
+
+    ---
+    Docstring en español: Renderiza alertas visuales sobre frescura y vacíos de datos.
+    """
+
+    if df_filtered.empty:
+        return
+    latest_timestamp = df_filtered["timestamp"].max()
+    if isinstance(latest_timestamp, datetime):
+        gap = datetime.utcnow() - latest_timestamp.replace(tzinfo=None)
+        if gap > timedelta(hours=6):
+            st.error("⚠️ Datos desactualizados: más de 6 horas sin nuevos snapshots.")
+        elif gap > timedelta(hours=2):
+            st.warning("⚠️ Datos con retraso: más de 2 horas sin nuevos snapshots.")
+        else:
+            st.success("Datos recientes: snapshots dentro de las últimas 2 horas.")
 
 
 def _render_sidebar(df) -> tuple[bool, list[str], list[str], tuple[date, date]]:
@@ -112,10 +213,11 @@ def run_dashboard() -> None:
         initial_sidebar_state="expanded",
     )
 
+    _render_theme_css()
     df_raw = load_data()
     simple_mode, deptos, partidos, date_range = _render_sidebar(df_raw)
 
-    df_filtered = filtrar_df(df_raw, deptos, partidos, date_range)
+    df_filtered = _cached_filter(df_raw, deptos, partidos, date_range)
 
     # Overview always visible. / Resumen siempre visible.
     render_overview(df_filtered, partidos)
@@ -131,8 +233,10 @@ def run_dashboard() -> None:
         )
         return
 
+    _render_alerts(df_filtered)
+
     # PDF download button. / Botón de descarga PDF.
-    pdf_bytes = create_pdf(df_filtered, deptos, partidos, date_range)
+    pdf_bytes = _cached_pdf(df_filtered, deptos, partidos, date_range)
     st.download_button(
         "Descargar análisis como PDF",
         data=pdf_bytes,
@@ -172,3 +276,5 @@ def run_dashboard() -> None:
 [https://github.com/userf8a2c4/sentinel](https://github.com/userf8a2c4/sentinel)
 """
     )
+    st.markdown("---")
+    _render_pagination(df_filtered)
