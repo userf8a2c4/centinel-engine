@@ -2,6 +2,8 @@
 
 ## Español
 
+Esta guía resume el arranque mínimo de **Centinel (C.E.N.T.I.N.E.L.)** en producción.
+
 1. Instala dependencias con Poetry:
    ```bash
    poetry install
@@ -24,6 +26,8 @@
 ---
 
 ## English
+
+This guide summarizes the minimum startup for **Centinel (C.E.N.T.I.N.E.L.)** in production.
 
 1. Install dependencies with Poetry:
    ```bash
