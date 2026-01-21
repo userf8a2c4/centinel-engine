@@ -65,6 +65,9 @@ Todo lo modificable vive en `control_master/` para evitar tocar el resto del có
 - [Seguridad](Security.md)
 - [Licencia: MIT](Security.md)
 
+## Gestión de Secrets y Backup
+Consulta las instrucciones de resguardo seguro en [docs/SECRETS_BACKUP.md](docs/SECRETS_BACKUP.md).
+
 ### Agradecimientos
 Gracias a la comunidad cívica, periodistas de datos y personas voluntarias que promueven transparencia electoral con evidencia verificable.
 
@@ -129,6 +132,9 @@ Everything configurable lives under `control_master/` to avoid touching the rest
 - [Dev diary](https://github.com/userf8a2c4/sentinel/tree/dev-v3/Dev%20Diary)
 - [Security](Security.md)
 - [License](Security.md)
+
+## Secrets management and backup
+See the secure backup guide at [docs/SECRETS_BACKUP.md](docs/SECRETS_BACKUP.md).
 
 ### Thanks
 Thanks to civic community members, data journalists, and volunteers advancing electoral transparency through verifiable evidence.

@@ -5,6 +5,9 @@
 requests>=2.31.0               # Peticiones HTTP: snapshots CNE
 playwright>=1.49.0             # Fallback scraping con navegador headless
 playwright-stealth>=1.0.6      # Modo stealth para evitar detección anti-bot
+apscheduler>=3.10.4            # Scheduler para healthchecks
+flask-limiter>=3.7.0           # Rate limiting para el dashboard/app
+httpx>=0.27.0                  # Cliente HTTP para healthchecks
 
 # Procesamiento y análisis de datos
 pandas>=2.1.0                  # Procesamiento principal: diffs, tablas por depto

@@ -24,4 +24,4 @@ jobs:
       - name: Mypy
         run: poetry run mypy .
       - name: Pytest
-        run: poetry run pytest --cov=src/centinel --cov-report=term-missing
+        run: poetry run pytest --cov=src/centinel --cov-report=term-missing tests tests/integration

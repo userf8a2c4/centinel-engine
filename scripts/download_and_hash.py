@@ -28,6 +28,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from sentinel.utils.config_loader import load_config
+from monitoring.health import get_health_state
 
 # Configuración de logging global (inicializado temprano)
 logging.basicConfig(
@@ -373,6 +374,8 @@ def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) ->
     data_dir.mkdir(exist_ok=True)
     hash_dir.mkdir(exist_ok=True)
 
+    health_state = get_health_state()
+
     for source in sources:
         endpoint = resolve_endpoint(source, endpoints)
         if not endpoint:
@@ -427,6 +430,7 @@ def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) ->
                 source_label,
                 source_label,
             )
+            health_state.record_success()
             logger.debug(
                 "current_hash=%s chained_hash=%s source=%s",
                 current_hash,
@@ -441,6 +445,7 @@ def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) ->
                 endpoint,
                 e,
             )
+            health_state.record_failure()
 
 
 def main() -> None:
@@ -466,6 +471,7 @@ def main() -> None:
     args = parser.parse_args()
 
     config = load_config()
+    health_state = get_health_state()
     master_status = normalize_master_switch(config.get("master_switch"))
     logger.info("MASTER SWITCH: %s", master_status)
     if not is_master_switch_on(config):
@@ -487,6 +493,7 @@ def main() -> None:
         logger.error(
             "No se encontraron fuentes en config/config.yaml / No sources found in config/config.yaml"
         )
+        health_state.record_failure(critical=True)
         raise ValueError("No sources defined in config/config.yaml")
 
     endpoints = config.get("endpoints", {})

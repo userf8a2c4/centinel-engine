@@ -9,9 +9,12 @@ import os
 import sqlite3
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 
+from monitoring.health import register_healthchecks
+from sentinel.api.rate_limit import RateLimitConfig, RateLimitExceeded, RateLimiter
 from sentinel.core.hashchain import compute_hash
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -34,6 +37,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+global_rate_limiter = RateLimiter(RateLimitConfig(limit=100, window_seconds=60))
+compare_rate_limiter = RateLimiter(RateLimitConfig(limit=10, window_seconds=60))
+
+
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:  # noqa: ARG001
+    return JSONResponse(
+        status_code=429,
+        content={"error": "Demasiadas solicitudes. Intenta de nuevo en un minuto."},
+    )
+
+
+@app.middleware("http")
+async def enforce_global_rate_limit(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    if not global_rate_limiter.allow(client_ip):
+        raise RateLimitExceeded()
+    return await call_next(request)
+
+
+def enforce_compare_rate_limit(request: Request) -> None:
+    client_ip = request.client.host if request.client else "unknown"
+    if not compare_rate_limiter.allow(client_ip):
+        raise RateLimitExceeded()
 
 
 def get_connection() -> sqlite3.Connection:
@@ -282,7 +310,7 @@ def get_snapshot(snapshot_id: str) -> dict:
     return payload
 
 
-@app.get("/hashchain/verify")
+@app.get("/hashchain/verify", dependencies=[Depends(enforce_compare_rate_limit)])
 def verify_hash(hash_value: str = Query(..., alias="hash")) -> dict:
     """Endpoint de verificación de hash encadenado.
 
@@ -323,3 +351,6 @@ def get_alerts() -> list[dict]:
         list[dict]: Available alerts.
     """
     return load_alerts_payload()
+
+
+register_healthchecks(app)
