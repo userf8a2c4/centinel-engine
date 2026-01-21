@@ -8,6 +8,12 @@
 # Base URL for results endpoint (placeholder).
 base_url: "https://results.example.org/api/v1/summary"
 
+# Endpoints operativos (placeholder).
+# Operational endpoints (placeholder).
+endpoints:
+  nacional: "https://results.example.org/api/v1/nacional"
+  fallback_nacional: "https://results.example.org/api/v1/nacional/fallback"
+
 # Switch maestro (ON/OFF): controla todo proceso automático del repositorio.
 # Master switch (ON/OFF): controls all automatic processes in the repository.
 # ON  = permite ejecución automática
@@ -114,3 +120,31 @@ rules:
   participation_anomaly:
     enabled: true
     scrutiny_jump_pct: 5
+
+# Logging centralizado.
+# Centralized logging.
+logging:
+  level: "INFO"
+  file: "centinel.log"
+
+# Blockchain (placeholder).
+# Blockchain (placeholder).
+blockchain:
+  enabled: false
+  network: "base"
+  private_key: ""
+
+# Alertas y criterios críticos.
+# Alerts and critical criteria.
+alerts:
+  critical_anomaly_types: []
+
+# Configuración de Arbitrum (placeholder).
+# Arbitrum configuration (placeholder).
+arbitrum:
+  enabled: false
+  rpc_url: ""
+  private_key: ""
+  contract_address: ""
+  interval_minutes: 60
+  batch_size: 19
