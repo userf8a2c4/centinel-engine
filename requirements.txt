@@ -30,7 +30,9 @@ tweepy>=4.14.0                 # Publicación en X (Twitter)
 # Utilidades generales
 python-dateutil>=2.8.2         # Manejo robusto de timestamps y fechas
 PyYAML>=6.0.2                  # Configuración en YAML
-python-dotenv>=1.0.1           # Variables sensibles en .env
+web3>=6.20.0                   # Cliente Web3 para Arbitrum/Ethereum
+eth-account>=0.11.0            # Firma de transacciones
+pycryptodome>=3.20.0           # Keccak256 para Merkle Trees
 
 # Testing y desarrollo
 pytest==8.3.3                  # Suite de pruebas unitarias e integración

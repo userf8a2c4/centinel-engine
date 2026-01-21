@@ -1,17 +1,20 @@
 import datetime
-import os
 import sys
 
 import requests
-from dotenv import load_dotenv
 from requests_oauthlib import OAuth1
 
-load_dotenv()
+from sentinel.utils.config_loader import load_config
 
-API_KEY = os.getenv("X_API_KEY")
-API_SECRET = os.getenv("X_API_SECRET")
-ACCESS_TOKEN = os.getenv("X_ACCESS_TOKEN")
-ACCESS_TOKEN_SECRET = os.getenv("X_ACCESS_TOKEN_SECRET")
+
+def _get_x_settings():
+    """Carga la configuración de X desde config/config.yaml.
+
+    English:
+        Loads X configuration from config/config.yaml.
+    """
+    config = load_config()
+    return config.get("alerts", {}).get("x", {})
 
 
 def get_stored_hash(hash_path):
@@ -36,12 +39,22 @@ def format_as_neutral(raw_data, stored_hash=None):
 
 
 def send_message(text, stored_hash=None):
-    if not all([API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET]):
+    x_config = _get_x_settings()
+    if not x_config.get("enabled", False):
+        print("[!] ERROR: X_DISABLED_IN_CONFIG")
+        sys.exit(1)
+
+    api_key = x_config.get("api_key")
+    api_secret = x_config.get("api_secret")
+    access_token = x_config.get("access_token")
+    access_token_secret = x_config.get("access_token_secret")
+
+    if not all([api_key, api_secret, access_token, access_token_secret]):
         print("[!] ERROR: X_CREDENTIALS_MISSING")
         sys.exit(1)
 
     url = "https://api.x.com/2/tweets"
-    auth = OAuth1(API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    auth = OAuth1(api_key, api_secret, access_token, access_token_secret)
     payload = {"text": text}
 
     try:

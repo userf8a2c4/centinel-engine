@@ -19,15 +19,15 @@ import argparse
 import hashlib
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import requests
-import yaml
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+from sentinel.utils.config_loader import load_config
 
 # Configuración de logging global (inicializado temprano)
 logging.basicConfig(
@@ -485,9 +485,9 @@ def main() -> None:
     sources = config.get("sources", [])
     if not sources:
         logger.error(
-            "No se encontraron fuentes en config.yaml / No sources found in config.yaml"
+            "No se encontraron fuentes en config/config.yaml / No sources found in config/config.yaml"
         )
-        raise ValueError("No sources defined in config.yaml")
+        raise ValueError("No sources defined in config/config.yaml")
 
     endpoints = config.get("endpoints", {})
     process_sources(sources, endpoints)

@@ -7,10 +7,9 @@ English:
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, TYPE_CHECKING, Dict
 
-import yaml
+from sentinel.utils.config_loader import load_config
 
 if TYPE_CHECKING:
     from web3 import Web3
@@ -26,33 +25,24 @@ DEFAULT_NETWORKS = {
 }
 
 
-def load_blockchain_config(config_path: str = "config.yaml") -> Dict[str, Any]:
-    """Carga configuración blockchain desde YAML.
-
-    Args:
-        config_path (str): Ruta del archivo YAML.
+def load_blockchain_config() -> Dict[str, Any]:
+    """Carga configuración blockchain desde config/config.yaml.
 
     Returns:
         Dict[str, Any]: Configuración blockchain encontrada.
 
     English:
-        Loads blockchain configuration from YAML.
-
-    Args:
-        config_path (str): YAML file path.
+        Loads blockchain configuration from config/config.yaml.
 
     Returns:
         Dict[str, Any]: Loaded blockchain configuration.
     """
-    if not os.path.exists(config_path):
-        return {}
-    with open(config_path, "r", encoding="utf-8") as handle:
-        config = yaml.safe_load(handle) or {}
+    config = load_config()
     return config.get("blockchain", {}) or {}
 
 
 def resolve_private_key(raw_value: str | None) -> str | None:
-    """Resuelve la clave privada desde valor directo o env var.
+    """Resuelve la clave privada desde valor directo en configuración.
 
     Args:
         raw_value (str | None): Valor crudo en config.
@@ -61,7 +51,7 @@ def resolve_private_key(raw_value: str | None) -> str | None:
         str | None: Clave privada resuelta o None.
 
     English:
-        Resolves the private key from raw config or env var.
+        Resolves the private key from the raw config value.
 
     Args:
         raw_value (str | None): Raw value from config.
@@ -70,11 +60,8 @@ def resolve_private_key(raw_value: str | None) -> str | None:
         str | None: Resolved private key or None.
     """
     if raw_value is None:
-        return os.getenv("PRIVATE_KEY")
+        return None
     value = str(raw_value).strip()
-    if value.startswith("${") and value.endswith("}"):
-        env_key = value[2:-1]
-        return os.getenv(env_key)
     return value or None
 
 
@@ -119,12 +106,6 @@ def resolve_rpc_url(config: Dict[str, Any]) -> str:
     """
     network_name = str(config.get("network", "polygon-mumbai")).lower()
     network = DEFAULT_NETWORKS.get(network_name, {})
-    env_override = os.getenv("WEB3_PROVIDER_URL")
-    if env_override:
-        return env_override
-    rpc_env = network.get("rpc_env")
-    if rpc_env and os.getenv(rpc_env):
-        return os.getenv(rpc_env) or ""
     return network.get("default_rpc", "")
 
 
