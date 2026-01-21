@@ -93,17 +93,6 @@ alerts:
     - RELATIVE_DELTA
     - SCRUTINY_JUMP
     - VOTE_BREAKDOWN_MISMATCH
-  telegram:
-    enabled: false
-    bot_token: "" # Advertencia: nunca commitear, usar secrets manager o .gitignore
-    chat_id: ""
-    template: "neutral"
-  x:
-    enabled: false
-    api_key: "" # Advertencia: nunca commitear, usar secrets manager o .gitignore
-    api_secret: ""
-    access_token: ""
-    access_token_secret: ""
 
 arbitrum:
   enabled: false

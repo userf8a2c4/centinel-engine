@@ -39,7 +39,6 @@ class CentinelSettings(BaseSettings):
     SOURCES: List[SourceConfig]
     STORAGE_PATH: Path
     LOG_LEVEL: str = "INFO"
-    BOT_TOKEN_TELEGRAM: Optional[str] = None
     BOT_TOKEN_DISCORD: Optional[str] = None
     ARBITRUM_RPC_URL: AnyUrl
     IPFS_GATEWAY_URL: AnyUrl

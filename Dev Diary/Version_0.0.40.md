@@ -10,7 +10,7 @@
 
 ### Resumen
 
-Integración completa de la rama `dev-v4` en `main`: +150 commits de refactorización estructural, nuevo Command Center, dashboard modular, reglas de anomalías reorganizadas y preparación para sinergia con el frontend (centinel-app). Se convierte `main` en la única línea activa de desarrollo. Se adopta la licencia actualizada presente en `main` (commit del 15-ene-2026 – AGPL-3.0).
+Integración completa de la rama `dev-v4` en `main`: +150 commits de refactorización estructural, nuevo Command Center, módulo de análisis modular, reglas de anomalías reorganizadas y preparación para sinergia con el frontend (centinel-app). Se convierte `main` en la única línea activa de desarrollo. Se adopta la licencia actualizada presente en `main` (commit del 15-ene-2026 – AGPL-3.0).
 
 ### Cambios principales
 
@@ -26,10 +26,6 @@ Integración completa de la rama `dev-v4` en `main`: +150 commits de refactoriza
 * **Por qué:** Las reglas estaban creciendo desordenadas; ahora son independientes y editables fácilmente  
 * **Impacto:** Más transparencia y capacidad de auditoría externa sobre qué se está detectando como anómalo
 
-**Mejora:** Dashboard Streamlit modular con paquete dedicado + análisis Benford + exportación PDF  
-* **Por qué:** El dashboard anterior era monolítico y difícil de extender  
-* **Impacto:** Reportes más profesionales, análisis estadístico más robusto y opción de exportar resultados verificables
-
 **Mejora/Fix:** Múltiples correcciones en scraping, generación de PDFs, endpoints CNE y flujos principales  
 * **Por qué:** Acumulación de mejoras incrementales durante semanas de desarrollo intensivo  
 * **Impacto:** Sistema mucho más estable y listo para pruebas de integración con el frontend en desarrollo
@@ -39,7 +35,7 @@ Integración completa de la rama `dev-v4` en `main`: +150 commits de refactoriza
 - Migración masiva de código a nueva estructura `src/` (refactor estructural profundo)
 - Creación y evolución de carpeta `command_center/` con settings, rules, scheduler
 - Reemplazo de `analyze_rules` por conjunto temporal de reglas + sistema modular
-- Modularización del dashboard → nuevo paquete con componentes independientes
+- Modularización del módulo de análisis → nuevo paquete con componentes independientes
 - Actualizaciones en `pdf_generator.py`, `main.py`, `requirements.txt`, flujos de scraping
 - Múltiples merges y limpiezas de ramas antiguas (`dev-v3` → `dev-v4`)
 - Actualización de LICENSE (adoptando AGPL-3.0 actualizada de main, commit 15-ene-2026) y documentación inicial de refactor
@@ -68,7 +64,7 @@ Solo hechos, al servicio de todas las personas que quieran verificarlos.
 
 ### Summary
 
-Major merge of `dev-v4` into `main`: +150 commits including full code refactor to src/ layout, new Command Center, modular dashboard, reorganized anomaly rules and preparation for frontend integration. Adopts the updated AGPL-3.0 LICENSE from main (commit Jan 15, 2026).
+Major merge of `dev-v4` into `main`: +150 commits including full code refactor to src/ layout, new Command Center, modular analysis package, reorganized anomaly rules and preparation for frontend integration. Adopts the updated AGPL-3.0 LICENSE from main (commit Jan 15, 2026).
 
 ### Main Changes
 
@@ -84,10 +80,6 @@ Major merge of `dev-v4` into `main`: +150 commits including full code refactor t
 * **Why:** Rules were becoming messy; now independent and easily editable  
 * **Impact:** More transparency and external auditability
 
-**Improvement:** Modular Streamlit dashboard package + Benford analysis + PDF export  
-* **Why:** Previous dashboard was monolithic  
-* **Impact:** More professional reports, stronger stats, verifiable exports
-
 **Improvement/Fix:** Multiple fixes & enhancements across scraping, PDFs, CNE endpoints and core flows  
 * **Why:** Weeks of accumulated incremental improvements  
 * **Impact:** Much more stable system ready for frontend integration
@@ -97,7 +89,7 @@ Major merge of `dev-v4` into `main`: +150 commits including full code refactor t
 - Massive migration to `src/` layout
 - Creation/evolution of `command_center/` folder (settings, rules, scheduler)
 - Replacement of `analyze_rules` with modular temporary rule set
-- Dashboard modularization into dedicated package
+- Modular analysis package into dedicated module
 - Updates to `pdf_generator.py`, `main.py`, `requirements.txt`, scraping flows
 - Multiple branch merges and old branch cleanups
 - LICENSE update (adopting current AGPL-3.0 from main, Jan 15 2026 commit) & initial refactor documentation updates

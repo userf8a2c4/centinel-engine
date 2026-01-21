@@ -46,19 +46,6 @@ def test_load_config_reads_yaml(tmp_path, monkeypatch):
                 },
                 "alerts": {
                     "critical_anomaly_types": ["FOO"],
-                    "telegram": {
-                        "enabled": False,
-                        "bot_token": "",
-                        "chat_id": "",
-                        "template": "neutral",
-                    },
-                    "x": {
-                        "enabled": False,
-                        "api_key": "",
-                        "api_secret": "",
-                        "access_token": "",
-                        "access_token_secret": "",
-                    },
                 },
                 "arbitrum": {
                     "enabled": False,

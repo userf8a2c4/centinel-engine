@@ -48,34 +48,9 @@ Salida:
 - `analysis_results.parquet` (si hay soporte en el entorno)
 - `anomalies_report.json`
 
-### Dashboard local
+### Resumen diario
 ```bash
-pip install -r requirements.txt
-streamlit run dashboard.py
-```
-
-### Publicación en Telegram
-Configura `alerts.telegram` en `config/config.yaml`:
-- `enabled`
-- `bot_token`
-- `chat_id`
-
-Ejemplo:
-```bash
-python scripts/post_to_telegram.py "Reporte técnico" "hashes/snapshot_XX.sha256" neutral
-```
-
-### Publicación en X
-Configura `alerts.x` en `config/config.yaml`:
-- `enabled`
-- `api_key`
-- `api_secret`
-- `access_token`
-- `access_token_secret`
-
-Ejemplo:
-```bash
-python scripts/post_to_x.py "Reporte técnico" "hashes/snapshot_XX.sha256"
+python scripts/summarize_findings.py
 ```
 
 ### Frecuencia sugerida
@@ -133,33 +108,9 @@ Outputs:
 - `analysis_results.parquet` (if supported)
 - `anomalies_report.json`
 
-### Local dashboard
+### Daily summary
 ```bash
-streamlit run dashboard.py
-```
-
-### Telegram publishing
-Configure `alerts.telegram` in `config/config.yaml`:
-- `enabled`
-- `bot_token`
-- `chat_id`
-
-Example:
-```bash
-python scripts/post_to_telegram.py "Technical report" "hashes/snapshot_XX.sha256" neutral
-```
-
-### X publishing
-Configure `alerts.x` in `config/config.yaml`:
-- `enabled`
-- `api_key`
-- `api_secret`
-- `access_token`
-- `access_token_secret`
-
-Example:
-```bash
-python scripts/post_to_x.py "Technical report" "hashes/snapshot_XX.sha256"
+python scripts/summarize_findings.py
 ```
 
 ### Suggested cadence

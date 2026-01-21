@@ -9,12 +9,11 @@ pública para auditorías externas.
 - Publicación de hashes y CIDs en blockchain (Polygon testnet).
 - Soporte IPFS para snapshots distribuidos.
 - API pública FastAPI con endpoints de snapshots, alertas y verificación.
-- Suscripciones avanzadas en Telegram por departamento.
 
 ## Improvements
 - Persistencia de metadatos on-chain e IPFS junto a snapshots.
 - Normalización de alertas con descripciones claras para reportes.
-- Visualizaciones avanzadas (Benford, outliers, mapa) en el dashboard.
+- Visualizaciones avanzadas (Benford, outliers, mapa) en reportes técnicos.
 
 ## Technical Notes
 - IPFS se activa con `IPFS_ENABLED=true` y `IPFS_API_URL` opcional.
@@ -32,12 +31,11 @@ public API for external audits.
 - Blockchain publishing of hashes and CIDs (Polygon testnet).
 - IPFS support for distributed snapshots.
 - FastAPI public API for snapshots, alerts, and verification.
-- Advanced Telegram subscriptions by department.
 
 ## Improvements
 - Persistence of on-chain and IPFS metadata alongside snapshots.
 - Alert normalization with clear descriptions for reports.
-- Advanced visuals (Benford, outliers, map) in the dashboard.
+- Advanced visuals (Benford, outliers, map) in technical reports.
 
 ## Technical Notes
 - IPFS is enabled with `IPFS_ENABLED=true` and optional `IPFS_API_URL`.

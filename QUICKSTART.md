@@ -22,13 +22,9 @@
    poetry run python scripts/download_and_hash.py
    poetry run python scripts/analyze_rules.py
    ```
-7. Lanza el dashboard:
+7. Genera el resumen diario:
    ```bash
-   poetry run streamlit run dashboard.py
-   ```
-8. (Opcional) Ejecuta el bot:
-   ```bash
-   TELEGRAM_TOKEN=... poetry run python bot.py
+   poetry run python scripts/summarize_findings.py
    ```
 
 ## English
@@ -53,11 +49,7 @@
    poetry run python scripts/download_and_hash.py
    poetry run python scripts/analyze_rules.py
    ```
-7. Launch the dashboard:
+7. Generate the daily summary:
    ```bash
-   poetry run streamlit run dashboard.py
-   ```
-8. (Optional) Run the bot:
-   ```bash
-   TELEGRAM_TOKEN=... poetry run python bot.py
+   poetry run python scripts/summarize_findings.py
    ```

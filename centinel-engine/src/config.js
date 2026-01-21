@@ -50,9 +50,7 @@ const config = {
   privateKey: process.env.PRIVATE_KEY || "",
   enableBlobTx: process.env.ENABLE_BLOB_TX === "true",
   maxFeePerGasGwei: Number(process.env.MAX_FEE_GWEI || 0.05),
-  maxPriorityFeePerGasGwei: Number(process.env.MAX_PRIORITY_FEE_GWEI || 0.01),
-  telegramToken: process.env.TELEGRAM_BOT_TOKEN || "",
-  telegramChatId: process.env.TELEGRAM_CHAT_ID || ""
+  maxPriorityFeePerGasGwei: Number(process.env.MAX_PRIORITY_FEE_GWEI || 0.01)
 };
 
 export default config;

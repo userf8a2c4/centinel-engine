@@ -2,13 +2,13 @@
 
 ## Corto plazo
 - Integración completa con Poetry y CI/CD para linting, type-checking y tests.
-- Automatización de despliegue Docker (dashboard + cron) con volúmenes persistentes.
+- Automatización de despliegue Docker (cron) con volúmenes persistentes.
 - Mejoras de observabilidad: métricas de frescura y alertas automáticas.
 
 ## Mediano plazo
 - Validación de datos con firmas y pruebas criptográficas adicionales.
 - Integración con almacenamiento distribuido (IPFS) para snapshots críticos.
-- Alertas multicanal (Telegram + Discord) con reglas configurables.
+- Alertas multicanal con reglas configurables.
 
 ## Largo plazo
 - Verificación pública en exploradores y paneles ciudadanos.
@@ -21,13 +21,13 @@
 
 ## Short term
 - Full Poetry + CI/CD integration for linting, type-checking, and tests.
-- Docker deployment automation (dashboard + cron) with persistent volumes.
+- Docker deployment automation (cron) with persistent volumes.
 - Observability improvements: freshness metrics and automated alerts.
 
 ## Mid term
 - Data validation with signatures and additional cryptographic proofs.
 - Distributed storage integration (IPFS) for critical snapshots.
-- Multi-channel alerts (Telegram + Discord) with configurable rules.
+- Multi-channel alerts with configurable rules.
 
 ## Long term
 - Public verification in explorers and civic dashboards.

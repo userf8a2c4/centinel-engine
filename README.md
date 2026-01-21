@@ -22,7 +22,6 @@ Sentinel opera con un enfoque defensivo, respetando límites y registrando evide
 
 ### Estado actual
 - **AUDIT ACTIVE**
-- **Dashboard:** [Streamlit](https://centinel.streamlit.app/)
 
 ### Control maestro (todo configurable en un solo lugar)
 Todo lo modificable vive en `control_master/` para evitar tocar el resto del código.
@@ -43,29 +42,17 @@ Todo lo modificable vive en `control_master/` para evitar tocar el resto del có
    ```bash
    poetry run python scripts/download_and_hash.py
    ```
-4. Abre el dashboard:
+4. Ejecuta el análisis:
    ```bash
-   poetry run streamlit run dashboard.py
+   poetry run python scripts/analyze_rules.py
    ```
-
-### Dashboard avanzado
-- Modo claro/oscuro automático según el sistema.
-- Paginación con carga diferida para grandes volúmenes.
-- Alertas visuales de frescura de datos y posibles retrasos.
-
-### Bot Telegram
-Comandos principales:
-- `/status` Estado del sistema.
-- `/last` Último snapshot (alias de `/ultimo`).
-- `/verify <hash>` Verifica hashes (modo auditor).
-- `/help` Lista de comandos disponibles.
 
 ### Producción con Docker
 - Construye la imagen:
   ```bash
   docker build -t centinel-engine .
   ```
-- Levanta servicios (dashboard + cron):
+- Levanta servicios (cron):
   ```bash
   docker compose up -d
   ```
@@ -100,7 +87,6 @@ Sentinel operates defensively, respecting limits and recording evidence for repr
 
 ### Current status
 - **AUDIT ACTIVE**
-- **Dashboard:** [Streamlit](https://centinel.streamlit.app/)
 
 ### Master control (single place to edit)
 Everything configurable lives under `control_master/` to avoid touching the rest of the code.
@@ -121,29 +107,17 @@ Everything configurable lives under `control_master/` to avoid touching the rest
    ```bash
    poetry run python scripts/download_and_hash.py
    ```
-4. Run the dashboard:
+4. Run the analysis:
    ```bash
-   poetry run streamlit run dashboard.py
+   poetry run python scripts/analyze_rules.py
    ```
-
-### Advanced dashboard
-- Automatic light/dark mode based on system settings.
-- Pagination with lazy loading for large datasets.
-- Visual alerts for data freshness and delays.
-
-### Telegram bot
-Key commands:
-- `/status` System status.
-- `/last` Latest snapshot (alias of `/ultimo`).
-- `/verify <hash>` Verify hashes (auditor mode).
-- `/help` List available commands.
 
 ### Production with Docker
 - Build the image:
   ```bash
   docker build -t centinel-engine .
   ```
-- Start services (dashboard + cron):
+- Start services (cron):
   ```bash
   docker compose up -d
   ```
