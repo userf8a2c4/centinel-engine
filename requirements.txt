@@ -1,4 +1,4 @@
-# requirements.txt - Sentinel (versión completa enero 2026)
+# requirements.txt - Centinel (versión completa enero 2026)
 # Dependencias para scraping, análisis, dashboard, alertas y visualizaciones
 
 # Core y scraping

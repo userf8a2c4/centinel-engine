@@ -1,5 +1,5 @@
-"""Utilidades compartidas para el proyecto Sentinel.
+"""Utilidades compartidas para el proyecto Centinel.
 
 English:
-    Shared utility helpers for the Sentinel project.
+    Shared utility helpers for the Centinel project.
 """
