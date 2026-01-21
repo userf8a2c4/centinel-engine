@@ -1,7 +1,7 @@
-"""Ajusta sys.path para priorizar el paquete local de Sentinel.
+"""Ajusta sys.path para priorizar el paquete local de Centinel.
 
 English:
-    Adjusts sys.path to prioritize the local Sentinel package.
+    Adjusts sys.path to prioritize the local Centinel package.
 """
 
 from __future__ import annotations

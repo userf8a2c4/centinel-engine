@@ -1,3 +1,8 @@
+"""Pruebas de configuración para el módulo Centinel.
+
+Tests for the Centinel configuration module.
+"""
+
 import json
 from pathlib import Path
 

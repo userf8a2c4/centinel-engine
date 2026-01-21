@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 """Esquemas Pydantic para validar y normalizar datos del CNE.
 
-English: Pydantic schemas to validate and normalize CNE data.
+Pydantic schemas to validate and normalize CNE data.
 """
+
+from __future__ import annotations
 
 import json
 from datetime import datetime

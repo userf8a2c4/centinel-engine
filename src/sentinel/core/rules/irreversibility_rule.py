@@ -1,3 +1,8 @@
+"""Regla para detectar cambios irreversibles en liderazgos electorales.
+
+Rule to detect irreversible changes in electoral leads.
+"""
+
 from __future__ import annotations
 
 import os

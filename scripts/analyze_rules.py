@@ -25,7 +25,8 @@ Date: January 2026
 from pathlib import Path
 import sys
 
-# Ajusta la ruta para importar reglas desde command_center. / Adjust the path to import rules from command_center.
+# Ajusta la ruta para importar reglas desde command_center.
+# Adjust the path to import rules from command_center.
 RULES_PATH = Path(__file__).resolve().parents[1] / "command_center"
 sys.path.insert(0, str(RULES_PATH))
 
@@ -34,10 +35,14 @@ from rules.last_digit_uniformity import last_digit_uniformity_test
 from rules.spike_time_series import detect_spike_in_time_series
 
 
-# Ejemplo de uso (main para pruebas). / Example usage (main for tests).
+# Ejemplo de uso (main para pruebas).
+# Example usage (main for tests).
 if __name__ == "__main__":
-    # Datos de prueba (reemplaza con tus actas reales). / Test data (replace with your real records).
-    sample_votes = [12345, 6789, 100000, 54321, 9876]  # Conteos de votos. / Vote counts.
+    # Datos de prueba (reemplaza con tus actas reales).
+    # Test data (replace with your real records).
+    # Conteos de votos.
+    # Vote counts.
+    sample_votes = [12345, 6789, 100000, 54321, 9876]
 
     chi2, alert = benford_second_digit_test(sample_votes)
     print(f"2BL Test: chi2={chi2:.2f}, Alerta={alert}")

@@ -1,3 +1,8 @@
+"""Pruebas del orquestador de reglas de análisis.
+
+Tests for the analysis rules orchestrator.
+"""
+
 from __future__ import annotations
 
 from typing import List, Optional

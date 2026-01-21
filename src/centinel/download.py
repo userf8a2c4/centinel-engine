@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 """Descarga resiliente y hashing encadenado para Centinel.
 
-English: Resilient download and chained hashing for Centinel.
+Resilient download and chained hashing for Centinel.
 """
+
+from __future__ import annotations
 
 import hashlib
 import shutil

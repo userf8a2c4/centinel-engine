@@ -1,3 +1,8 @@
+"""Pruebas básicas de la cadena de hashes.
+
+Basic tests for the hash chain.
+"""
+
 from sentinel.core.hashchain import compute_hash
 
 

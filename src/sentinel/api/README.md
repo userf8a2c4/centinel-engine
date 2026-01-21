@@ -1,4 +1,4 @@
-# API pública / Public API
+# API pública
 
 ## Español
 
@@ -20,6 +20,8 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000
 
 - `SNAPSHOTS_DB_PATH`: ruta al SQLite de snapshots (default `data/snapshots.db`).
 - `CORS_ORIGINS`: lista separada por comas o `*` para permitir CORS.
+
+---
 
 ## English
 

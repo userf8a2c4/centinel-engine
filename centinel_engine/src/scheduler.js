@@ -1,16 +1,37 @@
+/**
+ * Scheduler de ciclos de scraping y degradación controlada.
+ *
+ * Scheduler for scraping cycles and controlled degradation.
+ */
+
 import config from "./config.js";
 import logger from "./logger.js";
 import { scrapeCycle } from "./scraper.js";
 import batcher from "./batcher.js";
 
+/**
+ * Genera un número entero aleatorio entre min y max.
+ *
+ * Generate a random integer between min and max.
+ */
 const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
+/**
+ * Orquesta ciclos de scraping y envío de batches.
+ *
+ * Orchestrate scraping cycles and batch sending.
+ */
 class Scheduler {
   constructor() {
     this.failedCycles = 0;
     this.isRunning = false;
   }
 
+  /**
+   * Ejecuta un ciclo completo y programa el siguiente.
+   *
+   * Run a full cycle and schedule the next one.
+   */
   async runCycle() {
     this.isRunning = true;
     logger.info({ msg: "Scrape cycle started" });
@@ -46,6 +67,11 @@ class Scheduler {
     }, nextInterval);
   }
 
+  /**
+   * Inicia el scheduler si no está en ejecución.
+   *
+   * Start the scheduler if it is not already running.
+   */
   start() {
     if (this.isRunning) {
       return;

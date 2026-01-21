@@ -1,3 +1,8 @@
+"""Funciones comunes para extracción segura de datos electorales.
+
+Common helpers for safely extracting electoral data.
+"""
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional
@@ -6,6 +11,10 @@ from dateutil import parser
 
 
 def safe_int(value: object, default: int = 0) -> int:
+    """Convierte a entero con fallback seguro.
+
+    Convert to integer with a safe fallback.
+    """
     try:
         if value is None:
             return default
@@ -15,6 +24,10 @@ def safe_int(value: object, default: int = 0) -> int:
 
 
 def safe_int_or_none(value: object) -> Optional[int]:
+    """Convierte a entero o devuelve None si no es posible.
+
+    Convert to integer or return None if not possible.
+    """
     try:
         if value is None:
             return None
@@ -24,6 +37,10 @@ def safe_int_or_none(value: object) -> Optional[int]:
 
 
 def safe_float_or_none(value: object) -> Optional[float]:
+    """Convierte a float o devuelve None si no es posible.
+
+    Convert to float or return None if not possible.
+    """
     try:
         if value is None:
             return None
@@ -33,6 +50,10 @@ def safe_float_or_none(value: object) -> Optional[float]:
 
 
 def extract_department(data: dict) -> str:
+    """Extrae el departamento o retorna un valor por defecto.
+
+    Extract the department or return a default value.
+    """
     meta = data.get("meta") or data.get("metadata") or {}
     return (
         data.get("departamento")
@@ -44,6 +65,10 @@ def extract_department(data: dict) -> str:
 
 
 def parse_timestamp(data: dict) -> Optional[object]:
+    """Parsea un timestamp desde varias claves conocidas.
+
+    Parse a timestamp from known keys.
+    """
     raw_ts = data.get("timestamp") or data.get("timestamp_utc") or data.get("fecha")
     meta = data.get("meta") or data.get("metadata") or {}
     raw_ts = raw_ts or meta.get("timestamp_utc")
@@ -56,6 +81,10 @@ def parse_timestamp(data: dict) -> Optional[object]:
 
 
 def extract_candidates(data: dict) -> List[dict]:
+    """Extrae la lista de candidatos desde variantes de clave.
+
+    Extract the candidate list from key variants.
+    """
     if isinstance(data.get("candidates"), list):
         return data.get("candidates", [])
     if isinstance(data.get("candidatos"), list):
@@ -66,6 +95,10 @@ def extract_candidates(data: dict) -> List[dict]:
 
 
 def extract_candidate_votes(data: dict) -> Dict[str, Dict[str, object]]:
+    """Construye un mapa de votos por candidato.
+
+    Build a candidate vote map.
+    """
     candidates = {}
 
     if isinstance(data.get("resultados"), dict):
@@ -106,6 +139,10 @@ def extract_candidate_votes(data: dict) -> Dict[str, Dict[str, object]]:
 
 
 def extract_total_votes(data: dict) -> Optional[int]:
+    """Extrae el total de votos desde claves conocidas.
+
+    Extract total votes from known keys.
+    """
     totals = data.get("totals") or {}
     votos_totales = data.get("votos_totales") or {}
     return safe_int_or_none(
@@ -120,6 +157,10 @@ def extract_total_votes(data: dict) -> Optional[int]:
 
 
 def extract_vote_breakdown(data: dict) -> Dict[str, Optional[int]]:
+    """Extrae el desglose de votos válidos/nulos/blancos.
+
+    Extract the breakdown of valid/null/blank votes.
+    """
     totals = data.get("totals") or {}
     votos_totales = data.get("votos_totales") or {}
     return {
@@ -149,6 +190,10 @@ def extract_vote_breakdown(data: dict) -> Dict[str, Optional[int]]:
 
 
 def extract_actas_mesas_counts(data: dict) -> Dict[str, Optional[int]]:
+    """Extrae conteos de actas y mesas.
+
+    Extract tally sheet and table counts.
+    """
     actas = data.get("actas") or {}
     mesas = data.get("mesas") or {}
     totals = data.get("totals") or {}
@@ -183,6 +228,10 @@ def extract_actas_mesas_counts(data: dict) -> Dict[str, Optional[int]]:
 
 
 def extract_porcentaje_escrutado(data: dict) -> Optional[float]:
+    """Extrae el porcentaje de escrutinio cuando existe.
+
+    Extract the scrutiny percentage when available.
+    """
     porcentaje = (
         data.get("porcentaje_escrutado")
         or data.get("porcentaje")
@@ -195,6 +244,10 @@ def extract_porcentaje_escrutado(data: dict) -> Optional[float]:
 
 
 def extract_registered_voters(data: dict) -> Optional[int]:
+    """Extrae el total de electores registrados.
+
+    Extract the total registered voters.
+    """
     totals = data.get("totals") or {}
     return safe_int_or_none(
         totals.get("registered_voters")

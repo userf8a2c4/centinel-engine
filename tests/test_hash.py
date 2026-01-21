@@ -1,3 +1,8 @@
+"""Pruebas unitarias de hashing encadenado.
+
+Unit tests for chained hashing.
+"""
+
 import hashlib
 
 from sentinel.core.hashchain import compute_hash

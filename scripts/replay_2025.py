@@ -1,3 +1,8 @@
+"""Reproduce un ciclo 2025: normaliza, analiza y genera diffs de snapshots.
+
+Replay a 2025 cycle: normalize, analyze, and generate snapshot diffs.
+"""
+
 import argparse
 import json
 import os
@@ -12,6 +17,10 @@ from scripts.cli import load_snapshots, normalize_snapshots, write_normalized_ou
 
 @contextmanager
 def _chdir(path: Path) -> Iterable[None]:
+    """Cambia temporalmente el directorio de trabajo.
+
+    Temporarily change the working directory.
+    """
     current = Path.cwd()
     os.chdir(path)
     try:
@@ -21,20 +30,36 @@ def _chdir(path: Path) -> Iterable[None]:
 
 
 def _load_json(path: Path) -> Dict[str, Any]:
+    """Carga un archivo JSON desde disco.
+
+    Load a JSON file from disk.
+    """
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _format_timestamp() -> str:
+    """Devuelve un timestamp UTC en formato ISO.
+
+    Return a UTC timestamp in ISO format.
+    """
     return datetime.now(timezone.utc).isoformat()
 
 
 def _candidate_key(candidate: Dict[str, Any]) -> int:
+    """Normaliza el identificador numérico del candidato.
+
+    Normalize a candidate numeric identifier.
+    """
     return int(candidate.get("slot") or 0)
 
 
 def _build_candidate_lookup(
     candidates: List[Dict[str, Any]],
 ) -> Dict[int, Dict[str, Any]]:
+    """Indexa candidatos por slot para comparación.
+
+    Index candidates by slot for comparison.
+    """
     lookup: Dict[int, Dict[str, Any]] = {}
     for candidate in candidates:
         slot = _candidate_key(candidate)
@@ -43,6 +68,10 @@ def _build_candidate_lookup(
 
 
 def _diff_totals(previous: Dict[str, Any], current: Dict[str, Any]) -> Dict[str, int]:
+    """Calcula diferencias entre totales de dos snapshots.
+
+    Compute differences between totals across two snapshots.
+    """
     totals_prev = previous.get("totals", {})
     totals_curr = current.get("totals", {})
     fields = [
@@ -62,6 +91,10 @@ def _diff_candidates(
     previous: Dict[str, Any],
     current: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
+    """Calcula variaciones por candidato entre snapshots.
+
+    Compute per-candidate deltas between snapshots.
+    """
     prev_candidates = _build_candidate_lookup(previous.get("candidates", []))
     curr_candidates = _build_candidate_lookup(current.get("candidates", []))
     slots = sorted(set(prev_candidates.keys()) | set(curr_candidates.keys()))
@@ -86,6 +119,10 @@ def _diff_candidates(
 
 
 def build_snapshot_diffs(normalized_dir: Path) -> List[Dict[str, Any]]:
+    """Construye el reporte de diffs para un directorio normalizado.
+
+    Build a diffs report for a normalized directory.
+    """
     files = sorted(normalized_dir.glob("*.json"))
     diffs: List[Dict[str, Any]] = []
     for previous_path, current_path in zip(files, files[1:]):
@@ -104,6 +141,10 @@ def build_snapshot_diffs(normalized_dir: Path) -> List[Dict[str, Any]]:
 
 
 def write_report(report_path: Path, normalized_dir: Path) -> Path:
+    """Escribe el reporte de diffs en JSON.
+
+    Write the diffs report as JSON.
+    """
     diffs = build_snapshot_diffs(normalized_dir)
     payload = {
         "generated_at": _format_timestamp(),
@@ -125,6 +166,10 @@ def run_replay(
     department: str,
     year: int,
 ) -> Tuple[Path, Path]:
+    """Ejecuta el replay completo y devuelve rutas clave.
+
+    Run the full replay and return key paths.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     analysis_dir.mkdir(parents=True, exist_ok=True)
 
@@ -141,6 +186,10 @@ def run_replay(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Construye el parser de argumentos CLI.
+
+    Build the CLI argument parser.
+    """
     parser = argparse.ArgumentParser(
         description="Replay 2025: normaliza snapshots, ejecuta reglas y genera diffs neutrales."
     )
@@ -179,6 +228,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Punto de entrada principal del script.
+
+    Main script entry point.
+    """
     parser = build_parser()
     args = parser.parse_args()
 

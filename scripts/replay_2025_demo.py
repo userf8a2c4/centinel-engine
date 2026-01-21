@@ -1,3 +1,8 @@
+"""Genera un reporte demo de diffs para snapshots 2025.
+
+Generate a demo diffs report for 2025 snapshots.
+"""
+
 import argparse
 import json
 import logging
@@ -14,6 +19,10 @@ logger = logging.getLogger("sentinel.replay")
 
 
 def parse_timestamp(path: Path, payload: dict) -> datetime | None:
+    """Extrae el timestamp preferido desde payload o nombre de archivo.
+
+    Extract a preferred timestamp from the payload or filename.
+    """
     raw = payload.get("meta", {}).get("timestamp_utc")
     if raw:
         try:
@@ -27,6 +36,10 @@ def parse_timestamp(path: Path, payload: dict) -> datetime | None:
 
 
 def load_snapshot(path: Path) -> dict | None:
+    """Carga y normaliza un snapshot individual para el reporte.
+
+    Load and normalize a single snapshot for the report.
+    """
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except OSError as exc:
@@ -65,6 +78,10 @@ def load_snapshot(path: Path) -> dict | None:
 
 
 def diff_snapshots(previous: dict, current: dict) -> dict:
+    """Calcula diferencias entre dos snapshots normalizados.
+
+    Compute differences between two normalized snapshots.
+    """
     totals_delta = {
         key: current["totals"][key] - previous["totals"][key]
         for key in previous["totals"].keys()
@@ -86,6 +103,10 @@ def diff_snapshots(previous: dict, current: dict) -> dict:
 
 
 def generate_report(source_dir: Path, output_path: Path) -> None:
+    """Genera el reporte JSON de diffs para un directorio de snapshots.
+
+    Generate the JSON diffs report for a snapshots directory.
+    """
     snapshots = []
     for path in sorted(source_dir.glob("*.json")):
         snapshot = load_snapshot(path)
@@ -115,6 +136,10 @@ def generate_report(source_dir: Path, output_path: Path) -> None:
 
 
 def main() -> None:
+    """Punto de entrada principal del script.
+
+    Main script entry point.
+    """
     parser_cli = argparse.ArgumentParser(
         description="Genera reporte neutral de diffs con snapshots 2025."
     )

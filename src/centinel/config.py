@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 """Configuración segura y validada de Centinel.
 
-English: Secure and validated Centinel configuration.
+Secure and validated Centinel configuration.
 """
+
+from __future__ import annotations
 
 from pathlib import Path
 from typing import Dict, List, Optional

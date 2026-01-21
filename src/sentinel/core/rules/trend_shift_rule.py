@@ -1,3 +1,8 @@
+"""Regla para detectar cambios de tendencia en votos por candidato.
+
+Rule to detect trend shifts in candidate votes.
+"""
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional

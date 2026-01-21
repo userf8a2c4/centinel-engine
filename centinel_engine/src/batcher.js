@@ -1,9 +1,20 @@
+/**
+ * Construye lotes y heartbeats para anclaje en blockchain.
+ *
+ * Build batches and heartbeats for blockchain anchoring.
+ */
+
 import { MerkleTree } from "merkletreejs";
 import keccak256 from "keccak256";
 import config from "./config.js";
 import logger from "./logger.js";
 import { getWallet, sendBatchToChain, sendHeartbeatToChain } from "./blockchain.js";
 
+/**
+ * Acumula hashes y publica lotes con Merkle root.
+ *
+ * Accumulate hashes and publish batches with a Merkle root.
+ */
 class Batcher {
   constructor() {
     this.entries = [];
@@ -12,10 +23,20 @@ class Batcher {
     this.heartbeatTimer = null;
   }
 
+  /**
+   * Agrega entradas de hash al lote actual.
+   *
+   * Add hash entries to the current batch.
+   */
   addEntries(entries) {
     this.entries.push(...entries);
   }
 
+  /**
+   * Calcula el Merkle root para un conjunto de entradas.
+   *
+   * Compute the Merkle root for a set of entries.
+   */
   buildMerkleRoot(entries) {
     const leaves = entries.map((entry) => keccak256(entry.hash));
     if (leaves.length === 0) {
@@ -25,6 +46,11 @@ class Batcher {
     return `0x${tree.getRoot().toString("hex")}`;
   }
 
+  /**
+   * Crea y envía un batch firmado a la cadena.
+   *
+   * Create and send a signed batch to the chain.
+   */
   async createBatch() {
     const wallet = getWallet();
     if (!wallet) {
@@ -51,6 +77,11 @@ class Batcher {
     this.batchId += 1;
   }
 
+  /**
+   * Emite un heartbeat firmado para demostrar continuidad.
+   *
+   * Emit a signed heartbeat to prove continuity.
+   */
   async createHeartbeat() {
     const wallet = getWallet();
     if (!wallet) {
@@ -68,6 +99,11 @@ class Batcher {
     await sendHeartbeatToChain(heartbeat);
   }
 
+  /**
+   * Inicia los temporizadores de batch y heartbeat.
+   *
+   * Start the batch and heartbeat timers.
+   */
   start() {
     const batchIntervalMs = config.batchIntervalHours * 60 * 60 * 1000;
     this.batchTimer = setInterval(() => {

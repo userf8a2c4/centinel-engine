@@ -1,5 +1,4 @@
-"""English docstring: API package for Sentinel.
+"""Paquete de API para Centinel.
 
----
-Docstring en español: Paquete de API para Sentinel.
+API package for Centinel.
 """

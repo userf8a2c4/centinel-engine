@@ -12,7 +12,7 @@ from typing import Any
 
 import yaml
 
-CONFIG_PATH = Path("config") / "config.yaml"
+CONFIG_PATH = Path("command_center") / "config.yaml"
 
 REQUIRED_TOP_LEVEL_KEYS = [
     "master_switch",
@@ -57,24 +57,24 @@ REQUIRED_NESTED_KEYS = {
 
 
 def load_config() -> dict[str, Any]:
-    """Carga la configuración desde config/config.yaml y valida sus claves.
+    """Carga la configuración desde command_center/config.yaml y valida sus claves.
 
     Raises:
-        FileNotFoundError: Si config/config.yaml no existe.
+        FileNotFoundError: Si command_center/config.yaml no existe.
         KeyError: Si falta alguna clave requerida en la configuración.
         yaml.YAMLError: Si hay errores de sintaxis en el YAML.
 
     English:
-        Load configuration from config/config.yaml and validate required keys.
+        Load configuration from command_center/config.yaml and validate required keys.
 
     Raises:
-        FileNotFoundError: If config/config.yaml does not exist.
+        FileNotFoundError: If command_center/config.yaml does not exist.
         KeyError: If any required key is missing from configuration.
         yaml.YAMLError: When YAML syntax errors are detected.
     """
     if not CONFIG_PATH.exists():
         raise FileNotFoundError(
-            "Falta config/config.yaml. Centraliza toda la configuración en esa ruta."
+            "Falta command_center/config.yaml. Centraliza toda la configuración en esa ruta."
         )
 
     with CONFIG_PATH.open("r", encoding="utf-8") as handle:
@@ -102,7 +102,7 @@ def load_config() -> dict[str, Any]:
     if missing_keys:
         missing = ", ".join(sorted(set(missing_keys)))
         raise KeyError(
-            "Faltan claves requeridas en config/config.yaml: "
+            "Faltan claves requeridas en command_center/config.yaml: "
             f"{missing}. Revisa la configuración centralizada."
         )
 

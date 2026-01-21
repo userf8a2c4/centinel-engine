@@ -1,3 +1,9 @@
+/**
+ * Scraper defensivo con rotación de agentes y control de errores.
+ *
+ * Defensive scraper with user-agent rotation and error control.
+ */
+
 import axios from "axios";
 import crypto from "crypto";
 import config from "./config.js";
@@ -5,8 +11,18 @@ import logger from "./logger.js";
 
 const robotsChecked = new Set();
 
+/**
+ * Suspende la ejecución durante un intervalo.
+ *
+ * Pause execution for a time interval.
+ */
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Devuelve una copia del arreglo en orden aleatorio.
+ *
+ * Return a shuffled copy of the array.
+ */
 const shuffleArray = (array) => {
   const copy = [...array];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -16,18 +32,38 @@ const shuffleArray = (array) => {
   return copy;
 };
 
+/**
+ * Selecciona un User-Agent aleatorio de configuración.
+ *
+ * Select a random User-Agent from configuration.
+ */
 const getRandomUserAgent = () => {
   const index = Math.floor(Math.random() * config.userAgents.length);
   return config.userAgents[index];
 };
 
+/**
+ * Calcula un delay con jitter.
+ *
+ * Calculate a delay with jitter.
+ */
 const getDelayMs = () => {
   const jitter = (Math.random() * 2 - 1) * config.jitterMs;
   return Math.max(0, config.baseDelayMs + jitter);
 };
 
+/**
+ * Indica si un status HTTP amerita reintento.
+ *
+ * Indicate whether an HTTP status should be retried.
+ */
 const shouldRetry = (status) => status === 429 || (status >= 500 && status <= 599);
 
+/**
+ * Revisa robots.txt una sola vez por dominio.
+ *
+ * Check robots.txt once per domain.
+ */
 const checkRobotsOnce = async (url) => {
   try {
     const parsed = new URL(url);
@@ -44,6 +80,11 @@ const checkRobotsOnce = async (url) => {
   }
 };
 
+/**
+ * Descarga con reintentos controlados.
+ *
+ * Fetch with controlled retries.
+ */
 const fetchWithRetry = async (url) => {
   const headers = {
     "User-Agent": getRandomUserAgent(),
@@ -87,6 +128,11 @@ const fetchWithRetry = async (url) => {
   throw new Error("Unexpected retry flow");
 };
 
+/**
+ * Ejecuta un ciclo completo de scraping y hashing.
+ *
+ * Run a full scraping and hashing cycle.
+ */
 export const scrapeCycle = async () => {
   const shuffled = shuffleArray(config.urls);
   let consecutiveErrors = 0;

@@ -1,7 +1,7 @@
-"""Paquete raíz para la distribución local de Sentinel.
+"""Paquete raíz para la distribución local de Centinel.
 
 English:
-    Root package shim for the local Sentinel distribution.
+    Root package shim for the local Centinel distribution.
 """
 
 from pathlib import Path

@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""CLI para normalización, hashing y resúmenes de snapshots.
+
+CLI for snapshot normalization, hashing, and summaries.
+"""
+
 import argparse
 import hashlib
 import json
@@ -13,6 +18,11 @@ from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_js
 
 @dataclass(frozen=True)
 class SnapshotInput:
+    """Snapshot crudo y sus metadatos mínimos.
+
+    Raw snapshot and minimal metadata.
+    """
+
     path: Path
     timestamp: str
     raw: Dict[str, Any]
@@ -20,11 +30,20 @@ class SnapshotInput:
 
 @dataclass(frozen=True)
 class NormalizedSnapshot:
+    """Snapshot normalizado con su representación canónica.
+
+    Normalized snapshot with its canonical representation.
+    """
+
     name: str
     canonical_json: str
 
 
 def load_snapshots(data_dir: Path) -> List[SnapshotInput]:
+    """Carga snapshots crudos desde un directorio.
+
+    Load raw snapshots from a directory.
+    """
     files = sorted(data_dir.glob("*.json"))
     snapshots: List[SnapshotInput] = []
     for path in files:
@@ -39,6 +58,10 @@ def normalize_snapshots(
     department: str,
     year: int,
 ) -> List[NormalizedSnapshot]:
+    """Normaliza snapshots para análisis reproducible.
+
+    Normalize snapshots for reproducible analysis.
+    """
     normalized: List[NormalizedSnapshot] = []
     for snapshot in snapshots:
         normalized_snapshot = normalize_snapshot(
@@ -61,6 +84,10 @@ def write_normalized_outputs(
     normalized: List[NormalizedSnapshot],
     output_dir: Path,
 ) -> List[Path]:
+    """Escribe snapshots normalizados en disco.
+
+    Write normalized snapshots to disk.
+    """
     normalized_dir = output_dir / "normalized"
     normalized_dir.mkdir(parents=True, exist_ok=True)
     output_paths: List[Path] = []
@@ -75,6 +102,10 @@ def write_hashchain(
     normalized: List[NormalizedSnapshot],
     output_dir: Path,
 ) -> Tuple[Path, List[Dict[str, Optional[str]]]]:
+    """Genera y guarda la cadena de hashes.
+
+    Generate and store the hash chain.
+    """
     hash_entries: List[Dict[str, Optional[str]]] = []
     previous_hash: Optional[str] = None
     hashes_dir = output_dir / "hashes"
@@ -103,6 +134,10 @@ def write_hashchain(
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
+    """Convierte a entero de forma segura con default.
+
+    Safely convert to integer with a default fallback.
+    """
     try:
         if value is None:
             return default
@@ -112,6 +147,10 @@ def _safe_int(value: Any, default: int = 0) -> int:
 
 
 def _apply_benford(votos_lista: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Evalúa rápidamente una señal Benford de primer dígito.
+
+    Quickly evaluate a first-digit Benford signal.
+    """
     if len(votos_lista) < 10:
         return None
 
@@ -132,6 +171,10 @@ def _apply_benford(votos_lista: List[Dict[str, Any]]) -> Optional[Dict[str, Any]
 
 
 def audit_snapshots(snapshots: List[SnapshotInput]) -> List[Dict[str, Any]]:
+    """Detecta anomalías simples entre snapshots.
+
+    Detect simple anomalies across snapshots.
+    """
     peak_votes: Dict[str, Dict[str, Any]] = {}
     anomalies: List[Dict[str, Any]] = []
 
@@ -180,6 +223,10 @@ def audit_snapshots(snapshots: List[SnapshotInput]) -> List[Dict[str, Any]]:
 
 
 def write_anomalies(anomalies: List[Dict[str, Any]], output_dir: Path) -> Path:
+    """Guarda las anomalías detectadas en JSON.
+
+    Persist detected anomalies as JSON.
+    """
     anomalies_path = output_dir / "anomalies.json"
     anomalies_path.write_text(
         json.dumps(anomalies, indent=2, sort_keys=True) + "\n",
@@ -189,6 +236,10 @@ def write_anomalies(anomalies: List[Dict[str, Any]], output_dir: Path) -> Path:
 
 
 def _sha256_file(path: Path) -> str:
+    """Calcula el SHA-256 de un archivo en disco.
+
+    Compute the SHA-256 of a file on disk.
+    """
     hasher = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(8192), b""):
@@ -197,6 +248,10 @@ def _sha256_file(path: Path) -> str:
 
 
 def write_registry(paths: List[Path], output_dir: Path) -> Path:
+    """Genera un registro con hashes SHA-256 de outputs.
+
+    Generate a registry with SHA-256 hashes of outputs.
+    """
     entries = [
         {"path": str(path), "sha256": _sha256_file(path)}
         for path in sorted(paths, key=lambda p: str(p))
@@ -217,6 +272,10 @@ def build_status(
     output_dir: Path,
     data_dir: Path,
 ) -> Dict[str, Any]:
+    """Construye el resumen de estado del pipeline CLI.
+
+    Build the CLI pipeline status summary.
+    """
     latest_snapshot = snapshots[-1].path.name if snapshots else None
     latest_timestamp = snapshots[-1].timestamp if snapshots else None
     head_hash = hash_entries[-1]["hash"] if hash_entries else None
@@ -253,6 +312,10 @@ def build_status(
 
 
 def write_status(status: Dict[str, Any], output_dir: Path) -> Path:
+    """Escribe el estado del pipeline en disco.
+
+    Write the pipeline status to disk.
+    """
     status_path = output_dir / "status.json"
     status_path.write_text(
         json.dumps(status, indent=2, sort_keys=True) + "\n",
@@ -262,6 +325,10 @@ def write_status(status: Dict[str, Any], output_dir: Path) -> Path:
 
 
 def run_pipeline(args: argparse.Namespace) -> None:
+    """Ejecuta el pipeline completo del CLI.
+
+    Run the full CLI pipeline.
+    """
     data_dir = Path(args.data_dir)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -299,6 +366,10 @@ def run_pipeline(args: argparse.Namespace) -> None:
 
 
 def show_status(args: argparse.Namespace) -> None:
+    """Imprime el estado del pipeline guardado.
+
+    Print the saved pipeline status.
+    """
     status_path = Path(args.output_dir) / "status.json"
     if not status_path.exists():
         raise SystemExit(
@@ -309,6 +380,10 @@ def show_status(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Construye el parser de argumentos principal.
+
+    Build the main argument parser.
+    """
     parser = argparse.ArgumentParser(
         description="CLI para ejecutar el pipeline Proyecto C.E.N.T.I.N.E.L. y consultar estado."
     )
@@ -352,6 +427,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Punto de entrada principal del script.
+
+    Main script entry point.
+    """
     parser = build_parser()
     args = parser.parse_args()
     args.func(args)

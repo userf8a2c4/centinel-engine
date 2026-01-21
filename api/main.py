@@ -1,7 +1,6 @@
-"""English docstring: FastAPI launcher for Sentinel.
+"""Lanzador de FastAPI para Centinel.
 
----
-Docstring en español: Lanzador de FastAPI para Sentinel.
+FastAPI launcher for Centinel.
 """
 
 from sentinel.api.main import app

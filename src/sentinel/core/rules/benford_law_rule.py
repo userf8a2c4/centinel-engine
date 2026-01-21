@@ -1,3 +1,8 @@
+"""Regla Benford para distribución del primer dígito en votos.
+
+Benford rule for first-digit distribution of votes.
+"""
+
 from __future__ import annotations
 
 import collections

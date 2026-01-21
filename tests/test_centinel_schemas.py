@@ -1,3 +1,8 @@
+"""Pruebas de validación y normalización de esquemas Centinel.
+
+Tests for Centinel schema validation and normalization.
+"""
+
 import json
 
 import pytest

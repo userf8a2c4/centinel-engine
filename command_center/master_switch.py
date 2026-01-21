@@ -1,6 +1,6 @@
-"""Controles del interruptor maestro para dev-v4.
+"""Controles del interruptor maestro para el centro de comando.
 
-Master switch controls for dev-v4.
+Master switch controls for the command center.
 """
 
 from dataclasses import dataclass

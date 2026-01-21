@@ -1,3 +1,8 @@
+"""Regla ML para detectar outliers en cambios relativos de votos.
+
+ML rule to detect outliers in relative vote changes.
+"""
+
 from __future__ import annotations
 
 import collections
