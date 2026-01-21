@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""Logging estructurado para Centinel con rotación diaria.
+
+English: Structured logging for Centinel with daily rotation.
+"""
+
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
@@ -9,6 +14,10 @@ import structlog
 
 
 def setup_logging(log_level: str, storage_path: Path) -> structlog.BoundLogger:
+    """Configura structlog y handlers de consola/archivo.
+
+    English: Configure structlog and console/file handlers.
+    """
     log_dir = storage_path / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -46,6 +55,10 @@ def bind_context(
     source_url: Optional[str] = None,
     hash_value: Optional[str] = None,
 ) -> structlog.BoundLogger:
+    """Adjunta contexto estándar al logger.
+
+    English: Bind standard context to the logger.
+    """
     context: dict[str, Any] = {}
     if snapshot_id:
         context["snapshot_id"] = snapshot_id

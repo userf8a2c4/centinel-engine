@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""Almacenamiento histórico de snapshots y cadena de hashes.
+
+English: Historical snapshot storage and hash chain.
+"""
+
 import json
 from datetime import datetime
 from pathlib import Path
@@ -9,10 +14,18 @@ from .download import chained_hash, write_atomic
 
 
 def _snapshot_directory(base_path: Path, timestamp: datetime) -> Path:
+    """Construye ruta de snapshot con jerarquía temporal.
+
+    English: Build snapshot path with time hierarchy.
+    """
     return base_path / "snapshots" / timestamp.strftime("%Y") / timestamp.strftime("%m") / timestamp.strftime("%d") / timestamp.strftime("%H-%M-%S")
 
 
 def _append_hash(chain_path: Path, entry: Dict[str, Any]) -> None:
+    """Agrega entrada a la cadena de hashes (append-only).
+
+    English: Append entry to the hash chain (append-only).
+    """
     chain_path.parent.mkdir(parents=True, exist_ok=True)
     if chain_path.exists():
         data = json.loads(chain_path.read_text(encoding="utf-8"))
@@ -23,6 +36,10 @@ def _append_hash(chain_path: Path, entry: Dict[str, Any]) -> None:
 
 
 def save_snapshot(content: bytes, metadata: Dict[str, Any], previous_hash: str, base_path: Path | None = None) -> str:
+    """Guarda snapshot, metadata y hash encadenado.
+
+    English: Save snapshot, metadata, and chained hash.
+    """
     base = base_path or Path("data")
     timestamp = datetime.utcnow()
     snapshot_dir = _snapshot_directory(base, timestamp)

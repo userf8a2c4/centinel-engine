@@ -40,8 +40,88 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+DEFAULT_CONFIG_PATH = "config.yaml"
+CONTROL_MASTER_PATH = Path("control_master") / "config.yaml"
+config_path = DEFAULT_CONFIG_PATH
+
+
+def resolve_config_path(config_path_override: str | None = None) -> str:
+    """Resuelve la ruta de configuración priorizando control_master.
+
+    English:
+        Resolve configuration path prioritizing control_master.
+    """
+    if config_path_override:
+        return config_path_override
+    if CONTROL_MASTER_PATH.exists():
+        return str(CONTROL_MASTER_PATH)
+    return config_path
+
+
+def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
+    """Aplica overrides desde variables de entorno.
+
+    Args:
+        config (dict[str, Any]): Configuración base cargada.
+
+    Returns:
+        dict[str, Any]: Configuración con overrides aplicados.
+
+    English:
+        Apply overrides from environment variables.
+
+    Args:
+        config (dict[str, Any]): Loaded base configuration.
+
+    Returns:
+        dict[str, Any]: Configuration with applied overrides.
+    """
+    env_base_url = os.getenv("BASE_URL")
+    env_timeout = os.getenv("TIMEOUT")
+    env_retries = os.getenv("RETRIES")
+    env_headers = os.getenv("HEADERS")
+    env_backoff_base = os.getenv("BACKOFF_BASE_SECONDS")
+    env_backoff_max = os.getenv("BACKOFF_MAX_SECONDS")
+    env_candidate_count = os.getenv("CANDIDATE_COUNT")
+    env_required_keys = os.getenv("REQUIRED_KEYS")
+    env_master_switch = os.getenv("MASTER_SWITCH")
+
+    if env_base_url:
+        config["base_url"] = env_base_url
+    if env_timeout:
+        config["timeout"] = float(env_timeout)
+    if env_retries:
+        config["retries"] = int(env_retries)
+    if env_headers:
+        try:
+            parsed_headers = json.loads(env_headers)
+            if isinstance(parsed_headers, dict):
+                merged = {**config.get("headers", {}), **parsed_headers}
+                config["headers"] = merged
+        except json.JSONDecodeError as exc:
+            logger.warning("invalid_headers_env error=%s", exc)
+    if env_backoff_base:
+        config["backoff_base_seconds"] = float(env_backoff_base)
+    if env_backoff_max:
+        config["backoff_max_seconds"] = float(env_backoff_max)
+    if env_candidate_count:
+        config["candidate_count"] = int(env_candidate_count)
+    if env_required_keys:
+        config["required_keys"] = [
+            key.strip() for key in env_required_keys.split(",") if key.strip()
+        ]
+    if env_master_switch:
+        config["master_switch"] = env_master_switch
+
+    return config
+
+
 def normalize_master_switch(value: Any) -> str:
-    """Normaliza el switch maestro a 'ON' o 'OFF'."""
+    """Normaliza el switch maestro a 'ON' o 'OFF'.
+
+    English:
+        Normalize master switch to 'ON' or 'OFF'.
+    """
     if value is None:
         return "ON"
     if isinstance(value, bool):
@@ -56,8 +136,60 @@ def normalize_master_switch(value: Any) -> str:
 
 
 def is_master_switch_on(config: dict[str, Any]) -> bool:
-    """Indica si el switch maestro permite procesos automáticos."""
+    """Indica si el switch maestro permite procesos automáticos.
+
+    English:
+        Indicates whether the master switch allows automatic processes.
+    """
     return normalize_master_switch(config.get("master_switch")) == "ON"
+
+
+def load_config(config_path_override: str | None = None) -> dict[str, Any]:
+    """Carga la configuración desde config.yaml.
+
+    Args:
+        config_path_override (str | None): Ruta al archivo de configuración si se proporciona.
+
+    Returns:
+        dict[str, Any]: Configuración cargada.
+
+    Raises:
+        FileNotFoundError: Si el archivo no existe.
+        yaml.YAMLError: Si hay error de sintaxis YAML.
+
+    English:
+        Load configuration from config.yaml.
+
+    Args:
+        config_path_override (str | None): Path to config file when provided.
+
+    Returns:
+        dict[str, Any]: Loaded configuration.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        yaml.YAMLError: If YAML syntax errors are found.
+    """
+    try:
+        resolved_path = resolve_config_path(config_path_override)
+        with open(resolved_path, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f) or {}
+        logger.info(
+            "Configuración cargada desde %s / Configuration loaded from %s",
+            resolved_path,
+            resolved_path,
+        )
+        return apply_env_overrides(config)
+    except FileNotFoundError:
+        logger.error(
+            "Archivo de configuración no encontrado: %s / Config file not found: %s",
+            resolved_path,
+            resolved_path,
+        )
+        raise
+    except yaml.YAMLError as e:
+        logger.error("Error al parsear YAML: %s / Error parsing YAML: %s", e, e)
+        raise
 
 
 def compute_hash(data: bytes) -> str:

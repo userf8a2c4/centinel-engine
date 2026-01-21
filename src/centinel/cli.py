@@ -1,3 +1,8 @@
+"""CLI mínimo para Centinel.
+
+English: Minimal Centinel CLI.
+"""
+
 import typer
 
 app = typer.Typer(help="Centinel Engine CLI")
@@ -5,7 +10,10 @@ app = typer.Typer(help="Centinel Engine CLI")
 
 @app.callback()
 def main() -> None:
-    """Centinel command line interface."""
+    """Interfaz de línea de comandos de Centinel.
+
+    English: Centinel command line interface.
+    """
 
 
 if __name__ == "__main__":

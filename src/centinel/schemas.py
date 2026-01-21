@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+"""Esquemas Pydantic para validar y normalizar datos del CNE.
+
+English: Pydantic schemas to validate and normalize CNE data.
+"""
+
 import json
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 
 class ActaSchema(BaseModel):
+    """Esquema de actas del CNE.
+
+    English: CNE acta schema.
+    """
+
     version: str = Field(default="1.0")
     acta_id: str = Field(min_length=1)
     junta_receptora: str = Field(min_length=1)
@@ -27,6 +37,11 @@ class ActaSchema(BaseModel):
 
 
 class ResultadosSchema(BaseModel):
+    """Esquema de resultados del CNE.
+
+    English: CNE results schema.
+    """
+
     version: str = Field(default="1.0")
     acta_id: str = Field(min_length=1)
     partido: str = Field(min_length=1)
@@ -53,6 +68,10 @@ class ResultadosSchema(BaseModel):
 
 
 def _parse_payload(data: dict | bytes) -> Dict[str, Any]:
+    """Parsea payload dict o bytes a dict JSON.
+
+    English: Parse dict or bytes payload into JSON dict.
+    """
     if isinstance(data, bytes):
         try:
             decoded = data.decode("utf-8")
@@ -68,6 +87,10 @@ def _parse_payload(data: dict | bytes) -> Dict[str, Any]:
 
 
 def _migrate_acta(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Migra payload de actas desde claves anteriores.
+
+    English: Migrate acta payload from legacy keys.
+    """
     if "id_acta" in payload and "acta_id" not in payload:
         payload["acta_id"] = payload.pop("id_acta")
     if "jr" in payload and "junta_receptora" not in payload:
@@ -80,6 +103,10 @@ def _migrate_acta(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _migrate_resultados(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Migra payload de resultados desde claves anteriores.
+
+    English: Migrate results payload from legacy keys.
+    """
     if "acta" in payload and "acta_id" not in payload:
         payload["acta_id"] = payload.pop("acta")
     if "party" in payload and "partido" not in payload:
@@ -92,6 +119,10 @@ def _migrate_resultados(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def validate_and_normalize(data: dict | bytes, source_type: str) -> Dict[str, Any]:
+    """Valida y normaliza según el tipo de fuente.
+
+    English: Validate and normalize by source type.
+    """
     payload = _parse_payload(data)
     normalized_type = source_type.strip().lower()
 
