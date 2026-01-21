@@ -1,6 +1,6 @@
-"""Catálogo de endpoints del centro de comando dev-v4.
+"""Catálogo de endpoints del centro de comando.
 
-Endpoint catalog for dev-v4 command center.
+Command center endpoint catalog.
 """
 
 from dataclasses import dataclass, field

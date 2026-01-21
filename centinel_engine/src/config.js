@@ -37,20 +37,52 @@ const userAgents = [
   "Centinel-Engine/1.0 (proyecto ciudadano open source de transparencia en Honduras - https://github.com/tu-usuario/centinel-engine)"
 ];
 
+const minutesToMs = (minutes) => minutes * 60 * 1000;
+const hoursToMs = (hours) => hours * 60 * 60 * 1000;
+const daysToMs = (days) => days * 24 * 60 * 60 * 1000;
+
+const mode = process.env.CENTINEL_MODE || "maintenance";
+const cadenceByMode = {
+  maintenance: {
+    cycleIntervalMs: daysToMs(30),
+    degradedIntervalRangeMs: [daysToMs(31), daysToMs(35)],
+    batchIntervalHours: 24 * 30,
+    heartbeatIntervalHours: 24 * 7
+  },
+  monitoring: {
+    cycleIntervalMs: hoursToMs(24),
+    degradedIntervalRangeMs: [hoursToMs(36), hoursToMs(72)],
+    batchIntervalHours: 24,
+    heartbeatIntervalHours: 24
+  },
+  election: {
+    cycleIntervalMs: minutesToMs(5),
+    degradedIntervalRangeMs: [minutesToMs(7), minutesToMs(15)],
+    batchIntervalHours: 1,
+    heartbeatIntervalHours: 6
+  }
+};
+const cadence = cadenceByMode[mode] || cadenceByMode.maintenance;
+
 const config = {
   appName: "centinel-engine",
   version: "1.0",
+  mode,
   urls,
   userAgents,
   requestTimeoutMs: 30_000,
   baseDelayMs: 2000,
   jitterMs: 500,
-  cycleIntervalMs: 300_000,
-  degradedIntervalRangeMs: [360_000, 420_000],
+  cycleIntervalMs: cadence.cycleIntervalMs,
+  degradedIntervalRangeMs: cadence.degradedIntervalRangeMs,
   maxErrorsBeforeDegrade: 3,
   maxFailedCyclesBeforeWarn: 5,
-  batchIntervalHours: Number(process.env.BATCH_INTERVAL_HOURS || 4),
-  heartbeatIntervalHours: 24,
+  batchIntervalHours: Number(
+    process.env.BATCH_INTERVAL_HOURS || cadence.batchIntervalHours
+  ),
+  heartbeatIntervalHours: Number(
+    process.env.HEARTBEAT_INTERVAL_HOURS || cadence.heartbeatIntervalHours
+  ),
   rpcUrl: process.env.RPC_URL || "",
   chain: process.env.CHAIN || "base",
   privateKey: process.env.PRIVATE_KEY || "",

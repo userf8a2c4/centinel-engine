@@ -1,6 +1,6 @@
-"""Objeto de configuración principal para el centro de comando dev-v4.
+"""Objeto de configuración principal para el centro de comando.
 
-Top-level settings object for dev-v4 command center.
+Top-level settings object for the command center.
 """
 
 from dataclasses import dataclass, field

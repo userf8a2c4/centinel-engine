@@ -28,16 +28,20 @@ Alcance operativo:
 ### Estado actual
 - **AUDIT ACTIVE**
 
-### Control centralizado (v5)
-En v5, el único punto de control editable es **`control_master/`**.
+### Control centralizado
+En v5, el único punto de control editable es **`command_center/`**.
 
-- `control_master/` es la fuente de verdad de configuración operativa.
-- `command_center/` es legado de dev-v4 y no define el control real de v5. Sus archivos se mantienen como referencia histórica y para reglas heredadas, pero no son el panel activo.
+- `command_center/` es la fuente de verdad de configuración operativa.
+- Todo el control se concentra aquí para evitar redundancias y ambigüedad.
 
 ### Componentes del repositorio
-- **control_master/**: configuración operativa centralizada (v5).
-- **command_center/**: legado de dev-v4 para reglas y prototipos de panel, no es el control real de v5.
-- **centinel_engine/**: motor separado en Node.js para anclaje de hashes y pruebas de publicación en blockchain.
+- **command_center/**: configuración operativa centralizada y panel de control.
+- **centinel_engine/**: motor separado en Node.js para anclaje de hashes y publicación en L2.
+
+### Cadencia operativa recomendada
+- **Modo mantenimiento/desarrollo:** scraping y anclaje en L2 **1 vez al mes**.
+- **Modo monitoreo normal:** entre **24 y 72 horas**.
+- **Modo elección activa:** entre **5 y 15 minutos**.
 
 ### Primeros pasos (5 minutos)
 1. Instala dependencias con Poetry:
@@ -46,8 +50,8 @@ En v5, el único punto de control editable es **`control_master/`**.
    ```
 2. Configura fuentes:
    ```bash
-   cp control_master/config.yaml.example control_master/config.yaml
-   cp control_master/.env.example control_master/.env
+   cp command_center/config.yaml.example command_center/config.yaml
+   cp command_center/.env.example command_center/.env
    ```
 3. Genera un snapshot inicial:
    ```bash
@@ -109,16 +113,20 @@ Operational scope:
 ### Current status
 - **AUDIT ACTIVE**
 
-### Centralized control (v5)
-In v5, the only editable control point is **`control_master/`**.
+### Centralized control
+In v5, the only editable control point is **`command_center/`**.
 
-- `control_master/` is the source of truth for operational configuration.
-- `command_center/` is a dev-v4 legacy artifact and does not define the real v5 control. Its files remain as historical reference and for inherited rules, but it is not the active control panel.
+- `command_center/` is the source of truth for operational configuration.
+- All control is centralized here to avoid redundancy and ambiguity.
 
 ### Repository components
-- **control_master/**: centralized operational configuration (v5).
-- **command_center/**: dev-v4 legacy rules and control-panel prototypes, not the real v5 control.
-- **centinel_engine/**: separate Node.js engine for hash anchoring and blockchain publishing experiments.
+- **command_center/**: centralized operational configuration and control panel.
+- **centinel_engine/**: separate Node.js engine for hash anchoring and L2 publishing.
+
+### Recommended operating cadence
+- **Maintenance/development mode:** scraping and L2 anchoring **once per month**.
+- **Normal monitoring mode:** between **24 and 72 hours**.
+- **Active election mode:** between **5 and 15 minutes**.
 
 ### Quick start (5 minutes)
 1. Install dependencies with Poetry:
@@ -127,8 +135,8 @@ In v5, the only editable control point is **`control_master/`**.
    ```
 2. Configure sources:
    ```bash
-   cp control_master/config.yaml.example control_master/config.yaml
-   cp control_master/.env.example control_master/.env
+   cp command_center/config.yaml.example command_center/config.yaml
+   cp command_center/.env.example command_center/.env
    ```
 3. Generate a snapshot:
    ```bash

@@ -6,9 +6,14 @@ Motor ciudadano open source para monitorear portales de transparencia en Hondura
 
 ### Objetivo
 - Monitorear 19 endpoints públicos de portales de transparencia.
-- Scraping defensivo cada 5 minutos con delays y rotación de User-Agent.
+- Scraping defensivo con delays y rotación de User-Agent.
 - Subir hashes SHA-256 a L2 (Base por defecto) usando batches y Merkle roots.
-- Heartbeat diario para demostrar operación continua.
+- Heartbeat periódico para demostrar operación continua.
+
+### Cadencia operativa recomendada
+- **Modo mantenimiento/desarrollo:** scraping y anclaje en L2 **1 vez al mes**.
+- **Modo monitoreo normal:** entre **24 y 72 horas**.
+- **Modo elección activa:** entre **5 y 15 minutos**.
 
 ### Marco legal y límites de operación (Honduras)
 Este proyecto se sustenta en el derecho de acceso a la información pública y en la obligación de publicar información por medios electrónicos.
@@ -40,10 +45,12 @@ npm install
 ### Variables de entorno
 Copia `.env.example` a `.env` y completa los valores:
 
+- `CENTINEL_MODE`: `maintenance`, `monitoring` o `election`.
 - `RPC_URL`: endpoint RPC (Alchemy/Infura).
 - `CHAIN`: `base` o `arbitrum`.
 - `PRIVATE_KEY`: clave privada de la wallet dedicada.
-- `BATCH_INTERVAL_HOURS`: intervalo de batch (default 4).
+- `BATCH_INTERVAL_HOURS`: intervalo de batch (opcional, override del modo).
+- `HEARTBEAT_INTERVAL_HOURS`: intervalo de heartbeat (opcional, override del modo).
 - `ENABLE_BLOB_TX`: `true` para intentar blob tx si está disponible.
 - `MAX_FEE_GWEI` y `MAX_PRIORITY_FEE_GWEI`: límites de gas.
 
@@ -63,7 +70,6 @@ centinel-engine/
     blockchain.js
     scheduler.js
     logger.js
-    alerts.js
   docs/
     BLOCKCHAIN_SETUP.md
   .env.example
@@ -82,9 +88,14 @@ Open-source civic engine to monitor transparency portals in Honduras, generate i
 
 ### Goals
 - Monitor 19 public transparency endpoints.
-- Defensive scraping every 5 minutes with delays and User-Agent rotation.
+- Defensive scraping with delays and User-Agent rotation.
 - Upload SHA-256 hashes to L2 (Base by default) using batches and Merkle roots.
-- Daily heartbeat to prove continuous operation.
+- Periodic heartbeat to prove continuous operation.
+
+### Recommended operating cadence
+- **Maintenance/development mode:** scraping and L2 anchoring **once per month**.
+- **Normal monitoring mode:** between **24 and 72 hours**.
+- **Active election mode:** between **5 and 15 minutes**.
 
 ### Legal basis and operating boundaries (Honduras)
 This project is grounded in the right to access public information and the obligation to publish information through electronic means.
@@ -116,10 +127,12 @@ npm install
 ### Environment variables
 Copy `.env.example` to `.env` and fill in the values:
 
+- `CENTINEL_MODE`: `maintenance`, `monitoring`, or `election`.
 - `RPC_URL`: RPC endpoint (Alchemy/Infura).
 - `CHAIN`: `base` or `arbitrum`.
 - `PRIVATE_KEY`: private key for the dedicated wallet.
-- `BATCH_INTERVAL_HOURS`: batch interval (default 4).
+- `BATCH_INTERVAL_HOURS`: batch interval (optional mode override).
+- `HEARTBEAT_INTERVAL_HOURS`: heartbeat interval (optional mode override).
 - `ENABLE_BLOB_TX`: `true` to attempt blob tx if available.
 - `MAX_FEE_GWEI` and `MAX_PRIORITY_FEE_GWEI`: gas limits.
 
@@ -139,7 +152,6 @@ centinel-engine/
     blockchain.js
     scheduler.js
     logger.js
-    alerts.js
   docs/
     BLOCKCHAIN_SETUP.md
   .env.example

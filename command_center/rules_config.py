@@ -1,6 +1,6 @@
-"""Configuración de reglas para el centro de comando dev-v4.
+"""Configuración de reglas para el centro de comando.
 
-Rules configuration for dev-v4 command center.
+Rules configuration for the command center.
 """
 
 from dataclasses import dataclass, field

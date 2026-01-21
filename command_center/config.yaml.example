@@ -1,19 +1,27 @@
 # Ejemplo de configuración para Proyecto C.E.N.T.I.N.E.L.
-# Example configuration for the C.E.N.T.I.N.E.L. project.
 # Copia este archivo como config.yaml y ajusta los valores a tu entorno.
+#
+# Example configuration for the C.E.N.T.I.N.E.L. project.
 # Copy this file as config.yaml and adjust values for your environment.
 
 # URL base del endpoint de resultados (placeholder).
 # Base URL for results endpoint (placeholder).
 base_url: "https://results.example.org/api/v1/summary"
 
-# SWITCH MAESTRO (ON/OFF): controla todo proceso automático del repo.
-# MASTER SWITCH (ON/OFF): controls all automatic processes in the repo.
+# Switch maestro (ON/OFF): controla todo proceso automático del repositorio.
+# Master switch (ON/OFF): controls all automatic processes in the repository.
 # ON  = permite ejecución automática
-# ON  = allows automatic execution
 # OFF = detiene ejecución automática
+# ON  = allows automatic execution
 # OFF = stops automatic execution
 master_switch: "OFF"
+
+# Cadencia operativa recomendada (solo documentación de referencia).
+# Recommended operating cadence (documentation-only reference).
+scrape_cadence:
+  maintenance_days: 30
+  monitoring_hours: 24
+  election_minutes: 5
 
 # Parámetros de red.
 # Network parameters.
@@ -22,21 +30,13 @@ retries: 5
 headers:
   Accept: "application/json"
   User-Agent: "C.E.N.T.I.N.E.L./1.0 (config-example)"
-use_playwright: false
-playwright_stealth: true
-playwright_user_agent: "C.E.N.T.I.N.E.L./1.0 (config-example)"
-playwright_viewport:
-  width: 1280
-  height: 720
-playwright_locale: "es-HN"
-playwright_timezone: "America/Tegucigalpa"
 
 # Fallback Playwright (anti-bloqueo básico).
 # Playwright fallback (basic anti-blocking).
 use_playwright: false
 playwright_stealth: true
 playwright_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
-playwright_locale: "es-ES"
+playwright_locale: "es-HN"
 playwright_timezone: "America/Tegucigalpa"
 playwright_viewport:
   width: 1280
@@ -84,6 +84,8 @@ sources:
     level: "PD"
     scope: "DEPARTMENT"
 
+# Reglas de análisis.
+# Analysis rules.
 rules:
   global_enabled: true
   trend_shift:
