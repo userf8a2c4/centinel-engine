@@ -1,0 +1,41 @@
+import asyncio
+from pathlib import Path
+
+import httpx
+import pytest
+
+from centinel.download import download_and_hash, fetch_content
+
+
+def test_download_and_hash_success(httpx_mock, tmp_path):
+    url = "https://example.com/data"
+    payload = b"payload"
+    httpx_mock.add_response(url=url, content=payload)
+
+    output_path = tmp_path / "data.bin"
+    result = asyncio.run(download_and_hash(url, output_path, previous_hash="abc"))
+
+    assert output_path.read_bytes() == payload
+    assert result
+
+
+def test_download_and_hash_handles_429(httpx_mock, tmp_path):
+    url = "https://example.com/limited"
+    httpx_mock.add_response(url=url, status_code=429)
+
+    output_path = tmp_path / "data.bin"
+    with pytest.raises(Exception):
+        asyncio.run(download_and_hash(url, output_path))
+
+
+def test_fetch_content_retries_on_timeout(httpx_mock, monkeypatch):
+    url = "https://example.com/timeout"
+    httpx_mock.add_exception(httpx.TimeoutException("timeout"))
+    monkeypatch.setattr("tenacity.nap.sleep", lambda _: None)
+
+    async def run():
+        async with httpx.AsyncClient() as client:
+            with pytest.raises(httpx.TimeoutException):
+                await fetch_content(client, url)
+
+    asyncio.run(run())

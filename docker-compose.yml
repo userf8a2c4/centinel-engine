@@ -1,0 +1,22 @@
+services:
+  dashboard:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+      - ./.env:/app/.env
+    command: streamlit run dashboard.py --server.port=8501 --server.address=0.0.0.0
+
+  cron:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+      - ./.env:/app/.env
+    entrypoint: /bin/sh
+    command: >-
+      -c "echo '*/5 * * * * cd /app && python scripts/download_and_hash.py >> /app/data/cron.log 2>&1' > /etc/cron.d/centinel &&
+      crontab /etc/cron.d/centinel &&
+      cron -f"

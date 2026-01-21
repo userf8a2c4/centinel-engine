@@ -108,6 +108,19 @@ def load_data() -> pd.DataFrame:
     return pd.DataFrame(snapshot_rows)
 
 
+@st.cache_resource
+def get_http_session() -> requests.Session:
+    """English docstring: Cached HTTP session for remote snapshot listing.
+
+    ---
+    Docstring en español: Sesión HTTP cacheada para listar snapshots remotos.
+    """
+
+    session = requests.Session()
+    session.headers.update({"User-Agent": "SentinelDashboard/1.0"})
+    return session
+
+
 def _safe_int(value: Any) -> int:
     try:
         if value is None:
@@ -191,7 +204,8 @@ def list_snapshot_paths(snapshot_dirs: Iterable[str] = SNAPSHOT_DIRS) -> list[st
         return local_paths
 
     try:
-        response = requests.get(TREE_URL, timeout=15)
+        session = get_http_session()
+        response = session.get(TREE_URL, timeout=15)
         response.raise_for_status()
         data = response.json()
     except requests.RequestException:
