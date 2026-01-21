@@ -28,14 +28,14 @@ Alcance operativo:
 ### Estado actual
 - **AUDIT ACTIVE**
 
-### Control centralizado (v5)
+### Control centralizado
 En v5, el único punto de control editable es **`command_center/`**.
 
 - `command_center/` es la fuente de verdad de configuración operativa.
 - Todo el control se concentra aquí para evitar redundancias y ambigüedad.
 
 ### Componentes del repositorio
-- **command_center/**: configuración operativa centralizada y panel de control (v5).
+- **command_center/**: configuración operativa centralizada y panel de control.
 - **centinel_engine/**: motor separado en Node.js para anclaje de hashes y publicación en L2.
 
 ### Cadencia operativa recomendada
@@ -113,14 +113,14 @@ Operational scope:
 ### Current status
 - **AUDIT ACTIVE**
 
-### Centralized control (v5)
+### Centralized control
 In v5, the only editable control point is **`command_center/`**.
 
 - `command_center/` is the source of truth for operational configuration.
 - All control is centralized here to avoid redundancy and ambiguity.
 
 ### Repository components
-- **command_center/**: centralized operational configuration and control panel (v5).
+- **command_center/**: centralized operational configuration and control panel.
 - **centinel_engine/**: separate Node.js engine for hash anchoring and L2 publishing.
 
 ### Recommended operating cadence

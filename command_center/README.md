@@ -2,7 +2,7 @@
 
 ## Español
 
-Esta carpeta es el **único lugar** que debes editar para configurar Sentinel v5 en producción.
+Esta carpeta es el **único lugar** que debes editar para configurar Centinel en producción.
 Centraliza la configuración operativa y el panel de control del sistema.
 
 Archivos editables:
@@ -29,7 +29,7 @@ Archivos editables:
    ```
 
 ### Estructura del centro de comando
-- `config.yaml` y `.env`: configuración operativa única de v5.
+- `config.yaml` y `.env`: configuración operativa única.
 - `settings.py`, `master_switch.py`, `rules_config.py`: primitives del panel de control.
 - `endpoints.py` y `rules/`: catálogo de endpoints y reglas activas.
 
@@ -41,7 +41,7 @@ Archivos editables:
 
 ## English
 
-This folder is the **only place** you should edit to configure Sentinel v5 in production.
+This folder is the **only place** you should edit to configure Centinel in production.
 It centralizes operational configuration and the system control panel.
 
 Editable files:
@@ -68,7 +68,7 @@ Editable files:
    ```
 
 ### Command center structure
-- `config.yaml` and `.env`: single operational configuration for v5.
+- `config.yaml` and `.env`: single operational configuration.
 - `settings.py`, `master_switch.py`, `rules_config.py`: control panel primitives.
 - `endpoints.py` and `rules/`: endpoint catalog and active rules.
 
