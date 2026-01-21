@@ -24,6 +24,4 @@ FROM base AS runtime
 COPY --from=builder /usr/local /usr/local
 COPY --from=builder /app /app
 
-EXPOSE 8501
-
-CMD ["streamlit", "run", "dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["python", "scripts/run_pipeline.py", "--once"]

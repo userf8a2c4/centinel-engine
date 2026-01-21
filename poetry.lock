@@ -58,56 +58,16 @@ python-versions = "*"
 files = []
 
 [[package]]
-name = "matplotlib"
-version = "3.7.2"
+name = "apscheduler"
+version = "3.10.4"
 description = ""
 optional = false
 python-versions = "*"
 files = []
 
 [[package]]
-name = "plotly"
-version = "5.24.1"
-description = ""
-optional = false
-python-versions = "*"
-files = []
-
-[[package]]
-name = "streamlit"
-version = "1.31.0"
-description = ""
-optional = false
-python-versions = "*"
-files = []
-
-[[package]]
-name = "fpdf2"
-version = "2.7.0"
-description = ""
-optional = false
-python-versions = "*"
-files = []
-
-[[package]]
-name = "kaleido"
-version = "0.2.1"
-description = ""
-optional = false
-python-versions = "*"
-files = []
-
-[[package]]
-name = "python-telegram-bot"
-version = "20.7"
-description = ""
-optional = false
-python-versions = "*"
-files = []
-
-[[package]]
-name = "tweepy"
-version = "4.14.0"
+name = "flask-limiter"
+version = "3.7.0"
 description = ""
 optional = false
 python-versions = "*"
@@ -140,6 +100,22 @@ files = []
 [[package]]
 name = "rich"
 version = "13.7.0"
+description = ""
+optional = false
+python-versions = "*"
+files = []
+
+[[package]]
+name = "pytest-mock"
+version = "3.14.0"
+description = ""
+optional = false
+python-versions = "*"
+files = []
+
+[[package]]
+name = "responses"
+version = "0.25.0"
 description = ""
 optional = false
 python-versions = "*"

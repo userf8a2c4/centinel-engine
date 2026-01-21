@@ -43,15 +43,7 @@ REQUIRED_TOP_LEVEL_KEYS = [
 REQUIRED_NESTED_KEYS = {
     "logging": ["level", "file"],
     "blockchain": ["enabled", "network", "private_key"],
-    "alerts": ["critical_anomaly_types", "telegram", "x"],
-    "alerts.telegram": ["enabled", "bot_token", "chat_id", "template"],
-    "alerts.x": [
-        "enabled",
-        "api_key",
-        "api_secret",
-        "access_token",
-        "access_token_secret",
-    ],
+    "alerts": ["critical_anomaly_types"],
     "arbitrum": [
         "enabled",
         "rpc_url",

@@ -141,47 +141,6 @@ def update_daily_summary(state, now, anomalies_count):
     state["daily_summary"] = daily
 
 
-def send_alert_if_configured(
-    config: dict[str, Any], state: dict[str, Any], summary_path: Path, critical_count: int
-):
-    if critical_count <= 0:
-        print("[i] Alertas omitidas: no hay errores críticos")
-        return
-
-    telegram_config = config.get("alerts", {}).get("telegram", {})
-    if not telegram_config.get("enabled", False):
-        print("[i] Alertas deshabilitadas: Telegram no está habilitado")
-        return
-
-    token = telegram_config.get("bot_token")
-    chat_id = telegram_config.get("chat_id")
-    if not token or not chat_id:
-        print("[i] Alertas deshabilitadas: faltan credenciales de Telegram")
-        return
-
-    summary_text = summary_path.read_text(encoding="utf-8")
-    latest_hash_file = latest_file(HASH_DIR, "*.sha256")
-    if not latest_hash_file:
-        print("[i] Alertas omitidas: no hay hash disponible")
-        return
-
-    alert_fingerprint = hashlib.sha256(summary_text.encode("utf-8")).hexdigest()
-    if state.get("last_alert_hash") == alert_fingerprint:
-        print("[i] Alertas omitidas: resumen ya enviado")
-        return
-
-    run_command(
-        [
-            sys.executable,
-            "scripts/post_to_telegram.py",
-            summary_text,
-            str(latest_hash_file),
-        ],
-        "alertas",
-    )
-    state["last_alert_hash"] = alert_fingerprint
-
-
 def run_pipeline(config: dict[str, Any]):
     now = utcnow()
     state = load_state()
@@ -226,9 +185,6 @@ def run_pipeline(config: dict[str, Any]):
     if should_generate_report(state, now):
         run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
         state["last_report_at"] = now.isoformat()
-        send_alert_if_configured(
-            config, state, REPORTS_DIR / "summary.txt", len(critical_anomalies)
-        )
     else:
         print("[i] Reporte omitido por cadencia")
 

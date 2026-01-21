@@ -7,7 +7,7 @@ Esta carpeta es el **único lugar** que debes editar para configurar Sentinel si
 **Edita solo estos archivos:**
 
 1. `config.yaml` → configuración principal de scraping, reglas y fuentes.
-2. `.env` → credenciales sensibles (Telegram, claves, tokens).
+2. `.env` → credenciales sensibles (claves, tokens).
 
 ### Pasos rápidos
 1. Copia los ejemplos:
@@ -19,7 +19,7 @@ Esta carpeta es el **único lugar** que debes editar para configurar Sentinel si
 3. Ejecuta los scripts con Poetry:
    ```bash
    poetry run python scripts/download_and_hash.py
-   poetry run streamlit run dashboard.py
+   poetry run python scripts/analyze_rules.py
    ```
 
 ### Reglas
@@ -35,7 +35,7 @@ This folder is the **only place** you should edit to configure Sentinel without 
 **Edit only these files:**
 
 1. `config.yaml` → main scraping configuration, rules, and sources.
-2. `.env` → sensitive credentials (Telegram, keys, tokens).
+2. `.env` → sensitive credentials (keys, tokens).
 
 ### Quick steps
 1. Copy the examples:
@@ -47,7 +47,7 @@ This folder is the **only place** you should edit to configure Sentinel without 
 3. Run scripts with Poetry:
    ```bash
    poetry run python scripts/download_and_hash.py
-   poetry run streamlit run dashboard.py
+   poetry run python scripts/analyze_rules.py
    ```
 
 ### Rules

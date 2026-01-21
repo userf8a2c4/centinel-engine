@@ -2,7 +2,6 @@ import config from "./config.js";
 import logger from "./logger.js";
 import { scrapeCycle } from "./scraper.js";
 import batcher from "./batcher.js";
-import { sendAlert } from "./alerts.js";
 
 const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
@@ -27,7 +26,6 @@ class Scheduler {
 
     if (this.failedCycles > config.maxFailedCyclesBeforeWarn) {
       logger.warn({ msg: "Multiple failed cycles detected", failedCycles: this.failedCycles });
-      await sendAlert(`Centinel Engine: ${this.failedCycles} ciclos fallidos seguidos.`);
     }
 
     let nextInterval = config.cycleIntervalMs;
