@@ -1,6 +1,6 @@
-"""Primitivas de configuración del centro de comando para v5.
+"""Primitivas de configuración del centro de comando.
 
-Command center configuration primitives for v5.
+Command center configuration primitives.
 """
 
 from .master_switch import MasterSwitch

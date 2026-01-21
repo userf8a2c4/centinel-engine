@@ -35,7 +35,7 @@ Archivos editables:
 
 ### Reglas
 - **No modifiques** archivos fuera de esta carpeta para la configuración operativa.
-- Este directorio es la fuente de verdad para v5.
+- Este directorio es la fuente de verdad.
 
 ---
 
@@ -74,4 +74,4 @@ Editable files:
 
 ### Rules
 - **Do not modify** files outside this folder for operational configuration.
-- This directory is the source of truth for v5.
+- This directory is the source of truth.

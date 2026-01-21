@@ -1,6 +1,6 @@
-"""Reglas de detección individuales para el centro de comando v5.
+"""Reglas de detección individuales para el centro de comando.
 
-Individual detection rules for the v5 command center.
+Individual detection rules for the command center.
 """
 
 from .benford_second_digit import benford_second_digit_test, extract_second_digit

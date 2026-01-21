@@ -1,6 +1,6 @@
-"""Controles del interruptor maestro para el centro de comando v5.
+"""Controles del interruptor maestro para el centro de comando.
 
-Master switch controls for the v5 command center.
+Master switch controls for the command center.
 """
 
 from dataclasses import dataclass
