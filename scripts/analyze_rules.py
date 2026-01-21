@@ -25,8 +25,8 @@ Date: January 2026
 from pathlib import Path
 import sys
 
-# Ajusta la ruta para importar reglas desde dev-v4/command_center. / Adjust the path to import rules from dev-v4/command_center.
-RULES_PATH = Path(__file__).resolve().parents[1] / "dev-v4" / "command_center"
+# Ajusta la ruta para importar reglas desde command_center. / Adjust the path to import rules from command_center.
+RULES_PATH = Path(__file__).resolve().parents[1] / "command_center"
 sys.path.insert(0, str(RULES_PATH))
 
 from rules.benford_second_digit import benford_second_digit_test

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 _scheduler: Optional[BackgroundScheduler] = None
 _health_state: Optional["HealthcheckState"] = None
+_default_interval_minutes = 5
 
 
 class HealthcheckClient:
@@ -112,11 +113,27 @@ def start_healthchecks_scheduler() -> None:
         logger.info("healthchecks_disabled reason=missing_uuid")
         return
 
+    interval_raw = os.getenv("HEALTHCHECKS_INTERVAL_MINUTES", "").strip()
+    interval_minutes = _default_interval_minutes
+    if interval_raw:
+        try:
+            interval_minutes = max(1, int(interval_raw))
+        except ValueError:
+            logger.warning(
+                "healthchecks_invalid_interval value=%s default=%s",
+                interval_raw,
+                _default_interval_minutes,
+            )
+
     scheduler = BackgroundScheduler(timezone="UTC")
-    scheduler.add_job(state._client.ping, "interval", minutes=5, id="healthchecks")
+    scheduler.add_job(
+        state._client.ping, "interval", minutes=interval_minutes, id="healthchecks"
+    )
     scheduler.start()
     _scheduler = scheduler
-    logger.info("healthchecks_scheduler_started interval=5m")
+    logger.info(
+        "healthchecks_scheduler_started interval=%sm", interval_minutes
+    )
 
 
 def register_healthchecks(app) -> None:

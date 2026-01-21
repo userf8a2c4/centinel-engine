@@ -5,6 +5,7 @@ English:
 """
 
 import json
+import logging
 import os
 import sqlite3
 from pathlib import Path
@@ -23,6 +24,7 @@ ALERTS_JSON = BASE_DIR / "data" / "alerts.json"
 ALERTS_LOG = BASE_DIR / "alerts.log"
 
 app = FastAPI(title="C.E.N.T.I.N.E.L. Public API", version="0.1.0")
+logger = logging.getLogger(__name__)
 
 origins_raw = os.getenv("CORS_ORIGINS", "*")
 origins = (
@@ -38,8 +40,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-global_rate_limiter = RateLimiter(RateLimitConfig(limit=100, window_seconds=60))
-compare_rate_limiter = RateLimiter(RateLimitConfig(limit=10, window_seconds=60))
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning("invalid_env_int name=%s value=%s", name, raw)
+        return default
+
+
+global_rate_limiter = RateLimiter(
+    RateLimitConfig(
+        limit=_env_int("API_RATE_LIMIT", 100),
+        window_seconds=_env_int("API_RATE_WINDOW_SECONDS", 60),
+    )
+)
+compare_rate_limiter = RateLimiter(
+    RateLimitConfig(
+        limit=_env_int("API_COMPARE_RATE_LIMIT", 10),
+        window_seconds=_env_int("API_COMPARE_RATE_WINDOW_SECONDS", 60),
+    )
+)
+
+
+def _get_client_ip(request: Request) -> str:
+    forwarded_for = request.headers.get("x-forwarded-for", "").strip()
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 @app.exception_handler(RateLimitExceeded)
@@ -52,14 +82,14 @@ def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse
 
 @app.middleware("http")
 async def enforce_global_rate_limit(request: Request, call_next):
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _get_client_ip(request)
     if not global_rate_limiter.allow(client_ip):
         raise RateLimitExceeded()
     return await call_next(request)
 
 
 def enforce_compare_rate_limit(request: Request) -> None:
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _get_client_ip(request)
     if not compare_rate_limiter.allow(client_ip):
         raise RateLimitExceeded()
 
