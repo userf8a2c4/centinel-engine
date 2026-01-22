@@ -607,14 +607,6 @@ with col_report3:
         mime="text/csv",
         use_container_width=True,
     )
-with col_report3:
-    st.download_button(
-        "Descargar CSV",
-        data=report_csv,
-        file_name="centinel_reporte.csv",
-        mime="text/csv",
-        use_container_width=True,
-    )
 
 st.markdown("### Snapshots recientes")
 st.dataframe(
