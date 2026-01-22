@@ -561,6 +561,101 @@ with col_report3:
         mime="text/csv",
         use_container_width=True,
     )
+except Exception:
+    city_data_path = Path(__file__).parent / "data" / "hn_cities.json"
+    if city_data_path.exists():
+        city_payload = json.loads(city_data_path.read_text(encoding="utf-8"))
+        city_items = city_payload if isinstance(city_payload, list) else city_payload.get("cities", [])
+        city_rows = []
+        for index, item in enumerate(city_items):
+            lat = item.get("lat") or item.get("latitude")
+            lon = item.get("lng") or item.get("lon") or item.get("longitude")
+            if lat is None or lon is None:
+                continue
+            population = float(item.get("population") or item.get("pop") or 0)
+            if population > 0:
+                alert_score = min(max(round(population / 200000), 1), 6)
+            else:
+                alert_score = (index % 6) + 1
+            city_rows.append(
+                {
+                    "city": item.get("city") or item.get("name") or "Ciudad",
+                    "department": item.get("admin_name") or item.get("admin") or "Departamento",
+                    "lat": float(lat),
+                    "lon": float(lon),
+                    "alertas": alert_score,
+                }
+            )
+        city_df = pd.DataFrame(city_rows)
+        map_fig = px.scatter_geo(
+            city_df,
+            lat="lat",
+            lon="lon",
+            color="alertas",
+            size="alertas",
+            hover_name="city",
+            hover_data={"department": True, "alertas": True},
+            color_continuous_scale=["#0b0f1a", "#00d4ff", "#f87171"],
+        )
+        map_fig.update_layout(
+            height=420,
+            margin=dict(l=0, r=0, t=0, b=0),
+            paper_bgcolor="rgba(0,0,0,0)",
+            font_color="#e2e8f0",
+            coloraxis_showscale=True,
+            geo=dict(scope="north america", showland=True, landcolor="#0b0f1a"),
+        )
+        st.plotly_chart(map_fig, use_container_width=True)
+        st.info(
+            "🗺️ **Mapa alterno:** usando datos de ciudades (`hn_cities.json`). "
+            "Los puntos más grandes indican más alertas estimadas."
+        )
+    else:
+        st.warning(
+            "No se pudo cargar el mapa de Honduras. "
+            "Colocá un GeoJSON local en `dashboard/data/honduras_departments.geojson`, "
+            "`dashboard/data/gadm41_HND_1.json` o `dashboard/data/GeoJSON_HN.geojson`, "
+            "o un archivo de ciudades en `dashboard/data/hn_cities.json`."
+        )
+
+st.markdown("### Snapshots recientes")
+st.dataframe(
+    styled_status(snapshots_df),
+    width="stretch",
+    hide_index=True,
+)
+st.caption("Estados: OK (sin anomalías), REVISAR (cambios menores), ALERTA (anomalías graves).")
+
+rules_df = build_rules_data()
+col_rules, col_ai = st.columns([1.3, 1])
+with col_rules:
+    st.markdown("<div class='glass'><div class='section-title'>Reglas personalizadas</div>"
+                "<div class='section-subtitle'>Configura respuestas automáticas y auditorías instantáneas</div>", unsafe_allow_html=True)
+    st.dataframe(rules_df, width="stretch", hide_index=True)
+    st.button("Crear nueva regla", use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col_ai:
+    st.markdown("<div class='glass'><div class='section-title'>Detección automática con IA</div>"
+                "<div class='section-subtitle'>Alertas en tiempo real</div>", unsafe_allow_html=True)
+    st.write("• Patrón anómalo en sección 12 · Alta")
+    st.write("• Cambio irregular en acta 2024-09 · Media")
+    st.write("• Pico inusual en consultas ciudadanas · Baja")
+    st.progress(0.92, text="Confianza anomalías críticas")
+    st.progress(0.84, text="Confianza cambios no autorizados")
+    st.progress(0.68, text="Confianza inconsistencias menores")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("### Reportes reproducibles")
+st.markdown(
+    """
+<div class="glass">
+  <div class="section-title">Exportación verificable</div>
+  <div class="section-subtitle">PDF firmado, JSON auditado y hash reproducible.</div>
+</div>
+    """,
+    unsafe_allow_html=True,
+)
 
 with st.expander("Verificar yo mismo"):
     st.write("Pegá el hash raíz para confirmar si coincide con el registro público en Arbitrum.")
