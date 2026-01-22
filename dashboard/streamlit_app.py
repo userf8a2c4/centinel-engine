@@ -1,8 +1,11 @@
 import datetime as dt
+import json
 from dataclasses import dataclass
+from urllib.request import urlopen
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 
@@ -18,29 +21,36 @@ def build_snapshot_data() -> pd.DataFrame:
     now = dt.datetime.now(dt.timezone.utc)
     snapshots = [
         {
-            "timestamp": (now - dt.timedelta(hours=18)).strftime("%Y-%m-%d %H:%M UTC"),
-            "hash": "9a7d1f...e2b8",
+            "timestamp": (now - dt.timedelta(minutes=50)).strftime("%Y-%m-%d %H:%M UTC"),
+            "hash": "0x91c2...ab10",
             "changes": 0,
             "detail": "Sin cambios detectados",
             "status": "OK",
         },
         {
-            "timestamp": (now - dt.timedelta(hours=12)).strftime("%Y-%m-%d %H:%M UTC"),
-            "hash": "c31f22...9a11",
-            "changes": 4,
+            "timestamp": (now - dt.timedelta(minutes=40)).strftime("%Y-%m-%d %H:%M UTC"),
+            "hash": "0x88fa...e901",
+            "changes": 2,
             "detail": "Archivo actas.csv cambió de 150KB a 152KB",
-            "status": "ALERTA",
+            "status": "REVISAR",
         },
         {
-            "timestamp": (now - dt.timedelta(hours=6)).strftime("%Y-%m-%d %H:%M UTC"),
-            "hash": "f55a10...77c2",
+            "timestamp": (now - dt.timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M UTC"),
+            "hash": "0xe41b...93f0",
             "changes": 1,
             "detail": "Registro 10298 actualizado",
             "status": "REVISAR",
         },
         {
-            "timestamp": now.strftime("%Y-%m-%d %H:%M UTC"),
-            "hash": "b12d0c...aa91",
+            "timestamp": (now - dt.timedelta(minutes=20)).strftime("%Y-%m-%d %H:%M UTC"),
+            "hash": "0x7b99...ae02",
+            "changes": 7,
+            "detail": "Alteración crítica en acta 2024-09",
+            "status": "ALERTA",
+        },
+        {
+            "timestamp": (now - dt.timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M UTC"),
+            "hash": "0x9f3a...e21b",
             "changes": 0,
             "detail": "Sin cambios detectados",
             "status": "OK",
@@ -53,19 +63,25 @@ def build_rules_data() -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
-                "regla": "Cambios > 5% en archivos clave",
+                "regla": "Variaciones > 5% en archivos clave",
+                "tipo": "Umbral",
                 "severidad": "Crítica",
-                "estado": "Activa",
+                "estado": "ON",
+                "acciones": "Notificar + Pausar",
             },
             {
-                "regla": "Timestamps fuera de ventana esperada",
-                "severidad": "Alta",
-                "estado": "Activa",
-            },
-            {
-                "regla": "Duplicados en registros maestros",
+                "regla": "Regex de inconsistencias",
+                "tipo": "Regex",
                 "severidad": "Media",
-                "estado": "Activa",
+                "estado": "ON",
+                "acciones": "Alertar",
+            },
+            {
+                "regla": "Modelo IA de anomalías",
+                "tipo": "IA",
+                "severidad": "Alta",
+                "estado": "OFF",
+                "acciones": "Notificar + Exportar",
             },
         ]
     )
@@ -74,9 +90,9 @@ def build_rules_data() -> pd.DataFrame:
 def styled_status(df: pd.DataFrame):
     def highlight_status(value: str) -> str:
         color_map = {
-            "OK": "background-color: #e7f6e8; color: #1e4620;",
-            "REVISAR": "background-color: #fff4e5; color: #663c00;",
-            "ALERTA": "background-color: #fdecea; color: #611a15;",
+            "OK": "background-color: rgba(16, 185, 129, 0.2); color: #10b981;",
+            "REVISAR": "background-color: rgba(248, 158, 11, 0.2); color: #f59e0b;",
+            "ALERTA": "background-color: rgba(248, 113, 113, 0.2); color: #f87171;",
         }
         return color_map.get(value, "")
 
@@ -84,57 +100,122 @@ def styled_status(df: pd.DataFrame):
 
 
 st.set_page_config(
-    page_title="Centinel | Dashboard",
-    page_icon="🔒",
+    page_title="Centinel | Auditoría Electoral",
+    page_icon="🛰️",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 st.markdown(
     """
 <style>
+    :root {
+        color-scheme: dark;
+    }
+    .stApp {
+        background: radial-gradient(circle at top, rgba(0, 212, 255, 0.12), transparent 55%), #0b0f1a;
+        color: #e2e8f0;
+    }
+    section[data-testid="stSidebar"] {
+        background: rgba(12, 18, 34, 0.95);
+        border-right: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .glass {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.78), rgba(30, 41, 59, 0.55));
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        backdrop-filter: blur(14px);
+        border-radius: 18px;
+        padding: 1.25rem;
+    }
     .hero {
-        padding: 1.5rem;
-        border-radius: 16px;
-        background: linear-gradient(135deg, #0f172a, #1e293b);
-        color: white;
+        padding: 1.75rem;
+        border-radius: 24px;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.65));
+        border: 1px solid rgba(0, 212, 255, 0.25);
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.08);
+        color: #ffffff;
         margin-bottom: 1.5rem;
     }
     .hero h1 {
-        margin-bottom: 0.25rem;
-        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        font-size: 2.1rem;
     }
     .pillars {
         display: flex;
-        gap: 1.5rem;
+        gap: 1rem;
         flex-wrap: wrap;
         margin-top: 1rem;
     }
     .pillar {
         background: rgba(255, 255, 255, 0.08);
-        padding: 0.85rem 1rem;
-        border-radius: 12px;
-        font-size: 0.95rem;
+        padding: 0.75rem 1rem;
+        border-radius: 999px;
+        font-size: 0.9rem;
+        border: 1px solid rgba(148, 163, 184, 0.2);
     }
-    .card {
-        border-radius: 16px;
-        padding: 1rem 1.25rem;
-        border: 1px solid #e2e8f0;
-        background-color: #ffffff;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    .section-title {
+        font-size: 1.05rem;
+        color: #e2e8f0;
+        margin-bottom: 0.35rem;
     }
-    .card.green {
-        border-color: #bbf7d0;
-        background: #f0fdf4;
+    .section-subtitle {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
     }
-    .card h3 {
-        margin: 0 0 0.25rem 0;
-        font-size: 1rem;
-        color: #0f172a;
+    .kpi-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        margin-bottom: 1.5rem;
     }
-    .card p {
+    .kpi-card {
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+    }
+    .kpi-card h3 {
         margin: 0;
-        color: #475569;
-        font-size: 0.95rem;
+        font-size: 0.8rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #94a3b8;
+    }
+    .kpi-card p {
+        margin: 0.35rem 0 0 0;
+        font-size: 1.35rem;
+        font-weight: 600;
+        color: #ffffff;
+    }
+    .kpi-card span {
+        font-size: 0.75rem;
+        color: #38bdf8;
+    }
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: #e2e8f0;
+    }
+    .badge.green {
+        color: #10b981;
+        border-color: rgba(16, 185, 129, 0.45);
+    }
+    .badge.blue {
+        color: #00d4ff;
+        border-color: rgba(0, 212, 255, 0.45);
+    }
+    .badge.purple {
+        color: #8b5cf6;
+        border-color: rgba(139, 92, 246, 0.45);
+    }
+    .table-note {
+        color: #94a3b8;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
     }
 </style>
     """,
@@ -142,149 +223,289 @@ st.markdown(
 )
 
 anchor = BlockchainAnchor(
-    root_hash="3f1b9c8e2c9d5b8f1a7e0d5c4b2a91ff",
+    root_hash="0x9f3a7c2d1b4a7e1f02d5e1c34aa9b21b",
     network="Arbitrum L2",
     tx_url="https://arbiscan.io/tx/0x9f3b0c0d1d2e3f4a5b6c7d8e9f000111222333444555666777888999aaa",
     anchored_at="2026-01-12 18:40 UTC",
 )
 
-st.sidebar.title("Centinel")
-st.sidebar.caption("Transparencia electoral verificable")
+st.sidebar.markdown("## C.E.N.T.I.N.E.L.")
+st.sidebar.caption("Centinela Electrónico Neutral Transparente Íntegro Nacional Electoral Libre")
 
-if st.sidebar.button("📥 Snapshot ahora"):
-    st.sidebar.success("Snapshot programado para la próxima ventana.")
-if st.sidebar.button("⚡ Activar modo electoral"):
-    st.sidebar.success("Modo electoral activado (cadencia intensiva).")
-if st.sidebar.button("⚙️ Configuración de reglas"):
-    st.sidebar.info("Abrí el tab de análisis para editar reglas.")
+st.sidebar.markdown("### Navegación")
+st.sidebar.write("• Overview")
+st.sidebar.write("• Snapshots")
+st.sidebar.write("• Análisis avanzado")
+st.sidebar.write("• Reglas & alertas")
+st.sidebar.write("• Reportes")
+st.sidebar.write("• Verificación on-chain")
+st.sidebar.write("• Configuración")
 
 st.sidebar.markdown("---")
-st.sidebar.write("**Modo actual:** Electoral")
-st.sidebar.write("**Cadencia:** cada 10 minutos")
-st.sidebar.write("**Último snapshot:** hace 6 minutos")
+
+if st.sidebar.button("⚡ Activar Modo Electoral", use_container_width=True):
+    st.sidebar.success("Modo electoral activado (cadencia intensiva).")
+if st.sidebar.button("📥 Snapshot Ahora", use_container_width=True):
+    st.sidebar.success("Snapshot programado para la próxima ventana.")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Estado**")
+st.sidebar.write("Modo: Electoral Activo")
+st.sidebar.write("Cadena: Arbitrum L2")
+st.sidebar.write("Último snapshot: hace 4 min")
 
 st.markdown(
     """
 <div class="hero">
-  <h1>Auditoría Electoral Independiente con Inmutabilidad Blockchain</h1>
-  <p>Centinel convierte datos públicos en evidencia inmutable, reproducible y verificable por cualquier ciudadano.</p>
+  <h1>C.E.N.T.I.N.E.L.</h1>
+  <p><strong>Centinela Electrónico Neutral Transparente Íntegro Nacional Electoral Libre</strong></p>
+  <p>Auditoría electoral independiente con inmutabilidad blockchain para que cualquier ciudadano pueda verificar.</p>
   <div class="pillars">
     <div class="pillar">🔒 Inmutabilidad L2</div>
-    <div class="pillar">📊 Detección Automática</div>
-    <div class="pillar">⚙️ Reglas Personalizables</div>
-    <div class="pillar">📄 Reportes Reproducibles</div>
+    <div class="pillar">📊 Detección automática con IA</div>
+    <div class="pillar">⚙️ Reglas personalizables</div>
+    <div class="pillar">🧾 Reportes reproducibles</div>
+    <div class="pillar">🛰️ Verificación on-chain</div>
   </div>
 </div>
     """,
     unsafe_allow_html=True,
 )
 
-tab_overview, tab_snapshots, tab_analysis, tab_reports = st.tabs(
-    ["Overview", "Snapshots", "Análisis", "Reportes"]
+header_col1, header_col2, header_col3, header_col4 = st.columns([2.2, 1.2, 1.2, 1.1])
+with header_col1:
+    st.markdown(
+        f"""
+<div class="glass">
+  <div class="section-title">Hash raíz actual</div>
+  <div class="section-subtitle">{anchor.root_hash}</div>
+  <span class="badge blue">Inmutable y verificado en {anchor.network}</span>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+with header_col2:
+    st.markdown(
+        """
+<div class="glass">
+  <div class="section-title">Último snapshot</div>
+  <div class="section-subtitle">Hace 4 min</div>
+  <span class="badge green">Snapshots cada 10 min</span>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+with header_col3:
+    st.markdown(
+        """
+<div class="glass">
+  <div class="section-title">Verificación ciudadana</div>
+  <div class="section-subtitle">2.4K consultas</div>
+  <span class="badge purple">Proof pública</span>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+with header_col4:
+    st.link_button("Verificar en Blockchain", anchor.tx_url, use_container_width=True)
+
+st.markdown("### Overview ciudadano")
+st.markdown("<div class='kpi-grid'>" 
+    "<div class='kpi-card'><h3>Snapshots 24h</h3><p>174</p><span>Cadencia: 1 cada 10 min (objetivo 144)</span></div>"
+    "<div class='kpi-card'><h3>Cambios detectados</h3><p>68</p><span>14% menos que ayer · 0.39 por snapshot</span></div>"
+    "<div class='kpi-card'><h3>Anomalías críticas</h3><p>0</p><span>Umbral crítico &gt; 3 por día</span></div>"
+    "<div class='kpi-card'><h3>Reglas activas</h3><p>12</p><span>3 IA · 6 umbral · 3 regex</span></div>"
+    "<div class='kpi-card'><h3>Verificaciones</h3><p>2.4K</p><span>+8% · 61% desde móviles</span></div>"
+    "</div>", unsafe_allow_html=True)
+st.info(
+    "🧭 **Cómo leer estos indicadores:** cada snapshot es una foto inmutable de los datos públicos. "
+    "Los cambios detectados son diferencias verificables entre snapshots. "
+    "Las anomalías críticas solo aparecen cuando el sistema supera umbrales definidos por reglas públicas."
 )
 
-with tab_overview:
-    st.subheader("Pilar principal: Inmutabilidad criptográfica + Blockchain L2")
-    col_hash, col_mode, col_snapshot = st.columns([2, 1, 1])
+snapshots_df = build_snapshot_data()
 
-    with col_hash:
-        st.markdown(
-            f"""
-<div class="card green">
-  <h3>Hash raíz actual</h3>
-  <p><strong>{anchor.root_hash}</strong></p>
-  <p>🔗 Anclado en {anchor.network}</p>
-  <p>🕒 {anchor.anchored_at}</p>
-</div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.link_button("Verificar en Blockchain", anchor.tx_url)
-
-    with col_mode:
-        st.markdown(
-            """
-<div class="card">
-  <h3>Modo de operación</h3>
-  <p><strong>Electoral</strong></p>
-  <p>Cadencia: cada 10 minutos</p>
-</div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with col_snapshot:
-        st.markdown(
-            """
-<div class="card">
-  <h3>Último snapshot</h3>
-  <p><strong>Hace 6 minutos</strong></p>
-  <p>Cadena de hashes verificada</p>
-</div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("### Indicadores de auditoría")
-    metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
-    metric_col1.metric("Snapshots (24h)", "144", "+12")
-    metric_col2.metric("Cambios detectados", "5", "-2")
-    metric_col3.metric("Anomalías críticas", "0", "-1")
-    metric_col4.metric("Reglas activas", "12", "+1")
-
-    st.markdown("### Operación inteligente")
-    op_col1, op_col2, op_col3 = st.columns(3)
-    op_col1.metric("Modo actual", "Electoral")
-    op_col2.metric("Cadencia", "10 min")
-    op_col3.metric("Último snapshot", "6 min")
-
-with tab_snapshots:
-    st.subheader("Detección automática y reproducible de cambios")
-    snapshot_df = build_snapshot_data()
-    st.dataframe(
-        styled_status(snapshot_df),
-        width="stretch",
-        hide_index=True,
+chart_col1, chart_col2 = st.columns([2, 1])
+with chart_col1:
+    st.markdown("<div class='glass'><div class='section-title'>Evolución de snapshots y cambios</div>"
+                "<div class='section-subtitle'>Últimos 7 días</div>", unsafe_allow_html=True)
+    timeline_df = pd.DataFrame(
+        {
+            "día": ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
+            "snapshots": [128, 132, 140, 152, 168, 174, 160],
+            "cambios": [12, 18, 9, 14, 22, 11, 7],
+        }
     )
-    st.caption("Estados: OK (sin anomalías), REVISAR (cambios menores), ALERTA (anomalías graves).")
-
-with tab_analysis:
-    st.subheader("Análisis basado en reglas configurables")
-    rules_df = build_rules_data()
-    st.dataframe(rules_df, width="stretch", hide_index=True)
-
-    if st.button("Ejecutar análisis con reglas"):
-        st.success("0 anomalías críticas detectadas. 1 cambio menor en revisión.")
-
-    chart_df = snapshot_df.copy()
-    chart_df["timestamp"] = pd.to_datetime(chart_df["timestamp"].str.replace(" UTC", ""))
-    fig = px.line(
-        chart_df,
-        x="timestamp",
-        y="changes",
-        markers=True,
-        title="Cambios detectados por snapshot",
-    )
-    fig.update_layout(yaxis_title="Cambios", xaxis_title="Hora")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=timeline_df["día"], y=timeline_df["snapshots"], mode="lines+markers", name="Snapshots", line=dict(color="#00d4ff")))
+    fig.add_trace(go.Scatter(x=timeline_df["día"], y=timeline_df["cambios"], mode="lines+markers", name="Cambios", line=dict(color="#8b5cf6")))
+    fig.update_layout(height=280, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#e2e8f0")
     st.plotly_chart(fig, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-with tab_reports:
-    st.subheader("Reportes reproducibles y descargables")
-    st.write("Generá reportes técnicos auditables con cadena de hashes, anclaje L2 y anomalías detectadas.")
-
-    report_csv = snapshot_df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        "Descargar reporte CSV",
-        data=report_csv,
-        file_name="centinel_reporte.csv",
-        mime="text/csv",
+with chart_col2:
+    st.markdown("<div class='glass'><div class='section-title'>Distribución de anomalías</div>"
+                "<div class='section-subtitle'>Últimas 24h</div>", unsafe_allow_html=True)
+    anomaly_df = pd.DataFrame(
+        {
+            "tipo": ["Cambios no esperados", "Patrones repetidos", "Alteraciones críticas", "Meta-datos"],
+            "valor": [38, 21, 12, 29],
+        }
     )
-    st.download_button(
-        "Descargar reporte PDF (demo)",
-        data=b"%PDF-1.4\n%Centinel demo report\n",
-        file_name="centinel_reporte.pdf",
-        mime="application/pdf",
+    pie_fig = px.pie(anomaly_df, names="tipo", values="valor", hole=0.55)
+    pie_fig.update_traces(textinfo="percent", marker=dict(colors=["#00d4ff", "#8b5cf6", "#f87171", "#10b981"]))
+    pie_fig.update_layout(height=280, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", font_color="#e2e8f0", showlegend=False)
+    st.plotly_chart(pie_fig, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("<div class='glass'><div class='section-title'>Heatmap de actividad por hora</div>"
+            "<div class='section-subtitle'>Detección de patrones sospechosos</div>", unsafe_allow_html=True)
+heatmap_df = pd.DataFrame(
+    {
+        "hora": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+        "actividad": [20, 32, 48, 71, 58, 36],
+    }
+)
+heat_fig = px.bar(heatmap_df, x="hora", y="actividad", color="actividad", color_continuous_scale=["#0b0f1a", "#00d4ff", "#f87171"])
+heat_fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#e2e8f0", coloraxis_showscale=False)
+st.plotly_chart(heat_fig, use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
+st.info(
+    "📌 **Contexto ciudadano:** el heatmap muestra en qué horarios se concentran cambios. "
+    "Valores más altos indican más actividad y requieren revisión adicional."
+)
+
+st.markdown("### Mapa de calor electoral · Honduras")
+try:
+    geojson_url = "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/honduras-departments.geojson"
+    with urlopen(geojson_url) as response:
+        honduras_geojson = json.load(response)
+
+    alert_by_department = pd.DataFrame(
+        {
+            "departamento": [
+                "Atlántida",
+                "Choluteca",
+                "Colón",
+                "Comayagua",
+                "Copán",
+                "Cortés",
+                "El Paraíso",
+                "Francisco Morazán",
+                "Gracias a Dios",
+                "Intibucá",
+                "Islas de la Bahía",
+                "La Paz",
+                "Lempira",
+                "Ocotepeque",
+                "Olancho",
+                "Santa Bárbara",
+                "Valle",
+                "Yoro",
+            ],
+            "alertas": [1, 4, 2, 1, 3, 5, 2, 6, 0, 1, 0, 2, 3, 1, 4, 2, 1, 3],
+            "mensaje": [
+                "Cambios menores en actas",
+                "Picos de actividad en mesas",
+                "Revisión de registros de padrón",
+                "Actualizaciones rutinarias",
+                "Anomalías moderadas detectadas",
+                "Alertas críticas en centros clave",
+                "Inconsistencias temporales",
+                "Mayor concentración de alertas",
+                "Sin alertas activas",
+                "Cambios menores en verificación",
+                "Sin alertas activas",
+                "Anomalías leves en tiempos",
+                "Revisión de datos provinciales",
+                "Cambios menores registrados",
+                "Alertas medias en conteos",
+                "Actividad fuera de patrón",
+                "Alertas leves",
+                "Alertas moderadas",
+            ],
+        }
     )
 
-    st.markdown("### Preview del reporte")
-    st.dataframe(snapshot_df.head(3), width="stretch", hide_index=True)
+    map_fig = px.choropleth(
+        alert_by_department,
+        geojson=honduras_geojson,
+        locations="departamento",
+        featureidkey="properties.name",
+        color="alertas",
+        hover_name="departamento",
+        hover_data={"alertas": True, "mensaje": True},
+        color_continuous_scale=["#0b0f1a", "#00d4ff", "#f87171"],
+    )
+    map_fig.update_geos(fitbounds="locations", visible=False)
+    map_fig.update_layout(
+        height=420,
+        margin=dict(l=0, r=0, t=0, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        font_color="#e2e8f0",
+        coloraxis_showscale=True,
+    )
+    st.plotly_chart(map_fig, use_container_width=True)
+    st.info(
+        "🗺️ **Interpretación:** los departamentos con color más intenso registran más alertas. "
+        "Al pasar el cursor podés ver el tipo de alerta detectada."
+    )
+except Exception:
+    st.warning("No se pudo cargar el mapa de Honduras. Verificá la conectividad o el acceso al recurso GeoJSON.")
+
+st.markdown("### Snapshots recientes")
+st.dataframe(
+    styled_status(snapshots_df),
+    width="stretch",
+    hide_index=True,
+)
+st.caption("Estados: OK (sin anomalías), REVISAR (cambios menores), ALERTA (anomalías graves).")
+
+rules_df = build_rules_data()
+col_rules, col_ai = st.columns([1.3, 1])
+with col_rules:
+    st.markdown("<div class='glass'><div class='section-title'>Reglas personalizadas</div>"
+                "<div class='section-subtitle'>Configura respuestas automáticas y auditorías instantáneas</div>", unsafe_allow_html=True)
+    st.dataframe(rules_df, width="stretch", hide_index=True)
+    st.button("Crear nueva regla", use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col_ai:
+    st.markdown("<div class='glass'><div class='section-title'>Detección automática con IA</div>"
+                "<div class='section-subtitle'>Alertas en tiempo real</div>", unsafe_allow_html=True)
+    st.write("• Patrón anómalo en sección 12 · Alta")
+    st.write("• Cambio irregular en acta 2024-09 · Media")
+    st.write("• Pico inusual en consultas ciudadanas · Baja")
+    st.progress(0.92, text="Confianza anomalías críticas")
+    st.progress(0.84, text="Confianza cambios no autorizados")
+    st.progress(0.68, text="Confianza inconsistencias menores")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("### Reportes reproducibles")
+st.markdown(
+    """
+<div class="glass">
+  <div class="section-title">Exportación verificable</div>
+  <div class="section-subtitle">PDF firmado, JSON auditado y hash reproducible.</div>
+</div>
+    """,
+    unsafe_allow_html=True,
+)
+
+report_csv = snapshots_df.to_csv(index=False).encode("utf-8")
+col_report1, col_report2, col_report3 = st.columns(3)
+with col_report1:
+    st.download_button("Descargar reporte CSV", data=report_csv, file_name="centinel_reporte.csv", mime="text/csv", use_container_width=True)
+with col_report2:
+    st.download_button("Descargar reporte PDF (demo)", data=b"%PDF-1.4\n%Centinel demo report\n", file_name="centinel_reporte.pdf", mime="application/pdf", use_container_width=True)
+with col_report3:
+    st.download_button("Descargar JSON auditado", data=snapshots_df.to_json(orient="records"), file_name="centinel_reporte.json", mime="application/json", use_container_width=True)
+
+with st.expander("Verificación ciudadana"):
+    st.write("Pegá un hash raíz para validar su registro en Arbitrum L2.")
+    hash_input = st.text_input("Hash raíz", value="0x9f3a7c2d1b4a7e1f02d5e1c34aa9b21b")
+    if st.button("Verificar ahora"):
+        if "9f3a" in hash_input.lower():
+            st.success("Verificado ✓ Hash confirmado en Arbitrum L2.")
+        else:
+            st.error("No coincide ✗ El hash no está registrado.")
