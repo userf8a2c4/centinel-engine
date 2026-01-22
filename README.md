@@ -3,7 +3,7 @@
 
 ---
 
-## Español
+## Español (prioridad)
 
 ### ¿Qué es Centinel?
 Centinel es un sistema técnico independiente para observar y auditar datos electorales públicos en Honduras. Registra, normaliza y verifica cambios en datos publicados para producir reportes técnicos reproducibles y trazables.
@@ -25,6 +25,25 @@ Alcance operativo:
 - No procesa datos personales; solo usa fuentes públicas.
 - Aplica scraping defensivo y respetuoso para evitar sobrecargas.
 
+### ¿Qué problema resuelve?
+- **Evidencia verificable:** conserva snapshots con hashes encadenados para que cualquier tercero pueda confirmar integridad.
+- **Transparencia técnica:** transforma datos públicos en registros auditables sin interpretación partidaria.
+- **Trazabilidad histórica:** permite comparar versiones a lo largo del tiempo y detectar cambios relevantes.
+
+### ¿Cómo funciona el flujo operativo?
+1. **Captura de datos públicos** desde fuentes oficiales publicadas.
+2. **Hash criptográfico y encadenamiento** para garantizar integridad.
+3. **Normalización** para comparar estructuras en el tiempo.
+4. **Reglas de análisis** para identificar eventos atípicos o inconsistencias.
+5. **Registro histórico** con metadatos reproducibles.
+6. **Reportes técnicos** listos para auditoría externa.
+
+### Beneficios clave
+- **Neutralidad técnica:** no acusa ni interpreta, solo registra y compara.
+- **Reproducibilidad total:** cada resultado puede replicarse con las mismas fuentes y reglas.
+- **Escalabilidad operativa:** diseñado para operación periódica o intensiva en elecciones activas.
+- **Seguridad de evidencia:** hashes y metadatos evitan alteraciones silenciosas.
+
 ### Estado actual
 - **AUDIT ACTIVE**
 
@@ -37,11 +56,9 @@ El único punto de control editable es **`command_center/`**.
 ### Componentes del repositorio
 - **command_center/**: configuración operativa centralizada y panel de control.
 - **centinel_engine/**: motor separado en Node.js para anclaje de hashes y publicación en L2.
-
-### Cadencia operativa recomendada
-- **Modo mantenimiento/desarrollo:** scraping y anclaje en L2 **1 vez al mes**.
-- **Modo monitoreo normal:** entre **24 y 72 horas**.
-- **Modo elección activa:** entre **5 y 15 minutos**.
+- **scripts/**: automatizaciones para descarga, hash, análisis y reportes.
+- **docs/**: documentación técnica y guías de operación.
+- **Nota de operación:** la interacción es por scripts/CLI; no hay UI de Streamlit incluida.
 
 ### Primeros pasos (5 minutos)
 1. Instala dependencias con Poetry:
@@ -61,6 +78,15 @@ El único punto de control editable es **`command_center/`**.
    ```bash
    poetry run python scripts/analyze_rules.py
    ```
+5. (Opcional) Genera un resumen:
+   ```bash
+   poetry run python scripts/summarize_findings.py
+   ```
+
+### Cadencia operativa recomendada
+- **Modo mantenimiento/desarrollo:** scraping y anclaje en L2 **1 vez al mes**.
+- **Modo monitoreo normal:** entre **24 y 72 horas**.
+- **Modo elección activa:** entre **5 y 15 minutos**.
 
 ### Producción con Docker
 - Construye la imagen:
@@ -74,11 +100,14 @@ El único punto de control editable es **`command_center/`**.
 
 ### Enlaces destacados
 - [Guía rápida](QUICKSTART.md)
+- [Manual de operación](docs/manual.md)
+- [Arquitectura](docs/architecture.md)
+- [Metodología](docs/methodology.md)
 - [Contribución](CONTRIBUTING.md)
 - [Roadmap](ROADMAP.md)
-- [Diario de desarrollo](https://github.com/userf8a2c4/sentinel/tree/dev-v3/Dev%20Diary)
+- [Diario de desarrollo](Dev%20Diary/)
 - [Seguridad](Security.md)
-- [Licencia: MIT](Security.md)
+- [Licencia: MIT](LICENSE)
 
 ## Gestión de Secrets y Backup
 Consulta las instrucciones de resguardo seguro en [docs/SECRETS_BACKUP.md](docs/SECRETS_BACKUP.md).
@@ -110,6 +139,25 @@ Operational scope:
 - It does not process personal data; it only uses public sources.
 - It applies defensive, respectful scraping to avoid overload.
 
+### What problem does it solve?
+- **Verifiable evidence:** preserves snapshots with chained hashes so any third party can confirm integrity.
+- **Technical transparency:** turns public data into auditable records without partisan interpretation.
+- **Historical traceability:** enables comparisons across versions over time to spot meaningful changes.
+
+### How does the operational flow work?
+1. **Capture public data** from official published sources.
+2. **Cryptographic hash chaining** to guarantee integrity.
+3. **Normalization** to compare structures over time.
+4. **Rule-based analysis** to flag anomalies or inconsistencies.
+5. **Historical logging** with reproducible metadata.
+6. **Technical reports** ready for external auditing.
+
+### Key benefits
+- **Technical neutrality:** no accusations, no interpretation—only recording and comparison.
+- **Full reproducibility:** every result can be replicated with the same sources and rules.
+- **Operational scalability:** designed for periodic or high-frequency monitoring during elections.
+- **Evidence security:** hashes and metadata prevent silent tampering.
+
 ### Current status
 - **AUDIT ACTIVE**
 
@@ -122,11 +170,9 @@ The only editable control point is **`command_center/`**.
 ### Repository components
 - **command_center/**: centralized operational configuration and control panel.
 - **centinel_engine/**: separate Node.js engine for hash anchoring and L2 publishing.
-
-### Recommended operating cadence
-- **Maintenance/development mode:** scraping and L2 anchoring **once per month**.
-- **Normal monitoring mode:** between **24 and 72 hours**.
-- **Active election mode:** between **5 and 15 minutes**.
+- **scripts/**: automations for downloads, hashing, analysis, and reporting.
+- **docs/**: technical documentation and operating guides.
+- **Operational note:** interaction is via scripts/CLI; there is no bundled Streamlit UI.
 
 ### Quick start (5 minutes)
 1. Install dependencies with Poetry:
@@ -138,7 +184,7 @@ The only editable control point is **`command_center/`**.
    cp command_center/config.yaml.example command_center/config.yaml
    cp command_center/.env.example command_center/.env
    ```
-3. Generate a snapshot:
+3. Generate an initial snapshot:
    ```bash
    poetry run python scripts/download_and_hash.py
    ```
@@ -146,6 +192,15 @@ The only editable control point is **`command_center/`**.
    ```bash
    poetry run python scripts/analyze_rules.py
    ```
+5. (Optional) Build a summary:
+   ```bash
+   poetry run python scripts/summarize_findings.py
+   ```
+
+### Recommended operating cadence
+- **Maintenance/development mode:** scraping and L2 anchoring **once per month**.
+- **Normal monitoring mode:** between **24 and 72 hours**.
+- **Active election mode:** between **5 and 15 minutes**.
 
 ### Production with Docker
 - Build the image:
@@ -159,11 +214,14 @@ The only editable control point is **`command_center/`**.
 
 ### Key links
 - [Quickstart guide](QUICKSTART.md)
+- [Operations manual](docs/manual.md)
+- [Architecture](docs/architecture.md)
+- [Methodology](docs/methodology.md)
 - [Contributing](CONTRIBUTING.md)
 - [Roadmap](ROADMAP.md)
-- [Dev diary](https://github.com/userf8a2c4/sentinel/tree/dev-v3/Dev%20Diary)
+- [Dev diary](Dev%20Diary/)
 - [Security](Security.md)
-- [License](Security.md)
+- [License: MIT](LICENSE)
 
 ## Secrets management and backup
 See the secure backup guide at [docs/SECRETS_BACKUP.md](docs/SECRETS_BACKUP.md).
