@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+from pathlib import Path
 from dataclasses import dataclass
 from urllib.request import urlopen
 
@@ -377,9 +378,16 @@ st.info(
 
 st.markdown("### Mapa de calor electoral · Honduras")
 try:
-    geojson_url = "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/honduras-departments.geojson"
-    with urlopen(geojson_url) as response:
-        honduras_geojson = json.load(response)
+    local_geojson_path = Path(__file__).parent / "data" / "honduras_departments.geojson"
+    gadm_geojson_path = Path(__file__).parent / "data" / "gadm41_HND_1.json"
+    if local_geojson_path.exists():
+        honduras_geojson = json.loads(local_geojson_path.read_text(encoding="utf-8"))
+    elif gadm_geojson_path.exists():
+        honduras_geojson = json.loads(gadm_geojson_path.read_text(encoding="utf-8"))
+    else:
+        geojson_url = "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/honduras-departments.geojson"
+        with urlopen(geojson_url) as response:
+            honduras_geojson = json.load(response)
 
     alert_by_department = pd.DataFrame(
         {
@@ -427,11 +435,19 @@ try:
         }
     )
 
+    feature_id_key = "properties.name"
+    if honduras_geojson.get("features"):
+        sample_properties = honduras_geojson["features"][0].get("properties", {})
+        if "NAME_1" in sample_properties:
+            feature_id_key = "properties.NAME_1"
+        elif "NAME_0" in sample_properties:
+            feature_id_key = "properties.NAME_0"
+
     map_fig = px.choropleth(
         alert_by_department,
         geojson=honduras_geojson,
         locations="departamento",
-        featureidkey="properties.name",
+        featureidkey=feature_id_key,
         color="alertas",
         hover_name="departamento",
         hover_data={"alertas": True, "mensaje": True},
@@ -451,7 +467,61 @@ try:
         "Al pasar el cursor podés ver el tipo de alerta detectada."
     )
 except Exception:
-    st.warning("No se pudo cargar el mapa de Honduras. Verificá la conectividad o el acceso al recurso GeoJSON.")
+    city_data_path = Path(__file__).parent / "data" / "hn_cities.json"
+    if city_data_path.exists():
+        city_payload = json.loads(city_data_path.read_text(encoding="utf-8"))
+        city_items = city_payload if isinstance(city_payload, list) else city_payload.get("cities", [])
+        city_rows = []
+        for index, item in enumerate(city_items):
+            lat = item.get("lat") or item.get("latitude")
+            lon = item.get("lng") or item.get("lon") or item.get("longitude")
+            if lat is None or lon is None:
+                continue
+            population = float(item.get("population") or item.get("pop") or 0)
+            if population > 0:
+                alert_score = min(max(round(population / 200000), 1), 6)
+            else:
+                alert_score = (index % 6) + 1
+            city_rows.append(
+                {
+                    "city": item.get("city") or item.get("name") or "Ciudad",
+                    "department": item.get("admin_name") or item.get("admin") or "Departamento",
+                    "lat": float(lat),
+                    "lon": float(lon),
+                    "alertas": alert_score,
+                }
+            )
+        city_df = pd.DataFrame(city_rows)
+        map_fig = px.scatter_geo(
+            city_df,
+            lat="lat",
+            lon="lon",
+            color="alertas",
+            size="alertas",
+            hover_name="city",
+            hover_data={"department": True, "alertas": True},
+            color_continuous_scale=["#0b0f1a", "#00d4ff", "#f87171"],
+        )
+        map_fig.update_layout(
+            height=420,
+            margin=dict(l=0, r=0, t=0, b=0),
+            paper_bgcolor="rgba(0,0,0,0)",
+            font_color="#e2e8f0",
+            coloraxis_showscale=True,
+            geo=dict(scope="north america", showland=True, landcolor="#0b0f1a"),
+        )
+        st.plotly_chart(map_fig, use_container_width=True)
+        st.info(
+            "🗺️ **Mapa alterno:** usando datos de ciudades (`hn_cities.json`). "
+            "Los puntos más grandes indican más alertas estimadas."
+        )
+    else:
+        st.warning(
+            "No se pudo cargar el mapa de Honduras. "
+            "Colocá un GeoJSON local en `dashboard/data/honduras_departments.geojson` "
+            "o `dashboard/data/gadm41_HND_1.json`, "
+            "o un archivo de ciudades en `dashboard/data/hn_cities.json`."
+        )
 
 st.markdown("### Snapshots recientes")
 st.dataframe(
