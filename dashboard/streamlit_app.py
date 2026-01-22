@@ -115,6 +115,96 @@ def build_vote_evolution() -> pd.DataFrame:
     return pd.DataFrame(series)
 
 
+def render_honduras_map() -> None:
+    st.markdown("### Mapa electoral de Honduras – ¿Dónde hay más actividad?")
+    st.markdown(
+        "<p class='section-subtitle'>Colores verdes = actividad normal. Naranjas = atención. Rojos = revisar.</p>",
+        unsafe_allow_html=True,
+    )
+    try:
+        local_geojson_path = Path(__file__).parent / "data" / "honduras_departments.geojson"
+        gadm_geojson_path = Path(__file__).parent / "data" / "gadm41_HND_1.json"
+        alt_geojson_path = Path(__file__).parent / "data" / "GeoJSON_HN.geojson"
+        if local_geojson_path.exists():
+            honduras_geojson = json.loads(local_geojson_path.read_text(encoding="utf-8"))
+        elif gadm_geojson_path.exists():
+            honduras_geojson = json.loads(gadm_geojson_path.read_text(encoding="utf-8"))
+        elif alt_geojson_path.exists():
+            honduras_geojson = json.loads(alt_geojson_path.read_text(encoding="utf-8"))
+        else:
+            geojson_url = "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/honduras-departments.geojson"
+            with urlopen(geojson_url) as response:
+                honduras_geojson = json.load(response)
+
+        alert_by_department = pd.DataFrame(
+            {
+                "departamento": [
+                    "Atlántida",
+                    "Choluteca",
+                    "Colón",
+                    "Comayagua",
+                    "Copán",
+                    "Cortés",
+                    "El Paraíso",
+                    "Francisco Morazán",
+                    "Gracias a Dios",
+                    "Intibucá",
+                    "Islas de la Bahía",
+                    "La Paz",
+                    "Lempira",
+                    "Ocotepeque",
+                    "Olancho",
+                    "Santa Bárbara",
+                    "Valle",
+                    "Yoro",
+                ],
+                "cambios": [12, 18, 9, 11, 14, 20, 8, 22, 2, 6, 1, 7, 10, 5, 16, 9, 4, 13],
+                "anomalías": [0, 1, 0, 0, 1, 2, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1],
+            }
+        )
+        alert_by_department["mensaje"] = (
+            "Cambios detectados: "
+            + alert_by_department["cambios"].astype(str)
+            + " · Anomalías críticas: "
+            + alert_by_department["anomalías"].astype(str)
+        )
+
+        feature_id_key = "properties.name"
+        if honduras_geojson.get("features"):
+            sample_properties = honduras_geojson["features"][0].get("properties", {})
+            if "NAME_1" in sample_properties:
+                feature_id_key = "properties.NAME_1"
+            elif "NAME_0" in sample_properties:
+                feature_id_key = "properties.NAME_0"
+
+        map_fig = px.choropleth(
+            alert_by_department,
+            geojson=honduras_geojson,
+            locations="departamento",
+            featureidkey=feature_id_key,
+            color="cambios",
+            hover_name="departamento",
+            hover_data={"cambios": True, "anomalías": True, "mensaje": True},
+            color_continuous_scale=["#10b981", "#f59e0b", "#ef4444"],
+        )
+        map_fig.update_geos(fitbounds="locations", visible=False)
+        map_fig.update_layout(
+            height=420,
+            margin=dict(l=0, r=0, t=0, b=0),
+            paper_bgcolor="rgba(0,0,0,0)",
+            font_color="#e2e8f0",
+            coloraxis_showscale=True,
+        )
+        st.plotly_chart(map_fig, use_container_width=True)
+        st.button("Ver detalle por departamento", use_container_width=True)
+    except Exception:
+        st.warning(
+            "No se pudo cargar el mapa de Honduras. "
+            "Colocá un GeoJSON local en `dashboard/data/honduras_departments.geojson`, "
+            "`dashboard/data/gadm41_HND_1.json` o `dashboard/data/GeoJSON_HN.geojson`."
+        )
+
+
 st.set_page_config(
     page_title="C.E.N.T.I.N.E.L. | Dashboard Ciudadano",
     page_icon="🛰️",
@@ -402,93 +492,7 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 st.info("El crecimiento debe ser gradual. Saltos repentinos indican revisión adicional.")
 
-st.markdown("### Mapa electoral de Honduras – ¿Dónde hay más actividad?")
-st.markdown(
-    "<p class='section-subtitle'>Colores verdes = actividad normal. Naranjas = atención. Rojos = revisar.</p>",
-    unsafe_allow_html=True,
-)
-try:
-    local_geojson_path = Path(__file__).parent / "data" / "honduras_departments.geojson"
-    gadm_geojson_path = Path(__file__).parent / "data" / "gadm41_HND_1.json"
-    alt_geojson_path = Path(__file__).parent / "data" / "GeoJSON_HN.geojson"
-    if local_geojson_path.exists():
-        honduras_geojson = json.loads(local_geojson_path.read_text(encoding="utf-8"))
-    elif gadm_geojson_path.exists():
-        honduras_geojson = json.loads(gadm_geojson_path.read_text(encoding="utf-8"))
-    elif alt_geojson_path.exists():
-        honduras_geojson = json.loads(alt_geojson_path.read_text(encoding="utf-8"))
-    else:
-        geojson_url = "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/honduras-departments.geojson"
-        with urlopen(geojson_url) as response:
-            honduras_geojson = json.load(response)
-
-    alert_by_department = pd.DataFrame(
-        {
-            "departamento": [
-                "Atlántida",
-                "Choluteca",
-                "Colón",
-                "Comayagua",
-                "Copán",
-                "Cortés",
-                "El Paraíso",
-                "Francisco Morazán",
-                "Gracias a Dios",
-                "Intibucá",
-                "Islas de la Bahía",
-                "La Paz",
-                "Lempira",
-                "Ocotepeque",
-                "Olancho",
-                "Santa Bárbara",
-                "Valle",
-                "Yoro",
-            ],
-            "cambios": [12, 18, 9, 11, 14, 20, 8, 22, 2, 6, 1, 7, 10, 5, 16, 9, 4, 13],
-            "anomalías": [0, 1, 0, 0, 1, 2, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1],
-        }
-    )
-    alert_by_department["mensaje"] = (
-        "Cambios detectados: "
-        + alert_by_department["cambios"].astype(str)
-        + " · Anomalías críticas: "
-        + alert_by_department["anomalías"].astype(str)
-    )
-
-    feature_id_key = "properties.name"
-    if honduras_geojson.get("features"):
-        sample_properties = honduras_geojson["features"][0].get("properties", {})
-        if "NAME_1" in sample_properties:
-            feature_id_key = "properties.NAME_1"
-        elif "NAME_0" in sample_properties:
-            feature_id_key = "properties.NAME_0"
-
-    map_fig = px.choropleth(
-        alert_by_department,
-        geojson=honduras_geojson,
-        locations="departamento",
-        featureidkey=feature_id_key,
-        color="cambios",
-        hover_name="departamento",
-        hover_data={"cambios": True, "anomalías": True, "mensaje": True},
-        color_continuous_scale=["#10b981", "#f59e0b", "#ef4444"],
-    )
-    map_fig.update_geos(fitbounds="locations", visible=False)
-    map_fig.update_layout(
-        height=420,
-        margin=dict(l=0, r=0, t=0, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        font_color="#e2e8f0",
-        coloraxis_showscale=True,
-    )
-    st.plotly_chart(map_fig, use_container_width=True)
-    st.button("Ver detalle por departamento", use_container_width=True)
-except Exception:
-    st.warning(
-        "No se pudo cargar el mapa de Honduras. "
-        "Colocá un GeoJSON local en `dashboard/data/honduras_departments.geojson`, "
-        "`dashboard/data/gadm41_HND_1.json` o `dashboard/data/GeoJSON_HN.geojson`."
-    )
+render_honduras_map()
 
 st.markdown("### ¿A qué horas se actualizan más los datos?")
 heatmap_df = pd.DataFrame(
@@ -547,6 +551,14 @@ with col_report2:
         data=snapshots_df.to_json(orient="records"),
         file_name="centinel_reporte.json",
         mime="application/json",
+        use_container_width=True,
+    )
+with col_report3:
+    st.download_button(
+        "Descargar CSV",
+        data=report_csv,
+        file_name="centinel_reporte.csv",
+        mime="text/csv",
         use_container_width=True,
     )
 with col_report3:
