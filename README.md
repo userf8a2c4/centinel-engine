@@ -65,22 +65,34 @@ El único punto de control editable es **`command_center/`**.
    ```bash
    poetry install
    ```
-2. Configura fuentes:
+2. Inicializa archivos de configuración:
    ```bash
-   cp command_center/config.yaml.example command_center/config.yaml
-   cp command_center/.env.example command_center/.env
+   poetry run python scripts/bootstrap.py
    ```
-3. Genera un snapshot inicial:
+   Alternativa rápida:
+   ```bash
+   make init
+   ```
+3. Configura fuentes y secretos en `command_center/config.yaml` y `command_center/.env`.
+4. Genera un snapshot inicial:
    ```bash
    poetry run python scripts/download_and_hash.py
    ```
-4. Ejecuta el análisis:
+5. Ejecuta el análisis:
    ```bash
    poetry run python scripts/analyze_rules.py
    ```
-5. (Opcional) Genera un resumen:
+6. (Opcional) Genera un resumen:
    ```bash
    poetry run python scripts/summarize_findings.py
+   ```
+7. (Alternativa) Ejecuta el pipeline completo:
+   ```bash
+   poetry run python scripts/run_pipeline.py --once
+   ```
+   Alternativa rápida:
+   ```bash
+   make pipeline
    ```
 
 ### Cadencia operativa recomendada
@@ -179,22 +191,34 @@ The only editable control point is **`command_center/`**.
    ```bash
    poetry install
    ```
-2. Configure sources:
+2. Initialize configuration files:
    ```bash
-   cp command_center/config.yaml.example command_center/config.yaml
-   cp command_center/.env.example command_center/.env
+   poetry run python scripts/bootstrap.py
    ```
-3. Generate an initial snapshot:
+   Quick alternative:
+   ```bash
+   make init
+   ```
+3. Configure sources and secrets in `command_center/config.yaml` and `command_center/.env`.
+4. Generate an initial snapshot:
    ```bash
    poetry run python scripts/download_and_hash.py
    ```
-4. Run the analysis:
+5. Run the analysis:
    ```bash
    poetry run python scripts/analyze_rules.py
    ```
-5. (Optional) Build a summary:
+6. (Optional) Build a summary:
    ```bash
    poetry run python scripts/summarize_findings.py
+   ```
+7. (Alternative) Run the full pipeline:
+   ```bash
+   poetry run python scripts/run_pipeline.py --once
+   ```
+   Quick alternative:
+   ```bash
+   make pipeline
    ```
 
 ### Recommended operating cadence

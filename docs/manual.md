@@ -13,6 +13,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Inicialización rápida
+```bash
+python scripts/bootstrap.py
+```
+Esto crea `command_center/config.yaml` y `command_center/.env` si no existen.
+
 ### Configuración de scraping (CNE)
 Crea o edita `config/config.yaml` en la carpeta `config/`:
 ```yaml
@@ -35,6 +41,7 @@ backoff_max_seconds: 30
 1. **Descarga + hash** para capturar evidencia.
 2. **Análisis de reglas** para detectar cambios o eventos atípicos.
 3. **Resumen** para comunicación rápida del estado.
+4. **(Alternativa)** Ejecuta todo con `scripts/run_pipeline.py --once`.
 
 ### Descarga y hash de datos
 ```bash
@@ -85,6 +92,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Quick initialization
+```bash
+python scripts/bootstrap.py
+```
+This creates `command_center/config.yaml` and `command_center/.env` if missing.
+
 ### Scraping configuration (CNE)
 Create or edit `config/config.yaml` inside the `config/` folder:
 ```yaml
@@ -107,6 +120,7 @@ backoff_max_seconds: 30
 1. **Download + hash** to capture evidence.
 2. **Rule analysis** to detect changes or anomalies.
 3. **Summary** for quick status communication.
+4. **(Alternative)** Run everything with `scripts/run_pipeline.py --once`.
 
 ### Data download and hashing
 ```bash
