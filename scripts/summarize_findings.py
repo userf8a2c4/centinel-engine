@@ -6,20 +6,29 @@ Generate a textual summary of detected alerts.
 import json
 from pathlib import Path
 
-alerts = json.loads(Path("analysis/alerts.json").read_text())
+alerts_payload = json.loads(Path("analysis/alerts.json").read_text())
 
-lines = []
+summary_lines: list[str] = []
 
-if not alerts:
-    lines.append("No se detectaron eventos atípicos en los datos públicos analizados.")
+if not alerts_payload:
+    summary_lines.append(
+        "No se detectaron eventos atípicos en los datos públicos analizados."
+    )
 else:
-    for e in alerts:
-        lines.append(f"Evento atípico detectado entre {e['from']} y {e['to']} UTC.")
-        for a in e["alerts"]:
-            description = a.get("description") or a.get("descripcion")
+    for alert_window in alerts_payload:
+        summary_lines.append(
+            "Evento atípico detectado entre "
+            f"{alert_window['from']} y {alert_window['to']} UTC."
+        )
+        for triggered_rule in alert_window["alerts"]:
+            description = triggered_rule.get("description") or triggered_rule.get(
+                "descripcion"
+            )
             if description:
-                lines.append(f"- {description}")
+                summary_lines.append(f"- {description}")
             else:
-                lines.append(f"- Regla activada: {a['rule']}")
+                summary_lines.append(
+                    f"- Regla activada: {triggered_rule['rule']}"
+                )
 
-Path("reports/summary.txt").write_text("\n".join(lines), encoding="utf-8")
+Path("reports/summary.txt").write_text("\n".join(summary_lines), encoding="utf-8")
