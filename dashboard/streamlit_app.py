@@ -307,17 +307,17 @@ translations = {
             "Verificación",
             "Reportes",
         ],
-        "hero_title": "C.E.N.T.I.N.E.L. – Panel Ejecutivo de Integridad Electoral",
+        "hero_title": "C.E.N.T.I.N.E.L. – Panel Ejecutivo de Integridad Electoral · Honduras",
         "hero_subtitle": (
             "Sistema de auditoría independiente con evidencia criptográfica verificable. "
-            "Datos públicos inmutables anclados en Arbitrum L2 para observación internacional."
+            "Snapshots inmutables anclados en Arbitrum L2 cada 10 minutos para observación internacional."
         ),
         "global_ok": "ESTATUS GLOBAL: VERIFICABLE · SIN ANOMALÍAS CRÍTICAS",
         "audience_title": "Audiencias prioritarias",
         "audience_items": [
             "Autoridades electorales y autoridades políticas",
             "Analistas matemáticos y estadísticos",
-            "Observadores internacionales (OEA/UE)",
+            "Observadores internacionales (OEA/UE/DEA)",
             "Medios y sociedad civil especializada",
         ],
         "kpi_snapshots": "Snapshots (24h)",
@@ -332,17 +332,17 @@ translations = {
         "kpi_verifications_note": "Validaciones independientes.",
         "capabilities_title": "Capacidades clave de C.E.N.T.I.N.E.L.",
         "capabilities_items": [
-            "Monitoreo continuo con evidencias hashables",
-            "Anclaje criptográfico en blockchain",
-            "Indicadores estadísticos de integridad",
-            "Reportes ejecutivos y técnicos listos para auditoría",
+            "Monitoreo continuo con evidencias inmutables en Arbitrum L2",
+            "Anclaje criptográfico con hashes SHA-256 encadenados",
+            "Indicadores estadísticos y matemáticos de integridad",
+            "Reportes ejecutivos y técnicos reproducibles para auditoría externa",
         ],
         "methodology_title": "Metodología resumida",
         "methodology_items": [
-            "Ingesta continua de datos públicos electorales.",
+            "Ingesta continua de datos públicos electorales del CNE.",
             "Snapshots inmutables cada 10 minutos con hash raíz.",
-            "Reglas de integridad y alertas automáticas.",
-            "Validación pública en Arbitrum L2.",
+            "Reglas de integridad automáticas y auditoría en Arbitrum L2.",
+            "Validación pública y verificable por terceros.",
         ],
         "indicator_title": "Indicadores de integridad",
         "indicator_subtitle": "Métricas estadístico-matemáticas usadas por misiones de observación.",
@@ -373,6 +373,13 @@ translations = {
         "rules_help": "Estas reglas protegen la integridad automáticamente.",
         "governance_title": "Gobernanza de datos y garantías",
         "risk_title": "Mapa de riesgos y controles",
+        "footer_links_title": "Accesos institucionales",
+        "footer_github": "Repositorio técnico",
+        "footer_docs": "Documentación técnica",
+        "footer_verify": "Verificación en Arbitrum",
+        "footer_contact": "Contacto para observadores",
+        "cta_report": "Ver Reporte Técnico Completo",
+        "cta_verify": "Validar en Blockchain",
     },
     "en": {
         "nav_title": "Navigation",
@@ -383,17 +390,17 @@ translations = {
             "Verification",
             "Reports",
         ],
-        "hero_title": "C.E.N.T.I.N.E.L. – Executive Electoral Integrity Dashboard",
+        "hero_title": "C.E.N.T.I.N.E.L. – Executive Electoral Integrity Dashboard · Honduras",
         "hero_subtitle": (
             "Independent audit system with verifiable cryptographic evidence. "
-            "Public data immutably anchored on Arbitrum L2 for international observation."
+            "Immutable snapshots anchored on Arbitrum L2 every 10 minutes for international observation."
         ),
         "global_ok": "GLOBAL STATUS: VERIFIABLE · NO CRITICAL ANOMALIES",
         "audience_title": "Primary audiences",
         "audience_items": [
             "Electoral authorities and political leadership",
             "Mathematical and statistical analysts",
-            "International observers (OAS/EU)",
+            "International observers (OAS/EU/DEA)",
             "Media and specialized civil society",
         ],
         "kpi_snapshots": "Snapshots (24h)",
@@ -408,17 +415,17 @@ translations = {
         "kpi_verifications_note": "Independent validations.",
         "capabilities_title": "Key Centinel capabilities",
         "capabilities_items": [
-            "Continuous monitoring with hashable evidence",
-            "Cryptographic anchoring on blockchain",
-            "Statistical integrity indicators",
-            "Executive and technical reports ready for audit",
+            "Continuous monitoring with immutable evidence on Arbitrum L2",
+            "Cryptographic anchoring with chained SHA-256 hashes",
+            "Statistical and mathematical integrity indicators",
+            "Executive and technical reports reproducible for external audit",
         ],
         "methodology_title": "Methodology (summary)",
         "methodology_items": [
-            "Continuous ingestion of public electoral data.",
+            "Continuous ingestion of public electoral data from CNE.",
             "Immutable snapshots every 10 minutes with root hash.",
-            "Integrity rules and automated alerts.",
-            "Public validation on Arbitrum L2.",
+            "Integrity rules and audit workflow on Arbitrum L2.",
+            "Public validation and third-party verification.",
         ],
         "indicator_title": "Integrity indicators",
         "indicator_subtitle": "Statistical and mathematical metrics used by observation missions.",
@@ -449,6 +456,13 @@ translations = {
         "rules_help": "These rules protect integrity automatically.",
         "governance_title": "Data governance and guarantees",
         "risk_title": "Risk & control map",
+        "footer_links_title": "Institutional access",
+        "footer_github": "Technical repository",
+        "footer_docs": "Technical documentation",
+        "footer_verify": "Verify on Arbitrum",
+        "footer_contact": "Observer contact",
+        "cta_report": "View Full Technical Report",
+        "cta_verify": "Validate on Blockchain",
     },
 }
 copy = translations[language]
@@ -464,34 +478,47 @@ css = """
 <style>
     :root {
         color-scheme: dark;
-        --bg: #0b0f19;
-        --panel: rgba(16, 21, 35, 0.88);
-        --panel-soft: rgba(20, 26, 42, 0.75);
-        --text: #e5e7eb;
-        --muted: #9ca3af;
-        --accent: #38bdf8;
-        --accent-2: #6366f1;
-        --success: #10B981;
-        --warning: #F59E0B;
-        --danger: #EF4444;
-        --border: rgba(148, 163, 184, 0.18);
-        --shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+        --bg: #0f1117;
+        --panel: rgba(14, 17, 23, 0.9);
+        --panel-soft: rgba(20, 24, 32, 0.85);
+        --text: #ffffff;
+        --muted: #e0e0e0;
+        --accent: #0055ff;
+        --success: #00c853;
+        --warning: #f59e0b;
+        --danger: #ff3b30;
+        --border: rgba(255, 255, 255, 0.08);
+        --shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
     }
     html, body, [class*="css"] { font-family: "Inter", "Geist", "Segoe UI", sans-serif; }
-    .stApp { background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent 40%), var(--bg); color: var(--text); }
-    section[data-testid="stSidebar"] { background: rgba(9, 12, 22, 0.96); border-right: 1px solid var(--border); }
-    .glass { background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 2rem; box-shadow: var(--shadow); backdrop-filter: blur(14px); }
+    .stApp { background: var(--bg); color: var(--text); }
+    section[data-testid="stSidebar"] { background: rgba(12, 14, 20, 0.98); border-right: 1px solid var(--border); }
+    .glass { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 2rem; box-shadow: var(--shadow); }
     .hero { margin-bottom: 2rem; }
-    .hero h1 { font-size: 2.1rem; letter-spacing: -0.02em; margin-bottom: 0.6rem; color: #f8fafc; }
+    .hero h1 { font-size: 2.05rem; letter-spacing: -0.02em; margin-bottom: 0.6rem; color: var(--text); }
     .hero p { font-size: 1.02rem; color: var(--muted); margin-top: 0; line-height: 1.6; }
-    .kpi { background: var(--panel-soft); border: 1px solid var(--border); border-radius: 16px; padding: 1.05rem; }
-    .kpi h3 { margin: 0; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); }
-    .kpi p { margin: 0.45rem 0; font-size: 1.5rem; font-weight: 600; color: #f8fafc; }
+    .kpi { background: var(--panel-soft); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; }
+    .kpi h3 { margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+    .kpi p { margin: 0.45rem 0; font-size: 1.55rem; font-weight: 600; color: var(--text); }
     .kpi span { font-size: 0.88rem; color: var(--muted); }
-    .note { background: rgba(16, 21, 35, 0.9); border: 1px solid var(--border); padding: 0.9rem 1.1rem; border-radius: 12px; color: var(--muted); }
-    .badge { display: inline-block; padding: 0.35rem 0.85rem; border-radius: 999px; background: rgba(56, 189, 248, 0.12); color: var(--text); margin: 0.2rem 0.35rem 0 0; font-size: 0.82rem; border: 1px solid rgba(56, 189, 248, 0.2); }
-    .list-card { background: rgba(16, 21, 35, 0.92); border: 1px solid var(--border); padding: 1.1rem; border-radius: 14px; color: var(--text); }
-    .stPlotlyChart { background: rgba(16, 21, 35, 0.92); border-radius: 14px; padding: 0.5rem; box-shadow: var(--shadow); }
+    .note { background: var(--panel); border: 1px solid var(--border); padding: 0.95rem 1.1rem; border-radius: 12px; color: var(--muted); }
+    .badge { display: inline-block; padding: 0.35rem 0.85rem; border-radius: 999px; background: rgba(0, 85, 255, 0.12); color: var(--text); margin: 0.2rem 0.35rem 0 0; font-size: 0.82rem; border: 1px solid rgba(0, 85, 255, 0.2); }
+    .list-card { background: var(--panel); border: 1px solid var(--border); padding: 1.1rem; border-radius: 12px; color: var(--text); }
+    .stPlotlyChart { background: var(--panel); border-radius: 12px; padding: 0.5rem; box-shadow: var(--shadow); }
+    .cta-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+    .cta-primary, .cta-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.6rem 1rem;
+        border-radius: 999px;
+        font-size: 0.9rem;
+        border: 1px solid var(--border);
+        text-decoration: none;
+    }
+    .cta-primary { background: var(--accent); color: #ffffff; }
+    .cta-secondary { background: transparent; color: var(--text); }
+    .footer-links { display: grid; gap: 0.4rem; margin-top: 1.5rem; color: var(--muted); font-size: 0.9rem; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -715,6 +742,10 @@ if section == copy["nav_sections"][0]:
   <h1>{copy['hero_title']}</h1>
   <p>{copy['hero_subtitle']}</p>
   <h3 style="color: var(--success);">{copy['global_ok']}</h3>
+  <div class="cta-row">
+    <a class="cta-primary" href="https://arbiscan.io/" target="_blank" rel="noopener">{copy['cta_verify']}</a>
+    <a class="cta-secondary" href="https://github.com/userf8a2c4/centinel-engine" target="_blank" rel="noopener">{copy['cta_report']}</a>
+  </div>
 </div>
         """,
         unsafe_allow_html=True,
@@ -770,6 +801,20 @@ if section == copy["nav_sections"][0]:
     st.plotly_chart(last_digit_fig, use_container_width=True)
     st.plotly_chart(votes_fig, use_container_width=True)
     st.plotly_chart(heat_fig, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown(f"#### {copy['footer_links_title']}")
+    st.markdown(
+        f"""
+<div class="footer-links">
+  <a href="https://github.com/userf8a2c4/centinel-engine" target="_blank" rel="noopener">{copy['footer_github']}</a>
+  <a href="https://github.com/userf8a2c4/centinel-engine#readme" target="_blank" rel="noopener">{copy['footer_docs']}</a>
+  <a href="https://arbiscan.io/" target="_blank" rel="noopener">{copy['footer_verify']}</a>
+  <a href="mailto:observadores@centinel.app" target="_blank" rel="noopener">{copy['footer_contact']}</a>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 elif section == copy["nav_sections"][1]:
     st.markdown(f"### {copy['indicator_title']}")
