@@ -190,129 +190,129 @@ language = LANG_OPTIONS[language_label]
 
 theme = {
     "color_scheme": "light",
-    "bg": "#f8f9fb",
+    "bg": "#f4f6f9",
     "panel": "#ffffff",
-    "panel_soft": "#f1f3f5",
-    "text": "#111111",
-    "muted": "#4b5563",
-    "border": "#e5e7eb",
-    "accent": "#111111",
-    "accent_soft": "#6b7280",
-    "chart_primary": "#111111",
-    "chart_secondary": "#6b7280",
+    "panel_soft": "#eef2f7",
+    "text": "#0f172a",
+    "muted": "#475569",
+    "border": "#d8dee8",
+    "accent": "#1e3a8a",
+    "accent_soft": "#64748b",
+    "chart_primary": "#1e3a8a",
+    "chart_secondary": "#64748b",
 }
 
 translations = {
     "es": {
-        "title": "C.E.N.T.I.N.E.L. – Integridad y Transparencia Electoral",
-        "subtitle": "Indicadores verificables y trazabilidad pública para auditoría institucional.",
+        "title": "C.E.N.T.I.N.E.L. – Integridad Electoral basada en datos",
+        "subtitle": "Análisis reproducible de JSON público con trazabilidad blockchain para auditorías institucionales.",
         "pillars": [
-            "Trazabilidad verificable",
-            "Detección de anomalías",
-            "Reglas de auditoría",
-            "Validación independiente",
+            "Datos públicos en JSON",
+            "Análisis estadístico verificable",
+            "Reglas de auditoría claras",
+            "Trazabilidad en blockchain",
         ],
         "status_now": "Estado actual",
         "status_note": "Todo OK · sin anomalías críticas",
-        "status_body": "El sistema no detectó señales de fraude en las últimas 24h.",
-        "last_snapshot": "Último snapshot",
-        "citizen_checks": "Verificaciones independientes",
-        "citizen_body": "Más verificaciones externas = mayor confianza institucional.",
-        "cta_verify": "Validar evidencia",
-        "cta_blockchain": "Registro público",
+        "status_body": "El sistema analiza cambios en el JSON público y detecta patrones atípicos con evidencia trazable.",
+        "last_snapshot": "Último snapshot verificable",
+        "citizen_checks": "Verificaciones externas",
+        "citizen_body": "Auditores independientes pueden contrastar JSON y hashes públicos.",
+        "cta_verify": "Validar evidencia JSON",
+        "cta_blockchain": "Ver anclaje en blockchain",
         "kpi_title": "Indicadores clave",
-        "kpi_helper": "Cada métrica incluye contexto metodológico.",
-        "kpi_snapshots": "Snapshots 24h",
-        "kpi_changes": "Cambios detectados",
+        "kpi_helper": "Cada métrica parte de JSON público y evidencia anclada en blockchain.",
+        "kpi_snapshots": "Snapshots públicos 24h",
+        "kpi_changes": "Cambios auditables",
         "kpi_alerts": "Anomalías críticas",
-        "kpi_checks": "Verificaciones ciudadanas",
+        "kpi_checks": "Verificaciones externas",
         "kpi_tooltips": [
-            "Snapshots inmutables cada 10 minutos.",
-            "Cambios normales auditados.",
-            "Alertas que superan umbrales.",
-            "Ciudadanos validando resultados.",
+            "Snapshots del JSON público cada 10 minutos.",
+            "Deltas auditables entre snapshots.",
+            "Alertas que superan umbrales técnicos.",
+            "Validaciones externas basadas en evidencia.",
         ],
         "kpi_descriptions": [
-            "Cada 10 minutos tomamos una foto inmutable.",
-            "Actualizaciones normales de actas, revisadas automáticamente.",
-            "Sin señales que superen los umbrales acordados.",
-            "Validaciones independientes confirman consistencia.",
+            "Captura periódica del JSON público con hash verificable.",
+            "Cambios comparados con evidencia histórica reproducible.",
+            "Sin señales críticas en los indicadores de integridad.",
+            "Auditores externos confirman consistencia de datos.",
         ],
-        "stats_title": "Indicadores de rareza estadística",
-        "stats_subtitle": "Pruebas estadísticas para identificar patrones atípicos.",
+        "stats_title": "Indicadores estadísticos de integridad",
+        "stats_subtitle": "Pruebas replicables para identificar patrones atípicos en el JSON.",
         "benford_title": "Ley de Benford (primer dígito)",
         "last_digit_title": "Último dígito de votos",
         "votes_title": "Evolución de votos acumulados",
-        "benford_note": "Distribución consistente ✓ (confianza 92%).",
-        "last_digit_note": "Una concentración anómala puede indicar revisión.",
-        "votes_note": "Crecimientos abruptos requieren revisión adicional.",
+        "benford_note": "Distribución consistente con datos públicos ✓ (confianza 92%).",
+        "last_digit_note": "Concentraciones anómalas requieren auditoría adicional.",
+        "votes_note": "Crecimientos abruptos requieren contraste con evidencia.",
         "updates_title": "¿A qué horas se actualizan más los datos?",
-        "updates_note": "Actividad fuera de horario requiere revisión adicional.",
+        "updates_note": "Actividad fuera de horario requiere justificación y auditoría.",
         "snapshots_title": "Snapshots recientes",
         "rules_title": "Reglas de auditoría",
-        "reports_title": "Reportes y verificación externa",
+        "reports_title": "Reportes para auditoría institucional",
         "download_pdf": "Descargar reporte (PDF)",
         "download_json": "Descargar datos completos (JSON + hashes)",
         "download_csv": "Descargar CSV",
-        "rules_card": "Reglas de control",
-        "ai_card": "Detección automática",
-        "repro_title": "Reportes reproducibles y trazables",
+        "rules_card": "Reglas de control y evidencia",
+        "ai_card": "Detección automática de anomalías",
+        "repro_title": "Reportes reproducibles para auditoría",
         "verify_title": "Verificación propia",
     },
     "en": {
-        "title": "C.E.N.T.I.N.E.L. – Electoral Integrity & Transparency",
-        "subtitle": "Verifiable indicators and public traceability for institutional audits.",
+        "title": "C.E.N.T.I.N.E.L. – Data-driven electoral integrity",
+        "subtitle": "Reproducible analysis of public JSON with blockchain traceability for institutional audits.",
         "pillars": [
-            "Verifiable traceability",
-            "Anomaly detection",
-            "Audit rules",
-            "Independent validation",
+            "Public JSON data",
+            "Verifiable statistical analysis",
+            "Clear audit rules",
+            "Blockchain traceability",
         ],
         "status_now": "Current status",
         "status_note": "All clear · no critical anomalies",
-        "status_body": "The system detected no fraud signals in the last 24h.",
-        "last_snapshot": "Latest snapshot",
-        "citizen_checks": "Independent checks",
-        "citizen_body": "More external checks = higher institutional confidence.",
-        "cta_verify": "Validate evidence",
-        "cta_blockchain": "Public registry",
+        "status_body": "The system analyzes public JSON changes and flags anomalous patterns with traceable evidence.",
+        "last_snapshot": "Latest verifiable snapshot",
+        "citizen_checks": "External checks",
+        "citizen_body": "Independent auditors can validate public JSON and hashes.",
+        "cta_verify": "Validate JSON evidence",
+        "cta_blockchain": "View blockchain anchor",
         "kpi_title": "Key indicators",
-        "kpi_helper": "Each metric includes methodological context.",
-        "kpi_snapshots": "Snapshots 24h",
-        "kpi_changes": "Changes detected",
+        "kpi_helper": "Each metric is derived from public JSON and blockchain evidence.",
+        "kpi_snapshots": "Public snapshots 24h",
+        "kpi_changes": "Auditable changes",
         "kpi_alerts": "Critical anomalies",
-        "kpi_checks": "Citizen verifications",
+        "kpi_checks": "External checks",
         "kpi_tooltips": [
-            "Immutable snapshots every 10 minutes.",
-            "Normal changes audited.",
-            "Alerts exceeding thresholds.",
-            "Citizens validating results.",
+            "Public JSON snapshots every 10 minutes.",
+            "Auditable deltas between snapshots.",
+            "Alerts exceeding technical thresholds.",
+            "External validation based on evidence.",
         ],
         "kpi_descriptions": [
-            "Immutable snapshot captured every 10 minutes.",
-            "Normal updates reviewed automatically.",
-            "No signals beyond agreed thresholds.",
-            "Independent validations confirm consistency.",
+            "Periodic capture of public JSON with verifiable hashes.",
+            "Changes compared against reproducible evidence history.",
+            "No critical integrity signals detected.",
+            "External audits confirm data consistency.",
         ],
-        "stats_title": "Statistical rarity indicators",
-        "stats_subtitle": "Statistical tests to flag outliers and anomalies.",
+        "stats_title": "Statistical integrity indicators",
+        "stats_subtitle": "Replicable tests to flag outliers in the JSON data.",
         "benford_title": "Benford's law (first digit)",
         "last_digit_title": "Last digit of votes",
         "votes_title": "Cumulative vote evolution",
-        "benford_note": "Consistent distribution ✓ (92% confidence).",
-        "last_digit_note": "A concentrated digit may require review.",
-        "votes_note": "Abrupt growth requires additional review.",
+        "benford_note": "Consistent with public data ✓ (92% confidence).",
+        "last_digit_note": "Concentrated digits require audit review.",
+        "votes_note": "Abrupt growth requires evidence cross-checking.",
         "updates_title": "When do updates happen most?",
-        "updates_note": "Out-of-hours activity requires additional review.",
+        "updates_note": "Out-of-hours activity requires justification and audit.",
         "snapshots_title": "Recent snapshots",
         "rules_title": "Audit rules",
-        "reports_title": "Reports and external verification",
+        "reports_title": "Reports for institutional audit",
         "download_pdf": "Download report (PDF)",
         "download_json": "Download full data (JSON + hashes)",
         "download_csv": "Download CSV",
-        "rules_card": "Control rules",
-        "ai_card": "Automated detection",
-        "repro_title": "Reproducible, traceable reports",
+        "rules_card": "Control & evidence rules",
+        "ai_card": "Automated anomaly detection",
+        "repro_title": "Reproducible audit reports",
         "verify_title": "Self-verification",
     },
 }
@@ -449,10 +449,10 @@ st.sidebar.caption(
 )
 
 st.sidebar.markdown("### Navegación" if language == "es" else "### Navigation")
-st.sidebar.write("• Inicio ciudadano" if language == "es" else "• Citizen overview")
+st.sidebar.write("• Resumen institucional" if language == "es" else "• Institutional overview")
 st.sidebar.write("• Indicadores" if language == "es" else "• Indicators")
-st.sidebar.write("• Snapshots")
-st.sidebar.write("• Reglas" if language == "es" else "• Rules")
+st.sidebar.write("• Snapshots verificables" if language == "es" else "• Verifiable snapshots")
+st.sidebar.write("• Reglas de auditoría" if language == "es" else "• Audit rules")
 st.sidebar.write("• Reportes" if language == "es" else "• Reports")
 
 st.sidebar.markdown("---")
@@ -472,7 +472,7 @@ if st.sidebar.button("📥 Snapshot Ahora" if language == "es" else "📥 Snapsh
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Estado**" if language == "es" else "**Status**")
-st.sidebar.write("Modo: Electoral Activo" if language == "es" else "Mode: Election Active")
+st.sidebar.write("Modo: Auditoría Activa" if language == "es" else "Mode: Audit Active")
 st.sidebar.write("Cadena: Arbitrum L2" if language == "es" else "Chain: Arbitrum L2")
 st.sidebar.write("Último snapshot: hace 4 min" if language == "es" else "Latest snapshot: 4 min ago")
 
@@ -706,7 +706,7 @@ with col_rules:
     st.markdown(
         f"<div class='bento-card'><div class='section-title'>{copy['rules_card']}</div>"
         f"<div class='section-subtitle'>"
-        f"{'Configura respuestas automáticas y auditorías instantáneas' if language == 'es' else 'Configure automated responses and instant audits'}"
+        f"{'Protocolos de control basados en evidencia pública' if language == 'es' else 'Evidence-based control protocols'}"
         f"</div>",
         unsafe_allow_html=True,
     )
@@ -717,7 +717,7 @@ with col_rules:
 with col_ai:
     st.markdown(
         f"<div class='bento-card'><div class='section-title'>{copy['ai_card']}</div>"
-        f"<div class='section-subtitle'>{'Alertas en tiempo real' if language == 'es' else 'Real-time alerts'}</div>",
+        f"<div class='section-subtitle'>{'Alertas trazables en tiempo real' if language == 'es' else 'Traceable real-time alerts'}</div>",
         unsafe_allow_html=True,
     )
     st.write(
