@@ -3,7 +3,7 @@
 """
 download_and_hash.py
 
-Descarga snapshots de resultados electorales del CNE Honduras y genera hashes encadenados
+Descarga snapshots de resultados electorales publicados por la autoridad electoral y genera hashes encadenados
 SHA-256 para integridad.
 
 Uso:
@@ -14,7 +14,7 @@ Dependencias: requests, pyyaml, hashlib, logging, argparse, pathlib, json, datet
 Este script es parte del proyecto C.E.N.T.I.N.E.L. y se usa solo para auditoría
 ciudadana neutral.
 
-Download CNE Honduras election results snapshots and generate chained SHA-256 hashes
+Download official election results snapshots and generate chained SHA-256 hashes
 for integrity.
 
 Usage:
@@ -330,7 +330,7 @@ def run_mock_mode() -> None:
     English:
         Run the mock flow for CI.
     """
-    logger.info("MODO MOCK ACTIVADO (CI) - No se intentará descargar del CNE real")
+    logger.info("MODO MOCK ACTIVADO (CI) - No se intentará descargar de la fuente oficial real")
     create_mock_snapshot()
     logger.info("Modo mock completado - pipeline continúa con datos dummy")
 
@@ -429,17 +429,17 @@ def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) ->
 def main() -> None:
     """Función principal del script.
 
-    Descarga snapshots del CNE, genera hashes encadenados y guarda logs/alertas.
+    Descarga snapshots de la fuente oficial, genera hashes encadenados y guarda logs/alertas.
 
     English:
         Main script function.
 
-    Download CNE snapshots, generate chained hashes and save logs/alerts.
+    Download official snapshots, generate chained hashes and save logs/alerts.
     """
     logger.info("Iniciando download_and_hash")
 
     parser = argparse.ArgumentParser(
-        description="Descarga y hashea snapshots del CNE"
+        description="Descarga y hashea snapshots de la fuente oficial"
     )
     parser.add_argument(
         "--mock",
@@ -461,7 +461,7 @@ def main() -> None:
         logger.info("Proceso completado")
         return
 
-    logger.info("Modo real activado - procediendo con fetch al CNE")
+    logger.info("Modo real activado - procediendo con fetch a la fuente oficial")
     sources = config.get("sources", [])
     if not sources:
         logger.error("No se encontraron fuentes en config/config.yaml")

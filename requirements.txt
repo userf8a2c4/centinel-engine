@@ -2,7 +2,7 @@
 # Dependencias para scraping, análisis, dashboard, alertas y visualizaciones
 
 # Core y scraping
-requests>=2.31.0               # Peticiones HTTP: snapshots CNE
+requests>=2.31.0               # Peticiones HTTP: snapshots oficiales
 playwright>=1.49.0             # Fallback scraping con navegador headless
 playwright-stealth>=1.0.6      # Modo stealth para evitar detección anti-bot
 apscheduler>=3.10.4            # Scheduler para healthchecks

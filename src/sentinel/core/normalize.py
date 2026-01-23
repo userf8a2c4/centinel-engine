@@ -1,7 +1,7 @@
-"""Normaliza datos crudos del CNE y genera snapshots canónicos.
+"""Normaliza datos crudos de la autoridad electoral y genera snapshots canónicos.
 
 English:
-    Normalizes raw CNE data and builds canonical snapshots.
+    Normalizes raw electoral authority data and builds canonical snapshots.
 """
 
 import json
@@ -11,24 +11,24 @@ from sentinel.core.models import Meta, Totals, CandidateResult, Snapshot
 
 
 DEPARTMENT_CODES = {
-    "Atlántida": "01",
-    "Choluteca": "02",
-    "Colón": "03",
-    "Comayagua": "04",
-    "Copán": "05",
-    "Cortés": "06",
-    "El Paraíso": "07",
-    "Francisco Morazán": "08",
-    "Gracias a Dios": "09",
-    "Intibucá": "10",
-    "Islas de la Bahía": "11",
-    "La Paz": "12",
-    "Lempira": "13",
-    "Ocotepeque": "14",
-    "Olancho": "15",
-    "Santa Bárbara": "16",
-    "Valle": "17",
-    "Yoro": "18",
+    "Region 01": "01",
+    "Region 02": "02",
+    "Region 03": "03",
+    "Region 04": "04",
+    "Region 05": "05",
+    "Region 06": "06",
+    "Region 07": "07",
+    "Region 08": "08",
+    "Region 09": "09",
+    "Region 10": "10",
+    "Region 11": "11",
+    "Region 12": "12",
+    "Region 13": "13",
+    "Region 14": "14",
+    "Region 15": "15",
+    "Region 16": "16",
+    "Region 17": "17",
+    "Region 18": "18",
 }
 
 
@@ -127,10 +127,10 @@ def normalize_snapshot(
     department_code: str | None = None,
     field_map: Dict[str, List[str]] | None = None,
 ) -> Snapshot:
-    """Convierte un JSON crudo del CNE en un Snapshot canónico e inmutable.
+    """Convierte un JSON crudo de la autoridad electoral en un Snapshot canónico e inmutable.
 
     Args:
-        raw (Dict[str, Any]): JSON crudo del CNE.
+        raw (Dict[str, Any]): JSON crudo de la autoridad electoral.
         department_name (str): Nombre del departamento.
         timestamp_utc (str): Timestamp en UTC.
         year (int): Año electoral.
@@ -143,10 +143,10 @@ def normalize_snapshot(
         Snapshot: Snapshot canónico con metadatos, totales y candidatos.
 
     English:
-        Converts raw CNE JSON into an immutable canonical Snapshot.
+        Converts raw electoral authority JSON into an immutable canonical Snapshot.
 
     Args:
-        raw (Dict[str, Any]): Raw CNE JSON data.
+        raw (Dict[str, Any]): Raw electoral authority JSON data.
         department_name (str): Department name.
         timestamp_utc (str): UTC timestamp.
         year (int): Election year.
@@ -164,9 +164,9 @@ def normalize_snapshot(
     )
 
     meta = Meta(
-        election="HN-PRESIDENTIAL",
+        election="GENERIC-ELECTION",
         year=year,
-        source="CNE",
+        source="PUBLIC_PORTAL",
         scope=scope,
         department_code=resolved_department_code,
         timestamp_utc=timestamp_utc,

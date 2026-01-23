@@ -34,7 +34,7 @@ def apply(
     Cualquier falla genera alerta CRITICAL.
 
     Args:
-        current_data: Snapshot JSON actual del CNE.
+        current_data: Snapshot JSON actual de la autoridad electoral.
         previous_data: Snapshot JSON anterior (None en el primer snapshot).
         config: Configuración específica de la regla.
 
@@ -49,7 +49,7 @@ def apply(
         a CRITICAL alert.
 
     Args:
-        current_data: Current CNE JSON snapshot.
+        current_data: Current electoral authority JSON snapshot.
         previous_data: Previous JSON snapshot (None for the first snapshot).
         config: Rule-specific configuration section.
 

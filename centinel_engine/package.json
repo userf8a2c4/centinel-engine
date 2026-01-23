@@ -1,7 +1,7 @@
 {
   "name": "centinel-engine",
   "version": "1.0.0",
-  "description": "Motor ciudadano de scraping defensivo y anclaje en blockchain para transparencia en Honduras.",
+  "description": "Motor ciudadano de scraping defensivo y anclaje en blockchain para transparencia pública adaptable a cualquier país.",
   "type": "module",
   "main": "src/index.js",
   "engines": {

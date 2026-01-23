@@ -1,36 +1,36 @@
 master_switch: "ON" # ON/OFF para habilitar procesos automáticos.
-base_url: "https://api.example.com/cne/resultados" # URL base del API oficial.
-# Ejemplo de URL completa (NACIONAL): https://api.example.com/cne/resultados?ambito=NACIONAL&nivel=PRES
-# Ejemplo de URL completa (DEPARTAMENTO): https://api.example.com/cne/resultados?ambito=DEPARTMENT&nivel=PD&cod_departamento=01
-# Parámetros comunes: ambito (NATIONAL/DEPARTMENT), nivel (PRES/PD), cod_departamento (01-18).
+base_url: "https://results.example.org/api/v1/results" # URL base del API oficial.
+# Ejemplo de URL completa (NACIONAL): https://results.example.org/api/v1/results?scope=NATIONAL&level=PRES
+# Ejemplo de URL completa (REGIÓN): https://results.example.org/api/v1/results?scope=REGION&level=REG&region_code=01
+# Parámetros comunes: scope (NATIONAL/REGION), level (PRES/REG), region_code (01-18).
 endpoints:
   # Endpoint principal de resultados presidenciales nacionales
   # National presidential results main endpoint
   # Si falla → fallback a Playwright scraping
-  nacional: "https://resultadosgenerales2025.cne.hn/api/presidencial/nacional"
+  nacional: "https://results.example.org/api/v1/national/presidential"
   # Variante conocida para totales nacionales
   # Known national totals variant
-  fallback_nacional: "https://resultadosgenerales2025.cne.hn/api/resultados/presidencial/totales"
-  # Endpoints por departamento (01-18)
-  # Department endpoints (01-18)
-  "01": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/01"
-  "02": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/02"
-  "03": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/03"
-  "04": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/04"
-  "05": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/05"
-  "06": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/06"
-  "07": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/07"
-  "08": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/08"
-  "09": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/09"
-  "10": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/10"
-  "11": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/11"
-  "12": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/12"
-  "13": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/13"
-  "14": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/14"
-  "15": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/15"
-  "16": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/16"
-  "17": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/17"
-  "18": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/18"
+  fallback_nacional: "https://results.example.org/api/v1/national/presidential/totals"
+  # Endpoints por región (01-18)
+  # Region endpoints (01-18)
+  "01": "https://results.example.org/api/v1/regions/01/presidential"
+  "02": "https://results.example.org/api/v1/regions/02/presidential"
+  "03": "https://results.example.org/api/v1/regions/03/presidential"
+  "04": "https://results.example.org/api/v1/regions/04/presidential"
+  "05": "https://results.example.org/api/v1/regions/05/presidential"
+  "06": "https://results.example.org/api/v1/regions/06/presidential"
+  "07": "https://results.example.org/api/v1/regions/07/presidential"
+  "08": "https://results.example.org/api/v1/regions/08/presidential"
+  "09": "https://results.example.org/api/v1/regions/09/presidential"
+  "10": "https://results.example.org/api/v1/regions/10/presidential"
+  "11": "https://results.example.org/api/v1/regions/11/presidential"
+  "12": "https://results.example.org/api/v1/regions/12/presidential"
+  "13": "https://results.example.org/api/v1/regions/13/presidential"
+  "14": "https://results.example.org/api/v1/regions/14/presidential"
+  "15": "https://results.example.org/api/v1/regions/15/presidential"
+  "16": "https://results.example.org/api/v1/regions/16/presidential"
+  "17": "https://results.example.org/api/v1/regions/17/presidential"
+  "18": "https://results.example.org/api/v1/regions/18/presidential"
 timeout: 15 # Segundos máximos por solicitud.
 retries: 3 # Reintentos totales antes de fallar.
 headers: # Encabezados HTTP enviados en cada solicitud.
@@ -42,8 +42,8 @@ playwright_user_agent: "C.E.N.T.I.N.E.L./1.0" # User-Agent para el contexto Play
 playwright_viewport: # Viewport para Playwright.
   width: 1280
   height: 720
-playwright_locale: "es-HN" # Locale del contexto Playwright.
-playwright_timezone: "America/Tegucigalpa" # Timezone del contexto Playwright.
+playwright_locale: "en-US" # Locale del contexto Playwright.
+playwright_timezone: "UTC" # Timezone del contexto Playwright.
 backoff_base_seconds: 1 # Espera inicial entre reintentos.
 backoff_max_seconds: 30 # Espera máxima entre reintentos.
 candidate_count: 10 # Número de candidatos esperados por fuente.
@@ -66,76 +66,76 @@ sources: # Fuentes configuradas para consultas.
     source_id: "NACIONAL" # Identificador para ambito=NATIONAL.
     level: "PRES" # Nivel electoral para esta fuente.
     scope: "NATIONAL" # Alcance de la fuente.
-  - name: "Atlántida" # Etiqueta legible de la fuente.
-    department_code: "01" # Código de departamento (01-18).
+  - name: "Region 01" # Etiqueta legible de la fuente.
+    department_code: "01" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Choluteca" # Etiqueta legible de la fuente.
-    department_code: "02" # Código de departamento (01-18).
+  - name: "Region 02" # Etiqueta legible de la fuente.
+    department_code: "02" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Colón" # Etiqueta legible de la fuente.
-    department_code: "03" # Código de departamento (01-18).
+  - name: "Region 03" # Etiqueta legible de la fuente.
+    department_code: "03" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Comayagua" # Etiqueta legible de la fuente.
-    department_code: "04" # Código de departamento (01-18).
+  - name: "Region 04" # Etiqueta legible de la fuente.
+    department_code: "04" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Copán" # Etiqueta legible de la fuente.
-    department_code: "05" # Código de departamento (01-18).
+  - name: "Region 05" # Etiqueta legible de la fuente.
+    department_code: "05" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Cortés" # Etiqueta legible de la fuente.
-    department_code: "06" # Código de departamento (01-18).
+  - name: "Region 06" # Etiqueta legible de la fuente.
+    department_code: "06" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "El Paraíso" # Etiqueta legible de la fuente.
-    department_code: "07" # Código de departamento (01-18).
+  - name: "Region 07" # Etiqueta legible de la fuente.
+    department_code: "07" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Francisco Morazán" # Etiqueta legible de la fuente.
-    department_code: "08" # Código de departamento (01-18).
+  - name: "Region 08" # Etiqueta legible de la fuente.
+    department_code: "08" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Gracias a Dios" # Etiqueta legible de la fuente.
-    department_code: "09" # Código de departamento (01-18).
+  - name: "Region 09" # Etiqueta legible de la fuente.
+    department_code: "09" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Intibucá" # Etiqueta legible de la fuente.
-    department_code: "10" # Código de departamento (01-18).
+  - name: "Region 10" # Etiqueta legible de la fuente.
+    department_code: "10" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Islas de la Bahía" # Etiqueta legible de la fuente.
-    department_code: "11" # Código de departamento (01-18).
+  - name: "Region 11" # Etiqueta legible de la fuente.
+    department_code: "11" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "La Paz" # Etiqueta legible de la fuente.
-    department_code: "12" # Código de departamento (01-18).
+  - name: "Region 12" # Etiqueta legible de la fuente.
+    department_code: "12" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Lempira" # Etiqueta legible de la fuente.
-    department_code: "13" # Código de departamento (01-18).
+  - name: "Region 13" # Etiqueta legible de la fuente.
+    department_code: "13" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Ocotepeque" # Etiqueta legible de la fuente.
-    department_code: "14" # Código de departamento (01-18).
+  - name: "Region 14" # Etiqueta legible de la fuente.
+    department_code: "14" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Olancho" # Etiqueta legible de la fuente.
-    department_code: "15" # Código de departamento (01-18).
+  - name: "Region 15" # Etiqueta legible de la fuente.
+    department_code: "15" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Santa Bárbara" # Etiqueta legible de la fuente.
-    department_code: "16" # Código de departamento (01-18).
+  - name: "Region 16" # Etiqueta legible de la fuente.
+    department_code: "16" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Valle" # Etiqueta legible de la fuente.
-    department_code: "17" # Código de departamento (01-18).
+  - name: "Region 17" # Etiqueta legible de la fuente.
+    department_code: "17" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Yoro" # Etiqueta legible de la fuente.
-    department_code: "18" # Código de departamento (01-18).
+  - name: "Region 18" # Etiqueta legible de la fuente.
+    department_code: "18" # Código de región (01-18).
     level: "PD" # Nivel electoral para esta fuente.
     scope: "DEPARTMENT" # Alcance de la fuente.
 

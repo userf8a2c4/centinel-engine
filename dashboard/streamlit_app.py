@@ -300,10 +300,10 @@ translations = {
             "Verificación",
             "Reportes",
         ],
-        "hero_title": "C.E.N.T.I.N.E.L. – Panel Ejecutivo de Integridad Electoral · Honduras",
+        "hero_title": "C.E.N.T.I.N.E.L. – Panel Ejecutivo de Integridad Electoral",
         "hero_subtitle": (
             "Sistema de auditoría independiente con evidencia criptográfica verificable. "
-            "Snapshots inmutables anclados en Arbitrum L2 cada 10 minutos para observación internacional."
+            "Snapshots inmutables anclados en la red blockchain configurada cada 10 minutos para observación internacional."
         ),
         "global_ok": "ESTATUS GLOBAL: VERIFICABLE · SIN ANOMALÍAS CRÍTICAS",
         "header_title": "Panel Ejecutivo de Integridad Electoral",
@@ -313,7 +313,7 @@ translations = {
         "audience_items": [
             "Autoridades electorales y autoridades políticas",
             "Analistas matemáticos y estadísticos",
-            "Observadores internacionales (OEA/UE/DEA)",
+            "Observadores internacionales y misiones multilaterales",
             "Medios y sociedad civil especializada",
         ],
         "kpi_snapshots": "Snapshots (24h)",
@@ -328,16 +328,16 @@ translations = {
         "kpi_verifications_note": "Validaciones independientes.",
         "capabilities_title": "Capacidades clave de C.E.N.T.I.N.E.L.",
         "capabilities_items": [
-            "Monitoreo continuo con evidencias inmutables en Arbitrum L2",
+            "Monitoreo continuo con evidencias inmutables en la red blockchain configurada",
             "Anclaje criptográfico con hashes SHA-256 encadenados",
             "Indicadores estadísticos y matemáticos de integridad",
             "Reportes ejecutivos y técnicos reproducibles para auditoría externa",
         ],
         "methodology_title": "Metodología resumida",
         "methodology_items": [
-            "Ingesta continua de datos públicos electorales del CNE.",
+            "Ingesta continua de datos públicos electorales de la autoridad electoral.",
             "Snapshots inmutables cada 10 minutos con hash raíz.",
-            "Reglas de integridad automáticas y auditoría en Arbitrum L2.",
+            "Reglas de integridad automáticas y auditoría en la red blockchain configurada.",
             "Validación pública y verificable por terceros.",
         ],
         "indicator_title": "Indicadores de integridad",
@@ -353,7 +353,7 @@ translations = {
             "La matriz resume cómo los controles de Centinel respaldan estándares de observación y auditoría."
         ),
         "verification_title": "Verificación criptográfica",
-        "verification_help": "Pegue el hash raíz para confirmar si coincide con el registro en Arbitrum.",
+        "verification_help": "Pegue el hash raíz para confirmar si coincide con el registro en la blockchain configurada.",
         "verification_input": "Hash raíz",
         "verify_button": "Verificar",
         "verify_success": "¡Coincide! ✓",
@@ -372,7 +372,7 @@ translations = {
         "footer_links_title": "Accesos institucionales",
         "footer_github": "Repositorio técnico",
         "footer_docs": "Documentación técnica",
-        "footer_verify": "Verificación en Arbitrum",
+        "footer_verify": "Verificación en blockchain",
         "footer_contact": "Contacto para observadores",
         "cta_report": "Ver Reporte Técnico Completo",
         "cta_verify": "Validar en Blockchain",
@@ -387,10 +387,10 @@ translations = {
             "Verification",
             "Reports",
         ],
-        "hero_title": "C.E.N.T.I.N.E.L. – Executive Electoral Integrity Dashboard · Honduras",
+        "hero_title": "C.E.N.T.I.N.E.L. – Executive Electoral Integrity Dashboard",
         "hero_subtitle": (
             "Independent audit system with verifiable cryptographic evidence. "
-            "Immutable snapshots anchored on Arbitrum L2 every 10 minutes for international observation."
+            "Immutable snapshots anchored on the configured blockchain network every 10 minutes for international observation."
         ),
         "global_ok": "GLOBAL STATUS: VERIFIABLE · NO CRITICAL ANOMALIES",
         "header_title": "Executive Electoral Integrity Dashboard",
@@ -400,7 +400,7 @@ translations = {
         "audience_items": [
             "Electoral authorities and political leadership",
             "Mathematical and statistical analysts",
-            "International observers (OAS/EU/DEA)",
+            "International observers and multilateral missions",
             "Media and specialized civil society",
         ],
         "kpi_snapshots": "Snapshots (24h)",
@@ -415,16 +415,16 @@ translations = {
         "kpi_verifications_note": "Independent validations.",
         "capabilities_title": "Key Centinel capabilities",
         "capabilities_items": [
-            "Continuous monitoring with immutable evidence on Arbitrum L2",
+            "Continuous monitoring with immutable evidence on the configured blockchain network",
             "Cryptographic anchoring with chained SHA-256 hashes",
             "Statistical and mathematical integrity indicators",
             "Executive and technical reports reproducible for external audit",
         ],
         "methodology_title": "Methodology (summary)",
         "methodology_items": [
-            "Continuous ingestion of public electoral data from CNE.",
+            "Continuous ingestion of public electoral data from the electoral authority.",
             "Immutable snapshots every 10 minutes with root hash.",
-            "Integrity rules and audit workflow on Arbitrum L2.",
+            "Integrity rules and audit workflow on the configured blockchain network.",
             "Public validation and third-party verification.",
         ],
         "indicator_title": "Integrity indicators",
@@ -440,7 +440,7 @@ translations = {
             "The matrix shows how Centinel controls align with observation and audit standards."
         ),
         "verification_title": "Cryptographic verification",
-        "verification_help": "Paste the root hash to verify against Arbitrum.",
+        "verification_help": "Paste the root hash to verify against the configured blockchain network.",
         "verification_input": "Root hash",
         "verify_button": "Verify",
         "verify_success": "Match ✓",
@@ -459,7 +459,7 @@ translations = {
         "footer_links_title": "Institutional access",
         "footer_github": "Technical repository",
         "footer_docs": "Technical documentation",
-        "footer_verify": "Verify on Arbitrum",
+        "footer_verify": "Verify on blockchain",
         "footer_contact": "Observer contact",
         "cta_report": "View Full Technical Report",
         "cta_verify": "Validate on Blockchain",
@@ -534,8 +534,8 @@ st.markdown(css, unsafe_allow_html=True)
 
 anchor = BlockchainAnchor(
     root_hash="0x9f3fa7c2d1b4a7e1f02d5e1c34aa9b21b",
-    network="Arbitrum L2",
-    tx_url="https://arbiscan.io/tx/0x9f3b0c0d1d2e3f4a5b6c7d8e9f000111222333444555666777888999aaa",
+    network="Configured L2",
+    tx_url="https://explorer.example/tx/0x9f3b0c0d1d2e3f4a5b6c7d8e9f000111222333444555666777888999aaa",
     anchored_at="2026-01-12 18:40 UTC",
 )
 
@@ -644,7 +644,7 @@ def build_governance_data(language: str) -> pd.DataFrame:
                 ],
                 "guarantee": [
                     "Immutable snapshots with root hash",
-                    "Public ledger on Arbitrum L2",
+                    "Public ledger on the configured blockchain network",
                     "Audited JSON available for export",
                     "Automated rules with no political intervention",
                     "Documented calculations + evidence trails",
@@ -662,7 +662,7 @@ def build_governance_data(language: str) -> pd.DataFrame:
             ],
             "garantía": [
                 "Snapshots inmutables con hash raíz",
-                "Ledger público en Arbitrum L2",
+                "Ledger público en la red blockchain configurada",
                 "JSON auditado disponible y exportable",
                 "Reglas automáticas sin intervención política",
                 "Documentación de cálculo + evidencias",
@@ -714,8 +714,8 @@ def build_international_data(language: str) -> pd.DataFrame:
         return pd.DataFrame(
             {
                 "standard": [
-                    "OAS – Transparency",
-                    "EU – Traceability",
+                    "Regional bodies – Transparency",
+                    "Electoral missions – Traceability",
                     "ISO 27001 – Integrity",
                     "GOOD PRACTICE – Auditability",
                 ],
@@ -730,8 +730,8 @@ def build_international_data(language: str) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "estándar": [
-                "OEA – Transparencia",
-                "UE – Trazabilidad",
+                "Organismos regionales – Transparencia",
+                "Misiones electorales – Trazabilidad",
                 "ISO 27001 – Integridad",
                 "GOOD PRACTICE – Auditoría",
             ],
@@ -875,7 +875,7 @@ rules_rows = [
 data_es = {
     "logo": "C.E.N.T.I.N.E.L. – Centro de Evidencias y Monitoreo Electoral",
     "title": "Reporte Ejecutivo de Integridad Electoral",
-    "subtitle": "Transparencia verificable con inmutabilidad blockchain (Arbitrum L2)",
+    "subtitle": "Transparencia verificable con inmutabilidad en la blockchain configurada",
     "generated_label": "Generado el",
     "generated_at": report_time,
     "global_status": "ESTATUS GLOBAL: VERIFICABLE – SIN ANOMALÍAS CRÍTICAS",
@@ -885,8 +885,8 @@ data_es = {
         "y los ancla en blockchain para que cualquier misión internacional o auditor pueda verificar cambios."
     ),
     "executive_state": (
-        f"Último snapshot: {report_time} UTC – Hash raíz verificado en Arbitrum L2. "
-        "Disponible para misiones OEA/UE."
+        f"Último snapshot: {report_time} UTC – Hash raíz verificado en la blockchain configurada. "
+        "Disponible para misiones internacionales."
     ),
     "kpi_headers": ["Snapshots 24h", "Cambios", "Anomalías", "Reglas", "Verificaciones"],
     "kpi_values": ["174", "68", str(critical_anomalies), str(len(rules_df)), "2.4K"],
@@ -909,7 +909,7 @@ data_es = {
     "verify_title": "Cómo verificar usted mismo",
     "verify_steps": [
         "1. Copie el hash raíz.",
-        "2. Vaya a https://arbiscan.io y busque la transacción.",
+        "2. Vaya al explorador de la blockchain configurada y busque la transacción.",
         "3. Compare con el hash calculado localmente.",
         "4. ¡Cualquier discrepancia sería detectable inmediatamente!",
     ],
@@ -920,7 +920,7 @@ data_es = {
 data_en = {
     **data_es,
     "title": "Executive Report on Electoral Integrity",
-    "subtitle": "Verifiable transparency with blockchain immutability (Arbitrum L2)",
+    "subtitle": "Verifiable transparency with immutability on the configured blockchain network",
     "generated_label": "Generated on",
     "executive_title": "Executive Summary",
     "executive_intro": (
@@ -928,8 +928,8 @@ data_en = {
         "and anchors them on blockchain so any international mission or auditor can verify changes."
     ),
     "executive_state": (
-        f"Latest snapshot: {report_time} UTC – Root hash verified on Arbitrum L2. "
-        "Ready for OAS/EU observation."
+        f"Latest snapshot: {report_time} UTC – Root hash verified on the configured blockchain network. "
+        "Ready for international observation."
     ),
     "technical_title": "Technical core",
     "root_hash_label": "Current root hash:",
@@ -946,7 +946,7 @@ data_en = {
     "verify_title": "How to verify it yourself",
     "verify_steps": [
         "1. Copy the root hash.",
-        "2. Go to https://arbiscan.io and look up the transaction.",
+        "2. Go to the configured blockchain explorer and look up the transaction.",
         "3. Compare with the locally computed hash.",
         "4. Any discrepancy would be immediately detectable.",
     ],
@@ -977,7 +977,7 @@ st.markdown(
 <div class="footer-links">
   <a href="https://github.com/userf8a2c4/centinel-engine" target="_blank" rel="noopener">{copy['footer_github']}</a>
   <a href="https://github.com/userf8a2c4/centinel-engine#readme" target="_blank" rel="noopener">{copy['footer_docs']}</a>
-  <a href="https://arbiscan.io/" target="_blank" rel="noopener">{copy['footer_verify']}</a>
+  <a href="https://explorer.example/" target="_blank" rel="noopener">{copy['footer_verify']}</a>
   <a href="mailto:observadores@centinel.app" target="_blank" rel="noopener">{copy['footer_contact']}</a>
 </div>
 <div class="legal-note">{copy['footer_note']}</div>

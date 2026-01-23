@@ -1,0 +1,71 @@
+country_code: "HN"
+country_name: "Honduras"
+json_url: "https://resultados.example.hn/api/v1/resultados"
+snapshot_interval_minutes: 10
+key_vote_fields:
+  - "total_votes"
+  - "valid_votes"
+  - "null_votes"
+  - "blank_votes"
+expected_update_hours:
+  - 6
+  - 12
+  - 18
+  - 24
+datasource:
+  type: "honduras_json"
+  timeout_seconds: 15
+  retries: 3
+  headers:
+    Accept: "application/json"
+    User-Agent: "C.E.N.T.I.N.E.L./1.0"
+  field_map:
+    totals:
+      valid_votes:
+        - "estadisticas.distribucion_votos.validos"
+      null_votes:
+        - "estadisticas.distribucion_votos.nulos"
+      blank_votes:
+        - "estadisticas.distribucion_votos.blancos"
+      total_votes:
+        - "estadisticas.distribucion_votos.total"
+    candidate_roots:
+      - "resultados"
+  sources:
+    - name: "Nacional"
+      scope: "NATIONAL"
+      endpoint: "https://resultados.example.hn/api/v1/presidencial/nacional"
+      level: "PRES"
+      department_code: "00"
+    - name: "Region 01"
+      scope: "DEPARTMENT"
+      endpoint: "https://resultados.example.hn/api/v1/presidencial/region/01"
+      level: "PD"
+      department_code: "01"
+    - name: "Region 02"
+      scope: "DEPARTMENT"
+      endpoint: "https://resultados.example.hn/api/v1/presidencial/region/02"
+      level: "PD"
+      department_code: "02"
+blockchain:
+  enabled: false
+  rpc_url: "https://arb1.arbitrum.io/rpc"
+  private_key: "0x..."
+  contract_address: "0x..."
+  chain_id: 42161
+integrity_rules:
+  - name: "change_threshold"
+    params:
+      relative_vote_change_pct: 15
+  - name: "benford_law"
+    params:
+      min_samples: 10
+      deviation_pct: 15
+      chi_square_threshold: 0.05
+  - name: "last_digit_uniformity"
+    params:
+      min_samples: 50
+      deviation_pct: 20
+  - name: "update_time"
+    params:
+      allowed_hours: [6, 12, 18, 24]

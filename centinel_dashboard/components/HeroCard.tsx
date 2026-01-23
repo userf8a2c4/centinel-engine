@@ -45,7 +45,7 @@ export function HeroCard() {
               <ShieldCheck className="h-5 w-5" />
               <p className="text-sm font-semibold">Inmutable y Verificado</p>
             </div>
-            <p className="text-xs text-slate-200">Anclado en Arbitrum L2 · Proof pública disponible</p>
+            <p className="text-xs text-slate-200">Anclado en la blockchain configurada · Proof pública disponible</p>
           </div>
         </div>
       </div>

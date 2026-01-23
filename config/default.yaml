@@ -1,0 +1,73 @@
+country_code: "XX"
+country_name: "Generic Country"
+json_url: "https://results.example.org/api/v1/results"
+snapshot_interval_minutes: 10
+key_vote_fields:
+  - "total_votes"
+  - "valid_votes"
+  - "null_votes"
+  - "blank_votes"
+blockchain_network: "arbitrum"
+contract_address: "0x..."
+rpc_url: "https://arb1.arbitrum.io/rpc"
+expected_update_hours:
+  - 6
+  - 12
+  - 18
+  - 24
+storage:
+  sqlite_path: "data/snapshots.db"
+  export_path: "data/exports"
+  hash_chain_path: "data/hash_chain.jsonl"
+datasource:
+  type: "json_api"
+  timeout_seconds: 15
+  retries: 3
+  headers:
+    Accept: "application/json"
+    User-Agent: "C.E.N.T.I.N.E.L./1.0"
+  field_map:
+    totals:
+      valid_votes:
+        - "totals.valid"
+        - "valid_votes"
+      null_votes:
+        - "totals.null"
+        - "null_votes"
+      blank_votes:
+        - "totals.blank"
+        - "blank_votes"
+      total_votes:
+        - "totals.total"
+        - "total_votes"
+    candidate_roots:
+      - "candidatos"
+      - "candidates"
+  sources:
+    - name: "National"
+      scope: "NATIONAL"
+      endpoint: "https://results.example.org/api/v1/results?scope=NATIONAL"
+      level: "PRES"
+      department_code: "00"
+blockchain:
+  enabled: false
+  rpc_url: "https://arb1.arbitrum.io/rpc"
+  private_key: "0x..."
+  contract_address: "0x..."
+  chain_id: 42161
+integrity_rules:
+  - name: "change_threshold"
+    params:
+      relative_vote_change_pct: 15
+  - name: "benford_law"
+    params:
+      min_samples: 10
+      deviation_pct: 15
+      chi_square_threshold: 0.05
+  - name: "last_digit_uniformity"
+    params:
+      min_samples: 50
+      deviation_pct: 20
+  - name: "update_time"
+    params:
+      allowed_hours: [6, 12, 18, 24]
