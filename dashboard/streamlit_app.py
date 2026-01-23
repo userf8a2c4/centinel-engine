@@ -279,7 +279,7 @@ def build_pdf_report(data: dict, language: str) -> bytes:
 
 
 st.set_page_config(
-    page_title="C.E.N.T.I.N.E.L. | Dashboard Ciudadano",
+    page_title="C.E.N.T.I.N.E.L. | Electoral Intelligence Dashboard",
     page_icon="🛰️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -300,59 +300,169 @@ language = st.session_state.language
 translations = {
     "es": {
         "nav_title": "Navegación",
-        "nav_sections": ["Resumen", "Snapshots", "Reglas", "Verificación", "Configuración"],
-        "hero_title": "C.E.N.T.I.N.E.L. – Auditoría Electoral Independiente y Verificable",
-        "hero_subtitle": "Transparencia total: datos electorales inmutables en blockchain Arbitrum L2",
-        "global_ok": "TODO VERIFICABLE – SIN ANOMALÍAS CRÍTICAS",
+        "nav_sections": [
+            "Resumen Ejecutivo",
+            "Indicadores",
+            "Observación Internacional",
+            "Verificación",
+            "Reportes",
+        ],
+        "hero_title": "C.E.N.T.I.N.E.L. – Panel Ejecutivo de Integridad Electoral · Honduras",
+        "hero_subtitle": (
+            "Sistema de auditoría independiente con evidencia criptográfica verificable. "
+            "Snapshots inmutables anclados en Arbitrum L2 cada 10 minutos para observación internacional."
+        ),
+        "global_ok": "ESTATUS GLOBAL: VERIFICABLE · SIN ANOMALÍAS CRÍTICAS",
+        "audience_title": "Audiencias prioritarias",
+        "audience_items": [
+            "Autoridades electorales y autoridades políticas",
+            "Analistas matemáticos y estadísticos",
+            "Observadores internacionales (OEA/UE/DEA)",
+            "Medios y sociedad civil especializada",
+        ],
         "kpi_snapshots": "Snapshots (24h)",
         "kpi_changes": "Cambios detectados",
         "kpi_anomalies": "Anomalías críticas",
         "kpi_rules": "Reglas activas",
-        "kpi_verifications": "Verificaciones ciudadanas",
+        "kpi_verifications": "Verificaciones externas",
         "kpi_notes": "Cada 10 min tomamos una foto inmutable del JSON público.",
-        "pedagogical_title": "Indicadores pedagógicos de integridad",
+        "kpi_changes_note": "Cambios normales en JSON público.",
+        "kpi_anomalies_note": "Sin señales críticas.",
+        "kpi_rules_note": "Reglas activas en modo auditoría.",
+        "kpi_verifications_note": "Validaciones independientes.",
+        "capabilities_title": "Capacidades clave de C.E.N.T.I.N.E.L.",
+        "capabilities_items": [
+            "Monitoreo continuo con evidencias inmutables en Arbitrum L2",
+            "Anclaje criptográfico con hashes SHA-256 encadenados",
+            "Indicadores estadísticos y matemáticos de integridad",
+            "Reportes ejecutivos y técnicos reproducibles para auditoría externa",
+        ],
+        "methodology_title": "Metodología resumida",
+        "methodology_items": [
+            "Ingesta continua de datos públicos electorales del CNE.",
+            "Snapshots inmutables cada 10 minutos con hash raíz.",
+            "Reglas de integridad automáticas y auditoría en Arbitrum L2.",
+            "Validación pública y verificable por terceros.",
+        ],
+        "indicator_title": "Indicadores de integridad",
+        "indicator_subtitle": "Métricas estadístico-matemáticas usadas por misiones de observación.",
+        "benford_title": "Distribución de primeros dígitos – Normal ✓",
+        "last_digit_title": "Actividad de últimos dígitos",
+        "vote_evolution_title": "Evolución de cambios",
+        "activity_title": "Actividad concentrada en horarios diurnos",
         "snapshots_title": "Snapshots recientes",
         "rules_title": "Reglas activas",
-        "verification_title": "Verificación ciudadana",
-        "verification_help": "Pegá el hash raíz para confirmar si coincide con el registro en Arbitrum.",
+        "international_title": "Observación internacional y cumplimiento",
+        "international_intro": (
+            "La matriz resume cómo los controles de Centinel respaldan estándares de observación y auditoría."
+        ),
+        "verification_title": "Verificación criptográfica",
+        "verification_help": "Pegue el hash raíz para confirmar si coincide con el registro en Arbitrum.",
+        "verification_input": "Hash raíz",
         "verify_button": "Verificar",
         "verify_success": "¡Coincide! ✓",
         "verify_fail": "No coincide, revisá el hash.",
-        "export_title": "Exportación",
+        "expected_label": "Esperado",
+        "observed_label": "Observado",
+        "export_title": "Reportes y exportación",
         "export_pdf_es": "Descargar Reporte Ciudadano PDF (Español)",
         "export_pdf_en": "Download Citizen Report PDF (English)",
         "export_json": "Descargar JSON auditado",
         "export_csv": "Descargar CSV",
         "snapshots_button": "Ver detalle",
         "rules_help": "Estas reglas protegen la integridad automáticamente.",
+        "governance_title": "Gobernanza de datos y garantías",
+        "risk_title": "Mapa de riesgos y controles",
+        "footer_links_title": "Accesos institucionales",
+        "footer_github": "Repositorio técnico",
+        "footer_docs": "Documentación técnica",
+        "footer_verify": "Verificación en Arbitrum",
+        "footer_contact": "Contacto para observadores",
+        "cta_report": "Ver Reporte Técnico Completo",
+        "cta_verify": "Validar en Blockchain",
     },
     "en": {
         "nav_title": "Navigation",
-        "nav_sections": ["Summary", "Snapshots", "Rules", "Verification", "Settings"],
-        "hero_title": "C.E.N.T.I.N.E.L. – Independent & Verifiable Electoral Audit",
-        "hero_subtitle": "Total transparency: immutable public data anchored on Arbitrum L2",
-        "global_ok": "FULLY VERIFIABLE – NO CRITICAL ANOMALIES",
+        "nav_sections": [
+            "Executive Summary",
+            "Indicators",
+            "International Observation",
+            "Verification",
+            "Reports",
+        ],
+        "hero_title": "C.E.N.T.I.N.E.L. – Executive Electoral Integrity Dashboard · Honduras",
+        "hero_subtitle": (
+            "Independent audit system with verifiable cryptographic evidence. "
+            "Immutable snapshots anchored on Arbitrum L2 every 10 minutes for international observation."
+        ),
+        "global_ok": "GLOBAL STATUS: VERIFIABLE · NO CRITICAL ANOMALIES",
+        "audience_title": "Primary audiences",
+        "audience_items": [
+            "Electoral authorities and political leadership",
+            "Mathematical and statistical analysts",
+            "International observers (OAS/EU/DEA)",
+            "Media and specialized civil society",
+        ],
         "kpi_snapshots": "Snapshots (24h)",
         "kpi_changes": "Detected changes",
         "kpi_anomalies": "Critical anomalies",
         "kpi_rules": "Active rules",
-        "kpi_verifications": "Citizen verifications",
+        "kpi_verifications": "External verifications",
         "kpi_notes": "Every 10 min we take an immutable snapshot of public JSON.",
-        "pedagogical_title": "Pedagogical integrity indicators",
+        "kpi_changes_note": "Normal changes in public JSON.",
+        "kpi_anomalies_note": "No critical signals detected.",
+        "kpi_rules_note": "Rules active in audit mode.",
+        "kpi_verifications_note": "Independent validations.",
+        "capabilities_title": "Key Centinel capabilities",
+        "capabilities_items": [
+            "Continuous monitoring with immutable evidence on Arbitrum L2",
+            "Cryptographic anchoring with chained SHA-256 hashes",
+            "Statistical and mathematical integrity indicators",
+            "Executive and technical reports reproducible for external audit",
+        ],
+        "methodology_title": "Methodology (summary)",
+        "methodology_items": [
+            "Continuous ingestion of public electoral data from CNE.",
+            "Immutable snapshots every 10 minutes with root hash.",
+            "Integrity rules and audit workflow on Arbitrum L2.",
+            "Public validation and third-party verification.",
+        ],
+        "indicator_title": "Integrity indicators",
+        "indicator_subtitle": "Statistical and mathematical metrics used by observation missions.",
+        "benford_title": "First-digit distribution – Normal ✓",
+        "last_digit_title": "Last-digit activity",
+        "vote_evolution_title": "Change evolution",
+        "activity_title": "Activity concentrated in daytime hours",
         "snapshots_title": "Recent snapshots",
         "rules_title": "Active rules",
-        "verification_title": "Citizen verification",
+        "international_title": "International observation & compliance",
+        "international_intro": (
+            "The matrix shows how Centinel controls align with observation and audit standards."
+        ),
+        "verification_title": "Cryptographic verification",
         "verification_help": "Paste the root hash to verify against Arbitrum.",
+        "verification_input": "Root hash",
         "verify_button": "Verify",
         "verify_success": "Match ✓",
         "verify_fail": "No match, check the hash.",
-        "export_title": "Exports",
+        "expected_label": "Expected",
+        "observed_label": "Observed",
+        "export_title": "Reports & exports",
         "export_pdf_es": "Descargar Reporte Ciudadano PDF (Español)",
         "export_pdf_en": "Download Citizen Report PDF (English)",
         "export_json": "Download audited JSON",
         "export_csv": "Download CSV",
         "snapshots_button": "View detail",
         "rules_help": "These rules protect integrity automatically.",
+        "governance_title": "Data governance and guarantees",
+        "risk_title": "Risk & control map",
+        "footer_links_title": "Institutional access",
+        "footer_github": "Technical repository",
+        "footer_docs": "Technical documentation",
+        "footer_verify": "Verify on Arbitrum",
+        "footer_contact": "Observer contact",
+        "cta_report": "View Full Technical Report",
+        "cta_verify": "Validate on Blockchain",
     },
 }
 copy = translations[language]
@@ -368,27 +478,47 @@ css = """
 <style>
     :root {
         color-scheme: dark;
-        --bg: #0f172a;
-        --panel: rgba(15, 23, 42, 0.92);
-        --panel-soft: rgba(30, 41, 59, 0.75);
-        --text: #e2e8f0;
-        --muted: #94a3b8;
-        --accent: #00A3FF;
-        --success: #10B981;
-        --warning: #F59E0B;
-        --danger: #EF4444;
-        --border: rgba(148, 163, 184, 0.2);
+        --bg: #0f1117;
+        --panel: rgba(14, 17, 23, 0.9);
+        --panel-soft: rgba(20, 24, 32, 0.85);
+        --text: #ffffff;
+        --muted: #e0e0e0;
+        --accent: #0055ff;
+        --success: #00c853;
+        --warning: #f59e0b;
+        --danger: #ff3b30;
+        --border: rgba(255, 255, 255, 0.08);
+        --shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
     }
-    html, body, [class*="css"] { font-family: "Inter", "Segoe UI", sans-serif; }
+    html, body, [class*="css"] { font-family: "Inter", "Geist", "Segoe UI", sans-serif; }
     .stApp { background: var(--bg); color: var(--text); }
-    section[data-testid="stSidebar"] { background: rgba(15, 23, 42, 0.98); border-right: 1px solid var(--border); }
-    .glass { background: var(--panel); border: 1px solid var(--border); border-radius: 20px; padding: 1.4rem; }
-    .hero { margin-bottom: 1.5rem; }
-    .kpi { background: var(--panel-soft); border: 1px solid var(--border); border-radius: 18px; padding: 1rem; }
-    .kpi h3 { margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
-    .kpi p { margin: 0.4rem 0; font-size: 1.6rem; font-weight: 700; color: var(--text); }
-    .kpi span { font-size: 0.9rem; color: var(--muted); }
-    .note { background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border); padding: 0.8rem 1rem; border-radius: 14px; color: var(--muted); }
+    section[data-testid="stSidebar"] { background: rgba(12, 14, 20, 0.98); border-right: 1px solid var(--border); }
+    .glass { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 2rem; box-shadow: var(--shadow); }
+    .hero { margin-bottom: 2rem; }
+    .hero h1 { font-size: 2.05rem; letter-spacing: -0.02em; margin-bottom: 0.6rem; color: var(--text); }
+    .hero p { font-size: 1.02rem; color: var(--muted); margin-top: 0; line-height: 1.6; }
+    .kpi { background: var(--panel-soft); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; }
+    .kpi h3 { margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+    .kpi p { margin: 0.45rem 0; font-size: 1.55rem; font-weight: 600; color: var(--text); }
+    .kpi span { font-size: 0.88rem; color: var(--muted); }
+    .note { background: var(--panel); border: 1px solid var(--border); padding: 0.95rem 1.1rem; border-radius: 12px; color: var(--muted); }
+    .badge { display: inline-block; padding: 0.35rem 0.85rem; border-radius: 999px; background: rgba(0, 85, 255, 0.12); color: var(--text); margin: 0.2rem 0.35rem 0 0; font-size: 0.82rem; border: 1px solid rgba(0, 85, 255, 0.2); }
+    .list-card { background: var(--panel); border: 1px solid var(--border); padding: 1.1rem; border-radius: 12px; color: var(--text); }
+    .stPlotlyChart { background: var(--panel); border-radius: 12px; padding: 0.5rem; box-shadow: var(--shadow); }
+    .cta-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+    .cta-primary, .cta-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.6rem 1rem;
+        border-radius: 999px;
+        font-size: 0.9rem;
+        border: 1px solid var(--border);
+        text-decoration: none;
+    }
+    .cta-primary { background: var(--accent); color: #ffffff; }
+    .cta-secondary { background: transparent; color: var(--text); }
+    .footer-links { display: grid; gap: 0.4rem; margin-top: 1.5rem; color: var(--muted); font-size: 0.9rem; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -405,8 +535,205 @@ rules_df = build_rules_data()
 benford_df = build_benford_data()
 last_digit_df = build_last_digit_data()
 votes_df = build_vote_evolution()
+activity_df = pd.DataFrame(
+    {
+        "hour": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+        "activity": [18, 22, 40, 75, 55, 30],
+    }
+)
 
 critical_anomalies = int((snapshots_df["status"] == "ALERTA").sum())
+
+def build_indicator_figures(
+    benford_data: pd.DataFrame,
+    last_digit_data: pd.DataFrame,
+    votes_data: pd.DataFrame,
+    activity_data: pd.DataFrame,
+    copy_map: dict,
+) -> tuple[go.Figure, go.Figure, go.Figure, go.Figure]:
+    benford_fig = go.Figure()
+    benford_fig.add_trace(
+        go.Bar(
+            x=benford_data["digit"],
+            y=benford_data["expected"],
+            name=copy_map["expected_label"],
+            marker_color="#00A3FF",
+        )
+    )
+    benford_fig.add_trace(
+        go.Bar(
+            x=benford_data["digit"],
+            y=benford_data["observed"],
+            name=copy_map["observed_label"],
+            marker_color="#10B981",
+        )
+    )
+    benford_fig.update_layout(
+        barmode="group",
+        height=300,
+        margin=dict(l=10, r=10, t=30, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font_color="#e5e7eb",
+        title=copy_map["benford_title"],
+    )
+
+    last_digit_fig = px.bar(
+        last_digit_data,
+        x="digit",
+        y="observed",
+        color_discrete_sequence=["#00A3FF"],
+        title=copy_map["last_digit_title"],
+    )
+    last_digit_fig.update_layout(
+        height=260,
+        margin=dict(l=10, r=10, t=30, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font_color="#e5e7eb",
+    )
+
+    votes_fig = px.line(votes_data, x="hour", y="votes", markers=True, title=copy_map["vote_evolution_title"])
+    votes_fig.update_layout(
+        height=260,
+        margin=dict(l=10, r=10, t=30, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font_color="#e5e7eb",
+    )
+
+    heat_fig = px.bar(
+        activity_data,
+        x="hour",
+        y="activity",
+        color="activity",
+        color_continuous_scale=["#0ea5e9", "#10B981"],
+        title=copy_map["activity_title"],
+    )
+    heat_fig.update_layout(
+        height=240,
+        margin=dict(l=10, r=10, t=30, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font_color="#e5e7eb",
+        coloraxis_showscale=False,
+    )
+
+    return benford_fig, last_digit_fig, votes_fig, heat_fig
+
+
+def build_governance_data(language: str) -> pd.DataFrame:
+    if language == "en":
+        return pd.DataFrame(
+            {
+                "dimension": [
+                    "Data custody",
+                    "Traceability",
+                    "Public access",
+                    "Independence",
+                    "Reproducibility",
+                ],
+                "guarantee": [
+                    "Immutable snapshots with root hash",
+                    "Public ledger on Arbitrum L2",
+                    "Audited JSON available for export",
+                    "Automated rules with no political intervention",
+                    "Documented calculations + evidence trails",
+                ],
+            }
+        )
+    return pd.DataFrame(
+        {
+            "dimensión": [
+                "Custodia de datos",
+                "Trazabilidad",
+                "Acceso público",
+                "Independencia",
+                "Reproducibilidad",
+            ],
+            "garantía": [
+                "Snapshots inmutables con hash raíz",
+                "Ledger público en Arbitrum L2",
+                "JSON auditado disponible y exportable",
+                "Reglas automáticas sin intervención política",
+                "Documentación de cálculo + evidencias",
+            ],
+        }
+    )
+
+
+def build_risk_data(language: str) -> pd.DataFrame:
+    if language == "en":
+        return pd.DataFrame(
+            {
+                "risk": [
+                    "Result manipulation",
+                    "Late or irregular uploads",
+                    "Atypical statistical patterns",
+                    "Publication interruption",
+                ],
+                "control": [
+                    "Root hash + blockchain anchoring",
+                    "Timing and change alerts",
+                    "Benford + last-digit + series checks",
+                    "Scheduled snapshots and exports",
+                ],
+                "status": ["Mitigated", "Monitored", "Monitored", "Mitigated"],
+            }
+        )
+    return pd.DataFrame(
+        {
+            "riesgo": [
+                "Alteración de resultados",
+                "Carga tardía o irregular",
+                "Patrones estadísticos atípicos",
+                "Interrupción de publicación",
+            ],
+            "control": [
+                "Hash raíz + anclaje blockchain",
+                "Alertas de temporalidad y cambios",
+                "Benford + dígitos finales + series",
+                "Snapshots programados y exportables",
+            ],
+            "estado": ["Mitigado", "Monitoreado", "Monitoreado", "Mitigado"],
+        }
+    )
+
+
+def build_international_data(language: str) -> pd.DataFrame:
+    if language == "en":
+        return pd.DataFrame(
+            {
+                "standard": [
+                    "OAS – Transparency",
+                    "EU – Traceability",
+                    "ISO 27001 – Integrity",
+                    "GOOD PRACTICE – Auditability",
+                ],
+                "coverage": [
+                    "Verifiable publication with open access",
+                    "Immutable record with root hash",
+                    "Integrity rules + alerts",
+                    "Reproducible reports with evidence",
+                ],
+            }
+        )
+    return pd.DataFrame(
+        {
+            "estándar": [
+                "OEA – Transparencia",
+                "UE – Trazabilidad",
+                "ISO 27001 – Integridad",
+                "GOOD PRACTICE – Auditoría",
+            ],
+            "cómo se cubre": [
+                "Publicación verificable y acceso abierto",
+                "Registro inmutable con hash raíz",
+                "Reglas de integridad + alertas",
+                "Reportes reproducibles con evidencias",
+            ],
+        }
+    )
 
 if section == copy["nav_sections"][0]:
     st.markdown(
@@ -415,25 +742,35 @@ if section == copy["nav_sections"][0]:
   <h1>{copy['hero_title']}</h1>
   <p>{copy['hero_subtitle']}</p>
   <h3 style="color: var(--success);">{copy['global_ok']}</h3>
+  <div class="cta-row">
+    <a class="cta-primary" href="https://arbiscan.io/" target="_blank" rel="noopener">{copy['cta_verify']}</a>
+    <a class="cta-secondary" href="https://github.com/userf8a2c4/centinel-engine" target="_blank" rel="noopener">{copy['cta_report']}</a>
+  </div>
 </div>
         """,
         unsafe_allow_html=True,
     )
 
+    st.markdown(f"#### {copy['audience_title']}")
+    st.markdown(
+        "".join([f"<span class='badge'>{item}</span>" for item in copy["audience_items"]]),
+        unsafe_allow_html=True,
+    )
+
     kpi_cols = st.columns(5)
     kpis = [
-        (copy["kpi_snapshots"], "174", copy["kpi_notes"], "🛰️"),
-        (copy["kpi_changes"], "68", "Cambios normales en JSON público.", "🔎"),
-        (copy["kpi_anomalies"], str(critical_anomalies), "Sin señales críticas.", "🚨"),
-        (copy["kpi_rules"], str(len(rules_df)), "Reglas activas en modo auditoría.", "🧭"),
-        (copy["kpi_verifications"], "2.4K", "Validaciones independientes.", "✅"),
+        (copy["kpi_snapshots"], "174", copy["kpi_notes"]),
+        (copy["kpi_changes"], "68", copy["kpi_changes_note"]),
+        (copy["kpi_anomalies"], str(critical_anomalies), copy["kpi_anomalies_note"]),
+        (copy["kpi_rules"], str(len(rules_df)), copy["kpi_rules_note"]),
+        (copy["kpi_verifications"], "2.4K", copy["kpi_verifications_note"]),
     ]
-    for col, (label, value, note, icon) in zip(kpi_cols, kpis):
+    for col, (label, value, note) in zip(kpi_cols, kpis):
         with col:
             st.markdown(
                 f"""
 <div class="kpi">
-  <h3>{icon} {label}</h3>
+  <h3>{label}</h3>
   <p>{value}</p>
   <span>{note}</span>
 </div>
@@ -441,91 +778,80 @@ if section == copy["nav_sections"][0]:
                 unsafe_allow_html=True,
             )
 
-    st.markdown(f"### {copy['pedagogical_title']}")
-    benford_fig = go.Figure()
-    benford_fig.add_trace(
-        go.Bar(x=benford_df["digit"], y=benford_df["expected"], name="Esperado", marker_color="#00A3FF")
-    )
-    benford_fig.add_trace(
-        go.Bar(x=benford_df["digit"], y=benford_df["observed"], name="Observado", marker_color="#10B981")
-    )
-    benford_fig.update_layout(
-        barmode="group",
-        height=300,
-        margin=dict(l=10, r=10, t=30, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#e2e8f0",
-        title="Distribución de primeros dígitos – Normal ✓",
+    col_left, col_right = st.columns([1.1, 1])
+    with col_left:
+        st.markdown(f"### {copy['capabilities_title']}")
+        st.markdown(
+            "<div class='list-card'>" + "<br>".join([f"• {item}" for item in copy["capabilities_items"]]) + "</div>",
+            unsafe_allow_html=True,
+        )
+    with col_right:
+        st.markdown(f"### {copy['methodology_title']}")
+        st.markdown(
+            "<div class='list-card'>" + "<br>".join([f"• {item}" for item in copy["methodology_items"]]) + "</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(f"### {copy['indicator_title']}")
+    st.markdown(f"<div class='note'>{copy['indicator_subtitle']}</div>", unsafe_allow_html=True)
+    benford_fig, last_digit_fig, votes_fig, heat_fig = build_indicator_figures(
+        benford_df, last_digit_df, votes_df, activity_df, copy
     )
     st.plotly_chart(benford_fig, use_container_width=True)
-
-    last_digit_fig = px.bar(
-        last_digit_df,
-        x="digit",
-        y="observed",
-        color_discrete_sequence=["#00A3FF"],
-        title="Actividad de últimos dígitos",
-    )
-    last_digit_fig.update_layout(
-        height=260,
-        margin=dict(l=10, r=10, t=30, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#e2e8f0",
-    )
     st.plotly_chart(last_digit_fig, use_container_width=True)
-
-    votes_fig = px.line(votes_df, x="hour", y="votes", markers=True, title="Evolución de cambios")
-    votes_fig.update_layout(
-        height=260,
-        margin=dict(l=10, r=10, t=30, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#e2e8f0",
-    )
     st.plotly_chart(votes_fig, use_container_width=True)
-
-    activity_df = pd.DataFrame(
-        {
-            "hour": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
-            "activity": [18, 22, 40, 75, 55, 30],
-        }
-    )
-    heat_fig = px.bar(
-        activity_df,
-        x="hour",
-        y="activity",
-        color="activity",
-        color_continuous_scale=["#0ea5e9", "#10B981"],
-        title="Actividad concentrada en horarios diurnos",
-    )
-    heat_fig.update_layout(
-        height=240,
-        margin=dict(l=10, r=10, t=30, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#e2e8f0",
-        coloraxis_showscale=False,
-    )
     st.plotly_chart(heat_fig, use_container_width=True)
 
+    st.markdown("---")
+    st.markdown(f"#### {copy['footer_links_title']}")
+    st.markdown(
+        f"""
+<div class="footer-links">
+  <a href="https://github.com/userf8a2c4/centinel-engine" target="_blank" rel="noopener">{copy['footer_github']}</a>
+  <a href="https://github.com/userf8a2c4/centinel-engine#readme" target="_blank" rel="noopener">{copy['footer_docs']}</a>
+  <a href="https://arbiscan.io/" target="_blank" rel="noopener">{copy['footer_verify']}</a>
+  <a href="mailto:observadores@centinel.app" target="_blank" rel="noopener">{copy['footer_contact']}</a>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 elif section == copy["nav_sections"][1]:
+    st.markdown(f"### {copy['indicator_title']}")
+    st.markdown(f"<div class='note'>{copy['indicator_subtitle']}</div>", unsafe_allow_html=True)
+    benford_fig, last_digit_fig, votes_fig, heat_fig = build_indicator_figures(
+        benford_df, last_digit_df, votes_df, activity_df, copy
+    )
+    st.plotly_chart(benford_fig, use_container_width=True)
+    st.plotly_chart(last_digit_fig, use_container_width=True)
+    st.plotly_chart(votes_fig, use_container_width=True)
+    st.plotly_chart(heat_fig, use_container_width=True)
+
     st.markdown(f"### {copy['snapshots_title']}")
     st.dataframe(styled_status(snapshots_df), width="stretch", hide_index=True)
     with st.expander(copy["snapshots_button"]):
         st.write("Comparador simple de JSON (placeholder)")
 
-elif section == copy["nav_sections"][2]:
     st.markdown(f"### {copy['rules_title']}")
     st.markdown(f"<div class='note'>{copy['rules_help']}</div>", unsafe_allow_html=True)
     st.dataframe(rules_df, width="stretch", hide_index=True)
+
+elif section == copy["nav_sections"][2]:
+    st.markdown(f"### {copy['international_title']}")
+    st.markdown(f"<div class='note'>{copy['international_intro']}</div>", unsafe_allow_html=True)
+    st.dataframe(build_international_data(language), width="stretch", hide_index=True)
+
+    st.markdown(f"### {copy['governance_title']}")
+    st.dataframe(build_governance_data(language), width="stretch", hide_index=True)
+
+    st.markdown(f"### {copy['risk_title']}")
+    st.dataframe(build_risk_data(language), width="stretch", hide_index=True)
 
 elif section == copy["nav_sections"][3]:
     st.markdown(f"### {copy['verification_title']}")
     st.markdown(f"<div class='note'>{copy['verification_help']}</div>", unsafe_allow_html=True)
     with st.form("verify_form"):
-        hash_input = st.text_input("Hash raíz", value=anchor.root_hash)
+        hash_input = st.text_input(copy["verification_input"], value=anchor.root_hash)
         submitted = st.form_submit_button(copy["verify_button"])
     if submitted:
         if anchor.root_hash.lower() in hash_input.lower():
@@ -553,18 +879,21 @@ else:
     ] + rules_df[["name", "type", "severity", "state", "action"]].values.tolist()
 
     data_es = {
-        "logo": "C.E.N.T.I.N.E.L. – Centinela Electoral Nacional Transparente Íntegro Nacional Electoral Libre",
-        "title": "Reporte Ciudadano de Auditoría Electoral Independiente",
+        "logo": "C.E.N.T.I.N.E.L. – Centro de Evidencias y Monitoreo Electoral",
+        "title": "Reporte Ejecutivo de Integridad Electoral",
         "subtitle": "Transparencia verificable con inmutabilidad blockchain (Arbitrum L2)",
         "generated_label": "Generado el",
         "generated_at": report_time,
-        "global_status": "TODO VERIFICABLE – SIN ANOMALÍAS CRÍTICAS",
+        "global_status": "ESTATUS GLOBAL: VERIFICABLE – SIN ANOMALÍAS CRÍTICAS",
         "executive_title": "Resumen Ejecutivo",
         "executive_intro": (
-            "Sistema independiente que toma fotos inmutables de los datos electorales públicos cada 10 minutos "
-            "y las ancla en blockchain para que cualquiera pueda verificar que no han sido alterados."
+            "Sistema independiente que toma snapshots inmutables de los datos electorales públicos cada 10 minutos "
+            "y los ancla en blockchain para que cualquier misión internacional o auditor pueda verificar cambios."
         ),
-        "executive_state": f"Último snapshot: {report_time} UTC – Hash raíz verificado en Arbitrum L2",
+        "executive_state": (
+            f"Último snapshot: {report_time} UTC – Hash raíz verificado en Arbitrum L2. "
+            "Disponible para misiones OEA/UE."
+        ),
         "kpi_headers": ["Snapshots 24h", "Cambios", "Anomalías", "Reglas", "Verificaciones"],
         "kpi_values": ["174", "68", str(critical_anomalies), str(len(rules_df)), "2.4K"],
         "technical_title": "Sección Técnica Principal",
@@ -596,15 +925,18 @@ else:
 
     data_en = {
         **data_es,
-        "title": "Citizen Report of Independent Electoral Audit",
+        "title": "Executive Report on Electoral Integrity",
         "subtitle": "Verifiable transparency with blockchain immutability (Arbitrum L2)",
         "generated_label": "Generated on",
         "executive_title": "Executive Summary",
         "executive_intro": (
             "Independent system that takes immutable snapshots of public electoral data every 10 minutes "
-            "and anchors them on blockchain so anyone can verify they were not altered."
+            "and anchors them on blockchain so any international mission or auditor can verify changes."
         ),
-        "executive_state": f"Latest snapshot: {report_time} UTC – Root hash verified on Arbitrum L2",
+        "executive_state": (
+            f"Latest snapshot: {report_time} UTC – Root hash verified on Arbitrum L2. "
+            "Ready for OAS/EU observation."
+        ),
         "technical_title": "Technical core",
         "root_hash_label": "Current root hash:",
         "tx_label": "Blockchain transaction:",
