@@ -2,7 +2,7 @@ simulation_mode: true
 data_folder: "data/2025/"
 file_pattern: "HN.PRESIDENTE.*.json"
 sort_by: "filename_timestamp"
-simulation_interval_seconds: 600
+simulation_interval_seconds: 120
 sleep_between_snapshots: false
 country: "HN"
 year: 2025
