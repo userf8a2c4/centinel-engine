@@ -279,23 +279,16 @@ def build_pdf_report(data: dict, language: str) -> bytes:
 
 
 st.set_page_config(
-    page_title="C.E.N.T.I.N.E.L. | Electoral Intelligence Dashboard",
+    page_title="C.E.N.T.I.N.E.L. | Panel Ejecutivo",
     page_icon="🛰️",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 if "language" not in st.session_state:
     st.session_state.language = "es"
 
 LANG_OPTIONS = {"Español": "es", "English": "en"}
-language_label = st.sidebar.selectbox(
-    "Idioma / Language",
-    list(LANG_OPTIONS.keys()),
-    index=0 if st.session_state.language == "es" else 1,
-)
-st.session_state.language = LANG_OPTIONS[language_label]
-language = st.session_state.language
 
 translations = {
     "es": {
@@ -313,6 +306,9 @@ translations = {
             "Snapshots inmutables anclados en Arbitrum L2 cada 10 minutos para observación internacional."
         ),
         "global_ok": "ESTATUS GLOBAL: VERIFICABLE · SIN ANOMALÍAS CRÍTICAS",
+        "header_title": "Panel Ejecutivo de Integridad Electoral",
+        "header_status": "Verificable",
+        "header_subtitle": "Auditoría independiente con evidencia criptográfica verificable",
         "audience_title": "Audiencias prioritarias",
         "audience_items": [
             "Autoridades electorales y autoridades políticas",
@@ -325,7 +321,7 @@ translations = {
         "kpi_anomalies": "Anomalías críticas",
         "kpi_rules": "Reglas activas",
         "kpi_verifications": "Verificaciones externas",
-        "kpi_notes": "Cada 10 min tomamos una foto inmutable del JSON público.",
+        "kpi_notes": "Cada 10 min tomamos una foto inmutable del JSON público oficial.",
         "kpi_changes_note": "Cambios normales en JSON público.",
         "kpi_anomalies_note": "Sin señales críticas.",
         "kpi_rules_note": "Reglas activas en modo auditoría.",
@@ -380,6 +376,7 @@ translations = {
         "footer_contact": "Contacto para observadores",
         "cta_report": "Ver Reporte Técnico Completo",
         "cta_verify": "Validar en Blockchain",
+        "footer_note": "Datos públicos e inmutables. Verificables independientemente por cualquier actor.",
     },
     "en": {
         "nav_title": "Navigation",
@@ -396,6 +393,9 @@ translations = {
             "Immutable snapshots anchored on Arbitrum L2 every 10 minutes for international observation."
         ),
         "global_ok": "GLOBAL STATUS: VERIFIABLE · NO CRITICAL ANOMALIES",
+        "header_title": "Executive Electoral Integrity Dashboard",
+        "header_status": "Verifiable",
+        "header_subtitle": "Independent audit system with verifiable cryptographic evidence",
         "audience_title": "Primary audiences",
         "audience_items": [
             "Electoral authorities and political leadership",
@@ -408,7 +408,7 @@ translations = {
         "kpi_anomalies": "Critical anomalies",
         "kpi_rules": "Active rules",
         "kpi_verifications": "External verifications",
-        "kpi_notes": "Every 10 min we take an immutable snapshot of public JSON.",
+        "kpi_notes": "Every 10 min we take an immutable snapshot of official public JSON.",
         "kpi_changes_note": "Normal changes in public JSON.",
         "kpi_anomalies_note": "No critical signals detected.",
         "kpi_rules_note": "Rules active in audit mode.",
@@ -463,46 +463,50 @@ translations = {
         "footer_contact": "Observer contact",
         "cta_report": "View Full Technical Report",
         "cta_verify": "Validate on Blockchain",
+        "footer_note": "Public, immutable data. Independently verifiable by any stakeholder.",
     },
 }
+_, header_right = st.columns([0.78, 0.22])
+with header_right:
+    language_label = st.selectbox(
+        "Idioma / Language",
+        list(LANG_OPTIONS.keys()),
+        index=0 if st.session_state.language == "es" else 1,
+        label_visibility="collapsed",
+    )
+st.session_state.language = LANG_OPTIONS[language_label]
+language = st.session_state.language
 copy = translations[language]
-
-is_admin = st.sidebar.checkbox("Admin", value=False)
-if is_admin:
-    st.sidebar.button("⚡ Activar Modo Electoral", use_container_width=True)
-st.sidebar.button("📥 Snapshot Ahora", use_container_width=True)
-
-section = st.sidebar.radio(copy["nav_title"], copy["nav_sections"])
 
 css = """
 <style>
     :root {
         color-scheme: dark;
-        --bg: #0f1117;
-        --panel: rgba(14, 17, 23, 0.9);
-        --panel-soft: rgba(20, 24, 32, 0.85);
-        --text: #ffffff;
+        --bg: #0a0c12;
+        --panel: rgba(16, 19, 28, 0.92);
+        --panel-soft: rgba(20, 24, 32, 0.88);
+        --text: #f8f9fa;
         --muted: #e0e0e0;
-        --accent: #0055ff;
-        --success: #00c853;
+        --accent: #3b82f6;
+        --success: #00a676;
         --warning: #f59e0b;
-        --danger: #ff3b30;
+        --danger: #e63946;
         --border: rgba(255, 255, 255, 0.08);
-        --shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+        --shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
     }
     html, body, [class*="css"] { font-family: "Inter", "Geist", "Segoe UI", sans-serif; }
     .stApp { background: var(--bg); color: var(--text); }
-    section[data-testid="stSidebar"] { background: rgba(12, 14, 20, 0.98); border-right: 1px solid var(--border); }
-    .glass { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 2rem; box-shadow: var(--shadow); }
+    section[data-testid="stSidebar"] { display: none; }
+    .glass { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; box-shadow: var(--shadow); }
     .hero { margin-bottom: 2rem; }
-    .hero h1 { font-size: 2.05rem; letter-spacing: -0.02em; margin-bottom: 0.6rem; color: var(--text); }
+    .hero h1 { font-size: 1.95rem; letter-spacing: -0.02em; margin-bottom: 0.6rem; color: var(--text); }
     .hero p { font-size: 1.02rem; color: var(--muted); margin-top: 0; line-height: 1.6; }
-    .kpi { background: var(--panel-soft); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; }
+    .kpi { background: var(--panel-soft); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem; }
     .kpi h3 { margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
     .kpi p { margin: 0.45rem 0; font-size: 1.55rem; font-weight: 600; color: var(--text); }
     .kpi span { font-size: 0.88rem; color: var(--muted); }
     .note { background: var(--panel); border: 1px solid var(--border); padding: 0.95rem 1.1rem; border-radius: 12px; color: var(--muted); }
-    .badge { display: inline-block; padding: 0.35rem 0.85rem; border-radius: 999px; background: rgba(0, 85, 255, 0.12); color: var(--text); margin: 0.2rem 0.35rem 0 0; font-size: 0.82rem; border: 1px solid rgba(0, 85, 255, 0.2); }
+    .badge { display: inline-block; padding: 0.35rem 0.85rem; border-radius: 999px; background: rgba(59, 130, 246, 0.12); color: var(--text); margin: 0.2rem 0.35rem 0 0; font-size: 0.82rem; border: 1px solid rgba(59, 130, 246, 0.2); }
     .list-card { background: var(--panel); border: 1px solid var(--border); padding: 1.1rem; border-radius: 12px; color: var(--text); }
     .stPlotlyChart { background: var(--panel); border-radius: 12px; padding: 0.5rem; box-shadow: var(--shadow); }
     .cta-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
@@ -519,6 +523,11 @@ css = """
     .cta-primary { background: var(--accent); color: #ffffff; }
     .cta-secondary { background: transparent; color: var(--text); }
     .footer-links { display: grid; gap: 0.4rem; margin-top: 1.5rem; color: var(--muted); font-size: 0.9rem; }
+    .header-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1.2rem; background: var(--panel); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1.2rem; }
+    .header-title { font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; }
+    .header-subtitle { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+    .status-pill { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border-radius: 999px; background: rgba(0, 166, 118, 0.15); color: var(--success); font-size: 0.78rem; border: 1px solid rgba(0, 166, 118, 0.25); }
+    .legal-note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -557,7 +566,7 @@ def build_indicator_figures(
             x=benford_data["digit"],
             y=benford_data["expected"],
             name=copy_map["expected_label"],
-            marker_color="#00A3FF",
+            marker_color="#3b82f6",
         )
     )
     benford_fig.add_trace(
@@ -565,7 +574,7 @@ def build_indicator_figures(
             x=benford_data["digit"],
             y=benford_data["observed"],
             name=copy_map["observed_label"],
-            marker_color="#10B981",
+            marker_color="#00a676",
         )
     )
     benford_fig.update_layout(
@@ -582,7 +591,7 @@ def build_indicator_figures(
         last_digit_data,
         x="digit",
         y="observed",
-        color_discrete_sequence=["#00A3FF"],
+        color_discrete_sequence=["#3b82f6"],
         title=copy_map["last_digit_title"],
     )
     last_digit_fig.update_layout(
@@ -607,7 +616,7 @@ def build_indicator_figures(
         x="hour",
         y="activity",
         color="activity",
-        color_continuous_scale=["#0ea5e9", "#10B981"],
+        color_continuous_scale=["#1f3a5f", "#00a676"],
         title=copy_map["activity_title"],
     )
     heat_fig.update_layout(
@@ -735,243 +744,243 @@ def build_international_data(language: str) -> pd.DataFrame:
         }
     )
 
-if section == copy["nav_sections"][0]:
-    st.markdown(
-        f"""
+st.markdown(
+    f"""
+<div class="header-bar">
+  <div>
+    <div class="header-title">C.E.N.T.I.N.E.L. · {copy['header_title']}</div>
+    <div class="header-subtitle">{copy['header_subtitle']}</div>
+  </div>
+  <div class="status-pill">● {copy['header_status']}</div>
+</div>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    f"""
 <div class="glass hero">
   <h1>{copy['hero_title']}</h1>
   <p>{copy['hero_subtitle']}</p>
   <h3 style="color: var(--success);">{copy['global_ok']}</h3>
   <div class="cta-row">
     <a class="cta-primary" href="https://arbiscan.io/" target="_blank" rel="noopener">{copy['cta_verify']}</a>
-    <a class="cta-secondary" href="https://github.com/userf8a2c4/centinel-engine" target="_blank" rel="noopener">{copy['cta_report']}</a>
+    <a class="cta-secondary" href="#reportes">{copy['cta_report']}</a>
   </div>
 </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """,
+    unsafe_allow_html=True,
+)
 
-    st.markdown(f"#### {copy['audience_title']}")
-    st.markdown(
-        "".join([f"<span class='badge'>{item}</span>" for item in copy["audience_items"]]),
-        unsafe_allow_html=True,
-    )
+st.markdown(f"#### {copy['audience_title']}")
+st.markdown(
+    "".join([f"<span class='badge'>{item}</span>" for item in copy["audience_items"]]),
+    unsafe_allow_html=True,
+)
 
-    kpi_cols = st.columns(5)
-    kpis = [
-        (copy["kpi_snapshots"], "174", copy["kpi_notes"]),
-        (copy["kpi_changes"], "68", copy["kpi_changes_note"]),
-        (copy["kpi_anomalies"], str(critical_anomalies), copy["kpi_anomalies_note"]),
-        (copy["kpi_rules"], str(len(rules_df)), copy["kpi_rules_note"]),
-        (copy["kpi_verifications"], "2.4K", copy["kpi_verifications_note"]),
-    ]
-    for col, (label, value, note) in zip(kpi_cols, kpis):
-        with col:
-            st.markdown(
-                f"""
+kpi_cols = st.columns(5)
+kpis = [
+    (copy["kpi_snapshots"], "174", copy["kpi_notes"]),
+    (copy["kpi_changes"], "68", copy["kpi_changes_note"]),
+    (copy["kpi_anomalies"], str(critical_anomalies), copy["kpi_anomalies_note"]),
+    (copy["kpi_rules"], str(len(rules_df)), copy["kpi_rules_note"]),
+    (copy["kpi_verifications"], "2.4K", copy["kpi_verifications_note"]),
+]
+for col, (label, value, note) in zip(kpi_cols, kpis):
+    with col:
+        st.markdown(
+            f"""
 <div class="kpi">
   <h3>{label}</h3>
   <p>{value}</p>
   <span>{note}</span>
 </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-    col_left, col_right = st.columns([1.1, 1])
-    with col_left:
-        st.markdown(f"### {copy['capabilities_title']}")
-        st.markdown(
-            "<div class='list-card'>" + "<br>".join([f"• {item}" for item in copy["capabilities_items"]]) + "</div>",
-            unsafe_allow_html=True,
-        )
-    with col_right:
-        st.markdown(f"### {copy['methodology_title']}")
-        st.markdown(
-            "<div class='list-card'>" + "<br>".join([f"• {item}" for item in copy["methodology_items"]]) + "</div>",
+            """,
             unsafe_allow_html=True,
         )
 
-    st.markdown(f"### {copy['indicator_title']}")
-    st.markdown(f"<div class='note'>{copy['indicator_subtitle']}</div>", unsafe_allow_html=True)
-    benford_fig, last_digit_fig, votes_fig, heat_fig = build_indicator_figures(
-        benford_df, last_digit_df, votes_df, activity_df, copy
-    )
-    st.plotly_chart(benford_fig, use_container_width=True)
-    st.plotly_chart(last_digit_fig, use_container_width=True)
-    st.plotly_chart(votes_fig, use_container_width=True)
-    st.plotly_chart(heat_fig, use_container_width=True)
-
-    st.markdown("---")
-    st.markdown(f"#### {copy['footer_links_title']}")
+col_left, col_right = st.columns([1.1, 1])
+with col_left:
+    st.markdown(f"### {copy['capabilities_title']}")
     st.markdown(
-        f"""
+        "<div class='list-card'>" + "<br>".join([f"• {item}" for item in copy["capabilities_items"]]) + "</div>",
+        unsafe_allow_html=True,
+    )
+with col_right:
+    st.markdown(f"### {copy['methodology_title']}")
+    st.markdown(
+        "<div class='list-card'>" + "<br>".join([f"• {item}" for item in copy["methodology_items"]]) + "</div>",
+        unsafe_allow_html=True,
+    )
+
+st.markdown(f"### {copy['indicator_title']}")
+st.markdown(f"<div class='note'>{copy['indicator_subtitle']}</div>", unsafe_allow_html=True)
+benford_fig, last_digit_fig, votes_fig, heat_fig = build_indicator_figures(
+    benford_df, last_digit_df, votes_df, activity_df, copy
+)
+st.plotly_chart(benford_fig, use_container_width=True)
+st.plotly_chart(last_digit_fig, use_container_width=True)
+st.plotly_chart(votes_fig, use_container_width=True)
+st.plotly_chart(heat_fig, use_container_width=True)
+
+st.markdown(f"### {copy['snapshots_title']}")
+st.dataframe(styled_status(snapshots_df), width="stretch", hide_index=True)
+with st.expander(copy["snapshots_button"]):
+    st.write("Comparador simple de JSON (placeholder)")
+
+st.markdown(f"### {copy['rules_title']}")
+st.markdown(f"<div class='note'>{copy['rules_help']}</div>", unsafe_allow_html=True)
+st.dataframe(rules_df, width="stretch", hide_index=True)
+
+st.markdown(f"### {copy['international_title']}")
+st.markdown(f"<div class='note'>{copy['international_intro']}</div>", unsafe_allow_html=True)
+st.dataframe(build_international_data(language), width="stretch", hide_index=True)
+
+st.markdown(f"### {copy['governance_title']}")
+st.dataframe(build_governance_data(language), width="stretch", hide_index=True)
+
+st.markdown(f"### {copy['risk_title']}")
+st.dataframe(build_risk_data(language), width="stretch", hide_index=True)
+
+st.markdown(f"### {copy['verification_title']}")
+st.markdown(f"<div class='note'>{copy['verification_help']}</div>", unsafe_allow_html=True)
+with st.form("verify_form"):
+    hash_input = st.text_input(copy["verification_input"], value=anchor.root_hash)
+    submitted = st.form_submit_button(copy["verify_button"])
+if submitted:
+    if anchor.root_hash.lower() in hash_input.lower():
+        st.success(copy["verify_success"])
+    else:
+        st.error(copy["verify_fail"])
+st.markdown("### QR")
+if qrcode is None:
+    st.warning("QR no disponible: falta instalar la dependencia 'qrcode'.")
+else:
+    st.image(qrcode.make(anchor.root_hash))
+
+st.markdown(f"### {copy['export_title']}")
+st.markdown("<a id='reportes'></a>", unsafe_allow_html=True)
+report_time = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M")
+report_payload = f"{anchor.root_hash}|{anchor.tx_url}|{report_time}"
+report_hash = compute_report_hash(report_payload)
+
+snapshots_rows = [
+    ["Timestamp UTC", "Estado", "Detalle", "Cambios"]
+] + snapshots_df[["timestamp", "status", "detail", "changes"]].values.tolist()
+
+rules_rows = [
+    ["Regla", "Tipo", "Severidad", "Estado", "Acción"]
+] + rules_df[["name", "type", "severity", "state", "action"]].values.tolist()
+
+data_es = {
+    "logo": "C.E.N.T.I.N.E.L. – Centro de Evidencias y Monitoreo Electoral",
+    "title": "Reporte Ejecutivo de Integridad Electoral",
+    "subtitle": "Transparencia verificable con inmutabilidad blockchain (Arbitrum L2)",
+    "generated_label": "Generado el",
+    "generated_at": report_time,
+    "global_status": "ESTATUS GLOBAL: VERIFICABLE – SIN ANOMALÍAS CRÍTICAS",
+    "executive_title": "Resumen Ejecutivo",
+    "executive_intro": (
+        "Sistema independiente que toma snapshots inmutables de los datos electorales públicos cada 10 minutos "
+        "y los ancla en blockchain para que cualquier misión internacional o auditor pueda verificar cambios."
+    ),
+    "executive_state": (
+        f"Último snapshot: {report_time} UTC – Hash raíz verificado en Arbitrum L2. "
+        "Disponible para misiones OEA/UE."
+    ),
+    "kpi_headers": ["Snapshots 24h", "Cambios", "Anomalías", "Reglas", "Verificaciones"],
+    "kpi_values": ["174", "68", str(critical_anomalies), str(len(rules_df)), "2.4K"],
+    "technical_title": "Sección Técnica Principal",
+    "root_hash_label": "Hash raíz actual:",
+    "root_hash": anchor.root_hash,
+    "tx_label": "Transacción en blockchain:",
+    "tx_url": anchor.tx_url,
+    "anchored_label": f"Anclado en {anchor.network} el {anchor.anchored_at}",
+    "qr_label": "Hash de verificación (QR)",
+    "snapshots_title": "Snapshots recientes",
+    "snapshots_rows": snapshots_rows,
+    "rules_title": "Reglas activas y alertas",
+    "rules_rows": rules_rows,
+    "integrity_title": "Indicadores pedagógicos de integridad",
+    "integrity_intro": "Distribución de primeros dígitos, evolución de cambios y actividad horaria.",
+    "integrity_benford": "Ley de Benford: Distribución de primeros dígitos – Normal ✓",
+    "integrity_votes": "Evolución de cambios: Línea creciente sin saltos sospechosos.",
+    "integrity_heatmap": "Actividad horaria: Concentrada en horarios diurnos.",
+    "verify_title": "Cómo verificar usted mismo",
+    "verify_steps": [
+        "1. Copie el hash raíz.",
+        "2. Vaya a https://arbiscan.io y busque la transacción.",
+        "3. Compare con el hash calculado localmente.",
+        "4. ¡Cualquier discrepancia sería detectable inmediatamente!",
+    ],
+    "footer_left": "Generado por C.E.N.T.I.N.E.L. – Transparencia Electoral Verificable",
+    "footer_right": f"Hash reporte: {report_hash} · https://centinel-dashboard.streamlit.app/",
+}
+
+data_en = {
+    **data_es,
+    "title": "Executive Report on Electoral Integrity",
+    "subtitle": "Verifiable transparency with blockchain immutability (Arbitrum L2)",
+    "generated_label": "Generated on",
+    "executive_title": "Executive Summary",
+    "executive_intro": (
+        "Independent system that takes immutable snapshots of public electoral data every 10 minutes "
+        "and anchors them on blockchain so any international mission or auditor can verify changes."
+    ),
+    "executive_state": (
+        f"Latest snapshot: {report_time} UTC – Root hash verified on Arbitrum L2. "
+        "Ready for OAS/EU observation."
+    ),
+    "technical_title": "Technical core",
+    "root_hash_label": "Current root hash:",
+    "tx_label": "Blockchain transaction:",
+    "anchored_label": f"Anchored on {anchor.network} at {anchor.anchored_at}",
+    "qr_label": "Verification hash (QR)",
+    "snapshots_title": "Recent snapshots",
+    "rules_title": "Active rules & alerts",
+    "integrity_title": "Pedagogical integrity indicators",
+    "integrity_intro": "First-digit distribution, change evolution, and hourly activity.",
+    "integrity_benford": "Benford Law: First-digit distribution – Normal ✓",
+    "integrity_votes": "Change evolution: Smooth growth without suspicious jumps.",
+    "integrity_heatmap": "Hourly activity: Concentrated in daytime hours.",
+    "verify_title": "How to verify it yourself",
+    "verify_steps": [
+        "1. Copy the root hash.",
+        "2. Go to https://arbiscan.io and look up the transaction.",
+        "3. Compare with the locally computed hash.",
+        "4. Any discrepancy would be immediately detectable.",
+    ],
+}
+
+if REPORTLAB_AVAILABLE:
+    pdf_es = build_pdf_report(data_es, "es")
+    pdf_en = build_pdf_report(data_en, "en")
+else:
+    st.warning("Exportación PDF no disponible: falta instalar la dependencia 'reportlab'.")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    if REPORTLAB_AVAILABLE:
+        st.download_button(copy["export_pdf_es"], data=pdf_es, file_name="centinel_reporte_es.pdf")
+with col2:
+    if REPORTLAB_AVAILABLE:
+        st.download_button(copy["export_pdf_en"], data=pdf_en, file_name="centinel_report_en.pdf")
+with col3:
+    st.download_button(copy["export_json"], data=snapshots_df.to_json(orient="records"), file_name="centinel.json")
+
+st.download_button(copy["export_csv"], data=snapshots_df.to_csv(index=False), file_name="centinel.csv")
+
+st.markdown("---")
+st.markdown(f"#### {copy['footer_links_title']}")
+st.markdown(
+    f"""
 <div class="footer-links">
   <a href="https://github.com/userf8a2c4/centinel-engine" target="_blank" rel="noopener">{copy['footer_github']}</a>
   <a href="https://github.com/userf8a2c4/centinel-engine#readme" target="_blank" rel="noopener">{copy['footer_docs']}</a>
   <a href="https://arbiscan.io/" target="_blank" rel="noopener">{copy['footer_verify']}</a>
   <a href="mailto:observadores@centinel.app" target="_blank" rel="noopener">{copy['footer_contact']}</a>
 </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-elif section == copy["nav_sections"][1]:
-    st.markdown(f"### {copy['indicator_title']}")
-    st.markdown(f"<div class='note'>{copy['indicator_subtitle']}</div>", unsafe_allow_html=True)
-    benford_fig, last_digit_fig, votes_fig, heat_fig = build_indicator_figures(
-        benford_df, last_digit_df, votes_df, activity_df, copy
-    )
-    st.plotly_chart(benford_fig, use_container_width=True)
-    st.plotly_chart(last_digit_fig, use_container_width=True)
-    st.plotly_chart(votes_fig, use_container_width=True)
-    st.plotly_chart(heat_fig, use_container_width=True)
-
-    st.markdown(f"### {copy['snapshots_title']}")
-    st.dataframe(styled_status(snapshots_df), width="stretch", hide_index=True)
-    with st.expander(copy["snapshots_button"]):
-        st.write("Comparador simple de JSON (placeholder)")
-
-    st.markdown(f"### {copy['rules_title']}")
-    st.markdown(f"<div class='note'>{copy['rules_help']}</div>", unsafe_allow_html=True)
-    st.dataframe(rules_df, width="stretch", hide_index=True)
-
-elif section == copy["nav_sections"][2]:
-    st.markdown(f"### {copy['international_title']}")
-    st.markdown(f"<div class='note'>{copy['international_intro']}</div>", unsafe_allow_html=True)
-    st.dataframe(build_international_data(language), width="stretch", hide_index=True)
-
-    st.markdown(f"### {copy['governance_title']}")
-    st.dataframe(build_governance_data(language), width="stretch", hide_index=True)
-
-    st.markdown(f"### {copy['risk_title']}")
-    st.dataframe(build_risk_data(language), width="stretch", hide_index=True)
-
-elif section == copy["nav_sections"][3]:
-    st.markdown(f"### {copy['verification_title']}")
-    st.markdown(f"<div class='note'>{copy['verification_help']}</div>", unsafe_allow_html=True)
-    with st.form("verify_form"):
-        hash_input = st.text_input(copy["verification_input"], value=anchor.root_hash)
-        submitted = st.form_submit_button(copy["verify_button"])
-    if submitted:
-        if anchor.root_hash.lower() in hash_input.lower():
-            st.success(copy["verify_success"])
-        else:
-            st.error(copy["verify_fail"])
-    st.markdown("### QR")
-    if qrcode is None:
-        st.warning("QR no disponible: falta instalar la dependencia 'qrcode'.")
-    else:
-        st.image(qrcode.make(anchor.root_hash))
-
-else:
-    st.markdown(f"### {copy['export_title']}")
-    report_time = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M")
-    report_payload = f"{anchor.root_hash}|{anchor.tx_url}|{report_time}"
-    report_hash = compute_report_hash(report_payload)
-
-    snapshots_rows = [
-        ["Timestamp UTC", "Estado", "Detalle", "Cambios"]
-    ] + snapshots_df[["timestamp", "status", "detail", "changes"]].values.tolist()
-
-    rules_rows = [
-        ["Regla", "Tipo", "Severidad", "Estado", "Acción"]
-    ] + rules_df[["name", "type", "severity", "state", "action"]].values.tolist()
-
-    data_es = {
-        "logo": "C.E.N.T.I.N.E.L. – Centro de Evidencias y Monitoreo Electoral",
-        "title": "Reporte Ejecutivo de Integridad Electoral",
-        "subtitle": "Transparencia verificable con inmutabilidad blockchain (Arbitrum L2)",
-        "generated_label": "Generado el",
-        "generated_at": report_time,
-        "global_status": "ESTATUS GLOBAL: VERIFICABLE – SIN ANOMALÍAS CRÍTICAS",
-        "executive_title": "Resumen Ejecutivo",
-        "executive_intro": (
-            "Sistema independiente que toma snapshots inmutables de los datos electorales públicos cada 10 minutos "
-            "y los ancla en blockchain para que cualquier misión internacional o auditor pueda verificar cambios."
-        ),
-        "executive_state": (
-            f"Último snapshot: {report_time} UTC – Hash raíz verificado en Arbitrum L2. "
-            "Disponible para misiones OEA/UE."
-        ),
-        "kpi_headers": ["Snapshots 24h", "Cambios", "Anomalías", "Reglas", "Verificaciones"],
-        "kpi_values": ["174", "68", str(critical_anomalies), str(len(rules_df)), "2.4K"],
-        "technical_title": "Sección Técnica Principal",
-        "root_hash_label": "Hash raíz actual:",
-        "root_hash": anchor.root_hash,
-        "tx_label": "Transacción en blockchain:",
-        "tx_url": anchor.tx_url,
-        "anchored_label": f"Anclado en {anchor.network} el {anchor.anchored_at}",
-        "qr_label": "Hash de verificación (QR)",
-        "snapshots_title": "Snapshots recientes",
-        "snapshots_rows": snapshots_rows,
-        "rules_title": "Reglas activas y alertas",
-        "rules_rows": rules_rows,
-        "integrity_title": "Indicadores pedagógicos de integridad",
-        "integrity_intro": "Distribución de primeros dígitos, evolución de cambios y actividad horaria.",
-        "integrity_benford": "Ley de Benford: Distribución de primeros dígitos – Normal ✓",
-        "integrity_votes": "Evolución de cambios: Línea creciente sin saltos sospechosos.",
-        "integrity_heatmap": "Actividad horaria: Concentrada en horarios diurnos.",
-        "verify_title": "Cómo verificar usted mismo",
-        "verify_steps": [
-            "1. Copie el hash raíz.",
-            "2. Vaya a https://arbiscan.io y busque la transacción.",
-            "3. Compare con el hash calculado localmente.",
-            "4. ¡Cualquier discrepancia sería detectable inmediatamente!",
-        ],
-        "footer_left": "Generado por C.E.N.T.I.N.E.L. – Transparencia Electoral Verificable",
-        "footer_right": f"Hash reporte: {report_hash} · https://centinel-dashboard.streamlit.app/",
-    }
-
-    data_en = {
-        **data_es,
-        "title": "Executive Report on Electoral Integrity",
-        "subtitle": "Verifiable transparency with blockchain immutability (Arbitrum L2)",
-        "generated_label": "Generated on",
-        "executive_title": "Executive Summary",
-        "executive_intro": (
-            "Independent system that takes immutable snapshots of public electoral data every 10 minutes "
-            "and anchors them on blockchain so any international mission or auditor can verify changes."
-        ),
-        "executive_state": (
-            f"Latest snapshot: {report_time} UTC – Root hash verified on Arbitrum L2. "
-            "Ready for OAS/EU observation."
-        ),
-        "technical_title": "Technical core",
-        "root_hash_label": "Current root hash:",
-        "tx_label": "Blockchain transaction:",
-        "anchored_label": f"Anchored on {anchor.network} at {anchor.anchored_at}",
-        "qr_label": "Verification hash (QR)",
-        "snapshots_title": "Recent snapshots",
-        "rules_title": "Active rules & alerts",
-        "integrity_title": "Pedagogical integrity indicators",
-        "integrity_intro": "First-digit distribution, change evolution, and hourly activity.",
-        "integrity_benford": "Benford Law: First-digit distribution – Normal ✓",
-        "integrity_votes": "Change evolution: Smooth growth without suspicious jumps.",
-        "integrity_heatmap": "Hourly activity: Concentrated in daytime hours.",
-        "verify_title": "How to verify it yourself",
-        "verify_steps": [
-            "1. Copy the root hash.",
-            "2. Go to https://arbiscan.io and look up the transaction.",
-            "3. Compare with the locally computed hash.",
-            "4. Any discrepancy would be immediately detectable.",
-        ],
-    }
-
-    if REPORTLAB_AVAILABLE:
-        pdf_es = build_pdf_report(data_es, "es")
-        pdf_en = build_pdf_report(data_en, "en")
-    else:
-        st.warning("Exportación PDF no disponible: falta instalar la dependencia 'reportlab'.")
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if REPORTLAB_AVAILABLE:
-            st.download_button(copy["export_pdf_es"], data=pdf_es, file_name="centinel_reporte_es.pdf")
-    with col2:
-        if REPORTLAB_AVAILABLE:
-            st.download_button(copy["export_pdf_en"], data=pdf_en, file_name="centinel_report_en.pdf")
-    with col3:
-        st.download_button(copy["export_json"], data=snapshots_df.to_json(orient="records"), file_name="centinel.json")
-
-    st.download_button(copy["export_csv"], data=snapshots_df.to_csv(index=False), file_name="centinel.csv")
+<div class="legal-note">{copy['footer_note']}</div>
+    """,
+    unsafe_allow_html=True,
+)
