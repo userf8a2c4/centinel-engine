@@ -36,7 +36,7 @@ def apply(
     una alerta de alta severidad por posible desvío de tendencia en tiempo real.
 
     Args:
-        current_data: Snapshot JSON actual del CNE.
+        current_data: Snapshot JSON actual de la autoridad electoral.
         previous_data: Snapshot JSON anterior (None en el primer snapshot).
         config: Sección de configuración específica de la regla desde config.yaml.
 
@@ -52,7 +52,7 @@ def apply(
         high-severity alert is raised for potential real-time trend deviation.
 
     Args:
-        current_data: Current CNE JSON snapshot.
+        current_data: Current electoral authority JSON snapshot.
         previous_data: Previous JSON snapshot (None for the first snapshot).
         config: Rule-specific configuration section from config.yaml.
 

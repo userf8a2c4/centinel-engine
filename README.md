@@ -6,18 +6,18 @@
 ## Español (prioridad)
 
 ### ¿Qué es Centinel?
-Centinel es un sistema técnico independiente para observar y auditar datos electorales públicos en Honduras. Registra, normaliza y verifica cambios en datos publicados para producir reportes técnicos reproducibles y trazables.
+Centinel es un sistema técnico independiente para observar y auditar datos electorales públicos en cualquier país. Registra, normaliza y verifica cambios en datos publicados para producir reportes técnicos reproducibles y trazables.
 
 ### ¿Por qué importa?
 La integridad electoral requiere evidencia verificable. Centinel aporta transparencia técnica mediante snapshots, hashes encadenados y análisis de anomalías con enfoque ciudadano y neutral.
 
-### Marco legal y límites de operación (Honduras)
-Este proyecto se sustenta en el derecho de acceso a la información pública y en la obligación de publicar información por medios electrónicos.
+### Marco legal y límites de operación (adaptable)
+Este proyecto se sustenta en el derecho de acceso a la información pública y en la obligación de publicar información por medios electrónicos. Debes adaptar esta sección a la normativa local antes de operar en un país específico.
 
-Referencias normativas principales:
-- **Ley de Transparencia y Acceso a la Información Pública** (Decreto 170-2006, reformas Decreto 60-2022).
-- **Art. 3 y 4:** Reconocen el derecho ciudadano a acceder a información pública.
-- **Art. 5:** Establece la obligación de facilitar el acceso por medios electrónicos.
+Referencias normativas sugeridas (ajustar según país):
+- **Ley o reglamento de transparencia y acceso a la información pública** vigente.
+- **Obligación de publicación electrónica** de datos públicos.
+- **Protección de datos personales** y límites de tratamiento.
 
 Alcance operativo:
 - Centinel opera con finalidad de auditoría técnica y evidencia reproducible.
@@ -73,7 +73,7 @@ El único punto de control editable es **`command_center/`**.
    ```bash
    make init
    ```
-3. Configura fuentes y secretos en `command_center/config.yaml` y `command_center/.env`.
+3. Configura fuentes, reglas y secretos en `command_center/config.yaml` y `command_center/.env`.
 4. Genera un snapshot inicial:
    ```bash
    poetry run python scripts/download_and_hash.py
@@ -132,18 +132,18 @@ Gracias a la comunidad cívica, periodistas de datos y personas voluntarias que 
 ## English
 
 ### What is Centinel?
-Centinel is an independent technical system to observe and audit public electoral data in Honduras. It records, normalizes, and verifies changes in published data to produce reproducible, traceable technical reports.
+Centinel is an independent technical system to observe and audit public electoral data in any country. It records, normalizes, and verifies changes in published data to produce reproducible, traceable technical reports.
 
 ### Why does it matter?
 Electoral integrity needs verifiable evidence. Centinel provides technical transparency through snapshots, chained hashes, and anomaly analysis with a neutral, civic-first focus.
 
-### Legal basis and operating boundaries (Honduras)
-This project is grounded in the right to access public information and the obligation to publish information through electronic means.
+### Legal basis and operating boundaries (adaptable)
+This project is grounded in the right to access public information and the obligation to publish information through electronic means. Adapt this section to the local legal framework before operating in a specific country.
 
-Primary legal references:
-- **Law on Transparency and Access to Public Information** (Decree 170-2006, amended by Decree 60-2022).
-- **Arts. 3 & 4:** Recognize the citizen right to access public information.
-- **Art. 5:** Establishes the obligation to facilitate access through electronic means.
+Suggested legal references (adjust per country):
+- **Transparency and access-to-information law** in force.
+- **Electronic publication obligation** for public data.
+- **Personal data protection** requirements and limits.
 
 Operational scope:
 - Centinel operates for technical auditing and reproducible evidence.

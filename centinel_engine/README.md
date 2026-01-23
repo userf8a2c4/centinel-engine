@@ -2,7 +2,7 @@
 
 ## Español
 
-Motor ciudadano open source para monitorear portales de transparencia en Honduras, generar hashes inmutables y anclar evidencia en redes blockchain de bajo costo. Se entrega como paquete Node.js independiente porque requiere dependencias y ciclos de ejecución distintos al pipeline principal.
+Motor ciudadano open source para monitorear portales de transparencia en cualquier país, generar hashes inmutables y anclar evidencia en redes blockchain de bajo costo. Se entrega como paquete Node.js independiente porque requiere dependencias y ciclos de ejecución distintos al pipeline principal.
 
 ### Objetivo
 - Monitorear 19 endpoints públicos de portales de transparencia.
@@ -15,13 +15,13 @@ Motor ciudadano open source para monitorear portales de transparencia en Hondura
 - **Modo monitoreo normal:** entre **24 y 72 horas**.
 - **Modo elección activa:** entre **5 y 15 minutos**.
 
-### Marco legal y límites de operación (Honduras)
-Este proyecto se sustenta en el derecho de acceso a la información pública y en la obligación de publicar información por medios electrónicos.
+### Marco legal y límites de operación (adaptable)
+Este proyecto se sustenta en el derecho de acceso a la información pública y en la obligación de publicar información por medios electrónicos. Adapta esta sección a la normativa local antes de operar en un país específico.
 
-Referencias normativas principales:
-- **Ley de Transparencia y Acceso a la Información Pública** (Decreto 170-2006, reformas Decreto 60-2022).
-- **Art. 3 y 4:** Reconocen el derecho ciudadano a acceder a información pública.
-- **Art. 5:** Establece la obligación de facilitar el acceso por medios electrónicos.
+Referencias normativas sugeridas (ajustar según país):
+- **Ley o reglamento de transparencia y acceso a la información pública** vigente.
+- **Obligación de publicación electrónica** de datos públicos.
+- **Protección de datos personales** y límites de tratamiento.
 
 Alcance operativo:
 - Finalidad de auditoría técnica y evidencia reproducible.
@@ -84,7 +84,7 @@ GNU General Public License v3 (o posterior). Consulte el archivo [LICENSE](LICEN
 
 ## English
 
-Open-source civic engine to monitor transparency portals in Honduras, generate immutable hashes, and anchor evidence on low-cost blockchain networks. It ships as a separate Node.js package because it requires distinct dependencies and execution cycles from the main pipeline.
+Open-source civic engine to monitor transparency portals in any country, generate immutable hashes, and anchor evidence on low-cost blockchain networks. It ships as a separate Node.js package because it requires distinct dependencies and execution cycles from the main pipeline.
 
 ### Goals
 - Monitor 19 public transparency endpoints.
@@ -97,13 +97,13 @@ Open-source civic engine to monitor transparency portals in Honduras, generate i
 - **Normal monitoring mode:** between **24 and 72 hours**.
 - **Active election mode:** between **5 and 15 minutes**.
 
-### Legal basis and operating boundaries (Honduras)
-This project is grounded in the right to access public information and the obligation to publish information through electronic means.
+### Legal basis and operating boundaries (adaptable)
+This project is grounded in the right to access public information and the obligation to publish information through electronic means. Adapt this section to the local legal framework before operating in a specific country.
 
-Primary legal references:
-- **Law on Transparency and Access to Public Information** (Decree 170-2006, amended by Decree 60-2022).
-- **Arts. 3 & 4:** Recognize the citizen right to access public information.
-- **Art. 5:** Establishes the obligation to facilitate access through electronic means.
+Suggested legal references (adjust per country):
+- **Transparency and access-to-information law** in force.
+- **Electronic publication obligation** for public data.
+- **Personal data protection** requirements and limits.
 
 Operational scope:
 - Technical auditing and reproducible evidence purposes.

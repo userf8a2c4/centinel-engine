@@ -19,7 +19,7 @@ python scripts/bootstrap.py
 ```
 Esto crea `command_center/config.yaml` y `command_center/.env` si no existen.
 
-### Configuración de scraping (CNE)
+### Configuración de scraping (autoridad electoral)
 Crea o edita `config/config.yaml` en la carpeta `config/`:
 ```yaml
 base_url: "https://<URL_DEL_ENDPOINT>"
@@ -35,7 +35,7 @@ backoff_max_seconds: 30
 - Activa `use_playwright: true` en `config/config.yaml` y revisa `endpoints`/`fallback_nacional`.
 - Instala los navegadores necesarios: `python -m playwright install --with-deps chromium`.
 - Ajusta `playwright_user_agent` y `playwright_locale` si el sitio requiere contexto local.
-- Si el endpoint nacional cambia, actualiza `endpoints.nacional` y conserva el fallback.
+- Si el endpoint principal cambia, actualiza `endpoints.nacional` y conserva el fallback.
 
 ### Flujo operativo recomendado
 1. **Descarga + hash** para capturar evidencia.
@@ -98,7 +98,7 @@ python scripts/bootstrap.py
 ```
 This creates `command_center/config.yaml` and `command_center/.env` if missing.
 
-### Scraping configuration (CNE)
+### Scraping configuration (electoral authority)
 Create or edit `config/config.yaml` inside the `config/` folder:
 ```yaml
 base_url: "https://<ENDPOINT_URL>"
@@ -114,7 +114,7 @@ backoff_max_seconds: 30
 - Enable `use_playwright: true` in `config/config.yaml` and review `endpoints`/`fallback_nacional`.
 - Install required browsers: `python -m playwright install --with-deps chromium`.
 - Adjust `playwright_user_agent` and `playwright_locale` if the site requires local context.
-- If the national endpoint changes, update `endpoints.nacional` and keep the fallback.
+- If the primary endpoint changes, update `endpoints.nacional` and keep the fallback.
 
 ### Recommended operational flow
 1. **Download + hash** to capture evidence.

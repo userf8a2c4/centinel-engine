@@ -28,7 +28,7 @@ export function VerifyModal({ isOpen, onClose }: VerifyModalProps) {
           </button>
         </div>
         <p className="mt-2 text-sm text-slate-400">
-          Pega un hash raíz para validar su registro en Arbitrum L2.
+          Pega un hash raíz para validar su registro en la blockchain configurada.
         </p>
         <input
           className="mt-4 w-full rounded-2xl border border-slate-700/70 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none"
@@ -65,7 +65,7 @@ export function VerifyModal({ isOpen, onClose }: VerifyModalProps) {
             </div>
             <p className="mt-2 text-xs text-slate-400">
               {result === "valid"
-                ? "Hash confirmado en Arbitrum L2 con prueba pública disponible."
+                ? "Hash confirmado en la blockchain configurada con prueba pública disponible."
                 : "El hash no coincide con el registro actual. Revisa el origen o prueba otra entrada."}
             </p>
           </div>

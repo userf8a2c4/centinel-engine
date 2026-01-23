@@ -25,7 +25,7 @@ def test_load_config_reads_yaml(tmp_path, monkeypatch):
                 "playwright_stealth": True,
                 "playwright_user_agent": "sentinel",
                 "playwright_viewport": {"width": 1, "height": 1},
-                "playwright_locale": "es-HN",
+                "playwright_locale": "en-US",
                 "playwright_timezone": "UTC",
                 "backoff_base_seconds": 2,
                 "backoff_max_seconds": 10,

@@ -26,7 +26,7 @@ Integración completa de la rama `dev-v4` en `main`: +150 commits de refactoriza
 * **Por qué:** Las reglas estaban creciendo desordenadas; ahora son independientes y editables fácilmente  
 * **Impacto:** Más transparencia y capacidad de auditoría externa sobre qué se está detectando como anómalo
 
-**Mejora/Fix:** Múltiples correcciones en scraping, generación de PDFs, endpoints CNE y flujos principales  
+**Mejora/Fix:** Múltiples correcciones en scraping, generación de PDFs, endpoints oficiales y flujos principales  
 * **Por qué:** Acumulación de mejoras incrementales durante semanas de desarrollo intensivo  
 * **Impacto:** Sistema mucho más estable y listo para pruebas de integración con el frontend en desarrollo
 
@@ -44,7 +44,7 @@ Integración completa de la rama `dev-v4` en `main`: +150 commits de refactoriza
 
 - Después de este merge se recomienda eliminar ramas antiguas (`dev-v3`, `dev-v2`, etc.) para evitar confusión
 - Próximos pasos principales: estabilizar bugs encontrados en pruebas de integración, conectar con frontend (centinel-app), mejorar documentación y preparar primera release pública v0.1.0
-- Ya estamos viendo que la arquitectura modular (scrapers configurables, reglas independientes, análisis genéricos) abre la posibilidad real de adaptar el sistema a contextos electorales de otros países en el futuro. Por eso nos centraremos en un desarrollo que sea lo más agnóstico y globalmente implementable posible, manteniendo siempre el foco inicial en Honduras.
+- Ya estamos viendo que la arquitectura modular (scrapers configurables, reglas independientes, análisis genéricos) abre la posibilidad real de adaptar el sistema a contextos electorales de otros países en el futuro. Por eso nos centraremos en un desarrollo que sea lo más agnóstico y globalmente implementable posible.
 - Proyecto sigue siendo privado/secreto → perfecto momento para reorganizar sin impacto en usuarios externos
 - ¡Gran avance! Estamos pasando de prototipo desordenado a sistema mucho más profesional y mantenible.
 
@@ -52,7 +52,7 @@ Este proyecto nace del deseo de contribuir, como ciudadanos, al fortalecimiento 
 Desde la tecnología buscamos ofrecer herramientas abiertas, objetivas y transparentes que permitan que los datos electorales hablen por sí mismos, sin intermediarios ni interpretaciones.  
 Solo hechos, al servicio de todas las personas que quieran verificarlos.
 
-**Objetivo de C.E.N.T.I.N.E.L.:** Monitoreo independiente, neutral y transparente de datos electorales públicos. Solo números. Solo hechos. Código abierto (AGPL-3.0) para el pueblo hondureño.
+**Objetivo de C.E.N.T.I.N.E.L.:** Monitoreo independiente, neutral y transparente de datos electorales públicos. Solo números. Solo hechos. Código abierto (AGPL-3.0) para cualquier comunidad que lo necesite.
 
 ---
 
@@ -80,7 +80,7 @@ Major merge of `dev-v4` into `main`: +150 commits including full code refactor t
 * **Why:** Rules were becoming messy; now independent and easily editable  
 * **Impact:** More transparency and external auditability
 
-**Improvement/Fix:** Multiple fixes & enhancements across scraping, PDFs, CNE endpoints and core flows  
+**Improvement/Fix:** Multiple fixes & enhancements across scraping, PDFs, official endpoints and core flows  
 * **Why:** Weeks of accumulated incremental improvements  
 * **Impact:** Much more stable system ready for frontend integration
 
@@ -98,7 +98,7 @@ Major merge of `dev-v4` into `main`: +150 commits including full code refactor t
 
 - After this merge, consider deleting old branches (`dev-v3`, `dev-v2`, etc.)
 - Next main steps: bug stabilization, frontend integration, documentation polish, prepare v0.1.0 public release
-- We're already seeing that the modular architecture (configurable scrapers, independent rules, generic analysis) opens real possibilities for adapting the system to electoral contexts in other countries in the future. That's why we will focus on development that is as agnostic and globally implementable as possible, while keeping the initial focus on Honduras.
+- We're already seeing that the modular architecture (configurable scrapers, independent rules, generic analysis) opens real possibilities for adapting the system to electoral contexts in other countries in the future. That's why we will focus on development that is as agnostic and globally implementable as possible.
 - Project still private/secret → ideal time for structural cleanup
 - Big step forward! Moving from messy prototype to much more professional & maintainable system.
 
@@ -106,4 +106,4 @@ This project is born from the desire to contribute, as citizens, to strengthenin
 From technology we aim to provide open, objective, and transparent tools that allow electoral data to speak for itself, without intermediaries or interpretations.  
 Just facts, at the service of everyone who wants to verify them.
 
-**C.E.N.T.I.N.E.L. Goal:** Independent, neutral and transparent monitoring of public electoral data. Only numbers. Only facts. Open-source (AGPL-3.0) for the Honduran people.
+**C.E.N.T.I.N.E.L. Goal:** Independent, neutral and transparent monitoring of public electoral data. Only numbers. Only facts. Open-source (AGPL-3.0) for any community that needs it.

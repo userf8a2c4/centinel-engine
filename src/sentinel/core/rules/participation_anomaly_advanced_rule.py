@@ -36,7 +36,7 @@ def apply(
     departamento si existe referencia en configuración.
 
     Args:
-        current_data: Snapshot JSON actual del CNE.
+        current_data: Snapshot JSON actual de la autoridad electoral.
         previous_data: Snapshot JSON anterior (None en el primer snapshot).
         config: Configuración específica de la regla.
 
@@ -51,7 +51,7 @@ def apply(
         historical departmental means when provided in configuration.
 
     Args:
-        current_data: Current CNE JSON snapshot.
+        current_data: Current electoral authority JSON snapshot.
         previous_data: Previous JSON snapshot (None for the first snapshot).
         config: Rule-specific configuration section.
 
@@ -73,9 +73,7 @@ def apply(
     max_turnout = float(config.get("max_turnout_pct", 90)) / 100
 
     if turnout < min_turnout or turnout > max_turnout:
-        message = (
-            "Participación fuera del rango esperado para Honduras 2025."
-        )
+        message = "Participación fuera del rango esperado para el contexto configurado."
         alerts.append(
             {
                 "type": "Participación Fuera de Rango",

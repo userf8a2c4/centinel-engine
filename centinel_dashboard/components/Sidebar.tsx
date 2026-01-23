@@ -81,7 +81,7 @@ export function Sidebar() {
 
       <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 text-xs text-slate-300">
         <p className="text-slate-100">Modo: {activeMode ? "Electoral Activo" : "Standby"}</p>
-        <p>Cadena: Arbitrum L2</p>
+        <p>Cadena: Red configurada</p>
         <p>Última sincronización: hace 2 min</p>
       </div>
     </aside>

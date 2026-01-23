@@ -43,7 +43,7 @@ def apply(
     departamentos. Si el CV supera el umbral, se genera alerta CRITICAL.
 
     Args:
-        current_data: Snapshot JSON actual del CNE.
+        current_data: Snapshot JSON actual de la autoridad electoral.
         previous_data: Snapshot JSON anterior (None en el primer snapshot).
         config: Configuración específica de la regla.
 
@@ -57,7 +57,7 @@ def apply(
         If CV exceeds threshold, a CRITICAL alert is generated.
 
     Args:
-        current_data: Current CNE JSON snapshot.
+        current_data: Current electoral authority JSON snapshot.
         previous_data: Previous JSON snapshot (None for the first snapshot).
         config: Rule-specific configuration section.
 

@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "centinel-engine"
 version = "0.4.0"
-description = "Sistema open-source de auditoría continua de datos electorales del CNE Honduras"
+description = "Sistema open-source de auditoría continua de datos electorales públicos adaptable a cualquier país"
 authors = ["CarZel <tu@email.com>"]
 license = "MIT"
 readme = "README.md"

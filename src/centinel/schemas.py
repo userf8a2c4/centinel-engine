@@ -1,6 +1,6 @@
-"""Esquemas Pydantic para validar y normalizar datos del CNE.
+"""Esquemas Pydantic para validar y normalizar datos de la autoridad electoral.
 
-Pydantic schemas to validate and normalize CNE data.
+Pydantic schemas to validate and normalize electoral authority data.
 """
 
 from __future__ import annotations
@@ -13,9 +13,9 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 
 class ActaSchema(BaseModel):
-    """Esquema de actas del CNE.
+    """Esquema de actas de la autoridad electoral.
 
-    English: CNE acta schema.
+    English: Electoral authority acta schema.
     """
 
     version: str = Field(default="1.0")
@@ -37,9 +37,9 @@ class ActaSchema(BaseModel):
 
 
 class ResultadosSchema(BaseModel):
-    """Esquema de resultados del CNE.
+    """Esquema de resultados de la autoridad electoral.
 
-    English: CNE results schema.
+    English: Electoral authority results schema.
     """
 
     version: str = Field(default="1.0")

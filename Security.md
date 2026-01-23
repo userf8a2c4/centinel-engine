@@ -19,7 +19,7 @@ El Proyecto C.E.N.T.I.N.E.L. implementa un protocolo anti-manipulación basado e
 * **Verificación Cruzada:** Se recomienda a los auditores independientes realizar sus propias capturas para cotejar los hashes SHA-256 publicados en este repositorio.
 
 #### 4. ALCANCE DE SEGURIDAD
-Esta política cubre exclusivamente el código fuente y la estructura de datos contenida en este repositorio. No se tiene control sobre la disponibilidad o veracidad de los servidores de origen del CNE.
+Esta política cubre exclusivamente el código fuente y la estructura de datos contenida en este repositorio. No se tiene control sobre la disponibilidad o veracidad de los servidores de origen oficiales.
 
 ---
 
@@ -39,7 +39,7 @@ Proyecto C.E.N.T.I.N.E.L. implements an anti-tampering protocol based on:
 * **Cross-Verification:** Independent auditors are encouraged to perform their own captures to cross-reference the SHA-256 hashes published in this repository.
 
 #### 4. SECURITY SCOPE
-This policy exclusively covers the source code and data structure contained within this repository. There is no control over the availability or veracity of the CNE source servers.
+This policy exclusively covers the source code and data structure contained within this repository. There is no control over the availability or veracity of the official source servers.
 
 ---
 
