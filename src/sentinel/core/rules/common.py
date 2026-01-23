@@ -5,7 +5,7 @@ Common helpers for safely extracting electoral data.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from dateutil import parser
 
@@ -257,3 +257,111 @@ def extract_registered_voters(data: dict) -> Optional[int]:
         or data.get("padron")
         or data.get("padron_electoral")
     )
+
+
+def extract_mesas(data: dict) -> List[dict]:
+    """Extrae la lista de mesas desde llaves conocidas.
+
+    Extract the list of polling tables from known keys.
+    """
+    mesas = data.get("mesas") or data.get("tables") or data.get("actas") or []
+    if isinstance(mesas, dict):
+        return [mesa for mesa in mesas.values() if isinstance(mesa, dict)]
+    if isinstance(mesas, list):
+        return [mesa for mesa in mesas if isinstance(mesa, dict)]
+    return []
+
+
+def extract_mesa_code(mesa: dict) -> Optional[str]:
+    """Extrae el código de mesa desde campos conocidos.
+
+    Extract the table code from known fields.
+    """
+    code = (
+        mesa.get("codigo")
+        or mesa.get("codigo_mesa")
+        or mesa.get("mesa_id")
+        or mesa.get("id")
+        or mesa.get("code")
+    )
+    return str(code) if code is not None else None
+
+
+def extract_mesa_candidate_votes(mesa: dict) -> Dict[str, int]:
+    """Extrae votos por candidato desde una mesa.
+
+    Extract candidate votes from a table entry.
+    """
+    candidates = extract_candidate_votes(mesa)
+    return {
+        key: int(candidate.get("votes") or 0)
+        for key, candidate in candidates.items()
+        if candidate.get("votes") is not None
+    }
+
+
+def extract_mesa_vote_breakdown(mesa: dict) -> Dict[str, Optional[int]]:
+    """Extrae desglose de votos desde una mesa.
+
+    Extract vote breakdown from a table entry.
+    """
+    totals = mesa.get("totals") or {}
+    return {
+        "valid_votes": safe_int_or_none(
+            totals.get("valid_votes")
+            or totals.get("validos")
+            or mesa.get("votos_validos")
+        ),
+        "blank_votes": safe_int_or_none(
+            totals.get("blank_votes")
+            or totals.get("blancos")
+            or mesa.get("votos_blancos")
+        ),
+        "null_votes": safe_int_or_none(
+            totals.get("null_votes") or totals.get("nulos") or mesa.get("votos_nulos")
+        ),
+        "total_votes": safe_int_or_none(
+            totals.get("total_votes")
+            or totals.get("total")
+            or mesa.get("total_votes")
+            or mesa.get("votos_emitidos")
+        ),
+        "registered_voters": safe_int_or_none(
+            totals.get("registered_voters")
+            or totals.get("inscritos")
+            or mesa.get("registered_voters")
+            or mesa.get("padron")
+        ),
+    }
+
+
+def extract_department_entries(data: dict) -> List[dict]:
+    """Extrae entradas por departamento desde claves conocidas.
+
+    Extract department-level entries from known keys.
+    """
+    for key in ("departments", "departamentos", "by_department", "por_departamento"):
+        entries = data.get(key)
+        if isinstance(entries, list):
+            return [entry for entry in entries if isinstance(entry, dict)]
+        if isinstance(entries, dict):
+            return [
+                {"department": dept, **payload}
+                for dept, payload in entries.items()
+                if isinstance(payload, dict)
+            ]
+    return []
+
+
+def extract_numeric_list(values: Iterable[object]) -> List[int]:
+    """Convierte una colección a una lista de enteros válidos.
+
+    Convert a collection to a list of valid integers.
+    """
+    numbers: List[int] = []
+    for value in values:
+        number = safe_int_or_none(value)
+        if number is None:
+            continue
+        numbers.append(number)
+    return numbers

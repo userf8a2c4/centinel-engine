@@ -28,6 +28,16 @@ Esta carpeta contiene una regla de análisis por archivo. Cada regla es independ
 - trend_shift_rule.py
 - processing_speed_rule.py
 - irreversibility_rule.py
+- benford_first_digit_rule.py
+- last_digit_uniformity_rule.py
+- table_consistency_rule.py
+- participation_anomaly_advanced_rule.py
+- null_blank_rule.py
+- snapshot_jump_rule.py
+- correlation_participation_vote_rule.py
+- geographic_dispersion_rule.py
+- runs_test_rule.py
+- mesas_diff_rule.py
 
 ---
 
@@ -59,3 +69,13 @@ This folder contains one analysis rule per file. Each rule is independent, self-
 - trend_shift_rule.py
 - processing_speed_rule.py
 - irreversibility_rule.py
+- benford_first_digit_rule.py
+- last_digit_uniformity_rule.py
+- table_consistency_rule.py
+- participation_anomaly_advanced_rule.py
+- null_blank_rule.py
+- snapshot_jump_rule.py
+- correlation_participation_vote_rule.py
+- geographic_dispersion_rule.py
+- runs_test_rule.py
+- mesas_diff_rule.py

@@ -130,3 +130,44 @@ rules:
   participation_anomaly:
     enabled: true
     scrutiny_jump_pct: 5
+  benford_first_digit:
+    enabled: true
+    mad_warning: 0.008
+    mad_critical: 0.015
+    chi_pvalue_critical: 0.01
+    min_samples: 15
+  last_digit_uniformity:
+    enabled: true
+    chi_pvalue_critical: 0.001
+    min_samples: 20
+  table_consistency:
+    enabled: true
+    total_tolerance: 1
+  participation_anomaly_advanced:
+    enabled: true
+    min_turnout_pct: 40
+    max_turnout_pct: 90
+    historical_mean: 0.6
+    historical_std: 0.1
+  null_blank_votes:
+    enabled: true
+    warning_pct: 8
+    critical_pct: 12
+  snapshot_jump:
+    enabled: true
+    max_change_pct: 5
+    max_minutes: 10
+  participation_vote_correlation:
+    enabled: true
+    critical_r: 0.85
+    min_samples: 30
+  geographic_dispersion:
+    enabled: true
+    critical_cv: 0.45
+    min_departments: 5
+  runs_test:
+    enabled: true
+    critical_pvalue: 0.01
+    min_samples: 30
+  mesas_diff:
+    enabled: true
