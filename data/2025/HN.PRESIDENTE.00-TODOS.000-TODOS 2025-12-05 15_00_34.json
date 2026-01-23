@@ -1,0 +1,18 @@
+{
+  "resultados": [],
+  "estadisticas": {
+    "totalizacion_actas": {
+      "actas_totales": "19,152",
+      "actas_divulgadas": "16,824"
+    },
+    "distribucion_votos": {
+      "validos": "0",
+      "nulos": "103,801",
+      "blancos": "57,563"
+    },
+    "estado_actas_divulgadas": {
+      "actas_correctas": "14,420",
+      "actas_inconsistentes": "2,404"
+    }
+  }
+}
