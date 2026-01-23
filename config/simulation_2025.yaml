@@ -1,0 +1,55 @@
+simulation_mode: true
+data_folder: "data/2025/"
+file_pattern: "HN.PRESIDENTE.*.json"
+sort_by: "filename_timestamp"
+simulation_interval_seconds: 600
+sleep_between_snapshots: false
+country: "HN"
+year: 2025
+scope: "NATIONAL"
+department_code: "00"
+results_dir: "results/simulation_2025"
+database_path: "data/snapshots_2025_sim.db"
+integrity_rules:
+  - benford_first_digit
+  - last_digit_uniformity
+  - snapshot_jump
+  - mesas_diff
+  - table_consistency
+  - participation_anomaly_advanced
+  - correlation_participation_vote
+  - geographic_dispersion
+  - large_numbers
+  - null_blank
+  - runs_test
+vote_fields_list: []
+vote_fields_pattern: "^votos_candidato_\\d+$"
+rules:
+  global_enabled: true
+  benford_first_digit:
+    enabled: true
+    min_samples: 10
+    mad_threshold: 0.015
+  last_digit_uniformity:
+    enabled: true
+    min_samples: 10
+    pvalue_threshold: 0.05
+  snapshot_jump:
+    enabled: true
+    threshold: 0.2
+  mesas_diff:
+    enabled: true
+  table_consistency:
+    enabled: true
+  participation_anomaly_advanced:
+    enabled: true
+  correlation_participation_vote:
+    enabled: true
+  geographic_dispersion:
+    enabled: true
+  large_numbers:
+    enabled: true
+  null_blank:
+    enabled: true
+  runs_test:
+    enabled: true

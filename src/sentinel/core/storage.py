@@ -27,7 +27,12 @@ class LocalSnapshotStore:
         Manages SQLite storage for local snapshots.
     """
 
-    def __init__(self, db_path: str) -> None:
+    def __init__(
+        self,
+        db_path: str,
+        publish_blockchain: bool = True,
+        publish_ipfs: bool = True,
+    ) -> None:
         """Inicializa la conexión SQLite y la tabla índice.
 
         Args:
@@ -40,6 +45,8 @@ class LocalSnapshotStore:
             db_path (str): Path to the SQLite file.
         """
         self.db_path = db_path
+        self.publish_blockchain = publish_blockchain
+        self.publish_ipfs = publish_ipfs
         self._connection = sqlite3.connect(db_path)
         self._connection.row_factory = sqlite3.Row
         self._ensure_index_table()
@@ -79,15 +86,17 @@ class LocalSnapshotStore:
         tx_hash = None
         ipfs_cid = None
         ipfs_tx_hash = None
-        try:
-            tx_hash = publish_hash_to_chain(snapshot_hash) or None
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("blockchain_publish_failed error=%s", exc)
-        try:
-            ipfs_cid = upload_snapshot_to_ipfs(json.loads(canonical_json)) or None
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("ipfs_upload_failed error=%s", exc)
-        if ipfs_cid:
+        if self.publish_blockchain:
+            try:
+                tx_hash = publish_hash_to_chain(snapshot_hash) or None
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("blockchain_publish_failed error=%s", exc)
+        if self.publish_ipfs:
+            try:
+                ipfs_cid = upload_snapshot_to_ipfs(json.loads(canonical_json)) or None
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("ipfs_upload_failed error=%s", exc)
+        if ipfs_cid and self.publish_blockchain:
             try:
                 ipfs_tx_hash = publish_cid_to_chain(ipfs_cid) or None
             except Exception as exc:  # noqa: BLE001
