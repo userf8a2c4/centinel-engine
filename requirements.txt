@@ -14,6 +14,8 @@ pandas>=2.1.0                  # Procesamiento principal: diffs, tablas por dept
 numpy>=1.24.0                  # Cálculos numéricos (Benford, arrays)
 scipy>=1.11.4                  # Estadística avanzada: Benford, chi-squared, tests
 scikit-learn>=1.5.0            # Detección de outliers (Isolation Forest)
+qrcode[pil]>=7.4.2             # Generación de QR para verificación de hashes
+reportlab>=4.2.5               # Generación de PDFs institucionales
 
 # Visualizaciones
 # (removido el dashboard local en esta versión)
