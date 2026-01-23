@@ -171,3 +171,8 @@ rules:
     min_samples: 30
   mesas_diff:
     enabled: true
+  large_numbers_convergence:
+    enabled: true
+    min_samples: 30
+    z_threshold: 3
+    min_total_votes: 200

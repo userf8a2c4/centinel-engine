@@ -38,6 +38,7 @@ Esta carpeta contiene una regla de análisis por archivo. Cada regla es independ
 - geographic_dispersion_rule.py
 - runs_test_rule.py
 - mesas_diff_rule.py
+- large_numbers_rule.py
 
 ---
 
@@ -79,3 +80,4 @@ This folder contains one analysis rule per file. Each rule is independent, self-
 - geographic_dispersion_rule.py
 - runs_test_rule.py
 - mesas_diff_rule.py
+- large_numbers_rule.py
