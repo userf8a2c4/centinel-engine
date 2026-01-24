@@ -23,6 +23,7 @@ from sentinel.core.rules import (
     runs_test_rule,
     snapshot_jump_rule,
     table_consistency_rule,
+    turnout_impossible_rule,
 )
 from sentinel.core.rules.registry import RuleDefinition, list_rules
 

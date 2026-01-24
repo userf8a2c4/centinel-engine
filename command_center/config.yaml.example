@@ -132,6 +132,10 @@ rules:
     max_turnout_pct: 90
     historical_mean: 0.6
     historical_std: 0.1
+  turnout_impossible:
+    enabled: true
+    min_turnout_pct: 0
+    max_turnout_pct: 100
   null_blank_votes:
     enabled: true
     warning_pct: 8
