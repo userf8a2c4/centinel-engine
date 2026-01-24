@@ -4,7 +4,6 @@ import io
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 import streamlit as st
@@ -185,7 +184,6 @@ def load_simulation_snapshots(results_dir: Path) -> list[dict]:
     return records
 
 
-@st.cache_data(show_spinner=False)
 def load_simulation_metrics(results_dir: Path) -> dict:
     records = load_simulation_snapshots(results_dir)
     metrics_path = results_dir / "metrics_evolution.csv"
@@ -271,6 +269,67 @@ def load_simulation_metrics(results_dir: Path) -> dict:
         "benford_df": benford_df,
         "last_digit_df": last_digit_df,
     }
+
+
+def derive_snapshot_interval_seconds(snapshots_df: pd.DataFrame) -> int | None:
+    if snapshots_df.empty or "timestamp" not in snapshots_df.columns:
+        return None
+    timestamps = pd.to_datetime(snapshots_df["timestamp"], utc=True, errors="coerce")
+    timestamps = timestamps.dropna().sort_values()
+    if len(timestamps) < 2:
+        return None
+    deltas = timestamps.diff().dropna().dt.total_seconds()
+    if deltas.empty:
+        return None
+    return int(deltas.median())
+
+
+def format_interval_label(seconds: int, language: str) -> str:
+    if seconds <= 0:
+        return ""
+    if seconds % 60 == 0:
+        minutes = int(seconds / 60)
+        if language == "es":
+            return f"{minutes} minuto" if minutes == 1 else f"{minutes} minutos"
+        return f"{minutes} minute" if minutes == 1 else f"{minutes} minutes"
+    if language == "es":
+        return f"{seconds} segundos"
+    return f"{seconds} seconds"
+
+
+def apply_interval_copy(copy: dict, interval_label: str, language: str) -> dict:
+    if not interval_label:
+        return copy
+    updated = dict(copy)
+    if language == "es":
+        updated["hero_subtitle"] = (
+            "Sistema de auditoría independiente con evidencia criptográfica verificable. "
+            f"Snapshots inmutables anclados en Arbitrum L2 cada {interval_label} para observación internacional."
+        )
+        updated["kpi_notes"] = (
+            f"Cada {interval_label} tomamos una foto inmutable del JSON público oficial."
+        )
+        updated["methodology_items"] = [
+            "Ingesta continua de datos públicos electorales del CNE.",
+            f"Snapshots inmutables cada {interval_label} con hash raíz.",
+            "Reglas de integridad automáticas y auditoría en Arbitrum L2.",
+            "Validación pública y verificable por terceros.",
+        ]
+        return updated
+    updated["hero_subtitle"] = (
+        "Independent audit system with verifiable cryptographic evidence. "
+        f"Immutable snapshots anchored on Arbitrum L2 every {interval_label} for international observation."
+    )
+    updated["kpi_notes"] = (
+        f"Every {interval_label} we take an immutable snapshot of official public JSON."
+    )
+    updated["methodology_items"] = [
+        "Continuous ingestion of public electoral data from CNE.",
+        f"Immutable snapshots every {interval_label} with root hash.",
+        "Integrity rules and auditability on Arbitrum L2.",
+        "Public, third-party verifiable validation.",
+    ]
+    return updated
 
 
 def styled_status(df: pd.DataFrame) -> "pd.io.formats.style.Styler":
@@ -609,7 +668,6 @@ with header_right:
     )
 st.session_state.language = LANG_OPTIONS[language_label]
 language = st.session_state.language
-copy = translations[language]
 
 css = """
 <style>
@@ -736,7 +794,23 @@ if data_mode == "Demo":
         }
     )
 
+copy = dict(translations[language])
+interval_seconds = derive_snapshot_interval_seconds(snapshots_df)
+if interval_seconds is None:
+    interval_seconds = 600
+interval_label_es = format_interval_label(interval_seconds, "es")
+interval_label_en = format_interval_label(interval_seconds, "en")
+if data_mode == "Simulación (results)" and not snapshots_df.empty:
+    interval_label = interval_label_es if language == "es" else interval_label_en
+    copy = apply_interval_copy(copy, interval_label, language)
+
 critical_anomalies = int((snapshots_df["status"] == "ALERTA").sum())
+snapshots_total = str(len(snapshots_df)) if not snapshots_df.empty else "174"
+changes_total = (
+    str(int(snapshots_df["changes"].sum()))
+    if not snapshots_df.empty and "changes" in snapshots_df.columns
+    else "68"
+)
 
 def build_indicator_figures(
     benford_data: pd.DataFrame,
@@ -968,8 +1042,8 @@ st.markdown(
 
 kpi_cols = st.columns(5)
 kpis = [
-    (copy["kpi_snapshots"], "174", copy["kpi_notes"]),
-    (copy["kpi_changes"], "68", copy["kpi_changes_note"]),
+    (copy["kpi_snapshots"], snapshots_total, copy["kpi_notes"]),
+    (copy["kpi_changes"], changes_total, copy["kpi_changes_note"]),
     (copy["kpi_anomalies"], str(critical_anomalies), copy["kpi_anomalies_note"]),
     (copy["kpi_rules"], str(len(rules_df)), copy["kpi_rules_note"]),
     (copy["kpi_verifications"], "2.4K", copy["kpi_verifications_note"]),
@@ -1072,7 +1146,7 @@ data_es = {
     "global_status": "ESTATUS GLOBAL: VERIFICABLE – SIN ANOMALÍAS CRÍTICAS",
     "executive_title": "Resumen Ejecutivo",
     "executive_intro": (
-        "Sistema independiente que toma snapshots inmutables de los datos electorales públicos cada 10 minutos "
+        f"Sistema independiente que toma snapshots inmutables de los datos electorales públicos cada {interval_label_es} "
         "y los ancla en blockchain para que cualquier misión internacional o auditor pueda verificar cambios."
     ),
     "executive_state": (
@@ -1080,7 +1154,7 @@ data_es = {
         "Disponible para misiones OEA/UE."
     ),
     "kpi_headers": ["Snapshots 24h", "Cambios", "Anomalías", "Reglas", "Verificaciones"],
-    "kpi_values": ["174", "68", str(critical_anomalies), str(len(rules_df)), "2.4K"],
+    "kpi_values": [snapshots_total, changes_total, str(critical_anomalies), str(len(rules_df)), "2.4K"],
     "technical_title": "Sección Técnica Principal",
     "root_hash_label": "Hash raíz actual:",
     "root_hash": anchor.root_hash,
@@ -1115,7 +1189,7 @@ data_en = {
     "generated_label": "Generated on",
     "executive_title": "Executive Summary",
     "executive_intro": (
-        "Independent system that takes immutable snapshots of public electoral data every 10 minutes "
+        f"Independent system that takes immutable snapshots of public electoral data every {interval_label_en} "
         "and anchors them on blockchain so any international mission or auditor can verify changes."
     ),
     "executive_state": (
