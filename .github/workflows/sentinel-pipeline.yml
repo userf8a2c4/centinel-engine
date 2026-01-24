@@ -4,6 +4,9 @@
 
 name: Sentinel Pipeline
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, dev, dev-v2, dev-v3]
