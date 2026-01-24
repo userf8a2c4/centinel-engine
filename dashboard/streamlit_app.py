@@ -1,7 +1,9 @@
 import datetime as dt
 import hashlib
 import io
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -138,6 +140,188 @@ def build_vote_evolution() -> pd.DataFrame:
             }
         )
     return pd.DataFrame(series)
+
+
+def _safe_int(value: object, default: int = 0) -> int:
+    try:
+        if value is None:
+            return default
+        return int(str(value).replace(",", "").split(".")[0])
+    except (ValueError, TypeError):
+        return default
+
+
+def _safe_float(value: object, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        return float(str(value).replace(",", "."))
+    except (ValueError, TypeError):
+        return default
+
+
+def load_simulation_snapshots(results_dir: Path) -> list[dict]:
+    snapshots_path = results_dir / "snapshots.jsonl"
+    if not snapshots_path.exists():
+        return []
+    records = []
+    for line in snapshots_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return records
+
+
+def load_simulation_metrics(results_dir: Path) -> dict:
+    records = load_simulation_snapshots(results_dir)
+    metrics_path = results_dir / "metrics_evolution.csv"
+    summary_path = results_dir / "summary.json"
+
+    snapshots_rows = []
+    for record in records:
+        rules = record.get("rules") or {}
+        alerts = rules.get("alerts") or []
+        critical_alerts = rules.get("critical_alerts") or []
+        status = "OK"
+        if critical_alerts:
+            status = "ALERTA"
+        elif alerts:
+            status = "REVISAR"
+        detail = ""
+        if alerts:
+            detail = alerts[0].get("message") or alerts[0].get("rule") or ""
+        snapshots_rows.append(
+            {
+                "timestamp": record.get("simulated_timestamp") or record.get("source_timestamp"),
+                "hash": record.get("snapshot_hash"),
+                "changes": len(alerts),
+                "detail": detail or "Sin alertas",
+                "status": status,
+            }
+        )
+    snapshots_df = pd.DataFrame(snapshots_rows)
+
+    metrics_df = pd.DataFrame()
+    if metrics_path.exists():
+        metrics_df = pd.read_csv(metrics_path)
+    votes_df = pd.DataFrame()
+    if not metrics_df.empty:
+        votes_df = metrics_df.rename(
+            columns={"simulated_timestamp": "hour", "total_votes": "votes"}
+        )[["hour", "votes"]]
+
+    activity_df = pd.DataFrame()
+    if summary_path.exists():
+        try:
+            summary_payload = json.loads(summary_path.read_text(encoding="utf-8"))
+            activity = summary_payload.get("activity_by_hour") or {}
+            activity_df = pd.DataFrame(
+                {"hour": list(activity.keys()), "activity": list(activity.values())}
+            )
+        except json.JSONDecodeError:
+            activity_df = pd.DataFrame()
+
+    benford_df = pd.DataFrame()
+    last_digit_df = pd.DataFrame()
+    if records:
+        latest_metrics = records[-1].get("metrics") or {}
+        first_digits = latest_metrics.get("first_digit_distribution") or {}
+        last_digits = latest_metrics.get("last_digit_distribution") or {}
+        expected = [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6]
+        observed = [
+            _safe_float(first_digits.get("percentages", {}).get(str(digit), 0))
+            if isinstance(first_digits.get("percentages"), dict)
+            else _safe_float(first_digits.get("percentages", {}).get(digit, 0))
+            for digit in range(1, 10)
+        ]
+        if any(observed):
+            benford_df = pd.DataFrame(
+                {"digit": list(range(1, 10)), "expected": expected, "observed": observed}
+            )
+
+        observed_last = [
+            _safe_float(last_digits.get("percentages", {}).get(str(digit), 0))
+            if isinstance(last_digits.get("percentages"), dict)
+            else _safe_float(last_digits.get("percentages", {}).get(digit, 0))
+            for digit in range(10)
+        ]
+        if any(observed_last):
+            last_digit_df = pd.DataFrame(
+                {"digit": list(range(10)), "observed": observed_last}
+            )
+
+    return {
+        "snapshots_df": snapshots_df,
+        "votes_df": votes_df,
+        "activity_df": activity_df,
+        "benford_df": benford_df,
+        "last_digit_df": last_digit_df,
+    }
+
+
+def derive_snapshot_interval_seconds(snapshots_df: pd.DataFrame) -> int | None:
+    if snapshots_df.empty or "timestamp" not in snapshots_df.columns:
+        return None
+    timestamps = pd.to_datetime(snapshots_df["timestamp"], utc=True, errors="coerce")
+    timestamps = timestamps.dropna().sort_values()
+    if len(timestamps) < 2:
+        return None
+    deltas = timestamps.diff().dropna().dt.total_seconds()
+    if deltas.empty:
+        return None
+    return int(deltas.median())
+
+
+def format_interval_label(seconds: int, language: str) -> str:
+    if seconds <= 0:
+        return ""
+    if seconds % 60 == 0:
+        minutes = int(seconds / 60)
+        if language == "es":
+            return f"{minutes} minuto" if minutes == 1 else f"{minutes} minutos"
+        return f"{minutes} minute" if minutes == 1 else f"{minutes} minutes"
+    if language == "es":
+        return f"{seconds} segundos"
+    return f"{seconds} seconds"
+
+
+def apply_interval_copy(copy: dict, interval_label: str, language: str) -> dict:
+    if not interval_label:
+        return copy
+    updated = dict(copy)
+    if language == "es":
+        updated["hero_subtitle"] = (
+            "Sistema de auditoría independiente con evidencia criptográfica verificable. "
+            f"Snapshots inmutables anclados en Arbitrum L2 cada {interval_label} para observación internacional."
+        )
+        updated["kpi_notes"] = (
+            f"Cada {interval_label} tomamos una foto inmutable del JSON público oficial."
+        )
+        updated["methodology_items"] = [
+            "Ingesta continua de datos públicos electorales del CNE.",
+            f"Snapshots inmutables cada {interval_label} con hash raíz.",
+            "Reglas de integridad automáticas y auditoría en Arbitrum L2.",
+            "Validación pública y verificable por terceros.",
+        ]
+        return updated
+    updated["hero_subtitle"] = (
+        "Independent audit system with verifiable cryptographic evidence. "
+        f"Immutable snapshots anchored on Arbitrum L2 every {interval_label} for international observation."
+    )
+    updated["kpi_notes"] = (
+        f"Every {interval_label} we take an immutable snapshot of official public JSON."
+    )
+    updated["methodology_items"] = [
+        "Continuous ingestion of public electoral data from CNE.",
+        f"Immutable snapshots every {interval_label} with root hash.",
+        "Integrity rules and auditability on Arbitrum L2.",
+        "Public, third-party verifiable validation.",
+    ]
+    return updated
 
 
 def styled_status(df: pd.DataFrame) -> "pd.io.formats.style.Styler":
@@ -476,7 +660,6 @@ with header_right:
     )
 st.session_state.language = LANG_OPTIONS[language_label]
 language = st.session_state.language
-copy = translations[language]
 
 css = """
 <style>
@@ -532,6 +715,29 @@ css = """
 """
 st.markdown(css, unsafe_allow_html=True)
 
+st.sidebar.header("Fuente de datos")
+data_mode = st.sidebar.selectbox(
+    "Modo",
+    ["Demo", "Simulación (results)"],
+)
+results_dir_input = st.sidebar.text_input(
+    "Carpeta de resultados",
+    value="results/simulation_2025",
+)
+refresh_seconds = st.sidebar.number_input(
+    "Auto-refresco (segundos)",
+    min_value=0,
+    max_value=3600,
+    value=60,
+    step=10,
+)
+if data_mode == "Simulación (results)" and refresh_seconds > 0:
+    autorefresh = getattr(st, "autorefresh", None)
+    if autorefresh:
+        autorefresh(interval=refresh_seconds * 1000, key="simulation_autorefresh")
+    else:
+        st.sidebar.info("Auto-refresco no disponible. Usa refresco manual.")
+
 anchor = BlockchainAnchor(
     root_hash="0x9f3fa7c2d1b4a7e1f02d5e1c34aa9b21b",
     network="Arbitrum L2",
@@ -539,19 +745,64 @@ anchor = BlockchainAnchor(
     anchored_at="2026-01-12 18:40 UTC",
 )
 
-snapshots_df = build_snapshot_data()
 rules_df = build_rules_data()
-benford_df = build_benford_data()
-last_digit_df = build_last_digit_data()
-votes_df = build_vote_evolution()
-activity_df = pd.DataFrame(
-    {
-        "hour": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
-        "activity": [18, 22, 40, 75, 55, 30],
-    }
-)
+
+if data_mode == "Simulación (results)":
+    simulation_payload = load_simulation_metrics(Path(results_dir_input))
+    snapshots_df = simulation_payload["snapshots_df"]
+    votes_df = simulation_payload["votes_df"]
+    activity_df = simulation_payload["activity_df"]
+    benford_df = simulation_payload["benford_df"]
+    last_digit_df = simulation_payload["last_digit_df"]
+    if snapshots_df.empty:
+        st.warning(
+            "No se encontraron resultados en la carpeta indicada. "
+            "Mostrando datos demo."
+        )
+        data_mode = "Demo"
+    if votes_df.empty:
+        votes_df = build_vote_evolution()
+    if activity_df.empty:
+        activity_df = pd.DataFrame(
+            {
+                "hour": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+                "activity": [18, 22, 40, 75, 55, 30],
+            }
+        )
+    if benford_df.empty:
+        benford_df = build_benford_data()
+    if last_digit_df.empty:
+        last_digit_df = build_last_digit_data()
+
+if data_mode == "Demo":
+    snapshots_df = build_snapshot_data()
+    benford_df = build_benford_data()
+    last_digit_df = build_last_digit_data()
+    votes_df = build_vote_evolution()
+    activity_df = pd.DataFrame(
+        {
+            "hour": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+            "activity": [18, 22, 40, 75, 55, 30],
+        }
+    )
+
+copy = dict(translations[language])
+interval_seconds = derive_snapshot_interval_seconds(snapshots_df)
+if interval_seconds is None:
+    interval_seconds = 600
+interval_label_es = format_interval_label(interval_seconds, "es")
+interval_label_en = format_interval_label(interval_seconds, "en")
+if data_mode == "Simulación (results)" and not snapshots_df.empty:
+    interval_label = interval_label_es if language == "es" else interval_label_en
+    copy = apply_interval_copy(copy, interval_label, language)
 
 critical_anomalies = int((snapshots_df["status"] == "ALERTA").sum())
+snapshots_total = str(len(snapshots_df)) if not snapshots_df.empty else "174"
+changes_total = (
+    str(int(snapshots_df["changes"].sum()))
+    if not snapshots_df.empty and "changes" in snapshots_df.columns
+    else "68"
+)
 
 def build_indicator_figures(
     benford_data: pd.DataFrame,
@@ -780,8 +1031,8 @@ st.markdown(
 
 kpi_cols = st.columns(5)
 kpis = [
-    (copy["kpi_snapshots"], "174", copy["kpi_notes"]),
-    (copy["kpi_changes"], "68", copy["kpi_changes_note"]),
+    (copy["kpi_snapshots"], snapshots_total, copy["kpi_notes"]),
+    (copy["kpi_changes"], changes_total, copy["kpi_changes_note"]),
     (copy["kpi_anomalies"], str(critical_anomalies), copy["kpi_anomalies_note"]),
     (copy["kpi_rules"], str(len(rules_df)), copy["kpi_rules_note"]),
     (copy["kpi_verifications"], "2.4K", copy["kpi_verifications_note"]),
@@ -881,7 +1132,7 @@ data_es = {
     "global_status": "ESTATUS GLOBAL: VERIFICABLE – SIN ANOMALÍAS CRÍTICAS",
     "executive_title": "Resumen Ejecutivo",
     "executive_intro": (
-        "Sistema independiente que toma snapshots inmutables de los datos electorales públicos cada 10 minutos "
+        f"Sistema independiente que toma snapshots inmutables de los datos electorales públicos cada {interval_label_es} "
         "y los ancla en blockchain para que cualquier misión internacional o auditor pueda verificar cambios."
     ),
     "executive_state": (
@@ -889,7 +1140,7 @@ data_es = {
         "Disponible para misiones OEA/UE."
     ),
     "kpi_headers": ["Snapshots 24h", "Cambios", "Anomalías", "Reglas", "Verificaciones"],
-    "kpi_values": ["174", "68", str(critical_anomalies), str(len(rules_df)), "2.4K"],
+    "kpi_values": [snapshots_total, changes_total, str(critical_anomalies), str(len(rules_df)), "2.4K"],
     "technical_title": "Sección Técnica Principal",
     "root_hash_label": "Hash raíz actual:",
     "root_hash": anchor.root_hash,
@@ -924,7 +1175,7 @@ data_en = {
     "generated_label": "Generated on",
     "executive_title": "Executive Summary",
     "executive_intro": (
-        "Independent system that takes immutable snapshots of public electoral data every 10 minutes "
+        f"Independent system that takes immutable snapshots of public electoral data every {interval_label_en} "
         "and anchors them on blockchain so any international mission or auditor can verify changes."
     ),
     "executive_state": (

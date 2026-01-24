@@ -95,6 +95,13 @@ El único punto de control editable es **`command_center/`**.
    make pipeline
    ```
 
+### Simulación retroactiva (snapshots históricos 2025)
+Para reproducir el comportamiento del motor con archivos JSON históricos sin scraping ni anclaje en L2:
+```bash
+python simulate_retroactiva.py --config config/simulation_2025.yaml
+```
+La simulación procesa los snapshots en orden cronológico (según timestamp en el nombre), genera hashes encadenados, ejecuta reglas e informes en `results/simulation_2025/`. Ajusta `vote_fields_list` o `vote_fields_pattern` en la configuración para adaptarte a cambios de estructura en los JSONs.
+
 ### Cadencia operativa recomendada
 - **Modo mantenimiento/desarrollo:** scraping y anclaje en L2 **1 vez al mes**.
 - **Modo monitoreo normal:** entre **24 y 72 horas**.
@@ -220,6 +227,13 @@ The only editable control point is **`command_center/`**.
    ```bash
    make pipeline
    ```
+
+### Retroactive simulation (historical 2025 snapshots)
+To replay historical JSON snapshots without scraping or L2 anchoring:
+```bash
+python simulate_retroactiva.py --config config/simulation_2025.yaml
+```
+The simulation processes snapshots in chronological order (timestamp from filename), generates chained hashes, runs integrity rules, and writes outputs to `results/simulation_2025/`. Customize `vote_fields_list` or `vote_fields_pattern` in the config to match evolving JSON structures.
 
 ### Recommended operating cadence
 - **Maintenance/development mode:** scraping and L2 anchoring **once per month**.
