@@ -16,9 +16,9 @@ scipy>=1.11.4                  # Estadística avanzada: Benford, chi-squared, te
 scikit-learn>=1.5.0            # Detección de outliers (Isolation Forest)
 qrcode[pil]>=7.4.2             # Generación de QR para verificación de hashes
 reportlab>=4.2.5               # Generación de PDFs institucionales
+plotly>=5.22.0                 # Visualizaciones interactivas en el dashboard
 
 # Visualizaciones
-# (removido el dashboard local en esta versión)
 
 # Utilidades generales
 python-dateutil>=2.8.2         # Manejo robusto de timestamps y fechas

@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 try:
@@ -735,7 +733,10 @@ def build_indicator_figures(
     votes_data: pd.DataFrame,
     activity_data: pd.DataFrame,
     copy_map: dict,
-) -> tuple[go.Figure, go.Figure, go.Figure, go.Figure]:
+) -> tuple[object, object, object, object]:
+    import plotly.express as px
+    import plotly.graph_objects as go
+
     benford_fig = go.Figure()
     benford_fig.add_trace(
         go.Bar(
@@ -991,13 +992,16 @@ with col_right:
 
 st.markdown(f"### {copy['indicator_title']}")
 st.markdown(f"<div class='note'>{copy['indicator_subtitle']}</div>", unsafe_allow_html=True)
-benford_fig, last_digit_fig, votes_fig, heat_fig = build_indicator_figures(
-    benford_df, last_digit_df, votes_df, activity_df, copy
-)
-st.plotly_chart(benford_fig, use_container_width=True)
-st.plotly_chart(last_digit_fig, use_container_width=True)
-st.plotly_chart(votes_fig, use_container_width=True)
-st.plotly_chart(heat_fig, use_container_width=True)
+try:
+    benford_fig, last_digit_fig, votes_fig, heat_fig = build_indicator_figures(
+        benford_df, last_digit_df, votes_df, activity_df, copy
+    )
+    st.plotly_chart(benford_fig, use_container_width=True)
+    st.plotly_chart(last_digit_fig, use_container_width=True)
+    st.plotly_chart(votes_fig, use_container_width=True)
+    st.plotly_chart(heat_fig, use_container_width=True)
+except ModuleNotFoundError:
+    st.warning("Gráficas no disponibles: instala la dependencia 'plotly' para habilitarlas.")
 
 st.markdown(f"### {copy['snapshots_title']}")
 st.dataframe(styled_status(snapshots_df), width="stretch", hide_index=True)
