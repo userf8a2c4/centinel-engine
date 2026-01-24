@@ -46,11 +46,13 @@ REQUIRED_NESTED_KEYS = {
     "alerts": ["critical_anomaly_types"],
     "arbitrum": [
         "enabled",
+        "network",
         "rpc_url",
         "private_key",
         "contract_address",
         "interval_minutes",
         "batch_size",
+        "auto_anchor_snapshots",
     ],
     "rules": ["global_enabled"],
 }

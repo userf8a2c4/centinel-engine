@@ -150,6 +150,131 @@ def _build_web3_client(rpc_url: str) -> Web3:
     return web3
 
 
+def _build_anchor_transaction(
+    web3: Web3,
+    contract_address: str,
+    private_key: str,
+    root_bytes: bytes,
+) -> tuple[dict[str, Any], str]:
+    """Construye y firma la transacción para anclaje.
+
+    :param web3: Cliente Web3 inicializado.
+    :param contract_address: Dirección del contrato.
+    :param private_key: Llave privada para firmar.
+    :param root_bytes: Hash raíz en bytes (32 bytes).
+    :return: Tupla (tx dict, address checksum).
+
+    English:
+        Builds and signs the anchoring transaction.
+
+    :param web3: Initialized Web3 client.
+    :param contract_address: Contract address.
+    :param private_key: Private key used to sign.
+    :param root_bytes: Root hash in bytes (32 bytes).
+    :return: Tuple (tx dict, checksum address).
+    """
+    checksum_address = web3.to_checksum_address(contract_address)
+    contract = web3.eth.contract(address=checksum_address, abi=CENTINEL_ANCHOR_ABI)
+
+    account = Account.from_key(private_key)
+    nonce = web3.eth.get_transaction_count(account.address)
+
+    tx = contract.functions.anchor(root_bytes).build_transaction(
+        {
+            "from": account.address,
+            "nonce": nonce,
+            "chainId": web3.eth.chain_id,
+            "gasPrice": web3.eth.gas_price,
+        }
+    )
+    tx["gas"] = contract.functions.anchor(root_bytes).estimate_gas(
+        {"from": account.address}
+    )
+    return tx, checksum_address
+
+
+def _send_anchor_transaction(
+    web3: Web3,
+    tx: dict[str, Any],
+    private_key: str,
+) -> str:
+    """Firma y envía una transacción de anclaje.
+
+    :param web3: Cliente Web3 inicializado.
+    :param tx: Transacción construida.
+    :param private_key: Llave privada para firmar.
+    :return: Hash de transacción en hex string.
+
+    English:
+        Signs and sends an anchor transaction.
+
+    :param web3: Initialized Web3 client.
+    :param tx: Built transaction.
+    :param private_key: Private key used to sign.
+    :return: Transaction hash as hex string.
+    """
+    signed = Account.sign_transaction(tx, private_key)
+    raw_tx = getattr(signed, "rawTransaction", None) or signed.raw_transaction
+    tx_hash = web3.eth.send_raw_transaction(raw_tx)
+    return web3.to_hex(tx_hash)
+
+
+def anchor_root(root_hash: str) -> Dict[str, Any]:
+    """Ancla un hash raíz directo en Arbitrum One.
+
+    :param root_hash: Hash SHA-256 en formato hex string (32 bytes).
+    :return: Dict con 'tx_hash', 'root', 'timestamp', 'anchor_id'.
+
+    English:
+        Anchors a root hash directly on Arbitrum One.
+
+    :param root_hash: SHA-256 hash in hex string format (32 bytes).
+    :return: Dict with 'tx_hash', 'root', 'timestamp', 'anchor_id'.
+    """
+    settings = _load_arbitrum_settings()
+    if not settings.get("enabled", False):
+        raise ValueError("Arbitrum anchoring está deshabilitado en config.")
+
+    rpc_url = settings.get("rpc_url")
+    private_key = settings.get("private_key")
+    contract_address = settings.get("contract_address")
+
+    if not rpc_url or not contract_address:
+        raise ValueError("Configuración incompleta de Arbitrum en config/config.yaml.")
+    if not private_key:
+        raise ValueError("Missing private key for Arbitrum anchoring.")
+
+    anchor_id = uuid4().hex
+    timestamp = datetime.now(timezone.utc).isoformat()
+    root_bytes = _normalize_hash(root_hash)
+    root_hex = f"0x{root_bytes.hex()}"
+    logger.info("anchor_root_start anchor_id=%s root=%s", anchor_id, root_hex)
+
+    web3 = _build_web3_client(rpc_url)
+    tx, checksum_address = _build_anchor_transaction(
+        web3=web3,
+        contract_address=contract_address,
+        private_key=private_key,
+        root_bytes=root_bytes,
+    )
+    tx_hash_hex = _send_anchor_transaction(web3=web3, tx=tx, private_key=private_key)
+
+    logger.info(
+        "anchor_root_sent anchor_id=%s tx_hash=%s root=%s contract=%s",
+        anchor_id,
+        tx_hash_hex,
+        root_hex,
+        checksum_address,
+    )
+
+    return {
+        "tx_hash": tx_hash_hex,
+        "root": root_hex,
+        "timestamp": timestamp,
+        "anchor_id": anchor_id,
+    }
+
+
 def anchor_batch(hashes: List[str]) -> Dict[str, Any]:
     """Envía un batch de hashes a Arbitrum One usando Merkle root.
 
@@ -179,29 +304,14 @@ def anchor_batch(hashes: List[str]) -> Dict[str, Any]:
     logger.info("anchor_batch_start batch_id=%s root=%s", batch_id, root)
 
     web3 = _build_web3_client(rpc_url)
-    checksum_address = web3.to_checksum_address(contract_address)
-    contract = web3.eth.contract(address=checksum_address, abi=CENTINEL_ANCHOR_ABI)
-
-    account = Account.from_key(private_key)
-    nonce = web3.eth.get_transaction_count(account.address)
     root_bytes = web3.to_bytes(hexstr=root)
-
-    tx = contract.functions.anchor(root_bytes).build_transaction(
-        {
-            "from": account.address,
-            "nonce": nonce,
-            "chainId": web3.eth.chain_id,
-            "gasPrice": web3.eth.gas_price,
-        }
+    tx, _ = _build_anchor_transaction(
+        web3=web3,
+        contract_address=contract_address,
+        private_key=private_key,
+        root_bytes=root_bytes,
     )
-    tx["gas"] = contract.functions.anchor(root_bytes).estimate_gas(
-        {"from": account.address}
-    )
-
-    signed = Account.sign_transaction(tx, private_key)
-    raw_tx = getattr(signed, "rawTransaction", None) or signed.raw_transaction
-    tx_hash = web3.eth.send_raw_transaction(raw_tx)
-    tx_hash_hex = web3.to_hex(tx_hash)
+    tx_hash_hex = _send_anchor_transaction(web3=web3, tx=tx, private_key=private_key)
 
     logger.info(
         "anchor_batch_sent batch_id=%s tx_hash=%s root=%s", batch_id, tx_hash_hex, root

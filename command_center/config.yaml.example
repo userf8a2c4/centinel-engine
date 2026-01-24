@@ -181,8 +181,11 @@ alerts:
 # Arbitrum configuration (placeholder).
 arbitrum:
   enabled: false
+  network: "Arbitrum One"
   rpc_url: ""
   private_key: ""
   contract_address: ""
+  explorer_url: "https://arbiscan.io/tx/"
   interval_minutes: 60
   batch_size: 19
+  auto_anchor_snapshots: true

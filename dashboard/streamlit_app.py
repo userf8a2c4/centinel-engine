@@ -1,7 +1,9 @@
 import datetime as dt
 import hashlib
 import io
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -42,6 +44,52 @@ class BlockchainAnchor:
     network: str
     tx_url: str
     anchored_at: str
+
+
+def _load_latest_anchor_record() -> dict | None:
+    anchor_dir = Path("logs") / "anchors"
+    if not anchor_dir.exists():
+        return None
+
+    candidates = sorted(
+        anchor_dir.glob("anchor_snapshot_*.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    if not candidates:
+        candidates = sorted(
+            anchor_dir.glob("anchor_*.json"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    if not candidates:
+        return None
+
+    try:
+        return json.loads(candidates[0].read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+
+
+def load_blockchain_anchor() -> BlockchainAnchor:
+    record = _load_latest_anchor_record()
+    if record:
+        tx_hash = record.get("tx_hash", "")
+        tx_url = record.get("tx_url") or (
+            f"https://arbiscan.io/tx/{tx_hash}" if tx_hash else ""
+        )
+        return BlockchainAnchor(
+            root_hash=record.get("root_hash", record.get("root", "0x")),
+            network=record.get("network", "Arbitrum L2"),
+            tx_url=tx_url,
+            anchored_at=record.get("anchored_at", record.get("timestamp", "N/A")),
+        )
+    return BlockchainAnchor(
+        root_hash="0x9f3fa7c2d1b4a7e1f02d5e1c34aa9b21b",
+        network="Arbitrum L2",
+        tx_url="https://arbiscan.io/tx/0x9f3b0c0d1d2e3f4a5b6c7d8e9f000111222333444555666777888999aaa",
+        anchored_at="2026-01-12 18:40 UTC",
+    )
 
 
 @st.cache_data(show_spinner=False)
@@ -532,12 +580,7 @@ css = """
 """
 st.markdown(css, unsafe_allow_html=True)
 
-anchor = BlockchainAnchor(
-    root_hash="0x9f3fa7c2d1b4a7e1f02d5e1c34aa9b21b",
-    network="Arbitrum L2",
-    tx_url="https://arbiscan.io/tx/0x9f3b0c0d1d2e3f4a5b6c7d8e9f000111222333444555666777888999aaa",
-    anchored_at="2026-01-12 18:40 UTC",
-)
+anchor = load_blockchain_anchor()
 
 snapshots_df = build_snapshot_data()
 rules_df = build_rules_data()

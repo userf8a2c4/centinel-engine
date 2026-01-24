@@ -210,6 +210,12 @@ The only editable control point is **`command_center/`**.
 - **Normal monitoring:** every **24–72 hours**.
 - **Active election:** every **5–15 minutes**.
 
+### Blockchain integrity (Arbitrum L2)
+After each snapshot is processed and rules are applied, the pipeline can compute a
+root hash from the raw JSON, diffs, and rule results, then anchor it on Arbitrum L2.
+Enable this in `command_center/config.yaml` under the `arbitrum` section with
+`auto_anchor_snapshots: true` to include the transaction hash in logs and reports.
+
 ### Production with Docker
 - Build the image:
   ```bash

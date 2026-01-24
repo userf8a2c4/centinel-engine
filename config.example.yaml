@@ -104,11 +104,14 @@ alerts:
 # Arbitrum configuration (placeholder).
 arbitrum:
   enabled: false
+  network: "Arbitrum One"
   rpc_url: "https://arb1.arbitrum.io/rpc"
   private_key: "0x..."
   contract_address: "0x..."
+  explorer_url: "https://arbiscan.io/tx/"
   interval_minutes: 15
   batch_size: 19
+  auto_anchor_snapshots: true
 
 # Reglas de análisis.
 # Analysis rules.
