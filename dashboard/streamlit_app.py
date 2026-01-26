@@ -150,6 +150,42 @@ def build_vote_evolution() -> pd.DataFrame:
     return pd.DataFrame(series)
 
 
+@st.cache_data(show_spinner=False)
+def build_live_feed_data() -> pd.DataFrame:
+    now = dt.datetime.now(dt.timezone.utc)
+    rows = [
+        {
+            "ingestion_time": (now - dt.timedelta(minutes=8)).strftime("%Y-%m-%d %H:%M UTC"),
+            "snapshot_id": "SNAP-000182",
+            "rules_applied": "BENFORD_CHECK, BASIC_DIFF",
+            "alerts": "Sin alertas",
+            "status": "OK",
+        },
+        {
+            "ingestion_time": (now - dt.timedelta(minutes=6)).strftime("%Y-%m-%d %H:%M UTC"),
+            "snapshot_id": "SNAP-000183",
+            "rules_applied": "TREND_SHIFT",
+            "alerts": "Cambio abrupto detectado",
+            "status": "REVISAR",
+        },
+        {
+            "ingestion_time": (now - dt.timedelta(minutes=4)).strftime("%Y-%m-%d %H:%M UTC"),
+            "snapshot_id": "SNAP-000184",
+            "rules_applied": "IRREVERSIBILITY, PARTICIPATION_ANOMALY",
+            "alerts": "Alerta crítica: salto en participación",
+            "status": "ALERTA",
+        },
+        {
+            "ingestion_time": (now - dt.timedelta(minutes=2)).strftime("%Y-%m-%d %H:%M UTC"),
+            "snapshot_id": "SNAP-000185",
+            "rules_applied": "ML_OUTLIERS",
+            "alerts": "Outliers detectados",
+            "status": "REVISAR",
+        },
+    ]
+    return pd.DataFrame(rows)
+
+
 def read_log_tail(path: Path, max_lines: int = 200, max_bytes: int = 200_000) -> list[str]:
     if not path.exists():
         return []
@@ -209,6 +245,7 @@ def load_simulation_metrics(results_dir: Path) -> dict:
     summary_path = results_dir / "summary.json"
 
     snapshots_rows = []
+    live_rows = []
     for record in records:
         rules = record.get("rules") or {}
         alerts = rules.get("alerts") or []
@@ -221,16 +258,44 @@ def load_simulation_metrics(results_dir: Path) -> dict:
         detail = ""
         if alerts:
             detail = alerts[0].get("message") or alerts[0].get("rule") or ""
+        rule_names = []
+        for alert in alerts + critical_alerts:
+            rule_name = alert.get("rule") or alert.get("name") or alert.get("type")
+            if rule_name:
+                rule_names.append(rule_name)
+        rules_applied = ", ".join(sorted(set(rule_names))) if rule_names else "Sin reglas"
+        alert_messages = []
+        for alert in critical_alerts + alerts:
+            message = alert.get("message") or alert.get("rule") or alert.get("name")
+            if message:
+                alert_messages.append(str(message))
+        alert_summary = " · ".join(alert_messages) if alert_messages else "Sin alertas"
+        ingestion_time = record.get("simulated_timestamp") or record.get("source_timestamp")
+        snapshot_id = (
+            record.get("snapshot_id")
+            or record.get("snapshot_hash")
+            or record.get("hash")
+        )
         snapshots_rows.append(
             {
-                "timestamp": record.get("simulated_timestamp") or record.get("source_timestamp"),
+                "timestamp": ingestion_time,
                 "hash": record.get("snapshot_hash"),
                 "changes": len(alerts),
                 "detail": detail or "Sin alertas",
                 "status": status,
             }
         )
+        live_rows.append(
+            {
+                "ingestion_time": ingestion_time,
+                "snapshot_id": snapshot_id,
+                "rules_applied": rules_applied,
+                "alerts": alert_summary,
+                "status": status,
+            }
+        )
     snapshots_df = pd.DataFrame(snapshots_rows)
+    live_feed_df = pd.DataFrame(live_rows)
 
     metrics_df = pd.DataFrame()
     if metrics_path.exists():
@@ -283,6 +348,7 @@ def load_simulation_metrics(results_dir: Path) -> dict:
 
     return {
         "snapshots_df": snapshots_df,
+        "live_feed_df": live_feed_df,
         "votes_df": votes_df,
         "activity_df": activity_df,
         "benford_df": benford_df,
@@ -553,6 +619,10 @@ translations = {
         ],
         "indicator_title": "Indicadores de integridad",
         "indicator_subtitle": "Métricas estadístico-matemáticas usadas por misiones de observación.",
+        "live_feed_title": "Flujo en vivo de snapshots",
+        "live_feed_subtitle": (
+            "Hora de entrada, reglas aplicadas, identificador de snapshot y alertas detectadas."
+        ),
         "v5_title": "Centinet-v5_Test · Capacidades completas",
         "v5_subtitle": (
             "Panel técnico que consolida ingesta, reglas, evidencia criptográfica y auditoría continua."
@@ -684,6 +754,10 @@ translations = {
         ],
         "indicator_title": "Integrity indicators",
         "indicator_subtitle": "Statistical and mathematical metrics used by observation missions.",
+        "live_feed_title": "Live snapshot stream",
+        "live_feed_subtitle": (
+            "Ingestion time, applied rules, snapshot ID, and detected alerts."
+        ),
         "v5_title": "Centinet-v5_Test · Full capabilities",
         "v5_subtitle": "Technical view consolidating ingestion, rules, cryptographic evidence, and auditing.",
         "v5_cards": [
@@ -867,6 +941,7 @@ rules_df = build_rules_data()
 if data_mode == "Simulación (results)":
     simulation_payload = load_simulation_metrics(Path(results_dir_input))
     snapshots_df = simulation_payload["snapshots_df"]
+    live_feed_df = simulation_payload["live_feed_df"]
     votes_df = simulation_payload["votes_df"]
     activity_df = simulation_payload["activity_df"]
     benford_df = simulation_payload["benford_df"]
@@ -893,6 +968,7 @@ if data_mode == "Simulación (results)":
 
 if data_mode == "Demo":
     snapshots_df = build_snapshot_data()
+    live_feed_df = build_live_feed_data()
     benford_df = build_benford_data()
     last_digit_df = build_last_digit_data()
     votes_df = build_vote_evolution()
@@ -1223,6 +1299,10 @@ if log_lines_data:
     st.code("\n".join(log_lines_data), language="text")
 else:
     st.info(copy["logs_empty"])
+
+st.markdown(f"### {copy['live_feed_title']}")
+st.markdown(f"<div class='note'>{copy['live_feed_subtitle']}</div>", unsafe_allow_html=True)
+st.dataframe(live_feed_df, width="stretch", hide_index=True)
 
 st.markdown(f"### {copy['indicator_title']}")
 st.markdown(f"<div class='note'>{copy['indicator_subtitle']}</div>", unsafe_allow_html=True)
