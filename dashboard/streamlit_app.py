@@ -150,6 +150,25 @@ def build_vote_evolution() -> pd.DataFrame:
     return pd.DataFrame(series)
 
 
+def read_log_tail(path: Path, max_lines: int = 200, max_bytes: int = 200_000) -> list[str]:
+    if not path.exists():
+        return []
+    if max_lines <= 0:
+        return []
+    try:
+        with path.open("rb") as handle:
+            handle.seek(0, io.SEEK_END)
+            file_size = handle.tell()
+            offset = min(file_size, max_bytes)
+            if offset > 0:
+                handle.seek(-offset, io.SEEK_END)
+            content = handle.read().decode("utf-8", errors="replace")
+    except OSError:
+        return []
+    lines = content.splitlines()
+    return lines[-max_lines:]
+
+
 def _safe_int(value: object, default: int = 0) -> int:
     try:
         if value is None:
@@ -534,6 +553,50 @@ translations = {
         ],
         "indicator_title": "Indicadores de integridad",
         "indicator_subtitle": "Métricas estadístico-matemáticas usadas por misiones de observación.",
+        "v5_title": "Centinet-v5_Test · Capacidades completas",
+        "v5_subtitle": (
+            "Panel técnico que consolida ingesta, reglas, evidencia criptográfica y auditoría continua."
+        ),
+        "v5_cards": [
+            {
+                "title": "Ingesta multi-fuente",
+                "detail": "Consulta endpoints nacionales y departamentales con mapeo de campos normalizados.",
+            },
+            {
+                "title": "Resiliencia y fallback",
+                "detail": "Reintentos con backoff y uso opcional de Playwright en caso de fallos HTTP.",
+            },
+            {
+                "title": "Snapshots inmutables",
+                "detail": "Capturas periódicas con hash raíz para detectar cambios y preservar evidencia.",
+            },
+            {
+                "title": "Reglas de integridad",
+                "detail": "Matriz de reglas configurables: cambios abruptos, irreversibilidad, Benford, ML.",
+            },
+            {
+                "title": "Alertas críticas",
+                "detail": "Clasificación automática de anomalías críticas y registro de incidencias.",
+            },
+            {
+                "title": "Anclaje blockchain",
+                "detail": "Preparado para anclar hashes en Arbitrum L2 con trazabilidad pública.",
+            },
+            {
+                "title": "Reportes reproducibles",
+                "detail": "Exporta PDF, JSON y CSV con evidencia verificable para auditorías.",
+            },
+            {
+                "title": "Observación internacional",
+                "detail": "Mapeo de controles frente a estándares OEA/UE/ISO 27001.",
+            },
+        ],
+        "logs_title": "Logs operativos en tiempo real",
+        "logs_subtitle": "Visualiza el flujo de eventos y alertas del motor Centinel.",
+        "logs_path_label": "Ruta del archivo de logs",
+        "logs_lines_label": "Líneas a mostrar",
+        "logs_refresh_label": "Refresco automático (segundos)",
+        "logs_empty": "No se encontraron logs todavía.",
         "benford_title": "Distribución de primeros dígitos – Normal ✓",
         "last_digit_title": "Actividad de últimos dígitos",
         "vote_evolution_title": "Evolución de cambios",
@@ -621,6 +684,48 @@ translations = {
         ],
         "indicator_title": "Integrity indicators",
         "indicator_subtitle": "Statistical and mathematical metrics used by observation missions.",
+        "v5_title": "Centinet-v5_Test · Full capabilities",
+        "v5_subtitle": "Technical view consolidating ingestion, rules, cryptographic evidence, and auditing.",
+        "v5_cards": [
+            {
+                "title": "Multi-source ingestion",
+                "detail": "Queries national and department endpoints with normalized field mapping.",
+            },
+            {
+                "title": "Resilience & fallback",
+                "detail": "Retries with backoff and optional Playwright fallback when HTTP fails.",
+            },
+            {
+                "title": "Immutable snapshots",
+                "detail": "Periodic captures with root hash to detect changes and preserve evidence.",
+            },
+            {
+                "title": "Integrity rules",
+                "detail": "Configurable ruleset: abrupt changes, irreversibility, Benford, ML outliers.",
+            },
+            {
+                "title": "Critical alerts",
+                "detail": "Automatic classification of critical anomalies and incident logging.",
+            },
+            {
+                "title": "Blockchain anchoring",
+                "detail": "Prepared to anchor hashes on Arbitrum L2 with public traceability.",
+            },
+            {
+                "title": "Reproducible reports",
+                "detail": "Exports PDF, JSON, and CSV with verifiable evidence.",
+            },
+            {
+                "title": "International observation",
+                "detail": "Control mapping aligned with OAS/EU/ISO 27001 standards.",
+            },
+        ],
+        "logs_title": "Real-time operational logs",
+        "logs_subtitle": "Stream the Centinel engine event flow and alerts.",
+        "logs_path_label": "Log file path",
+        "logs_lines_label": "Lines to show",
+        "logs_refresh_label": "Auto-refresh (seconds)",
+        "logs_empty": "No logs found yet.",
         "benford_title": "First-digit distribution – Normal ✓",
         "last_digit_title": "Last-digit activity",
         "vote_evolution_title": "Change evolution",
@@ -719,6 +824,10 @@ css = """
     .header-subtitle { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
     .status-pill { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border-radius: 999px; background: rgba(0, 166, 118, 0.15); color: var(--success); font-size: 0.78rem; border: 1px solid rgba(0, 166, 118, 0.25); }
     .legal-note { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
+    .cap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.9rem; }
+    .cap-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 1rem; }
+    .cap-card h4 { margin: 0 0 0.4rem 0; font-size: 0.95rem; }
+    .cap-card p { margin: 0; color: var(--muted); font-size: 0.85rem; line-height: 1.4; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -1075,6 +1184,46 @@ with col_right:
         unsafe_allow_html=True,
     )
 
+st.markdown(f"### {copy['v5_title']}")
+st.markdown(f"<div class='note'>{copy['v5_subtitle']}</div>", unsafe_allow_html=True)
+cap_cards_html = "".join(
+    [
+        f"<div class='cap-card'><h4>{item['title']}</h4><p>{item['detail']}</p></div>"
+        for item in copy["v5_cards"]
+    ]
+)
+st.markdown(f"<div class='cap-grid'>{cap_cards_html}</div>", unsafe_allow_html=True)
+
+st.markdown(f"### {copy['logs_title']}")
+st.markdown(f"<div class='note'>{copy['logs_subtitle']}</div>", unsafe_allow_html=True)
+log_controls = st.columns([1.2, 0.6, 0.6])
+with log_controls[0]:
+    log_path_input = st.text_input(copy["logs_path_label"], value="centinel.log")
+with log_controls[1]:
+    log_lines = st.number_input(copy["logs_lines_label"], min_value=50, max_value=2000, value=300, step=50)
+with log_controls[2]:
+    log_refresh = st.number_input(copy["logs_refresh_label"], min_value=0, max_value=60, value=5, step=1)
+
+log_path = Path(log_path_input).expanduser()
+if log_refresh > 0:
+    autorefresh = getattr(st, "autorefresh", None)
+    if autorefresh:
+        autorefresh(interval=int(log_refresh * 1000), key="log_autorefresh")
+    else:
+        st.info("Auto-refresco no disponible. Usa refresco manual.")
+
+log_lines_data = read_log_tail(log_path, max_lines=int(log_lines))
+if log_path.exists():
+    metadata = log_path.stat()
+    st.caption(
+        f"📄 {log_path} · {metadata.st_size / 1024:.1f} KB · "
+        f"Actualizado {dt.datetime.fromtimestamp(metadata.st_mtime).strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+if log_lines_data:
+    st.code("\n".join(log_lines_data), language="text")
+else:
+    st.info(copy["logs_empty"])
+
 st.markdown(f"### {copy['indicator_title']}")
 st.markdown(f"<div class='note'>{copy['indicator_subtitle']}</div>", unsafe_allow_html=True)
 try:
@@ -1121,7 +1270,11 @@ st.markdown("### QR")
 if qrcode is None:
     st.warning("QR no disponible: falta instalar la dependencia 'qrcode'.")
 else:
-    st.image(qrcode.make(anchor.root_hash))
+    qr_image = qrcode.make(anchor.root_hash)
+    qr_buffer = io.BytesIO()
+    qr_image.save(qr_buffer, format="PNG")
+    qr_buffer.seek(0)
+    st.image(qr_buffer)
 
 st.markdown(f"### {copy['export_title']}")
 st.markdown("<a id='reportes'></a>", unsafe_allow_html=True)
