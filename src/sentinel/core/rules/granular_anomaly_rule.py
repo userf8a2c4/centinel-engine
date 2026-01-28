@@ -1,6 +1,6 @@
-"""Regla granular de anomalías para deltas, Benford y outliers.
+"""Regla granular de anomalías para deltas, Benford y outliers presidenciales.
 
-Granular anomaly rule for deltas, Benford, and outliers.
+Granular anomaly rule for presidential deltas, Benford, and outliers.
 """
 
 from __future__ import annotations
@@ -12,13 +12,9 @@ import pandas as pd
 from scipy.stats import chisquare
 
 from sentinel.core.rules.common import (
-    extract_actas_mesas_counts,
     extract_candidate_votes,
     extract_department,
     extract_department_entries,
-    extract_mesa_candidate_votes,
-    extract_mesa_vote_breakdown,
-    extract_mesas,
     extract_registered_voters,
     extract_total_votes,
     parse_timestamp,
@@ -90,51 +86,15 @@ def _totals_rows(snapshot: dict) -> List[dict]:
         level = _extract_level(entry) or base_level
         totals = extract_total_votes(entry)
         registered = extract_registered_voters(entry)
-        actas_mesas = extract_actas_mesas_counts(entry)
         rows.append(
             {
                 "department": department,
                 "election_level": level,
                 "total_votes": totals,
                 "registered_voters": registered,
-                "actas_procesadas": actas_mesas.get("actas_procesadas"),
-                "mesas_procesadas": actas_mesas.get("mesas_procesadas"),
                 "timestamp": timestamp,
             }
         )
-    return rows
-
-
-def _mesa_rows(snapshot: dict) -> List[dict]:
-    rows: List[dict] = []
-    timestamp = parse_timestamp(snapshot)
-    base_department = _extract_department_from_payload(snapshot)
-    base_level = _extract_level(snapshot)
-    for mesa in extract_mesas(snapshot):
-        department = _extract_department_from_payload(mesa) or base_department
-        level = _extract_level(mesa) or base_level
-        breakdown = extract_mesa_vote_breakdown(mesa)
-        rows.append(
-            {
-                "department": department,
-                "election_level": level,
-                "registered_voters": breakdown.get("registered_voters"),
-                "total_votes": breakdown.get("total_votes"),
-                "timestamp": timestamp,
-                "mesa": mesa,
-            }
-        )
-        for candidate_id, votes in extract_mesa_candidate_votes(mesa).items():
-            rows.append(
-                {
-                    "department": department,
-                    "election_level": level,
-                    "candidate_id": str(candidate_id),
-                    "votes": int(votes),
-                    "timestamp": timestamp,
-                    "mesa": mesa,
-                }
-            )
     return rows
 
 
@@ -163,7 +123,9 @@ def _compute_zscores(series: pd.Series) -> pd.Series:
 @rule(
     name="Anomalías Granulares",
     severity="CRITICAL",
-    description="Detecta deltas negativos, Benford por subgrupo, z-score y reversión.",
+    description=(
+        "Detecta deltas negativos, Benford por departamento, z-score y reversión."
+    ),
     config_key="granular_anomaly",
 )
 def apply(
@@ -174,8 +136,8 @@ def apply(
 
     Esta regla compara snapshots consecutivos para encontrar votos restados,
     cambios porcentuales extremos en ventanas cortas, outliers por z-score
-    entre departamentos/niveles, inconsistencias de participación en mesas
-    grandes y desviaciones de Benford por subgrupos (departamento+nivel+candidato).
+    entre departamentos/niveles, inconsistencias de suma y desviaciones
+    de Benford por departamento.
 
     Args:
         current_data: Snapshot JSON actual del CNE.
@@ -190,8 +152,8 @@ def apply(
 
         This rule compares consecutive snapshots to detect vote rollbacks,
         extreme percentage changes in short windows, z-score outliers across
-        departments/levels, participation inconsistencies in large tables, and
-        Benford deviations by subgroup (department+level+candidate).
+        departments/levels, sum inconsistencies, and Benford deviations
+        by department.
 
     Args:
         current_data: Current CNE JSON snapshot.
@@ -216,22 +178,15 @@ def apply(
     benford_min_vote = int(config.get("benford_min_vote", 10))
     turnout_min_pct = float(config.get("turnout_min_pct", 0.0))
     turnout_max_pct = float(config.get("turnout_max_pct", 100.0))
-    mesa_min_registered = int(config.get("mesa_min_registered", 300))
-    mesa_min_turnout_pct = float(config.get("mesa_min_turnout_pct", 2.0))
-    mesa_max_turnout_pct = float(config.get("mesa_max_turnout_pct", 100.0))
     reversal_lead_margin = int(config.get("reversal_min_lead_margin", 500))
     reversal_window = int(config.get("reversal_time_window_minutes", 30))
     reversal_min_negative = int(config.get("reversal_min_negative_delta", 100))
-    actas_negative_delta = int(config.get("actas_negative_delta_threshold", -1))
-    mesas_negative_delta = int(config.get("mesas_negative_delta_threshold", -1))
+    sum_mismatch_threshold = int(config.get("sum_mismatch_threshold", 1))
 
     candidate_rows = _candidate_rows(current_data)
     totals_rows = _totals_rows(current_data)
-    mesa_rows = _mesa_rows(current_data)
-
     candidate_df = pd.DataFrame(candidate_rows)
     totals_df = pd.DataFrame(totals_rows)
-    mesa_df = pd.DataFrame(mesa_rows)
 
     if previous_data:
         previous_candidate_df = pd.DataFrame(_candidate_rows(previous_data))
@@ -394,60 +349,6 @@ def apply(
                         }
                     )
 
-            for _, row in totals_merged.iterrows():
-                actas_prev = row.get("actas_procesadas_previous")
-                actas_curr = row.get("actas_procesadas_current")
-                mesas_prev = row.get("mesas_procesadas_previous")
-                mesas_curr = row.get("mesas_procesadas_current")
-                if (
-                    actas_prev is not None
-                    and actas_curr is not None
-                    and (actas_curr - actas_prev) <= actas_negative_delta
-                ):
-                    alerts.append(
-                        {
-                            "type": "Actas Procesadas en Retroceso",
-                            "severity": "High",
-                            "department": row["department"],
-                            "election_level": row["election_level"],
-                            "timestamp": current_ts.isoformat()
-                            if current_ts
-                            else None,
-                            "previous_value": int(actas_prev),
-                            "current_value": int(actas_curr),
-                            "delta_abs": int(actas_curr - actas_prev),
-                            "delta_pct": None,
-                            "justification": (
-                                "Las actas procesadas disminuyeron entre snapshots. "
-                                f"previas={actas_prev}, actuales={actas_curr}."
-                            ),
-                        }
-                    )
-                if (
-                    mesas_prev is not None
-                    and mesas_curr is not None
-                    and (mesas_curr - mesas_prev) <= mesas_negative_delta
-                ):
-                    alerts.append(
-                        {
-                            "type": "Mesas Procesadas en Retroceso",
-                            "severity": "High",
-                            "department": row["department"],
-                            "election_level": row["election_level"],
-                            "timestamp": current_ts.isoformat()
-                            if current_ts
-                            else None,
-                            "previous_value": int(mesas_prev),
-                            "current_value": int(mesas_curr),
-                            "delta_abs": int(mesas_curr - mesas_prev),
-                            "delta_pct": None,
-                            "justification": (
-                                "Las mesas procesadas disminuyeron entre snapshots. "
-                                f"previas={mesas_prev}, actuales={mesas_curr}."
-                            ),
-                        }
-                    )
-
         if not candidate_df.empty and not previous_candidate_df.empty:
             current_grouped = candidate_df.groupby(
                 ["department", "election_level"]
@@ -547,77 +448,78 @@ def apply(
                     }
                 )
 
-    if not mesa_df.empty:
-        mesa_totals = mesa_df[
-            mesa_df["registered_voters"].notna()
-            & mesa_df["total_votes"].notna()
+    if not candidate_df.empty:
+        benford_rows = candidate_df[
+            candidate_df["votes"].notna() & (candidate_df["votes"] >= benford_min_vote)
         ]
-        for _, row in mesa_totals.iterrows():
-            registered = int(row["registered_voters"])
-            total_votes = int(row["total_votes"])
-            if registered < mesa_min_registered or registered == 0:
+        for (department, level), group in benford_rows.groupby(
+            ["department", "election_level"]
+        ):
+            digits = _first_digit(group["votes"].tolist())
+            if len(digits) < benford_min_samples:
                 continue
-            turnout = total_votes / registered
-            if turnout < (mesa_min_turnout_pct / 100) or turnout > (
-                mesa_max_turnout_pct / 100
-            ):
+            counts = (
+                pd.Series(digits).value_counts().reindex(range(1, 10), fill_value=0)
+            )
+            expected = [
+                len(digits) * np.log10(1 + 1 / digit) for digit in range(1, 10)
+            ]
+            chi_result = chisquare(counts.values, f_exp=expected)
+            if chi_result.pvalue < benford_p_threshold:
                 alerts.append(
                     {
-                        "type": "Turnout Anómalo en Mesa Grande",
+                        "type": "Benford por Departamento",
                         "severity": "High",
-                        "department": row["department"],
-                        "election_level": row["election_level"],
-                        "timestamp": current_ts.isoformat()
-                        if current_ts
-                        else None,
+                        "department": department,
+                        "election_level": level,
+                        "timestamp": current_ts.isoformat() if current_ts else None,
                         "previous_value": None,
-                        "current_value": total_votes,
+                        "current_value": None,
                         "delta_abs": None,
-                        "delta_pct": turnout * 100,
+                        "delta_pct": None,
                         "justification": (
-                            "Participación anómala en mesa grande. "
-                            f"turnout={turnout:.2%}, inscritos={registered}."
+                            "Desviación de Benford en departamento. "
+                            f"p_value={chi_result.pvalue:.4f}, "
+                            f"muestras={len(digits)}."
                         ),
                     }
                 )
 
-        benford_rows = mesa_df[
-            mesa_df["candidate_id"].notna() & mesa_df["votes"].notna()
+    if not totals_df.empty and not candidate_df.empty:
+        candidate_totals = (
+            candidate_df.groupby(["department", "election_level"])["votes"]
+            .sum()
+            .reset_index()
+        )
+        totals_merged = totals_df.merge(
+            candidate_totals,
+            on=["department", "election_level"],
+            how="left",
+        )
+        totals_merged["votes"] = totals_merged["votes"].fillna(0)
+        totals_merged["delta_abs"] = (
+            totals_merged["votes"] - totals_merged["total_votes"].fillna(0)
+        )
+        mismatches = totals_merged[
+            totals_merged["delta_abs"].abs() >= sum_mismatch_threshold
         ]
-        if not benford_rows.empty:
-            benford_rows = benford_rows[benford_rows["votes"] >= benford_min_vote]
-            for group_key, group in benford_rows.groupby(
-                ["department", "election_level", "candidate_id"]
-            ):
-                digits = _first_digit(group["votes"].tolist())
-                if len(digits) < benford_min_samples:
-                    continue
-                counts = pd.Series(digits).value_counts().reindex(range(1, 10), fill_value=0)
-                expected = [
-                    len(digits) * np.log10(1 + 1 / digit) for digit in range(1, 10)
-                ]
-                chi_result = chisquare(counts.values, f_exp=expected)
-                if chi_result.pvalue < benford_p_threshold:
-                    alerts.append(
-                        {
-                            "type": "Benford por Subgrupo",
-                            "severity": "High",
-                            "department": group_key[0],
-                            "election_level": group_key[1],
-                            "candidate": str(group_key[2]),
-                            "timestamp": current_ts.isoformat()
-                            if current_ts
-                            else None,
-                            "previous_value": None,
-                            "current_value": None,
-                            "delta_abs": None,
-                            "delta_pct": None,
-                            "justification": (
-                                "Desviación de Benford en subgrupo. "
-                                f"p_value={chi_result.pvalue:.4f}, "
-                                f"muestras={len(digits)}."
-                            ),
-                        }
-                    )
+        for _, row in mismatches.iterrows():
+            alerts.append(
+                {
+                    "type": "Inconsistencia de Suma",
+                    "severity": "High",
+                    "department": row["department"],
+                    "election_level": row["election_level"],
+                    "timestamp": current_ts.isoformat() if current_ts else None,
+                    "previous_value": int(row["total_votes"] or 0),
+                    "current_value": int(row["votes"] or 0),
+                    "delta_abs": int(row["delta_abs"]),
+                    "delta_pct": None,
+                    "justification": (
+                        "El total reportado no coincide con la suma de candidatos. "
+                        f"total_reportado={row['total_votes']}, suma_candidatos={row['votes']}."
+                    ),
+                }
+            )
 
     return alerts
