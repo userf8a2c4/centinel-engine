@@ -67,6 +67,14 @@ class BlockchainAnchor:
     anchored_at: str
 
 
+def rerun_app() -> None:
+    if hasattr(st, "rerun"):
+        st.rerun()
+        return
+    if hasattr(st, "experimental_rerun"):
+        st.experimental_rerun()
+
+
 def _load_latest_anchor_record() -> dict | None:
     anchor_dir = Path("logs") / "anchors"
     if not anchor_dir.exists():
@@ -1138,7 +1146,7 @@ with tabs[0]:
                     range_indices[1],
                     st.session_state.timeline_index + speed_step,
                 )
-                st.experimental_rerun()
+                rerun_app()
         with play_cols[3]:
             st.markdown(
                 f"**Tiempo actual:** {timeline_df.iloc[st.session_state.timeline_index]['timeline_label']}"
