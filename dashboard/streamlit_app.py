@@ -167,6 +167,23 @@ def _pick_from_seed(seed: int, options: list[str]) -> str:
 
 @st.cache_data(show_spinner=False)
 def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame:
+    if not snapshot_files:
+        return pd.DataFrame(
+            columns=[
+                "timestamp",
+                "hash",
+                "delta",
+                "votes",
+                "changes",
+                "department",
+                "level",
+                "candidate",
+                "impact",
+                "status",
+                "timestamp_dt",
+                "hour",
+            ]
+        )
     departments = [
         "Atlántida",
         "Choluteca",
