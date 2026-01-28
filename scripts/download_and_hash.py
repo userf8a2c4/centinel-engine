@@ -30,15 +30,17 @@ import argparse
 import hashlib
 import json
 import logging
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import requests
+import yaml
+from dateutil import parser as date_parser
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from sentinel.utils.config_loader import load_config
 from monitoring.health import get_health_state
 
 # Configuración de logging global (inicializado temprano)
@@ -335,6 +337,78 @@ def run_mock_mode() -> None:
     logger.info("Modo mock completado - pipeline continúa con datos dummy")
 
 
+def _extract_payload_timestamp(payload: Any) -> Optional[datetime]:
+    if isinstance(payload, list) and payload:
+        payload = payload[0]
+    if not isinstance(payload, dict):
+        return None
+    meta = payload.get("meta") or payload.get("metadata") or {}
+    raw_ts = (
+        payload.get("timestamp")
+        or payload.get("timestamp_utc")
+        or payload.get("fecha")
+        or payload.get("fecha_hora")
+        or payload.get("hora_actualizacion")
+        or meta.get("timestamp_utc")
+    )
+    if not raw_ts:
+        return None
+    try:
+        parsed = date_parser.parse(str(raw_ts))
+    except (ValueError, TypeError):
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _payload_has_cne_source(payload: Any) -> bool:
+    if isinstance(payload, list) and payload:
+        payload = payload[0]
+    if not isinstance(payload, dict):
+        return False
+    source_value = str(payload.get("source") or payload.get("fuente") or "").upper()
+    if "CNE" in source_value:
+        return True
+    meta = payload.get("meta") or payload.get("metadata") or {}
+    meta_source = str(meta.get("source") or meta.get("fuente") or "").upper()
+    return "CNE" in meta_source
+
+
+def _is_cne_endpoint(endpoint: str, config: dict[str, Any]) -> bool:
+    domains = config.get("cne_domains") or ["cne.hn"]
+    endpoint_lower = endpoint.lower()
+    return any(domain.lower() in endpoint_lower for domain in domains)
+
+
+def _validate_real_payload(
+    payload: Any, endpoint: str, config: dict[str, Any]
+) -> bool:
+    if not _is_cne_endpoint(endpoint, config):
+        logger.error("Endpoint fuera de CNE: %s", endpoint)
+        return False
+
+    timestamp = _extract_payload_timestamp(payload)
+    if not timestamp:
+        logger.error("Payload sin timestamp real: %s", endpoint)
+        return False
+
+    max_age_hours = float(config.get("timestamp_max_age_hours", 24))
+    now = datetime.now(timezone.utc)
+    age_hours = (now - timestamp).total_seconds() / 3600
+    if age_hours < -1:
+        logger.error("Timestamp en el futuro detectado: %s", timestamp.isoformat())
+        return False
+    if age_hours > max_age_hours:
+        logger.error(
+            "Timestamp demasiado antiguo (%.1f h) para %s", age_hours, endpoint
+        )
+        return False
+    if not _payload_has_cne_source(payload):
+        logger.warning("Payload sin fuente CNE explícita: %s", endpoint)
+    return True
+
+
 def resolve_endpoint(source: dict[str, Any], endpoints: dict[str, str]) -> str | None:
     """Resuelve el endpoint para una fuente configurada."""
     scope = source.get("scope")
@@ -347,7 +421,11 @@ def resolve_endpoint(source: dict[str, Any], endpoints: dict[str, str]) -> str |
     return source.get("endpoint")
 
 
-def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) -> None:
+def process_sources(
+    sources: list[dict[str, Any]],
+    endpoints: dict[str, str],
+    config: dict[str, Any],
+) -> None:
     """Procesa fuentes reales y actualiza la cadena de hashes.
 
     Args:
@@ -384,10 +462,16 @@ def process_sources(sources: list[dict[str, Any]], endpoints: dict[str, str]) ->
                     "note": "Respuesta no JSON convertida a texto.",
                 }
 
+            if not _validate_real_payload(payload, response.url, config):
+                logger.error("Payload inválido (no CNE/fecha real) en %s", endpoint)
+                health_state.record_failure()
+                continue
+
             normalized_payload = payload if isinstance(payload, list) else [payload]
             snapshot_payload = {
                 "timestamp": datetime.now().isoformat(),
                 "source": source.get("source_id") or source.get("name", "unknown"),
+                "source_url": response.url,
                 "data": normalized_payload,
             }
             snapshot_bytes = json.dumps(
@@ -457,6 +541,9 @@ def main() -> None:
         return
 
     if args.mock:
+        if not config.get("allow_mock", False):
+            logger.error("Modo mock deshabilitado por configuración")
+            raise ValueError("Mock mode disabled by configuration.")
         run_mock_mode()
         logger.info("Proceso completado")
         return
@@ -469,7 +556,7 @@ def main() -> None:
         raise ValueError("No sources defined in config/config.yaml")
 
     endpoints = config.get("endpoints", {})
-    process_sources(sources, endpoints)
+    process_sources(sources, endpoints, config)
     logger.info("Proceso completado")
 
 

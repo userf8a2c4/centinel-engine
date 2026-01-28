@@ -9,6 +9,7 @@ from typing import Any
 
 import altair as alt
 import pandas as pd
+from dateutil import parser as date_parser
 import streamlit as st
 
 try:
@@ -18,10 +19,14 @@ except ImportError:  # pragma: no cover - optional dependency for config parsing
 
 try:
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import cm
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.pdfgen import canvas as reportlab_canvas
 
     REPORTLAB_AVAILABLE = True
 except ImportError:  # pragma: no cover - optional dependency for PDF rendering
@@ -112,6 +117,15 @@ def compute_report_hash(payload: str) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def build_qr_bytes(payload: str) -> bytes | None:
+    if qrcode is None:
+        return None
+    buffer = io.BytesIO()
+    qrcode.make(payload).save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
 def load_yaml_config(path: Path) -> dict:
     if not path.exists() or yaml is None:
         return {}
@@ -129,9 +143,9 @@ def load_configs() -> dict[str, dict]:
 
 
 @st.cache_data(show_spinner=False)
-def load_snapshot_files() -> list[dict[str, Any]]:
+def load_snapshot_files(base_dir: Path) -> list[dict[str, Any]]:
     snapshots = []
-    for path in sorted(Path("data").glob("snapshot_*.json")):
+    for path in sorted(base_dir.glob("snapshot_*.json")):
         content = path.read_text(encoding="utf-8")
         payload = json.loads(content)
         timestamp = payload.get("timestamp")
@@ -140,12 +154,26 @@ def load_snapshot_files() -> list[dict[str, Any]]:
                 timestamp = path.stem.replace("snapshot_", "").replace("_", " ")
             except ValueError:
                 timestamp = ""
+        source_value = str(
+            payload.get("source")
+            or payload.get("source_url")
+            or payload.get("fuente")
+            or ""
+        ).upper()
+        parsed_ts = None
+        if timestamp:
+            try:
+                parsed_ts = date_parser.parse(str(timestamp))
+            except (ValueError, TypeError):
+                parsed_ts = None
+        is_real = "CNE" in source_value or parsed_ts is not None
         snapshots.append(
             {
                 "path": path,
                 "timestamp": timestamp,
                 "content": payload,
                 "hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+                "is_real": is_real,
             }
         )
     return snapshots
@@ -158,6 +186,24 @@ def _pick_from_seed(seed: int, options: list[str]) -> str:
 
 @st.cache_data(show_spinner=False)
 def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame:
+    if not snapshot_files:
+        return pd.DataFrame(
+            columns=[
+                "timestamp",
+                "hash",
+                "delta",
+                "votes",
+                "changes",
+                "department",
+                "level",
+                "candidate",
+                "impact",
+                "status",
+                "is_real",
+                "timestamp_dt",
+                "hour",
+            ]
+        )
     departments = [
         "Atlántida",
         "Choluteca",
@@ -178,7 +224,6 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
         "Valle",
         "Yoro",
     ]
-    levels = ["Presidencial", "Diputados", "Municipales"]
     rows = []
     base_votes = 120_000
     for idx, snapshot in enumerate(snapshot_files):
@@ -199,20 +244,45 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
                 "votes": base_votes,
                 "changes": abs(delta) // 50,
                 "department": _pick_from_seed(seed, departments),
-                "level": _pick_from_seed(seed + 42, levels),
+                "level": "Presidencial",
+                "candidate": None,
+                "impact": None,
                 "status": status,
+                "is_real": snapshot.get("is_real", False),
             }
         )
     df = pd.DataFrame(rows)
     if not df.empty:
         df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
         df["hour"] = df["timestamp_dt"].dt.strftime("%H:%M")
+        df["candidate"] = df["department"].map(
+            {
+                "Cortés": "Candidato A",
+                "Francisco Morazán": "Candidato B",
+                "Olancho": "Candidato C",
+            }
+        ).fillna("Candidato D")
+        df["impact"] = df["delta"].apply(
+            lambda value: "Favorece" if value > 0 else "Afecta"
+        )
     return df
 
 
 def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(
+            columns=[
+                "department",
+                "candidate",
+                "delta",
+                "delta_pct",
+                "votes",
+                "type",
+                "timestamp",
+                "hour",
+                "hash",
+            ]
+        )
     anomalies = df.loc[df["status"].isin(["ALERTA", "REVISAR"])].copy()
     anomalies["candidate"] = anomalies["department"].map(
         {
@@ -226,15 +296,19 @@ def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
         lambda value: "Delta negativo" if value < 0 else "Outlier de crecimiento"
     )
     anomalies["timestamp"] = anomalies["timestamp"]
+    anomalies["hour"] = anomalies.get("hour")
+    anomalies["hash"] = anomalies.get("hash")
     return anomalies[
         [
             "department",
-            "level",
             "candidate",
             "delta",
             "delta_pct",
+            "votes",
             "type",
             "timestamp",
+            "hour",
+            "hash",
         ]
     ]
 
@@ -312,25 +386,40 @@ def run_rules_engine(snapshot_df: pd.DataFrame, config: dict) -> dict:
     return {"alerts": result.alerts, "critical": result.critical_alerts}
 
 
-def create_pdf_charts(benford_df: pd.DataFrame, votes_df: pd.DataFrame, heatmap_df: pd.DataFrame) -> dict:
+def create_pdf_charts(
+    benford_df: pd.DataFrame,
+    votes_df: pd.DataFrame,
+    heatmap_df: pd.DataFrame,
+    anomalies_df: pd.DataFrame,
+) -> dict:
     if plt is None:
         return {}
 
     chart_buffers = {}
 
-    fig, ax = plt.subplots(figsize=(5.6, 2.6))
-    ax.bar(benford_df["digit"], benford_df["expected"], label="Esperado", color="#1F77B4")
+    fig, ax = plt.subplots(figsize=(6.8, 2.8))
+    deviation = (benford_df["observed"] - benford_df["expected"]).abs()
+    observed_colors = [
+        "#D62728" if dev > 5 else "#2CA02C" for dev in deviation
+    ]
+    ax.bar(
+        benford_df["digit"],
+        benford_df["expected"],
+        label="Esperado",
+        color="#1F77B4",
+        alpha=0.75,
+    )
     ax.bar(
         benford_df["digit"],
         benford_df["observed"],
         label="Observado",
-        color="#2CA02C",
-        alpha=0.85,
+        color=observed_colors,
+        alpha=0.9,
     )
-    ax.set_title("Distribución Benford")
+    ax.set_title("Distribución Benford (observado vs esperado)")
     ax.set_xlabel("Dígito")
     ax.set_ylabel("%")
-    ax.legend()
+    ax.legend(loc="upper right", fontsize=8)
     buf = io.BytesIO()
     fig.tight_layout()
     fig.savefig(buf, format="png", dpi=300)
@@ -338,28 +427,50 @@ def create_pdf_charts(benford_df: pd.DataFrame, votes_df: pd.DataFrame, heatmap_
     buf.seek(0)
     chart_buffers["benford"] = buf
 
-    fig, ax = plt.subplots(figsize=(5.6, 2.4))
-    ax.plot(votes_df["hour"], votes_df["votes"], marker="o", color="#1F77B4")
-    ax.set_title("Evolución de cambios por hora")
-    ax.set_xlabel("Hora")
-    ax.set_ylabel("Votos")
-    ax.tick_params(axis="x", rotation=45)
-    buf = io.BytesIO()
-    fig.tight_layout()
-    fig.savefig(buf, format="png", dpi=300)
-    plt.close(fig)
-    buf.seek(0)
-    chart_buffers["timeline"] = buf
+    if not votes_df.empty:
+        fig, ax = plt.subplots(figsize=(6.8, 2.6))
+        ax.plot(votes_df["hour"], votes_df["votes"], marker="o", color="#1F77B4", linewidth=2)
+        if not anomalies_df.empty:
+            ax.scatter(
+                anomalies_df["hour"],
+                anomalies_df["votes"],
+                color="#D62728",
+                marker="o",
+                s=40,
+                label="Anomalía",
+                zorder=3,
+            )
+        ax.set_title("Evolución por hora (timeline)")
+        ax.set_xlabel("Hora")
+        ax.set_ylabel("Votos")
+        ax.tick_params(axis="x", rotation=45)
+        ax.grid(alpha=0.2)
+        ax.legend(loc="upper left", fontsize=8)
+        buf = io.BytesIO()
+        fig.tight_layout()
+        fig.savefig(buf, format="png", dpi=300)
+        plt.close(fig)
+        buf.seek(0)
+        chart_buffers["timeline"] = buf
 
     if not heatmap_df.empty:
         heatmap_pivot = heatmap_df.pivot(index="department", columns="hour", values="anomaly_count").fillna(0)
-        fig, ax = plt.subplots(figsize=(5.6, 2.8))
-        ax.imshow(heatmap_pivot.values, aspect="auto", cmap="viridis")
+        fig, ax = plt.subplots(figsize=(6.8, 3.0))
+        ax.imshow(heatmap_pivot.values, aspect="auto", cmap="Reds")
         ax.set_title("Mapa de anomalías por departamento/hora")
         ax.set_yticks(range(len(heatmap_pivot.index)))
         ax.set_yticklabels(heatmap_pivot.index, fontsize=6)
         ax.set_xticks(range(len(heatmap_pivot.columns)))
         ax.set_xticklabels([str(x) for x in heatmap_pivot.columns], fontsize=6)
+        if "Colón" in heatmap_pivot.index:
+            col_index = list(heatmap_pivot.index).index("Colón")
+            ax.scatter(
+                [0],
+                [col_index],
+                color="#D62728",
+                s=20,
+                marker="s",
+            )
         buf = io.BytesIO()
         fig.tight_layout()
         fig.savefig(buf, format="png", dpi=300)
@@ -370,115 +481,260 @@ def create_pdf_charts(benford_df: pd.DataFrame, votes_df: pd.DataFrame, heatmap_
     return chart_buffers
 
 
+def _register_pdf_fonts() -> tuple[str, str]:
+    if not REPORTLAB_AVAILABLE:
+        return "Helvetica", "Helvetica-Bold"
+    font_candidates = [
+        ("Arial", "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"),
+        ("Arial", "/usr/share/fonts/truetype/msttcorefonts/arial.ttf"),
+        ("Arial", "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+    ]
+    bold_candidates = [
+        ("Arial-Bold", "/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf"),
+        ("Arial-Bold", "/usr/share/fonts/truetype/msttcorefonts/arialbd.ttf"),
+        ("Arial-Bold", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
+    ]
+    regular = "Helvetica"
+    bold = "Helvetica-Bold"
+    for name, path in font_candidates:
+        if Path(path).exists():
+            pdfmetrics.registerFont(TTFont(name, path))
+            regular = name
+            break
+    for name, path in bold_candidates:
+        if Path(path).exists():
+            pdfmetrics.registerFont(TTFont(name, path))
+            bold = name
+            break
+    return regular, bold
+
+
+class NumberedCanvas(reportlab_canvas.Canvas):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._saved_page_states = []
+
+    def showPage(self) -> None:
+        self._saved_page_states.append(dict(self.__dict__))
+        super().showPage()
+
+    def save(self) -> None:
+        total_pages = len(self._saved_page_states)
+        for state in self._saved_page_states:
+            self.__dict__.update(state)
+            self.draw_page_number(total_pages)
+            super().showPage()
+        super().save()
+
+    def draw_page_number(self, total_pages: int) -> None:
+        self.setFont("Helvetica", 8)
+        self.setFillColor(colors.grey)
+        page = self.getPageNumber()
+        self.drawRightString(
+            self._pagesize[0] - 1.5 * cm,
+            0.75 * cm,
+            f"Página {page}/{total_pages}",
+        )
+
+
 def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     if not REPORTLAB_AVAILABLE:
         raise RuntimeError("reportlab is required to build the PDF report.")
 
+    regular_font, bold_font = _register_pdf_fonts()
     buffer = io.BytesIO()
+    page_size = landscape(A4)
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
-        leftMargin=1 * cm,
-        rightMargin=1 * cm,
-        topMargin=1 * cm,
-        bottomMargin=1 * cm,
+        pagesize=page_size,
+        leftMargin=1.5 * cm,
+        rightMargin=1.5 * cm,
+        topMargin=1.5 * cm,
+        bottomMargin=1.5 * cm,
     )
 
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="HeadingPrimary", fontSize=18, leading=22, spaceAfter=6))
-    styles.add(ParagraphStyle(name="HeadingSecondary", fontSize=13, leading=16, spaceAfter=6))
-    styles.add(ParagraphStyle(name="Body", fontSize=9.5, leading=13))
+    styles.add(
+        ParagraphStyle(
+            name="HeadingPrimary",
+            fontName=bold_font,
+            fontSize=14,
+            leading=18,
+            textColor=colors.HexColor("#1F77B4"),
+            spaceAfter=6,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="HeadingSecondary",
+            fontName=bold_font,
+            fontSize=12,
+            leading=15,
+            spaceAfter=4,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="Body",
+            fontName=regular_font,
+            fontSize=10,
+            leading=13,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="TableCell",
+            fontName=regular_font,
+            fontSize=9.5,
+            leading=11,
+            alignment=TA_LEFT,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="TableHeader",
+            fontName=bold_font,
+            fontSize=9.5,
+            leading=11,
+            alignment=TA_CENTER,
+            textColor=colors.white,
+        )
+    )
+
+    def as_paragraph(value: object, style: ParagraphStyle) -> Paragraph:
+        return Paragraph(str(value), style)
+
+    def build_table(rows: list[list[object]], col_widths: list[float]) -> Table:
+        header = [as_paragraph(cell, styles["TableHeader"]) for cell in rows[0]]
+        body = [
+            [as_paragraph(cell, styles["TableCell"]) for cell in row]
+            for row in rows[1:]
+        ]
+        table = Table([header] + body, colWidths=col_widths, repeatRows=1)
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F77B4")),
+                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d0d4db")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
+        return table
 
     elements: list = []
-    elements.append(Paragraph(data["title"], styles["HeadingPrimary"]))
+    elements.append(Paragraph("🔒 C.E.N.T.I.N.E.L. · Informe Ejecutivo", styles["HeadingPrimary"]))
     elements.append(Paragraph(data["subtitle"], styles["Body"]))
     elements.append(Paragraph(data["generated"], styles["Body"]))
     elements.append(Paragraph(data["global_status"], styles["HeadingSecondary"]))
-    elements.append(Spacer(1, 8))
+    elements.append(Spacer(1, 6))
 
     elements.append(Paragraph("Sección 1 · Estatus Global", styles["HeadingSecondary"]))
     elements.append(Paragraph(data["executive_summary"], styles["Body"]))
-    kpi_table = Table(data["kpi_rows"], colWidths=[4 * cm, 3.2 * cm, 3.2 * cm, 3.2 * cm, 3.2 * cm])
+    kpi_widths = [doc.width * 0.2] * 5
+    kpi_table = build_table(data["kpi_rows"], kpi_widths)
     kpi_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F77B4")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
-                ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f2f4f8")),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f2f4f8")),
             ]
         )
     )
     elements.append(kpi_table)
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 8))
 
     elements.append(Paragraph("Sección 2 · Anomalías Detectadas", styles["HeadingSecondary"]))
-    anomaly_table = Table(data["anomaly_rows"], colWidths=[2.6 * cm, 2.4 * cm, 2.4 * cm, 2.2 * cm, 2.2 * cm, 3.4 * cm])
-    anomaly_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#D62728")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.lightgrey),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.HexColor("#f8fafc")]),
-            ]
-        )
-    )
+    anomaly_rows = data["anomaly_rows"]
+    anomaly_col_widths = [
+        doc.width * 0.14,
+        doc.width * 0.18,
+        doc.width * 0.1,
+        doc.width * 0.1,
+        doc.width * 0.12,
+        doc.width * 0.14,
+        doc.width * 0.22,
+    ]
+    anomaly_table = build_table(anomaly_rows, anomaly_col_widths)
+    table_style = [
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.HexColor("#f8fafc")]),
+    ]
+    for row_idx, row in enumerate(anomaly_rows[1:], start=1):
+        delta_pct = str(row[3]).replace("%", "").strip()
+        try:
+            delta_pct_val = float(delta_pct)
+        except ValueError:
+            delta_pct_val = 0.0
+        if delta_pct_val <= -0.5:
+            table_style.append(
+                ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#fdecea"))
+            )
+            table_style.append(
+                ("TEXTCOLOR", (2, row_idx), (3, row_idx), colors.HexColor("#D62728"))
+            )
+    anomaly_table.setStyle(TableStyle(table_style))
     elements.append(anomaly_table)
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 8))
 
-    elements.append(Paragraph("Sección 3 · Gráficos", styles["HeadingSecondary"]))
+    elements.append(Paragraph("Sección 3 · Gráficos Avanzados", styles["HeadingSecondary"]))
     for key, caption in data["chart_captions"].items():
         buf = chart_buffers.get(key)
         if buf:
-            elements.append(Image(buf, width=16 * cm, height=6 * cm))
+            elements.append(Image(buf, width=doc.width, height=5.5 * cm))
             elements.append(Paragraph(caption, styles["Body"]))
-            elements.append(Spacer(1, 6))
+            elements.append(Spacer(1, 4))
 
     elements.append(Paragraph("Sección 4 · Snapshots Recientes", styles["HeadingSecondary"]))
-    snapshot_table = Table(data["snapshot_rows"], colWidths=[3 * cm, 3.5 * cm, 6 * cm, 2.5 * cm])
+    snapshot_rows = data["snapshot_rows"]
+    snapshot_col_widths = [
+        doc.width * 0.18,
+        doc.width * 0.12,
+        doc.width * 0.16,
+        doc.width * 0.12,
+        doc.width * 0.12,
+        doc.width * 0.3,
+    ]
+    snapshot_table = build_table(snapshot_rows, snapshot_col_widths)
     snapshot_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F77B4")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.lightgrey),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.HexColor("#f8fafc")]),
             ]
         )
     )
     elements.append(snapshot_table)
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 8))
 
     elements.append(Paragraph("Sección 5 · Reglas Activas", styles["HeadingSecondary"]))
     for rule in data["rules_list"]:
         elements.append(Paragraph(f"• {rule}", styles["Body"]))
-    elements.append(Spacer(1, 8))
+    elements.append(Spacer(1, 6))
 
     elements.append(Paragraph("Sección 6 · Verificación Criptográfica", styles["HeadingSecondary"]))
     elements.append(Paragraph(data["crypto_text"], styles["Body"]))
     if data.get("qr"):
-        elements.append(Image(data["qr"], width=3 * cm, height=3 * cm))
-    elements.append(Spacer(1, 10))
+        elements.append(Image(data["qr"], width=3.2 * cm, height=3.2 * cm))
+    elements.append(Spacer(1, 8))
 
     elements.append(Paragraph("Sección 7 · Mapa de Riesgos y Gobernanza", styles["HeadingSecondary"]))
     elements.append(Paragraph(data["risk_text"], styles["Body"]))
     elements.append(Paragraph(data["governance_text"], styles["Body"]))
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 6))
 
     def draw_footer(canvas, _doc):
         canvas.saveState()
-        canvas.setFont("Helvetica", 8)
+        canvas.setFont(regular_font, 8)
         canvas.setFillColor(colors.grey)
-        canvas.drawString(1 * cm, 1 * cm / 2, data["footer_left"])
-        canvas.drawRightString(A4[0] - 1 * cm, 1 * cm / 2, data["footer_right"])
-        canvas.setFont("Helvetica", 42)
+        canvas.drawString(1.5 * cm, 0.75 * cm, data["footer_left"])
+        canvas.drawRightString(page_size[0] - 1.5 * cm, 0.75 * cm, data["footer_right"])
+        canvas.setFont(regular_font, 7)
+        canvas.drawString(1.5 * cm, 0.45 * cm, data.get("footer_disclaimer", ""))
+        canvas.setFont(bold_font, 32)
         canvas.setFillColor(colors.Color(0.12, 0.4, 0.6, alpha=0.08))
-        canvas.drawCentredString(A4[0] / 2, A4[1] / 2, "VERIFIABLE")
+        canvas.drawCentredString(page_size[0] / 2, page_size[1] / 2, "VERIFICABLE")
         canvas.restoreState()
 
-    doc.build(elements, onFirstPage=draw_footer, onLaterPages=draw_footer)
+    doc.build(elements, onFirstPage=draw_footer, onLaterPages=draw_footer, canvasmaker=NumberedCanvas)
     buffer.seek(0)
     return buffer.getvalue()
 
@@ -496,7 +752,13 @@ command_center_cfg = configs.get("command_center", {})
 
 anchor = load_blockchain_anchor()
 
-snapshot_files = load_snapshot_files()
+snapshot_source = st.sidebar.selectbox(
+    "Fuente de snapshots",
+    ["data", "data/2025"],
+    index=0,
+)
+snapshot_base_dir = Path(snapshot_source)
+snapshot_files = load_snapshot_files(snapshot_base_dir)
 progress = st.progress(0, text="Cargando snapshots inmutables…")
 for step in range(1, 5):
     progress.progress(step * 25, text=f"Sincronizando evidencia {step}/4")
@@ -511,7 +773,10 @@ rules_df = build_rules_table(command_center_cfg)
 rules_engine_output = run_rules_engine(snapshots_df, command_center_cfg)
 
 if snapshots_df.empty:
-    st.warning("No se encontraron snapshots en data/. El panel está en modo demo.")
+    st.warning(
+        f"No se encontraron snapshots en {snapshot_base_dir.as_posix()}/. "
+        "El panel está en modo demo."
+    )
 
 css = """
 <style>
@@ -567,16 +832,11 @@ departments = [
 ]
 
 selected_department = st.sidebar.selectbox("Departamento", ["Todos"] + departments, index=0)
-selected_level = st.sidebar.selectbox(
-    "Nivel", ["Todos", "Presidencial", "Diputados", "Municipales"], index=0
-)
 show_only_alerts = st.sidebar.toggle("Mostrar solo anomalías", value=False)
 
 filtered_snapshots = snapshots_df.copy()
 if selected_department != "Todos":
     filtered_snapshots = filtered_snapshots[filtered_snapshots["department"] == selected_department]
-if selected_level != "Todos":
-    filtered_snapshots = filtered_snapshots[filtered_snapshots["level"] == selected_level]
 
 if show_only_alerts:
     filtered_snapshots = filtered_snapshots[filtered_snapshots["status"] != "OK"]
@@ -649,17 +909,100 @@ with tabs[0]:
                 height=220,
             )
     with summary_cols[1]:
-        activity_chart = (
-            alt.Chart(filtered_snapshots)
-            .mark_bar(color="#1F77B4")
-            .encode(
-                x=alt.X("hour:N", title="Hora"),
-                y=alt.Y("changes:Q", title="Cambios"),
-                tooltip=["hour", "changes", "department"],
+        if not filtered_snapshots.empty:
+            activity_chart = (
+                alt.Chart(filtered_snapshots)
+                .mark_bar(color="#1F77B4")
+                .encode(
+                    x=alt.X("hour:N", title="Hora"),
+                    y=alt.Y("changes:Q", title="Cambios"),
+                    tooltip=["hour", "changes", "department"],
+                )
+                .properties(height=260, title="Actividad diurna")
             )
-            .properties(height=260, title="Actividad diurna")
+            st.altair_chart(activity_chart, use_container_width=True)
+        else:
+            st.info("Sin datos para actividad diurna en el rango seleccionado.")
+
+    st.markdown("#### Timeline interactivo")
+    if filtered_snapshots.empty:
+        st.info("No hay snapshots disponibles para el timeline.")
+        timeline_view = filtered_snapshots
+    else:
+        timeline_df = filtered_snapshots.copy()
+        timeline_df["timestamp_dt"] = pd.to_datetime(
+            timeline_df["timestamp"], errors="coerce", utc=True
         )
-        st.altair_chart(activity_chart, use_container_width=True)
+        timeline_df = timeline_df.sort_values("timestamp_dt")
+        timeline_labels = timeline_df["timestamp_dt"].fillna(
+            pd.to_datetime(timeline_df["timestamp"], errors="coerce")
+        )
+        timeline_labels = timeline_labels.dt.strftime("%Y-%m-%d %H:%M")
+        timeline_labels = timeline_labels.fillna(timeline_df["timestamp"].astype(str))
+        timeline_df["timeline_label"] = timeline_labels
+
+        range_indices = st.slider(
+            "Rango de tiempo",
+            min_value=0,
+            max_value=max(len(timeline_df) - 1, 0),
+            value=(0, max(len(timeline_df) - 1, 0)),
+            step=1,
+        )
+        speed_label = st.select_slider(
+            "Velocidad de avance",
+            options=["Lento", "Medio", "Rápido"],
+            value="Medio",
+        )
+        speed_step = {"Lento": 1, "Medio": 2, "Rápido": 4}[speed_label]
+
+        if "timeline_index" not in st.session_state:
+            st.session_state.timeline_index = range_indices[0]
+
+        st.session_state.timeline_index = max(
+            range_indices[0],
+            min(st.session_state.timeline_index, range_indices[1]),
+        )
+
+        play_cols = st.columns([0.12, 0.12, 0.2, 0.56])
+        with play_cols[0]:
+            if st.button("◀️"):
+                st.session_state.timeline_index = max(
+                    range_indices[0],
+                    st.session_state.timeline_index - speed_step,
+                )
+        with play_cols[1]:
+            if st.button("▶️"):
+                st.session_state.timeline_index = min(
+                    range_indices[1],
+                    st.session_state.timeline_index + speed_step,
+                )
+        with play_cols[2]:
+            if st.button("⏩ Play"):
+                st.session_state.timeline_index = min(
+                    range_indices[1],
+                    st.session_state.timeline_index + speed_step,
+                )
+                st.experimental_rerun()
+        with play_cols[3]:
+            st.markdown(
+                f"**Tiempo actual:** {timeline_df.iloc[st.session_state.timeline_index]['timeline_label']}"
+            )
+
+        timeline_view = timeline_df.iloc[
+            range_indices[0] : range_indices[1] + 1
+        ]
+
+        timeline_chart = (
+            alt.Chart(timeline_view)
+            .mark_bar(color="#2CA02C")
+            .encode(
+                x=alt.X("timeline_label:N", title="Tiempo"),
+                y=alt.Y("votes:Q", title="Votos"),
+                tooltip=["timeline_label", "votes", "delta", "department"],
+            )
+            .properties(height=240, title="Timeline de votos")
+        )
+        st.altair_chart(timeline_chart, use_container_width=True)
 
     chart_cols = st.columns(2)
     with chart_cols[0]:
@@ -734,7 +1077,9 @@ with tabs[1]:
 with tabs[2]:
     st.markdown("### Snapshots Recientes")
     st.dataframe(
-        filtered_snapshots[["timestamp", "department", "level", "delta", "status", "hash"]],
+        filtered_snapshots[
+            ["timestamp", "department", "candidate", "impact", "delta", "status", "hash"]
+        ],
         use_container_width=True,
         hide_index=True,
     )
@@ -760,10 +1105,11 @@ with tabs[3]:
         st.markdown(f"**Red:** {anchor.network} · **Timestamp:** {anchor.anchored_at}")
     with qr_col:
         st.markdown("#### QR")
-        if qrcode is None:
+        qr_bytes = build_qr_bytes(anchor.root_hash)
+        if qr_bytes is None:
             st.warning("QR no disponible: falta instalar la dependencia 'qrcode'.")
         else:
-            st.image(qrcode.make(anchor.root_hash), caption="Escanear hash de verificación")
+            st.image(qr_bytes, caption="Escanear hash de verificación")
 
 with tabs[4]:
     st.markdown("### Reportes y Exportación")
@@ -771,13 +1117,40 @@ with tabs[4]:
     report_payload = f"{anchor.root_hash}|{anchor.tx_url}|{report_time}"
     report_hash = compute_report_hash(report_payload)
 
+    snapshots_real = filtered_snapshots.copy()
+    if "is_real" in snapshots_real.columns:
+        snapshots_real = snapshots_real[snapshots_real["is_real"]]
     snapshot_rows = [
-        ["Timestamp", "Estado", "Detalle", "Hash"],
-    ] + filtered_snapshots[["timestamp", "status", "department", "hash"]].head(8).values.tolist()
+        ["Timestamp", "Dept", "Candidato", "Impacto", "Estado", "Hash"],
+    ] + snapshots_real[
+        ["timestamp", "department", "candidate", "impact", "status", "hash"]
+    ].head(10).values.tolist()
 
+    anomalies_sorted = filtered_anomalies.copy()
+    if not anomalies_sorted.empty:
+        anomalies_sorted["delta_abs"] = anomalies_sorted["delta"].abs()
+        anomalies_sorted = anomalies_sorted.sort_values("delta_abs", ascending=False)
+        if len(anomalies_sorted) > 10:
+            anomalies_sorted = (
+                anomalies_sorted.groupby("department", as_index=False)
+                .head(2)
+                .sort_values("delta_abs", ascending=False)
+                .head(12)
+            )
     anomaly_rows = [
-        ["Dept", "Nivel", "Candidato", "Δ abs", "Δ %", "Tipo"],
-    ] + filtered_anomalies[["department", "level", "candidate", "delta", "delta_pct", "type"]].head(8).values.tolist()
+        ["Dept", "Candidato", "Δ abs", "Δ %", "Hora", "Hash", "Tipo"],
+    ] + [
+        [
+            row.get("department"),
+            row.get("candidate"),
+            f"{row.get('delta', 0):.0f}",
+            f"{row.get('delta_pct', 0):.2f}%",
+            row.get("hour") or "",
+            row.get("hash") or "",
+            row.get("type"),
+        ]
+        for _, row in anomalies_sorted.head(12).iterrows()
+    ]
 
     rules_list = (
         rules_df.assign(summary=rules_df["rule"] + " (" + rules_df["thresholds"].fillna("-") + ")")
@@ -786,18 +1159,21 @@ with tabs[4]:
         .tolist()
     )
 
-    chart_buffers = create_pdf_charts(benford_df, filtered_snapshots, heatmap_df)
+    chart_buffers = create_pdf_charts(
+        benford_df,
+        filtered_snapshots,
+        heatmap_df,
+        filtered_anomalies,
+    )
 
-    if qrcode is not None:
-        qr_buffer = io.BytesIO()
-        qrcode.make(anchor.root_hash).save(qr_buffer, format="PNG")
-        qr_buffer.seek(0)
-    else:
-        qr_buffer = None
+    qr_buffer = None
+    qr_bytes = build_qr_bytes(anchor.root_hash)
+    if qr_bytes is not None:
+        qr_buffer = io.BytesIO(qr_bytes)
 
     pdf_data = {
         "title": "Informe de Auditoría C.E.N.T.I.N.E.L.",
-        "subtitle": "Estatus verificable con evidencia criptográfica",
+        "subtitle": f"Estatus verificable · Alcance {selected_department}",
         "generated": f"Fecha/hora: {report_time} UTC",
         "global_status": "ESTATUS GLOBAL: VERIFICABLE · SIN ANOMALÍAS CRÍTICAS",
         "executive_summary": "Auditoría digital con deltas por departamento, controles Benford y trazabilidad blockchain.",
@@ -812,21 +1188,23 @@ with tabs[4]:
         "risk_text": "Mapa de riesgos: deltas negativos, irregularidades temporales y dispersión geográfica.",
         "governance_text": "Gobernanza: trazabilidad, inmutabilidad y publicación auditada del JSON CNE.",
         "chart_captions": {
-            "benford": "Distribución Benford con comparación esperado/observado.",
-            "timeline": "Evolución de cambios por hora.",
-            "heatmap": "Mapa de anomalías por departamento y hora.",
+            "benford": "Distribución Benford: observado vs esperado (rojo cuando supera 5%).",
+            "timeline": "Timeline con puntos rojos en horas de anomalías.",
+            "heatmap": "Mapa de riesgos por departamento/hora (rojo = mayor riesgo).",
         },
         "qr": qr_buffer,
-        "footer_left": "Generado por Centinel-engine v5",
-        "footer_right": f"Hash reporte: {report_hash}",
+        "footer_left": f"Hash encadenado: {anchor.root_hash[:16]}…",
+        "footer_right": f"Hash reporte: {report_hash[:16]}…",
+        "footer_disclaimer": "Uso informativo bajo Ley de Transparencia · Auditoría ciudadana neutral.",
     }
 
     if REPORTLAB_AVAILABLE:
         pdf_bytes = build_pdf_report(pdf_data, chart_buffers)
+        dept_label = selected_department if selected_department != "Todos" else "nacional"
         st.download_button(
-            "Descargar Informe PDF",
+            f"Descargar Informe PDF ({dept_label})",
             data=pdf_bytes,
-            file_name="centinel_informe.pdf",
+            file_name=f"centinel_informe_{dept_label.lower().replace(' ', '_')}.pdf",
         )
     else:
         st.warning("Exportación PDF no disponible: falta instalar reportlab.")
