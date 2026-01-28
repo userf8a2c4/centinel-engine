@@ -232,7 +232,16 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
 
 def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(
+            columns=[
+                "department",
+                "candidate",
+                "delta",
+                "delta_pct",
+                "type",
+                "timestamp",
+            ]
+        )
     anomalies = df.loc[df["status"].isin(["ALERTA", "REVISAR"])].copy()
     anomalies["candidate"] = anomalies["department"].map(
         {
