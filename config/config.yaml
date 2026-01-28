@@ -5,6 +5,24 @@
 # Master switch for automatic processes (ON/OFF).
 master_switch: "ON"
 
+# Alcance analítico permitido.
+# Allowed analysis scope.
+scope:
+  - "presidential"
+
+# Deshabilita mockups en modo real.
+# Disable mockups in real mode.
+allow_mock: false
+
+# Dominios válidos del CNE para validar fuentes.
+# Valid CNE domains to validate sources.
+cne_domains:
+  - "cne.hn"
+
+# Edad máxima (horas) aceptada para timestamps del CNE.
+# Max age (hours) accepted for CNE timestamps.
+timestamp_max_age_hours: 24
+
 # URL base del API oficial (placeholder).
 # Base URL for the official API (placeholder).
 base_url: "https://api.example.com/cne/resultados"
@@ -147,75 +165,75 @@ sources:
   # Department sources (01-18).
   - name: "Atlántida"
     department_code: "01"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Choluteca"
     department_code: "02"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Colón"
     department_code: "03"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Comayagua"
     department_code: "04"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Copán"
     department_code: "05"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Cortés"
     department_code: "06"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "El Paraíso"
     department_code: "07"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Francisco Morazán"
     department_code: "08"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Gracias a Dios"
     department_code: "09"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Intibucá"
     department_code: "10"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Islas de la Bahía"
     department_code: "11"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "La Paz"
     department_code: "12"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Lempira"
     department_code: "13"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Ocotepeque"
     department_code: "14"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Olancho"
     department_code: "15"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Santa Bárbara"
     department_code: "16"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Valle"
     department_code: "17"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
   - name: "Yoro"
     department_code: "18"
-    level: "PD"
+    level: "PRES"
     scope: "DEPARTMENT"
 
 # Logging centralizado.
@@ -271,50 +289,60 @@ arbitrum:
 # Analysis rules.
 rules:
   global_enabled: true
+  basic_diff:
+    enabled: false
+  correlation_participation_vote:
+    enabled: false
+  geographic_dispersion:
+    enabled: false
+  last_digit_uniformity:
+    enabled: false
+  large_numbers:
+    enabled: false
+  mesas_diff:
+    enabled: false
+  null_blank:
+    enabled: false
+  participation_anomaly:
+    enabled: false
+  participation_anomaly_advanced:
+    enabled: false
+  processing_speed:
+    enabled: false
+  runs_test:
+    enabled: false
+  snapshot_jump:
+    enabled: false
+  table_consistency:
+    enabled: false
+  turnout_impossible:
+    enabled: false
   trend_shift:
     enabled: true
     threshold_percent: 10
     max_hours: 3
-  processing_speed:
-    enabled: true
-    max_actas_per_15min: 500
   irreversibility:
     enabled: true
     historical_participation_rate: 0.60
     sqlite_path: "reports/irreversibility_state.db"
   benford_law:
-    enabled: true
-    chi_square_threshold: 0.05
-    deviation_pct: 15
-    min_samples: 10
+    enabled: false
   ml_outliers:
-    enabled: true
-    contamination: 0.1
-    min_samples: 5
-  basic_diff:
-    enabled: true
-    relative_vote_change_pct: 15
-  participation_anomaly:
-    enabled: true
-    scrutiny_jump_pct: 5
+    enabled: false
   granular_anomaly:
     enabled: true
     negative_delta_threshold: 0
-    delta_pct_alert: 3.0
+    delta_pct_alert: 0.5
     delta_pct_time_window_minutes: 30
     zscore_threshold: 3.0
     zscore_min_abs_delta: 100
     zscore_min_departments: 5
     benford_pvalue_threshold: 0.05
-    benford_min_samples: 50
+    benford_min_samples: 10
     benford_min_vote: 10
     turnout_min_pct: 0
     turnout_max_pct: 100
-    mesa_min_registered: 300
-    mesa_min_turnout_pct: 2
-    mesa_max_turnout_pct: 100
     reversal_min_lead_margin: 500
     reversal_time_window_minutes: 30
     reversal_min_negative_delta: 100
-    actas_negative_delta_threshold: -1
-    mesas_negative_delta_threshold: -1
+    sum_mismatch_threshold: 1

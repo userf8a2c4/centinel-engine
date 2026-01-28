@@ -178,7 +178,6 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
         "Valle",
         "Yoro",
     ]
-    levels = ["Presidencial", "Diputados", "Municipales"]
     rows = []
     base_votes = 120_000
     for idx, snapshot in enumerate(snapshot_files):
@@ -199,7 +198,7 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
                 "votes": base_votes,
                 "changes": abs(delta) // 50,
                 "department": _pick_from_seed(seed, departments),
-                "level": _pick_from_seed(seed + 42, levels),
+                "level": "Presidencial",
                 "status": status,
             }
         )
@@ -229,7 +228,6 @@ def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     return anomalies[
         [
             "department",
-            "level",
             "candidate",
             "delta",
             "delta_pct",
@@ -567,16 +565,11 @@ departments = [
 ]
 
 selected_department = st.sidebar.selectbox("Departamento", ["Todos"] + departments, index=0)
-selected_level = st.sidebar.selectbox(
-    "Nivel", ["Todos", "Presidencial", "Diputados", "Municipales"], index=0
-)
 show_only_alerts = st.sidebar.toggle("Mostrar solo anomalías", value=False)
 
 filtered_snapshots = snapshots_df.copy()
 if selected_department != "Todos":
     filtered_snapshots = filtered_snapshots[filtered_snapshots["department"] == selected_department]
-if selected_level != "Todos":
-    filtered_snapshots = filtered_snapshots[filtered_snapshots["level"] == selected_level]
 
 if show_only_alerts:
     filtered_snapshots = filtered_snapshots[filtered_snapshots["status"] != "OK"]
@@ -734,7 +727,7 @@ with tabs[1]:
 with tabs[2]:
     st.markdown("### Snapshots Recientes")
     st.dataframe(
-        filtered_snapshots[["timestamp", "department", "level", "delta", "status", "hash"]],
+        filtered_snapshots[["timestamp", "department", "delta", "status", "hash"]],
         use_container_width=True,
         hide_index=True,
     )
@@ -776,8 +769,10 @@ with tabs[4]:
     ] + filtered_snapshots[["timestamp", "status", "department", "hash"]].head(8).values.tolist()
 
     anomaly_rows = [
-        ["Dept", "Nivel", "Candidato", "Δ abs", "Δ %", "Tipo"],
-    ] + filtered_anomalies[["department", "level", "candidate", "delta", "delta_pct", "type"]].head(8).values.tolist()
+        ["Dept", "Candidato", "Δ abs", "Δ %", "Tipo"],
+    ] + filtered_anomalies[
+        ["department", "candidate", "delta", "delta_pct", "type"]
+    ].head(8).values.tolist()
 
     rules_list = (
         rules_df.assign(summary=rules_df["rule"] + " (" + rules_df["thresholds"].fillna("-") + ")")
