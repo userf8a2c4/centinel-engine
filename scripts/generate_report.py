@@ -31,7 +31,15 @@ from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas as reportlab_canvas
-from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 
 def load_snapshot_files(base_dir: Path) -> list[dict]:
@@ -265,13 +273,18 @@ class NumberedCanvas(reportlab_canvas.Canvas):
         )
 
 
-def create_pdf_charts(benford_df: pd.DataFrame, votes_df: pd.DataFrame, heatmap_df: pd.DataFrame, anomalies_df: pd.DataFrame) -> dict:
+def create_pdf_charts(
+    benford_df: pd.DataFrame,
+    votes_df: pd.DataFrame,
+    heatmap_df: pd.DataFrame,
+    anomalies_df: pd.DataFrame,
+) -> dict:
     if plt is None:
         return {}
 
     chart_buffers = {}
 
-    fig, ax = plt.subplots(figsize=(6.8, 2.8))
+    fig, ax = plt.subplots(figsize=(7.2, 2.8))
     deviation = (benford_df["observed"] - benford_df["expected"]).abs()
     observed_colors = ["#D62728" if dev > 5 else "#2CA02C" for dev in deviation]
     ax.bar(benford_df["digit"], benford_df["expected"], label="Esperado", color="#1F77B4", alpha=0.75)
@@ -279,7 +292,7 @@ def create_pdf_charts(benford_df: pd.DataFrame, votes_df: pd.DataFrame, heatmap_
     ax.set_title("Distribución Benford (observado vs esperado)")
     ax.set_xlabel("Dígito")
     ax.set_ylabel("%")
-    ax.legend(loc="upper right", fontsize=8)
+    ax.legend(loc="upper right", fontsize=8, ncols=2)
     buf = io.BytesIO()
     fig.tight_layout()
     fig.savefig(buf, format="png", dpi=300)
@@ -288,7 +301,7 @@ def create_pdf_charts(benford_df: pd.DataFrame, votes_df: pd.DataFrame, heatmap_
     chart_buffers["benford"] = buf
 
     if not votes_df.empty:
-        fig, ax = plt.subplots(figsize=(6.8, 2.6))
+        fig, ax = plt.subplots(figsize=(7.2, 2.6))
         ax.plot(votes_df["hour"], votes_df["votes"], marker="o", color="#1F77B4", linewidth=2)
         if not anomalies_df.empty:
             ax.scatter(anomalies_df["hour"], anomalies_df["votes"], color="#D62728", marker="o", s=40, label="Anomalía")
@@ -307,13 +320,14 @@ def create_pdf_charts(benford_df: pd.DataFrame, votes_df: pd.DataFrame, heatmap_
 
     if not heatmap_df.empty:
         heatmap_pivot = heatmap_df.pivot(index="department", columns="hour", values="anomaly_count").fillna(0)
-        fig, ax = plt.subplots(figsize=(6.8, 3.0))
-        ax.imshow(heatmap_pivot.values, aspect="auto", cmap="Reds")
+        fig, ax = plt.subplots(figsize=(7.2, 3.0))
+        heatmap = ax.imshow(heatmap_pivot.values, aspect="auto", cmap="RdYlGn_r", vmin=0, vmax=10)
         ax.set_title("Mapa de anomalías por departamento/hora")
         ax.set_yticks(range(len(heatmap_pivot.index)))
         ax.set_yticklabels(heatmap_pivot.index, fontsize=6)
         ax.set_xticks(range(len(heatmap_pivot.columns)))
         ax.set_xticklabels([str(x) for x in heatmap_pivot.columns], fontsize=6)
+        fig.colorbar(heatmap, ax=ax, fraction=0.03, pad=0.02, label="Riesgo (0-10)")
         buf = io.BytesIO()
         fig.tight_layout()
         fig.savefig(buf, format="png", dpi=300)
@@ -331,10 +345,10 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     doc = SimpleDocTemplate(
         buffer,
         pagesize=page_size,
-        leftMargin=1.5 * cm,
-        rightMargin=1.5 * cm,
-        topMargin=1.5 * cm,
-        bottomMargin=1.5 * cm,
+        leftMargin=1 * cm,
+        rightMargin=1 * cm,
+        topMargin=1 * cm,
+        bottomMargin=1 * cm,
     )
 
     styles = getSampleStyleSheet()
@@ -358,6 +372,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(Paragraph("🔒 C.E.N.T.I.N.E.L. · Informe Ejecutivo", styles["HeadingPrimary"]))
     elements.append(Paragraph(data["subtitle"], styles["Body"]))
     elements.append(Paragraph(data["generated"], styles["Body"]))
+    elements.append(Paragraph("Nivel: Presidencial", styles["Body"]))
     elements.append(Paragraph(data["global_status"], styles["HeadingSecondary"]))
     elements.append(Spacer(1, 6))
 
@@ -380,7 +395,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             delta_pct_val = float(delta_pct)
         except ValueError:
             delta_pct_val = 0.0
-        if delta_pct_val <= -0.5:
+        if delta_pct_val <= -1.0:
             table_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#fdecea")))
             table_style.append(("TEXTCOLOR", (2, row_idx), (3, row_idx), colors.HexColor("#D62728")))
     anomaly_table.setStyle(TableStyle(table_style))
@@ -391,10 +406,11 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     for key, caption in data["chart_captions"].items():
         buf = chart_buffers.get(key)
         if buf:
-            elements.append(Image(buf, width=doc.width, height=5.5 * cm))
+            elements.append(Image(buf, width=doc.width, height=5.2 * cm))
             elements.append(Paragraph(caption, styles["Body"]))
             elements.append(Spacer(1, 4))
 
+    elements.append(PageBreak())
     elements.append(Paragraph("Sección 4 · Snapshots Recientes", styles["HeadingSecondary"]))
     snapshot_rows = data["snapshot_rows"]
     snapshot_col_widths = [doc.width * 0.18, doc.width * 0.12, doc.width * 0.16, doc.width * 0.12, doc.width * 0.12, doc.width * 0.3]
@@ -412,6 +428,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(Paragraph(data["crypto_text"], styles["Body"]))
     elements.append(Spacer(1, 8))
 
+    elements.append(PageBreak())
     elements.append(Paragraph("Sección 7 · Mapa de Riesgos y Gobernanza", styles["HeadingSecondary"]))
     elements.append(Paragraph(data["risk_text"], styles["Body"]))
     elements.append(Paragraph(data["governance_text"], styles["Body"]))
@@ -438,11 +455,14 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Genera PDF premium C.E.N.T.I.N.E.L.")
     parser.add_argument("--source-dir", default="data", help="Directorio de snapshots.")
-    parser.add_argument("--output", default="centinel_informe.pdf", help="Ruta PDF salida.")
+    parser.add_argument("--output", default="centinel_informe_nacional.pdf", help="Ruta PDF salida.")
+    parser.add_argument("--department", default="Nacional", help="Departamento (Nacional/Cortés/etc).")
     args = parser.parse_args()
 
     snapshots = load_snapshot_files(Path(args.source_dir))
     snapshot_df = build_snapshot_metrics(snapshots)
+    if args.department.lower() != "nacional":
+        snapshot_df = snapshot_df[snapshot_df["department"].str.lower() == args.department.lower()]
     anomalies_df = build_anomalies(snapshot_df)
     heatmap_df = build_heatmap(anomalies_df)
     benford_df = build_benford_data()
@@ -451,6 +471,12 @@ def main() -> None:
     if not anomalies_sorted.empty:
         anomalies_sorted["delta_abs"] = anomalies_sorted["delta"].abs()
         anomalies_sorted = anomalies_sorted.sort_values("delta_abs", ascending=False)
+        if len(anomalies_sorted) > 8:
+            anomalies_sorted = (
+                anomalies_sorted.groupby("department", as_index=False)
+                .head(2)
+                .sort_values("delta_abs", ascending=False)
+            )
 
     anomaly_rows = [
         ["Dept", "Candidato", "Δ abs", "Δ %", "Hora", "Hash", "Tipo"],
@@ -478,7 +504,7 @@ def main() -> None:
 
     data = {
         "title": "Informe de Auditoría C.E.N.T.I.N.E.L.",
-        "subtitle": "Estatus verificable · Alcance Nacional",
+        "subtitle": f"Estatus verificable · Alcance {args.department}",
         "generated": f"Fecha/hora: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC",
         "global_status": "ESTATUS GLOBAL: VERIFICABLE · SIN ANOMALÍAS CRÍTICAS",
         "executive_summary": "Auditoría digital con deltas por departamento, controles Benford y trazabilidad criptográfica.",

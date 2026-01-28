@@ -665,7 +665,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             delta_pct_val = float(delta_pct)
         except ValueError:
             delta_pct_val = 0.0
-        if delta_pct_val <= -0.5:
+        if delta_pct_val <= -1.0:
             table_style.append(
                 ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#fdecea"))
             )
