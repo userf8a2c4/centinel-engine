@@ -221,3 +221,5 @@ files = []
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
 content-hash = ""
+
+# Updated lock file to match pyproject.toml - 2026-01-28
