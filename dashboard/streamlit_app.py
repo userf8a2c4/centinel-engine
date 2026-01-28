@@ -112,6 +112,15 @@ def compute_report_hash(payload: str) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def build_qr_bytes(payload: str) -> bytes | None:
+    if qrcode is None:
+        return None
+    buffer = io.BytesIO()
+    qrcode.make(payload).save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
 def load_yaml_config(path: Path) -> dict:
     if not path.exists() or yaml is None:
         return {}
@@ -129,9 +138,9 @@ def load_configs() -> dict[str, dict]:
 
 
 @st.cache_data(show_spinner=False)
-def load_snapshot_files() -> list[dict[str, Any]]:
+def load_snapshot_files(base_dir: Path) -> list[dict[str, Any]]:
     snapshots = []
-    for path in sorted(Path("data").glob("snapshot_*.json")):
+    for path in sorted(base_dir.glob("snapshot_*.json")):
         content = path.read_text(encoding="utf-8")
         payload = json.loads(content)
         timestamp = payload.get("timestamp")
@@ -178,7 +187,6 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
         "Valle",
         "Yoro",
     ]
-    levels = ["Presidencial", "Diputados", "Municipales"]
     rows = []
     base_votes = 120_000
     for idx, snapshot in enumerate(snapshot_files):
@@ -199,7 +207,9 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
                 "votes": base_votes,
                 "changes": abs(delta) // 50,
                 "department": _pick_from_seed(seed, departments),
-                "level": _pick_from_seed(seed + 42, levels),
+                "level": "Presidencial",
+                "candidate": None,
+                "impact": None,
                 "status": status,
             }
         )
@@ -207,12 +217,31 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
     if not df.empty:
         df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
         df["hour"] = df["timestamp_dt"].dt.strftime("%H:%M")
+        df["candidate"] = df["department"].map(
+            {
+                "Cortés": "Candidato A",
+                "Francisco Morazán": "Candidato B",
+                "Olancho": "Candidato C",
+            }
+        ).fillna("Candidato D")
+        df["impact"] = df["delta"].apply(
+            lambda value: "Favorece" if value > 0 else "Afecta"
+        )
     return df
 
 
 def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(
+            columns=[
+                "department",
+                "candidate",
+                "delta",
+                "delta_pct",
+                "type",
+                "timestamp",
+            ]
+        )
     anomalies = df.loc[df["status"].isin(["ALERTA", "REVISAR"])].copy()
     anomalies["candidate"] = anomalies["department"].map(
         {
@@ -229,7 +258,6 @@ def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     return anomalies[
         [
             "department",
-            "level",
             "candidate",
             "delta",
             "delta_pct",
@@ -496,7 +524,13 @@ command_center_cfg = configs.get("command_center", {})
 
 anchor = load_blockchain_anchor()
 
-snapshot_files = load_snapshot_files()
+snapshot_source = st.sidebar.selectbox(
+    "Fuente de snapshots",
+    ["data", "data/2025"],
+    index=0,
+)
+snapshot_base_dir = Path(snapshot_source)
+snapshot_files = load_snapshot_files(snapshot_base_dir)
 progress = st.progress(0, text="Cargando snapshots inmutables…")
 for step in range(1, 5):
     progress.progress(step * 25, text=f"Sincronizando evidencia {step}/4")
@@ -511,7 +545,10 @@ rules_df = build_rules_table(command_center_cfg)
 rules_engine_output = run_rules_engine(snapshots_df, command_center_cfg)
 
 if snapshots_df.empty:
-    st.warning("No se encontraron snapshots en data/. El panel está en modo demo.")
+    st.warning(
+        f"No se encontraron snapshots en {snapshot_base_dir.as_posix()}/. "
+        "El panel está en modo demo."
+    )
 
 css = """
 <style>
@@ -567,16 +604,11 @@ departments = [
 ]
 
 selected_department = st.sidebar.selectbox("Departamento", ["Todos"] + departments, index=0)
-selected_level = st.sidebar.selectbox(
-    "Nivel", ["Todos", "Presidencial", "Diputados", "Municipales"], index=0
-)
 show_only_alerts = st.sidebar.toggle("Mostrar solo anomalías", value=False)
 
 filtered_snapshots = snapshots_df.copy()
 if selected_department != "Todos":
     filtered_snapshots = filtered_snapshots[filtered_snapshots["department"] == selected_department]
-if selected_level != "Todos":
-    filtered_snapshots = filtered_snapshots[filtered_snapshots["level"] == selected_level]
 
 if show_only_alerts:
     filtered_snapshots = filtered_snapshots[filtered_snapshots["status"] != "OK"]
@@ -734,7 +766,9 @@ with tabs[1]:
 with tabs[2]:
     st.markdown("### Snapshots Recientes")
     st.dataframe(
-        filtered_snapshots[["timestamp", "department", "level", "delta", "status", "hash"]],
+        filtered_snapshots[
+            ["timestamp", "department", "candidate", "impact", "delta", "status", "hash"]
+        ],
         use_container_width=True,
         hide_index=True,
     )
@@ -760,10 +794,11 @@ with tabs[3]:
         st.markdown(f"**Red:** {anchor.network} · **Timestamp:** {anchor.anchored_at}")
     with qr_col:
         st.markdown("#### QR")
-        if qrcode is None:
+        qr_bytes = build_qr_bytes(anchor.root_hash)
+        if qr_bytes is None:
             st.warning("QR no disponible: falta instalar la dependencia 'qrcode'.")
         else:
-            st.image(qrcode.make(anchor.root_hash), caption="Escanear hash de verificación")
+            st.image(qr_bytes, caption="Escanear hash de verificación")
 
 with tabs[4]:
     st.markdown("### Reportes y Exportación")
@@ -772,12 +807,16 @@ with tabs[4]:
     report_hash = compute_report_hash(report_payload)
 
     snapshot_rows = [
-        ["Timestamp", "Estado", "Detalle", "Hash"],
-    ] + filtered_snapshots[["timestamp", "status", "department", "hash"]].head(8).values.tolist()
+        ["Timestamp", "Dept", "Candidato", "Impacto", "Estado", "Hash"],
+    ] + filtered_snapshots[
+        ["timestamp", "department", "candidate", "impact", "status", "hash"]
+    ].head(8).values.tolist()
 
     anomaly_rows = [
-        ["Dept", "Nivel", "Candidato", "Δ abs", "Δ %", "Tipo"],
-    ] + filtered_anomalies[["department", "level", "candidate", "delta", "delta_pct", "type"]].head(8).values.tolist()
+        ["Dept", "Candidato", "Δ abs", "Δ %", "Tipo"],
+    ] + filtered_anomalies[
+        ["department", "candidate", "delta", "delta_pct", "type"]
+    ].head(8).values.tolist()
 
     rules_list = (
         rules_df.assign(summary=rules_df["rule"] + " (" + rules_df["thresholds"].fillna("-") + ")")
@@ -788,12 +827,10 @@ with tabs[4]:
 
     chart_buffers = create_pdf_charts(benford_df, filtered_snapshots, heatmap_df)
 
-    if qrcode is not None:
-        qr_buffer = io.BytesIO()
-        qrcode.make(anchor.root_hash).save(qr_buffer, format="PNG")
-        qr_buffer.seek(0)
-    else:
-        qr_buffer = None
+    qr_buffer = None
+    qr_bytes = build_qr_bytes(anchor.root_hash)
+    if qr_bytes is not None:
+        qr_buffer = io.BytesIO(qr_bytes)
 
     pdf_data = {
         "title": "Informe de Auditoría C.E.N.T.I.N.E.L.",
