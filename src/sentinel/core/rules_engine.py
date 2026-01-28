@@ -15,6 +15,7 @@ from sentinel.core.rules import (
     benford_first_digit_rule,
     correlation_participation_vote_rule,
     geographic_dispersion_rule,
+    granular_anomaly_rule,
     last_digit_uniformity_rule,
     large_numbers_rule,
     mesas_diff_rule,

@@ -39,6 +39,7 @@ Esta carpeta contiene una regla de análisis por archivo. Cada regla es independ
 - runs_test_rule.py
 - mesas_diff_rule.py
 - large_numbers_rule.py
+- granular_anomaly_rule.py
 
 ---
 
@@ -81,3 +82,4 @@ This folder contains one analysis rule per file. Each rule is independent, self-
 - runs_test_rule.py
 - mesas_diff_rule.py
 - large_numbers_rule.py
+- granular_anomaly_rule.py

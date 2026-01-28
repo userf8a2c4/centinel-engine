@@ -297,3 +297,24 @@ rules:
   participation_anomaly:
     enabled: true
     scrutiny_jump_pct: 5
+  granular_anomaly:
+    enabled: true
+    negative_delta_threshold: 0
+    delta_pct_alert: 3.0
+    delta_pct_time_window_minutes: 30
+    zscore_threshold: 3.0
+    zscore_min_abs_delta: 100
+    zscore_min_departments: 5
+    benford_pvalue_threshold: 0.05
+    benford_min_samples: 50
+    benford_min_vote: 10
+    turnout_min_pct: 0
+    turnout_max_pct: 100
+    mesa_min_registered: 300
+    mesa_min_turnout_pct: 2
+    mesa_max_turnout_pct: 100
+    reversal_min_lead_margin: 500
+    reversal_time_window_minutes: 30
+    reversal_min_negative_delta: 100
+    actas_negative_delta_threshold: -1
+    mesas_negative_delta_threshold: -1
