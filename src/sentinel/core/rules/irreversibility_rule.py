@@ -19,6 +19,11 @@ from sentinel.core.rules.common import (
 
 
 def _ensure_db(path: str) -> None:
+    """Crea el archivo SQLite y la tabla de estado si no existen.
+
+    English:
+        Create the SQLite file and state table if they do not exist.
+    """
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with sqlite3.connect(path) as connection:
         cursor = connection.cursor()
@@ -36,6 +41,17 @@ def _ensure_db(path: str) -> None:
 
 
 def _load_state(path: str, scope: str) -> Optional[Tuple[str, int, str]]:
+    """Carga el estado de irreversibilidad para un alcance específico.
+
+    Devuelve una tupla con líder, flag de irreversibilidad y timestamp o None
+    si no hay estado previo.
+
+    English:
+        Load irreversibility state for a given scope.
+
+        Returns a tuple with leader, irreversible flag, and timestamp or None
+        if no previous state exists.
+    """
     if not os.path.exists(path):
         return None
     with sqlite3.connect(path) as connection:
@@ -51,6 +67,15 @@ def _load_state(path: str, scope: str) -> Optional[Tuple[str, int, str]]:
 def _save_state(
     path: str, scope: str, leader: str, irreversible: bool, timestamp: str
 ) -> None:
+    """Persiste el estado de irreversibilidad en SQLite.
+
+    Inserta o actualiza el registro por scope de forma idempotente.
+
+    English:
+        Persist the irreversibility state in SQLite.
+
+        Inserts or updates the per-scope record in an idempotent way.
+    """
     _ensure_db(path)
     with sqlite3.connect(path) as connection:
         cursor = connection.cursor()
@@ -71,6 +96,15 @@ def _save_state(
 def _top_two_candidates(
     votes: Dict[str, Dict[str, object]],
 ) -> Optional[Tuple[str, int, str, int]]:
+    """Obtiene el par líder/segundo con sus votos totales.
+
+    Ordena candidatos por votos para devolver identificadores y conteos.
+
+    English:
+        Get the leader/runner-up pair with their vote totals.
+
+        Sorts candidates by votes to return identifiers and counts.
+    """
     if not votes:
         return None
     sorted_votes = sorted(

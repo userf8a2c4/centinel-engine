@@ -23,6 +23,17 @@ from sentinel.core.rules.registry import rule
 
 
 def _extract_level(data: dict) -> Optional[str]:
+    """Obtiene el nivel electoral desde el payload.
+
+    Consulta claves comunes y metadatos para identificar nivel (nacional,
+    departamental, etc.).
+
+    English:
+        Obtain the election level from the payload.
+
+        Looks up common keys and metadata to identify level (national,
+        departmental, etc.).
+    """
     metadata = data.get("metadata") or data.get("meta") or {}
     return (
         data.get("election_level")
@@ -34,6 +45,15 @@ def _extract_level(data: dict) -> Optional[str]:
 
 
 def _extract_department_from_payload(data: dict) -> str:
+    """Extrae el departamento desde estructuras de geografía o meta.
+
+    Usa múltiples claves y cae al extractor genérico si no se encuentra.
+
+    English:
+        Extract the department from geography or metadata structures.
+
+        Uses multiple keys and falls back to the generic extractor when needed.
+    """
     geography = data.get("geography") or {}
     return (
         data.get("department")
@@ -46,6 +66,17 @@ def _extract_department_from_payload(data: dict) -> str:
 
 
 def _candidate_rows(snapshot: dict) -> List[dict]:
+    """Construye filas normalizadas de votos por candidato.
+
+    Genera filas con departamento, nivel, identificador del candidato, votos y
+    timestamp para análisis tabular.
+
+    English:
+        Build normalized candidate vote rows.
+
+        Produces rows with department, level, candidate identifiers, votes, and
+        timestamps for tabular analysis.
+    """
     rows: List[dict] = []
     timestamp = parse_timestamp(snapshot)
     base_department = _extract_department_from_payload(snapshot)
@@ -74,6 +105,16 @@ def _candidate_rows(snapshot: dict) -> List[dict]:
 
 
 def _totals_rows(snapshot: dict) -> List[dict]:
+    """Construye filas normalizadas de totales por departamento.
+
+    Incluye votos totales, registrados y timestamp para análisis de turnout.
+
+    English:
+        Build normalized total rows per department.
+
+        Includes total votes, registered voters, and timestamps for turnout
+        analysis.
+    """
     rows: List[dict] = []
     timestamp = parse_timestamp(snapshot)
     base_department = _extract_department_from_payload(snapshot)
@@ -99,6 +140,15 @@ def _totals_rows(snapshot: dict) -> List[dict]:
 
 
 def _first_digit(values: Iterable[int]) -> List[int]:
+    """Extrae el primer dígito de una lista de valores numéricos.
+
+    Ignora ceros y valores nulos, devolviendo dígitos del 1 al 9.
+
+    English:
+        Extract the first digit from a list of numeric values.
+
+        Ignores zeros and nulls, returning digits from 1 to 9.
+    """
     digits: List[int] = []
     for value in values:
         if value is None:
@@ -111,6 +161,15 @@ def _first_digit(values: Iterable[int]) -> List[int]:
 
 
 def _compute_zscores(series: pd.Series) -> pd.Series:
+    """Calcula z-scores con manejo de series vacías o varianza cero.
+
+    Retorna cero cuando la desviación estándar no es válida para evitar NaN.
+
+    English:
+        Compute z-scores with empty-series and zero-variance handling.
+
+        Returns zeros when the standard deviation is invalid to avoid NaN.
+    """
     if series.empty:
         return series
     mean = series.mean()

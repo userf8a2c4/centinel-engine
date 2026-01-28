@@ -20,6 +20,15 @@ from sentinel.core.rules.registry import rule
 
 
 def _last_digit(number: int) -> Optional[int]:
+    """Devuelve el último dígito de un entero no negativo.
+
+    Retorna None para valores negativos para evitar sesgos en la prueba.
+
+    English:
+        Return the last digit of a non-negative integer.
+
+        Returns None for negative values to avoid bias in the test.
+    """
     if number < 0:
         return None
     return int(str(number)[-1])

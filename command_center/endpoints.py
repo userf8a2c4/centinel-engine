@@ -32,12 +32,27 @@ class EndpointRegistry:
     endpoints: dict[str, Endpoint] = field(default_factory=dict)
 
     def add(self, endpoint: Endpoint) -> None:
+        """Registra un endpoint en el catálogo.
+
+        English:
+            Register an endpoint in the catalog.
+        """
         self.endpoints[endpoint.name] = endpoint
 
     def remove(self, name: str) -> None:
+        """Elimina un endpoint por nombre si existe.
+
+        English:
+            Remove an endpoint by name if it exists.
+        """
         self.endpoints.pop(name, None)
 
     def list_enabled(self) -> Iterable[Endpoint]:
+        """Itera endpoints habilitados en el catálogo.
+
+        English:
+            Iterate over enabled endpoints in the catalog.
+        """
         return (endpoint for endpoint in self.endpoints.values() if endpoint.enabled)
 
 

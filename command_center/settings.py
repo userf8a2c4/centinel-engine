@@ -41,4 +41,9 @@ class CommandCenterSettings:
     metadata: dict[str, str] = field(default_factory=dict)
 
     def is_active(self) -> bool:
+        """Indica si el centro de comando está habilitado.
+
+        English:
+            Indicate whether the command center is enabled.
+        """
         return self.master_switch.enabled

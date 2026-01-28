@@ -41,6 +41,17 @@ app.add_middleware(
 )
 
 def _env_int(name: str, default: int) -> int:
+    """Lee una variable de entorno como entero con fallback seguro.
+
+    Usa `default` cuando la variable no está definida o no es válida, además de
+    registrar el valor inválido para trazabilidad operativa.
+
+    English:
+        Read an environment variable as an integer with a safe fallback.
+
+        Uses `default` when the variable is unset or invalid, and logs invalid
+        values for operational traceability.
+    """
     raw = os.getenv(name, "").strip()
     if not raw:
         return default
@@ -66,6 +77,17 @@ compare_rate_limiter = RateLimiter(
 
 
 def _get_client_ip(request: Request) -> str:
+    """Determina la IP del cliente respetando encabezados de proxy.
+
+    Prefiere `x-forwarded-for` (primer IP) y cae al host del cliente si no
+    existe, devolviendo "unknown" cuando no hay información.
+
+    English:
+        Determine the client IP honoring proxy headers.
+
+        Prefers `x-forwarded-for` (first IP) and falls back to the client host,
+        returning "unknown" when no information is available.
+    """
     forwarded_for = request.headers.get("x-forwarded-for", "").strip()
     if forwarded_for:
         return forwarded_for.split(",")[0].strip()
@@ -74,6 +96,15 @@ def _get_client_ip(request: Request) -> str:
 
 @app.exception_handler(RateLimitExceeded)
 def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:  # noqa: ARG001
+    """Devuelve una respuesta HTTP 429 cuando se excede el rate limit.
+
+    Incluye un mensaje claro para el usuario final sin exponer detalles internos.
+
+    English:
+        Return an HTTP 429 response when the rate limit is exceeded.
+
+        Includes a clear user-facing message without exposing internal details.
+    """
     return JSONResponse(
         status_code=429,
         content={"error": "Demasiadas solicitudes. Intenta de nuevo en un minuto."},
@@ -82,6 +113,16 @@ def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse
 
 @app.middleware("http")
 async def enforce_global_rate_limit(request: Request, call_next):
+    """Middleware global que aplica rate limiting por IP.
+
+    Bloquea solicitudes cuando se supera la cuota y delega al siguiente handler
+    cuando la solicitud es permitida.
+
+    English:
+        Global middleware that enforces IP-based rate limiting.
+
+        Blocks requests when the quota is exceeded and forwards allowed requests.
+    """
     client_ip = _get_client_ip(request)
     if not global_rate_limiter.allow(client_ip):
         raise RateLimitExceeded()
@@ -89,6 +130,15 @@ async def enforce_global_rate_limit(request: Request, call_next):
 
 
 def enforce_compare_rate_limit(request: Request) -> None:
+    """Aplica rate limit específico para el endpoint de comparación.
+
+    Se usa como dependencia para proteger operaciones más costosas.
+
+    English:
+        Apply a specific rate limit for the compare endpoint.
+
+        Used as a dependency to protect more expensive operations.
+    """
     client_ip = _get_client_ip(request)
     if not compare_rate_limiter.allow(client_ip):
         raise RateLimitExceeded()

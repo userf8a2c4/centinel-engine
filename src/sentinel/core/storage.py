@@ -274,6 +274,15 @@ class LocalSnapshotStore:
                 writer.writerow({key: row[key] for key in fieldnames})
 
     def _fetch_department_rows(self, department_code: str) -> Iterable[sqlite3.Row]:
+        """Obtiene filas de snapshots por departamento ordenadas por timestamp.
+
+        Asegura que la tabla del departamento exista antes de consultar.
+
+        English:
+            Fetch snapshot rows for a department ordered by timestamp.
+
+            Ensures the department table exists before querying.
+        """
         table_name = self._department_table_name(department_code)
         self._ensure_department_table(table_name)
         return self._connection.execute(
@@ -298,6 +307,11 @@ class LocalSnapshotStore:
         ).fetchall()
 
     def _ensure_index_table(self) -> None:
+        """Garantiza la existencia de la tabla índice y columnas opcionales.
+
+        English:
+            Ensure the index table and optional columns exist.
+        """
         self._connection.execute(
             """
             CREATE TABLE IF NOT EXISTS snapshot_index (
@@ -318,6 +332,15 @@ class LocalSnapshotStore:
         self._ensure_column("snapshot_index", "ipfs_tx_hash", "TEXT")
 
     def _ensure_department_table(self, table_name: str) -> None:
+        """Crea la tabla de snapshots de un departamento si falta.
+
+        También asegura índices y columnas adicionales (tx/IPFS).
+
+        English:
+            Create the department snapshot table if missing.
+
+            Also ensures indexes and extra columns (tx/IPFS).
+        """
         self._connection.execute(
             f"""
             CREATE TABLE IF NOT EXISTS {table_name} (
@@ -346,12 +369,22 @@ class LocalSnapshotStore:
 
     @staticmethod
     def _department_table_name(department_code: str) -> str:
+        """Normaliza el código de departamento y genera el nombre de tabla.
+
+        English:
+            Normalize the department code and build the table name.
+        """
         sanitized = "".join(char for char in department_code if char.isalnum())
         return f"dept_{sanitized}_snapshots"
 
     def _ensure_column(
         self, table_name: str, column_name: str, column_type: str
     ) -> None:
+        """Agrega una columna si no existe en la tabla indicada.
+
+        English:
+            Add a column if it does not exist in the specified table.
+        """
         cursor = self._connection.execute(f"PRAGMA table_info({table_name})")
         columns = {row[1] for row in cursor.fetchall()}
         if column_name in columns:

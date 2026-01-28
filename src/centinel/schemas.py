@@ -30,6 +30,11 @@ class ActaSchema(BaseModel):
     @field_validator("acta_id", "junta_receptora", "departamento", "municipio", "centro_votacion")
     @classmethod
     def strip_text(cls, value: str) -> str:
+        """Normaliza texto eliminando espacios y valida no vacío.
+
+        English:
+            Normalize text by trimming whitespace and validate non-empty.
+        """
         cleaned = value.strip()
         if not cleaned:
             raise ValueError("Field cannot be empty")
@@ -53,6 +58,11 @@ class ResultadosSchema(BaseModel):
     @field_validator("acta_id", "partido", "candidato")
     @classmethod
     def strip_text(cls, value: str) -> str:
+        """Normaliza texto eliminando espacios y valida no vacío.
+
+        English:
+            Normalize text by trimming whitespace and validate non-empty.
+        """
         cleaned = value.strip()
         if not cleaned:
             raise ValueError("Field cannot be empty")
@@ -61,6 +71,11 @@ class ResultadosSchema(BaseModel):
     @field_validator("mesas_contabilizadas")
     @classmethod
     def mesas_no_mayor_que_total(cls, value: int, info) -> int:
+        """Garantiza que mesas contabilizadas no supere el total.
+
+        English:
+            Ensure accounted tables do not exceed the total count.
+        """
         total = info.data.get("total_mesas", 0)
         if value > total:
             raise ValueError("mesas_contabilizadas cannot exceed total_mesas")

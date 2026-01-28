@@ -16,6 +16,15 @@ from sentinel.core.rules.registry import rule
 
 
 def _normalize_ratio(value: float) -> float:
+    """Normaliza porcentajes a proporciones cuando superan 1.
+
+    Permite aceptar valores en rango 0-1 o en porcentaje 0-100.
+
+    English:
+        Normalize percentages to proportions when values exceed 1.
+
+        Allows inputs in the 0-1 range or percentage 0-100 range.
+    """
     return value / 100 if value > 1 else value
 
 

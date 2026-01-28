@@ -12,6 +12,15 @@ from playwright.sync_api import sync_playwright
 
 
 def _build_url(base_url: str, params: Mapping[str, str]) -> str:
+    """Combina URL base y parámetros en una URL completa.
+
+    Preserva parámetros existentes y sobrescribe con los provistos.
+
+    English:
+        Combine a base URL and parameters into a full URL.
+
+        Preserves existing parameters and overrides with provided ones.
+    """
     split = urlsplit(base_url)
     query = dict(parse_qsl(split.query))
     query.update({key: str(value) for key, value in params.items()})
@@ -21,6 +30,11 @@ def _build_url(base_url: str, params: Mapping[str, str]) -> str:
 
 
 def _apply_stealth(page) -> None:
+    """Inyecta scripts básicos para reducir detección de bots.
+
+    English:
+        Inject basic scripts to reduce bot detection.
+    """
     page.add_init_script(
         """
         Object.defineProperty(navigator, 'webdriver', {get: () => undefined});

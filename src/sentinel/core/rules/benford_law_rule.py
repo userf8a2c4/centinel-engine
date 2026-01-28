@@ -15,9 +15,25 @@ from sentinel.core.rules.common import extract_department, safe_int_or_none
 
 
 def _collect_votes_by_candidate(data: dict) -> Dict[str, List[int]]:
+    """Agrupa votos por candidato desde estructuras heterogéneas.
+
+    Inspecciona listas de candidatos y mesas, filtrando votos inválidos o
+    negativos, para construir series por candidato.
+
+    English:
+        Group votes per candidate from heterogeneous structures.
+
+        Inspects candidate lists and tables, filtering invalid or negative
+        counts to build per-candidate series.
+    """
     votes_by_candidate: Dict[str, List[int]] = collections.defaultdict(list)
 
     def append_votes(entries: object) -> None:
+        """Extrae votos desde una lista y los agrega por candidato.
+
+        English:
+            Extract votes from a list and append them per candidate.
+        """
         if not isinstance(entries, list):
             return
         for entry in entries:

@@ -15,6 +15,15 @@ from sentinel.core.rules.common import (
 
 
 def _compute_percentages(votes: Dict[str, Dict[str, object]]) -> Dict[str, float]:
+    """Calcula porcentaje de votos por candidato respecto al total.
+
+    Retorna un mapa id->porcentaje y evita divisiones por cero.
+
+    English:
+        Compute vote percentages per candidate relative to the total.
+
+        Returns an id->percentage map and avoids division by zero.
+    """
     total_votes = sum(int(candidate.get("votes") or 0) for candidate in votes.values())
     if total_votes <= 0:
         return {}

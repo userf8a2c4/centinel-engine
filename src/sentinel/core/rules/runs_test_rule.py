@@ -20,6 +20,15 @@ from sentinel.core.rules.registry import rule
 
 
 def _runs_test(sequence: List[int]) -> float:
+    """Calcula el p-value del runs test para una secuencia binaria.
+
+    Evalúa la aleatoriedad de rachas 0/1 y retorna p-value bilateral.
+
+    English:
+        Compute the runs test p-value for a binary sequence.
+
+        Evaluates randomness of 0/1 runs and returns a two-sided p-value.
+    """
     if not sequence:
         return 1.0
     runs = 1

@@ -21,6 +21,17 @@ from sentinel.core.rules.registry import rule
 
 
 def _first_digit(number: int) -> Optional[int]:
+    """Extrae el primer dígito de un entero positivo.
+
+    Devuelve None para valores no positivos, evitando falsos positivos en la
+    estadística de Benford.
+
+    English:
+        Extract the first digit from a positive integer.
+
+        Returns None for non-positive values to avoid false positives in
+        Benford calculations.
+    """
     if number <= 0:
         return None
     return int(str(number)[0])

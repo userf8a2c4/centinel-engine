@@ -48,10 +48,24 @@ class RulesEngine:
     """
 
     def __init__(self, config: dict, log_path: Optional[Path] = None) -> None:
+        """Inicializa el motor con configuración de reglas y logging opcional.
+
+        English:
+            Initialize the engine with rule configuration and optional logging.
+        """
         self.config = config
         self.log_path = log_path
 
     def _rule_enabled(self, rule: RuleDefinition) -> bool:
+        """Determina si una regla está habilitada según la configuración.
+
+        Respeta el flag global y el flag específico de la regla.
+
+        English:
+            Determine whether a rule is enabled based on configuration.
+
+            Respects the global flag and the per-rule flag.
+        """
         rules_config = self.config.get("rules", {})
         if not rules_config.get("global_enabled", True):
             return False
@@ -64,6 +78,17 @@ class RulesEngine:
         previous_data: Optional[dict],
         snapshot_id: Optional[str] = None,
     ) -> RulesEngineResult:
+        """Ejecuta todas las reglas registradas sobre el snapshot actual.
+
+        Acumula alertas, destaca severidades críticas y puede pausar snapshots
+        cuando existen alertas críticas.
+
+        English:
+            Run all registered rules against the current snapshot.
+
+            Accumulates alerts, highlights critical severities, and can signal
+            snapshot pause when critical alerts exist.
+        """
         alerts: list[dict] = []
         critical_alerts: list[dict] = []
 
@@ -118,6 +143,15 @@ class RulesEngine:
         alerts: list[dict],
         error: Optional[str] = None,
     ) -> None:
+        """Registra en disco el resultado de ejecutar una regla.
+
+        Guarda un JSON por línea con metadatos, alertas y error opcional.
+
+        English:
+            Persist the result of a rule execution to disk.
+
+            Writes one JSON line with metadata, alerts, and an optional error.
+        """
         if not self.log_path:
             return
         event = {

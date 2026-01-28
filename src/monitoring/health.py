@@ -25,6 +25,11 @@ class HealthcheckClient:
     """Cliente para enviar pings a Healthchecks.io."""
 
     def __init__(self, uuid: str, timeout_seconds: float = 5.0) -> None:
+        """Configura el cliente con UUID y timeout de red.
+
+        English:
+            Configure the client with UUID and network timeout.
+        """
         self._uuid = uuid
         self._timeout = timeout_seconds
         self._base_url = f"https://hc-ping.com/{uuid}"
@@ -52,6 +57,11 @@ class HealthcheckState:
     """Mantiene estado de fallos consecutivos para scraping."""
 
     def __init__(self, client: Optional[HealthcheckClient], threshold: int = 3) -> None:
+        """Inicializa estado y umbral de fallos consecutivos.
+
+        English:
+            Initialize state and consecutive failure threshold.
+        """
         self._client = client
         self._threshold = threshold
         self._failures = 0
@@ -59,15 +69,30 @@ class HealthcheckState:
 
     @classmethod
     def from_env(cls) -> "HealthcheckState":
+        """Construye el estado desde variables de entorno.
+
+        English:
+            Build state from environment variables.
+        """
         uuid = os.getenv("HEALTHCHECKS_UUID", "").strip()
         client = HealthcheckClient(uuid) if uuid else None
         return cls(client=client, threshold=3)
 
     def record_success(self) -> None:
+        """Registra un éxito y reinicia el contador de fallos.
+
+        English:
+            Record a success and reset the failure counter.
+        """
         with self._lock:
             self._failures = 0
 
     def record_failure(self, *, critical: bool = False) -> None:
+        """Registra un fallo y envía ping de error si aplica.
+
+        English:
+            Record a failure and send a failure ping when appropriate.
+        """
         with self._lock:
             self._failures += 1
             send_fail = critical or self._failures > self._threshold
@@ -91,12 +116,22 @@ def reset_health_state() -> None:
 
 
 def _build_health_router():
+    """Crea el router FastAPI con el endpoint de health.
+
+    English:
+        Create the FastAPI router with the health endpoint.
+    """
     from fastapi import APIRouter
 
     router = APIRouter()
 
     @router.get("/health")
     def health() -> dict[str, str]:
+        """Responde con estado OK para monitoreo básico.
+
+        English:
+            Respond with OK status for basic monitoring.
+        """
         return {"status": "ok"}
 
     return router

@@ -32,12 +32,27 @@ class RuleRegistry:
     rules: dict[str, RuleConfig] = field(default_factory=dict)
 
     def add(self, rule: RuleConfig) -> None:
+        """Registra una regla en el catálogo.
+
+        English:
+            Register a rule in the catalog.
+        """
         self.rules[rule.name] = rule
 
     def remove(self, name: str) -> None:
+        """Elimina una regla por nombre si existe.
+
+        English:
+            Remove a rule by name if it exists.
+        """
         self.rules.pop(name, None)
 
     def list_enabled(self) -> Iterable[RuleConfig]:
+        """Itera reglas habilitadas en el catálogo.
+
+        English:
+            Iterate over enabled rules in the catalog.
+        """
         return (rule for rule in self.rules.values() if rule.enabled)
 
 

@@ -17,6 +17,15 @@ from sentinel.core.rules.registry import rule
 
 
 def _extract_department_candidate_shares(entry: dict) -> Dict[str, float]:
+    """Calcula el porcentaje de votos por candidato en un departamento.
+
+    Normaliza los votos del departamento y devuelve proporciones entre 0 y 1.
+
+    English:
+        Compute candidate vote shares for a department.
+
+        Normalizes department votes and returns proportions between 0 and 1.
+    """
     candidates = extract_candidate_votes(entry)
     total_votes = sum(candidate.get("votes") or 0 for candidate in candidates.values())
     if total_votes <= 0:

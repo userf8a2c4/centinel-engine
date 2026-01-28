@@ -33,6 +33,15 @@ DEPARTMENT_CODES = {
 
 
 def _safe_int(value: Any) -> int:
+    """Convierte valores heterogéneos a entero de forma segura.
+
+    Acepta cadenas con separadores y devuelve 0 cuando el valor no es válido.
+
+    English:
+        Safely convert heterogeneous values to integers.
+
+        Accepts strings with separators and returns 0 when the value is invalid.
+    """
     try:
         if value is None:
             return 0
@@ -42,6 +51,17 @@ def _safe_int(value: Any) -> int:
 
 
 def _get_nested_value(payload: Dict[str, Any], path: str) -> Any:
+    """Obtiene un valor anidado usando una ruta con puntos.
+
+    Recorre claves del diccionario separadas por "." y retorna None si la ruta
+    no existe.
+
+    English:
+        Get a nested value using a dot-delimited path.
+
+        Traverses dictionary keys separated by "." and returns None if the path
+        is missing.
+    """
     current: Any = payload
     for part in path.split("."):
         if not isinstance(current, dict):
@@ -51,6 +71,15 @@ def _get_nested_value(payload: Dict[str, Any], path: str) -> Any:
 
 
 def _first_value(payload: Dict[str, Any], keys: Iterable[str]) -> Any:
+    """Devuelve el primer valor no nulo entre varias claves.
+
+    Soporta claves simples y rutas anidadas en formato dotted-path.
+
+    English:
+        Return the first non-null value among multiple keys.
+
+        Supports simple keys and dotted-path nested lookups.
+    """
     for key in keys:
         if "." in key:
             value = _get_nested_value(payload, key)
@@ -64,6 +93,17 @@ def _first_value(payload: Dict[str, Any], keys: Iterable[str]) -> Any:
 def _extract_candidates_root(
     raw: Dict[str, Any], candidate_roots: Iterable[str]
 ) -> Any:
+    """Localiza el contenedor de candidatos dentro del JSON crudo.
+
+    Busca en múltiples rutas posibles y normaliza cuando el contenedor incluye
+    una clave "candidatos".
+
+    English:
+        Locate the candidate container within the raw JSON.
+
+        Searches multiple possible roots and normalizes when the container
+        includes a "candidatos" key.
+    """
     for key in candidate_roots:
         value = _get_nested_value(raw, key) if "." in key else raw.get(key)
         if isinstance(value, dict) and "candidatos" in value:
@@ -78,6 +118,17 @@ def _iter_candidates(
     candidate_count: int,
     candidate_roots: Iterable[str],
 ) -> Iterable[CandidateResult]:
+    """Itera candidatos en varias estructuras con fallback robusto.
+
+    Genera objetos `CandidateResult` desde listas, diccionarios o valores
+    simples, y rellena con votos cero cuando falten datos.
+
+    English:
+        Iterate candidates across multiple structures with robust fallbacks.
+
+        Builds `CandidateResult` objects from lists, dicts, or scalar values and
+        fills missing candidates with zero votes.
+    """
     raw_candidates = _extract_candidates_root(raw, candidate_roots)
 
     if isinstance(raw_candidates, list):

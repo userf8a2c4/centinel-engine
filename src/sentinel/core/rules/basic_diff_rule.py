@@ -17,6 +17,17 @@ from sentinel.core.rules.common import (
 
 
 def _build_candidate_map(data: dict) -> Dict[str, Dict[str, object]]:
+    """Normaliza candidatos a un mapa con votos enteros.
+
+    Convierte el resultado de `extract_candidate_votes` en un diccionario con
+    campos homogéneos para comparar entre snapshots.
+
+    English:
+        Normalize candidates into a map with integer votes.
+
+        Converts `extract_candidate_votes` output into a homogeneous dictionary
+        used for comparing snapshots.
+    """
     candidates = extract_candidate_votes(data)
     return {
         key: {

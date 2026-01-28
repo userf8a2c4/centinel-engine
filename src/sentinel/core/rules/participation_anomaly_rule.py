@@ -15,6 +15,16 @@ from sentinel.core.rules.common import (
 
 
 def _calculate_scrutiny_percentage(current_data: dict) -> Optional[float]:
+    """Calcula el porcentaje escrutado desde múltiples fuentes.
+
+    Usa el valor directo si existe, o calcula con actas procesadas/totales.
+
+    English:
+        Calculate the scrutiny percentage from multiple sources.
+
+        Uses the direct value if available, or computes it from processed/total
+        tally sheets.
+    """
     percentage = extract_porcentaje_escrutado(current_data)
     if percentage is not None:
         return percentage

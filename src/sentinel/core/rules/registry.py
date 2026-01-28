@@ -35,6 +35,11 @@ def rule(*, name: str, severity: str, description: str, config_key: str) -> Call
     """
 
     def decorator(func: RuleFunc) -> RuleFunc:
+        """Registra la función con sus metadatos y devuelve la original.
+
+        English:
+            Register the function with its metadata and return the original.
+        """
         _RULE_REGISTRY.append(
             RuleDefinition(
                 name=name,
