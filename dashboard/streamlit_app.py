@@ -112,6 +112,15 @@ def compute_report_hash(payload: str) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def build_qr_bytes(payload: str) -> bytes | None:
+    if qrcode is None:
+        return None
+    buffer = io.BytesIO()
+    qrcode.make(payload).save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
 def load_yaml_config(path: Path) -> dict:
     if not path.exists() or yaml is None:
         return {}
@@ -767,10 +776,11 @@ with tabs[3]:
         st.markdown(f"**Red:** {anchor.network} · **Timestamp:** {anchor.anchored_at}")
     with qr_col:
         st.markdown("#### QR")
-        if qrcode is None:
+        qr_bytes = build_qr_bytes(anchor.root_hash)
+        if qr_bytes is None:
             st.warning("QR no disponible: falta instalar la dependencia 'qrcode'.")
         else:
-            st.image(qrcode.make(anchor.root_hash), caption="Escanear hash de verificación")
+            st.image(qr_bytes, caption="Escanear hash de verificación")
 
 with tabs[4]:
     st.markdown("### Reportes y Exportación")
@@ -799,12 +809,10 @@ with tabs[4]:
 
     chart_buffers = create_pdf_charts(benford_df, filtered_snapshots, heatmap_df)
 
-    if qrcode is not None:
-        qr_buffer = io.BytesIO()
-        qrcode.make(anchor.root_hash).save(qr_buffer, format="PNG")
-        qr_buffer.seek(0)
-    else:
-        qr_buffer = None
+    qr_buffer = None
+    qr_bytes = build_qr_bytes(anchor.root_hash)
+    if qr_bytes is not None:
+        qr_buffer = io.BytesIO(qr_bytes)
 
     pdf_data = {
         "title": "Informe de Auditoría C.E.N.T.I.N.E.L.",
