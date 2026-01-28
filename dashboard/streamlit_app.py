@@ -199,6 +199,8 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
                 "changes": abs(delta) // 50,
                 "department": _pick_from_seed(seed, departments),
                 "level": "Presidencial",
+                "candidate": None,
+                "impact": None,
                 "status": status,
             }
         )
@@ -206,6 +208,16 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
     if not df.empty:
         df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
         df["hour"] = df["timestamp_dt"].dt.strftime("%H:%M")
+        df["candidate"] = df["department"].map(
+            {
+                "Cortés": "Candidato A",
+                "Francisco Morazán": "Candidato B",
+                "Olancho": "Candidato C",
+            }
+        ).fillna("Candidato D")
+        df["impact"] = df["delta"].apply(
+            lambda value: "Favorece" if value > 0 else "Afecta"
+        )
     return df
 
 
@@ -727,7 +739,9 @@ with tabs[1]:
 with tabs[2]:
     st.markdown("### Snapshots Recientes")
     st.dataframe(
-        filtered_snapshots[["timestamp", "department", "delta", "status", "hash"]],
+        filtered_snapshots[
+            ["timestamp", "department", "candidate", "impact", "delta", "status", "hash"]
+        ],
         use_container_width=True,
         hide_index=True,
     )
@@ -765,8 +779,10 @@ with tabs[4]:
     report_hash = compute_report_hash(report_payload)
 
     snapshot_rows = [
-        ["Timestamp", "Estado", "Detalle", "Hash"],
-    ] + filtered_snapshots[["timestamp", "status", "department", "hash"]].head(8).values.tolist()
+        ["Timestamp", "Dept", "Candidato", "Impacto", "Estado", "Hash"],
+    ] + filtered_snapshots[
+        ["timestamp", "department", "candidate", "impact", "status", "hash"]
+    ].head(8).values.tolist()
 
     anomaly_rows = [
         ["Dept", "Candidato", "Δ abs", "Δ %", "Tipo"],
