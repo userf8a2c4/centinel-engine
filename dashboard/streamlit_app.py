@@ -25,7 +25,7 @@ try:
     from reportlab.lib.units import cm
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
-    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, PageBreak
     from reportlab.pdfgen import canvas as reportlab_canvas
 
     REPORTLAB_AVAILABLE = True
@@ -926,6 +926,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         elements.append(Paragraph(data["forensic_summary"], styles["Body"]))
     elements.append(Spacer(1, 8))
 
+    elements.append(PageBreak())
     elements.append(
         Paragraph("Sección 1.1 · Integridad de Topología (Cross-Check)", styles["HeadingSecondary"])
     )
@@ -1035,9 +1036,14 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     for key, caption in data["chart_captions"].items():
         buf = chart_buffers.get(key)
         if buf:
-            elements.append(Image(buf, width=doc.width, height=5.5 * cm))
+            height = 5.5 * cm
+            if key == "heatmap":
+                height = 6.8 * cm
+            elements.append(Image(buf, width=doc.width, height=height))
             elements.append(Paragraph(caption, styles["Body"]))
             elements.append(Spacer(1, 4))
+    elements.append(PageBreak())
+    elements.append(Paragraph("Cadena de Bloques (Snapshots)", styles["HeadingSecondary"]))
     chain_buf = chart_buffers.get("chain")
     if chain_buf:
         elements.append(Image(chain_buf, width=doc.width * 0.7, height=3.5 * cm))
