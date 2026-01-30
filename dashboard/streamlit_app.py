@@ -532,7 +532,7 @@ def create_pdf_charts(
         lower * 100,
         upper * 100,
         color="#CBD5F5",
-        alpha=0.35,
+        alpha=0.4,
         label="Margen 95%",
     )
     for idx, bar in enumerate(bars):
@@ -542,7 +542,8 @@ def create_pdf_charts(
                 [benford_df["digit"].iloc[idx]],
                 [observed.iloc[idx] * 100],
                 color="#B22222",
-                s=24,
+                s=40,
+                marker="x",
                 zorder=4,
             )
     ax.set_title("Análisis Benford con margen 95%")
@@ -615,7 +616,7 @@ def create_pdf_charts(
         dept_sum = sum(dept_values)
         floating = national_total - dept_sum
         fig, ax = plt.subplots(figsize=(6.8, 2.8))
-        labels = ["Nacional"] + dept_labels + ["Flotante"]
+        labels = ["Nacional"] + dept_labels + ["DISCREPANCIA NO IDENTIFICADA"]
         values = [national_total] + dept_values + [floating]
         colors_list = ["#1F77B4"] + ["#002147"] * len(dept_values) + ["#B22222"]
         for idx, (label, value, color) in enumerate(zip(labels, values, colors_list)):
@@ -757,7 +758,7 @@ class NumberedCanvas(reportlab_canvas.Canvas):
         self.drawString(
             1.5 * cm,
             0.3 * cm,
-            f"Pag {page} | Page Hash: {current_hash}",
+            f"Pag {page} | SHA-256 Page Hash: {current_hash}",
         )
         self.setFont("Helvetica", 7)
         self.drawRightString(
@@ -777,10 +778,10 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     doc = SimpleDocTemplate(
         buffer,
         pagesize=page_size,
-        leftMargin=2.5 * cm,
-        rightMargin=2.5 * cm,
-        topMargin=2.5 * cm,
-        bottomMargin=2.5 * cm,
+        leftMargin=2.0 * cm,
+        rightMargin=2.0 * cm,
+        topMargin=2.0 * cm,
+        bottomMargin=2.0 * cm,
     )
 
     styles = getSampleStyleSheet()
@@ -1010,12 +1011,11 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             delta_pct_val = 0.0
         if "ROLLBACK / ELIMINACIÓN DE DATOS" in str(row[6]):
             table_style.append(
-                ("BACKGROUND", (6, row_idx), (6, row_idx), colors.HexColor("#FEE2E2"))
+                ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#FADBD8"))
             )
-            table_style.append(("TEXTCOLOR", (6, row_idx), (6, row_idx), colors.HexColor("#B91C1C")))
         elif "OUTLIER" in str(row[6]).upper():
             table_style.append(
-                ("BACKGROUND", (6, row_idx), (6, row_idx), colors.HexColor("#FEF3C7"))
+                ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#FCF3CF"))
             )
         elif delta_pct_val <= -1.0:
             table_style.append(
@@ -1025,8 +1025,8 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
                 ("TEXTCOLOR", (2, row_idx), (3, row_idx), colors.HexColor("#D62728"))
             )
     table_style.append(("FONTNAME", (5, 1), (5, -1), "Courier"))
-    table_style.append(("FONTSIZE", (5, 1), (5, -1), 8))
-    table_style.append(("LEADING", (5, 1), (5, -1), 9))
+    table_style.append(("FONTSIZE", (5, 1), (5, -1), 7))
+    table_style.append(("LEADING", (5, 1), (5, -1), 8))
     anomaly_table.setStyle(TableStyle(table_style))
     elements.append(anomaly_table)
     elements.append(Spacer(1, 8))
@@ -1566,7 +1566,11 @@ with tabs[4]:
     )
 
     qr_buffer = None
-    qr_bytes = build_qr_bytes(anchor.root_hash)
+    if anchor.tx_url:
+        qr_payload = anchor.tx_url
+    else:
+        qr_payload = f"https://centinel.local/verify?root_hash={anchor.root_hash}"
+    qr_bytes = build_qr_bytes(qr_payload)
     if qr_bytes is not None:
         qr_buffer = io.BytesIO(qr_bytes)
 
@@ -1596,10 +1600,8 @@ with tabs[4]:
         topology_alert = ""
 
     benford_deviation = (benford_df["observed"] - benford_df["expected"]).abs().max()
-    if not topology["is_match"] or benford_deviation > 5:
+    if critical_count > 0 or not topology["is_match"] or benford_deviation > 5:
         status_badge = {"label": "ESTATUS: COMPROMETIDO", "color": "#B22222"}
-    elif critical_count > 0:
-        status_badge = {"label": "BAJO REVISIÓN", "color": "#DAA520"}
     else:
         status_badge = {"label": "ESTATUS: VERIFICADO", "color": "#008000"}
 
@@ -1608,9 +1610,9 @@ with tabs[4]:
         integrity_pct = max(0.0, 100.0 - (abs(topology["delta"]) / max(1, topology["national_total"])) * 100)
     deviation_std = float(filtered_snapshots["delta"].std()) if not filtered_snapshots.empty else 0.0
     forensic_summary = (
-        "Durante el ciclo de análisis, se procesaron "
-        f"{len(snapshot_files)} mensajes. La integridad matemática se mantuvo al "
-        f"{integrity_pct:0.2f}% con una desviación estándar de {deviation_std:0.2f}."
+        f"Se han auditado {len(snapshot_files)} flujos de datos. "
+        f"La integridad se ha mantenido en un {integrity_pct:0.2f}% "
+        f"con {critical_count} alertas de seguridad activadas."
     )
 
     pdf_data = {
@@ -1667,7 +1669,10 @@ with tabs[4]:
         "footer_left": f"Hash encadenado: {anchor.root_hash[:16]}…",
         "footer_right": f"Hash reporte: {report_hash[:16]}…",
         "footer_root_hash": anchor.root_hash,
-        "footer_disclaimer": "Uso informativo bajo Ley de Transparencia · Auditoría ciudadana neutral.",
+        "footer_disclaimer": (
+            "Documento generado automáticamente por Centinel Engine. "
+            "Prohibida su alteración parcial."
+        ),
     }
 
     if REPORTLAB_AVAILABLE:
