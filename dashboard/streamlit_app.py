@@ -1427,7 +1427,7 @@ with tabs[4]:
     if REPORTLAB_AVAILABLE:
         use_enhanced_pdf = plt is not None and qrcode is not None
         if use_enhanced_pdf:
-            from dashboard.centinel_pdf_report import CentinelPDFReport
+            from centinel_pdf_report import CentinelPDFReport
 
             report_data = {
                 "timestamp_utc": report_time_dt,
