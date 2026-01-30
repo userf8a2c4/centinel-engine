@@ -2,7 +2,7 @@ import datetime as dt
 import hashlib
 import io
 import math
-from typing import Any
+from typing import Any, BinaryIO
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -62,7 +62,7 @@ class CentinelPDFReport:
             "bg": colors.HexColor("#F8FAFC"),
         }
 
-    def generate(self, data: dict[str, Any], filename: str) -> None:
+    def generate(self, data: dict[str, Any], target: str | BinaryIO) -> None:
         report_time = self._parse_timestamp(data.get("timestamp_utc"))
         root_hash = str(data.get("root_hash", "N/A"))
         status = str(data.get("status", "INTEGRAL")).upper()
@@ -70,7 +70,7 @@ class CentinelPDFReport:
         status_label = "STATUS: INTEGRAL" if status == "INTEGRAL" else "STATUS: COMPROMETIDO"
 
         doc = SimpleDocTemplate(
-            filename,
+            target,
             pagesize=A4,
             leftMargin=1.8 * cm,
             rightMargin=1.8 * cm,
@@ -282,6 +282,8 @@ class CentinelPDFReport:
         df = pd.DataFrame(anomalies)
         if df.empty or "department" not in df.columns or "hour" not in df.columns:
             return None
+        if "anomaly" not in df.columns:
+            df["anomaly"] = 1
         pivot = (
             df.pivot_table(
                 index="department",
