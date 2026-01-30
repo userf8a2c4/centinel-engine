@@ -336,9 +336,15 @@ def build_heatmap(anomalies: pd.DataFrame) -> pd.DataFrame:
 
 def compute_topology_integrity(
     snapshots_df: pd.DataFrame, departments: list[str]
-) -> dict[str, int | bool]:
+) -> dict[str, int | bool | list[dict[str, int | str]]]:
     if snapshots_df.empty:
-        return {"department_total": 0, "national_total": 0, "delta": 0, "is_match": True}
+        return {
+            "department_total": 0,
+            "national_total": 0,
+            "delta": 0,
+            "is_match": True,
+            "department_breakdown": [],
+        }
     df = snapshots_df.copy()
     if "timestamp_dt" not in df.columns:
         df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
@@ -348,6 +354,10 @@ def compute_topology_integrity(
         dept_df.sort_values("timestamp_dt").groupby("department", as_index=False).tail(1)
     )
     department_total = int(latest_per_dept["votes"].sum())
+    breakdown = [
+        {"department": row["department"], "votes": int(row["votes"])}
+        for _, row in latest_per_dept.iterrows()
+    ]
     national_df = df[~df["department"].isin(departments)]
     if not national_df.empty:
         national_total = int(national_df.iloc[-1]["votes"])
@@ -359,6 +369,7 @@ def compute_topology_integrity(
         "national_total": national_total,
         "delta": delta,
         "is_match": delta == 0,
+        "department_breakdown": breakdown,
     }
 
 
@@ -486,6 +497,9 @@ def create_pdf_charts(
     votes_df: pd.DataFrame,
     heatmap_df: pd.DataFrame,
     anomalies_df: pd.DataFrame,
+    topology: dict,
+    snapshots_df: pd.DataFrame,
+    departments: list[str],
 ) -> dict:
     if plt is None:
         return {}
@@ -493,25 +507,45 @@ def create_pdf_charts(
     chart_buffers = {}
 
     fig, ax = plt.subplots(figsize=(6.8, 2.8))
-    deviation = (benford_df["observed"] - benford_df["expected"]).abs()
-    observed_colors = [
-        "#D62728" if dev > 5 else "#2CA02C" for dev in deviation
-    ]
-    ax.bar(
+    sample_size = max(len(votes_df), 1)
+    expected = benford_df["expected"] / 100.0
+    observed = benford_df["observed"] / 100.0
+    ci = 1.96 * (expected * (1 - expected) / sample_size) ** 0.5
+    upper = expected + ci
+    lower = expected - ci
+    bars = ax.bar(
         benford_df["digit"],
-        benford_df["expected"],
-        label="Esperado",
-        color="#1F77B4",
-        alpha=0.75,
-    )
-    ax.bar(
-        benford_df["digit"],
-        benford_df["observed"],
+        observed * 100,
         label="Observado",
-        color=observed_colors,
+        color="#002147",
         alpha=0.9,
     )
-    ax.set_title("Distribución Benford (observado vs esperado)")
+    ax.plot(
+        benford_df["digit"],
+        expected * 100,
+        color="#708090",
+        linewidth=2,
+        label="Benford Teórico",
+    )
+    ax.fill_between(
+        benford_df["digit"],
+        lower * 100,
+        upper * 100,
+        color="#CBD5F5",
+        alpha=0.35,
+        label="Margen 95%",
+    )
+    for idx, bar in enumerate(bars):
+        if observed.iloc[idx] < lower.iloc[idx] or observed.iloc[idx] > upper.iloc[idx]:
+            bar.set_color("#B22222")
+            ax.scatter(
+                [benford_df["digit"].iloc[idx]],
+                [observed.iloc[idx] * 100],
+                color="#B22222",
+                s=24,
+                zorder=4,
+            )
+    ax.set_title("Análisis Benford con margen 95%")
     ax.set_xlabel("Dígito")
     ax.set_ylabel("%")
     ax.legend(loc="upper right", fontsize=8)
@@ -573,6 +607,87 @@ def create_pdf_charts(
         buf.seek(0)
         chart_buffers["heatmap"] = buf
 
+    if topology and not topology.get("is_match", True):
+        dept_breakdown = topology.get("department_breakdown", [])
+        national_total = float(topology.get("national_total", 0))
+        dept_values = [float(item["votes"]) for item in dept_breakdown]
+        dept_labels = [item["department"] for item in dept_breakdown]
+        dept_sum = sum(dept_values)
+        floating = national_total - dept_sum
+        fig, ax = plt.subplots(figsize=(6.8, 2.8))
+        labels = ["Nacional"] + dept_labels + ["Flotante"]
+        values = [national_total] + dept_values + [floating]
+        colors_list = ["#1F77B4"] + ["#002147"] * len(dept_values) + ["#B22222"]
+        for idx, (label, value, color) in enumerate(zip(labels, values, colors_list)):
+            ax.bar(idx, value, color=color, alpha=0.85)
+        ax.axhline(national_total, color="#94A3B8", linestyle="--", linewidth=1)
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=7)
+        ax.set_ylabel("Votos")
+        ax.set_title("Cascada de discrepancia nacional")
+        ax.grid(axis="y", alpha=0.2)
+        buf = io.BytesIO()
+        fig.tight_layout()
+        fig.savefig(buf, format="png", dpi=300)
+        plt.close(fig)
+        buf.seek(0)
+        chart_buffers["waterfall"] = buf
+
+    if not snapshots_df.empty and "hash" in snapshots_df.columns:
+        recent_hashes = snapshots_df["hash"].head(5).tolist()
+        fig, ax = plt.subplots(figsize=(6.8, 2.0))
+        ax.axis("off")
+        for idx, value in enumerate(recent_hashes):
+            label = str(value)[:8]
+            x = idx * 1.4
+            ax.add_patch(plt.Rectangle((x, 0.4), 1.1, 0.6, color="#1F2937", alpha=0.9))
+            ax.text(x + 0.55, 0.7, label, color="white", ha="center", va="center", fontsize=8)
+            if idx < len(recent_hashes) - 1:
+                ax.annotate(
+                    "",
+                    xy=(x + 1.2, 0.7),
+                    xytext=(x + 1.35, 0.7),
+                    arrowprops=dict(arrowstyle="->", color="#10B981"),
+                )
+        ax.set_xlim(-0.2, len(recent_hashes) * 1.4)
+        ax.set_ylim(0, 1.5)
+        fig.tight_layout()
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=300, transparent=True)
+        plt.close(fig)
+        buf.seek(0)
+        chart_buffers["chain"] = buf
+
+    if not snapshots_df.empty and departments:
+        df = snapshots_df.copy()
+        df["hour"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True).dt.hour
+        load_pivot = (
+            df[df["department"].isin(departments)]
+            .groupby(["department", "hour"], dropna=False)
+            .size()
+            .reset_index(name="processed")
+        )
+        if not load_pivot.empty:
+            pivot = (
+                load_pivot.pivot(index="department", columns="hour", values="processed")
+                .reindex(index=departments)
+                .fillna(0)
+            )
+            pivot = pivot.reindex(columns=list(range(24)), fill_value=0)
+            fig, ax = plt.subplots(figsize=(6.8, 3.2))
+            ax.imshow(pivot.values, aspect="auto", cmap="Blues")
+            ax.set_title("Matriz de carga (actas por hora)")
+            ax.set_yticks(range(len(pivot.index)))
+            ax.set_yticklabels(pivot.index, fontsize=6)
+            ax.set_xticks(range(len(pivot.columns)))
+            ax.set_xticklabels([str(x) for x in pivot.columns], fontsize=6)
+            buf = io.BytesIO()
+            fig.tight_layout()
+            fig.savefig(buf, format="png", dpi=300)
+            plt.close(fig)
+            buf.seek(0)
+            chart_buffers["load_heatmap"] = buf
+
     return chart_buffers
 
 
@@ -605,9 +720,11 @@ def _register_pdf_fonts() -> tuple[str, str]:
 
 
 class NumberedCanvas(reportlab_canvas.Canvas):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, root_hash: str = "", **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._saved_page_states = []
+        self._root_hash = root_hash
+        self._page_hashes: list[str] = []
 
     def showPage(self) -> None:
         self._saved_page_states.append(dict(self.__dict__))
@@ -615,13 +732,19 @@ class NumberedCanvas(reportlab_canvas.Canvas):
 
     def save(self) -> None:
         total_pages = len(self._saved_page_states)
+        prev_hash = hashlib.sha256(self._root_hash.encode("utf-8")).hexdigest()[:12]
         for state in self._saved_page_states:
             self.__dict__.update(state)
-            self.draw_page_number(total_pages)
+            page = self.getPageNumber()
+            current_hash = hashlib.sha256(
+                f"{prev_hash}|{page}".encode("utf-8")
+            ).hexdigest()[:12]
+            self.draw_page_number(total_pages, current_hash)
+            prev_hash = current_hash
             super().showPage()
         super().save()
 
-    def draw_page_number(self, total_pages: int) -> None:
+    def draw_page_number(self, total_pages: int, current_hash: str) -> None:
         self.setFont("Helvetica", 8)
         self.setFillColor(colors.grey)
         page = self.getPageNumber()
@@ -629,6 +752,18 @@ class NumberedCanvas(reportlab_canvas.Canvas):
             self._pagesize[0] - 1.5 * cm,
             0.75 * cm,
             f"Página {page}/{total_pages}",
+        )
+        self.setFont("Helvetica", 7)
+        self.drawString(
+            1.5 * cm,
+            0.3 * cm,
+            f"Pag {page} | Page Hash: {current_hash}",
+        )
+        self.setFont("Helvetica", 7)
+        self.drawRightString(
+            self._pagesize[0] - 1.5 * cm,
+            0.3 * cm,
+            "Auditoría Independiente - Proyecto Centinel",
         )
 
 
@@ -642,10 +777,10 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     doc = SimpleDocTemplate(
         buffer,
         pagesize=page_size,
-        leftMargin=1.5 * cm,
-        rightMargin=1.5 * cm,
-        topMargin=1.5 * cm,
-        bottomMargin=1.5 * cm,
+        leftMargin=2.5 * cm,
+        rightMargin=2.5 * cm,
+        topMargin=2.5 * cm,
+        bottomMargin=2.5 * cm,
     )
 
     styles = getSampleStyleSheet()
@@ -727,11 +862,49 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         return table
 
     elements: list = []
-    elements.append(Paragraph("🔒 C.E.N.T.I.N.E.L. · Informe Ejecutivo", styles["HeadingPrimary"]))
+    header_title = Paragraph(
+        "C.E.N.T.I.N.E.L. - Informe de Integridad Transaccional v5.0",
+        styles["HeadingPrimary"],
+    )
+    qr_cell = Spacer(1, 1)
+    if data.get("qr"):
+        qr_cell = Image(data["qr"], width=2.2 * cm, height=2.2 * cm)
+    header_table = Table([[header_title, qr_cell]], colWidths=[doc.width * 0.75, doc.width * 0.25])
+    header_table.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+            ]
+        )
+    )
+    elements.append(header_table)
     elements.append(Paragraph(data["subtitle"], styles["Body"]))
     elements.append(Paragraph(data["input_source"], styles["Body"]))
     elements.append(Paragraph(data["generated"], styles["Body"]))
+    elements.append(
+        Paragraph(
+            f"Snapshots procesados: {data.get('snapshot_count', 'N/A')}",
+            styles["Body"],
+        )
+    )
     elements.append(Paragraph(data["global_status"], styles["HeadingSecondary"]))
+    badge_info = data.get("status_badge", {})
+    if badge_info:
+        badge_color = colors.HexColor(badge_info.get("color", "#008000"))
+        badge_table = Table([[badge_info.get("label", "")]], colWidths=[doc.width * 0.4])
+        badge_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), badge_color),
+                    ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("FONTNAME", (0, 0), (-1, -1), bold_font),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ]
+            )
+        )
+        elements.append(badge_table)
     elements.append(Spacer(1, 6))
 
     elements.append(Paragraph("Sección 1 · Estatus Global", styles["HeadingSecondary"]))
@@ -747,6 +920,9 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         )
     )
     elements.append(kpi_table)
+    if data.get("forensic_summary"):
+        elements.append(Spacer(1, 4))
+        elements.append(Paragraph(data["forensic_summary"], styles["Body"]))
     elements.append(Spacer(1, 8))
 
     elements.append(
@@ -756,6 +932,11 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(Paragraph(data["topology_summary"], styles[topology_style]))
     topology_table = build_table(data["topology_rows"], [doc.width * 0.3] * 3)
     elements.append(topology_table)
+    if "waterfall" in chart_buffers:
+        elements.append(Spacer(1, 4))
+        elements.append(Image(chart_buffers["waterfall"], width=doc.width * 0.6, height=4.2 * cm))
+        if data.get("topology_alert"):
+            elements.append(Paragraph(data["topology_alert"], styles["AlertText"]))
     elements.append(Spacer(1, 8))
 
     elements.append(
@@ -799,6 +980,9 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
                 )
         latency_table.setStyle(latency_style)
         elements.append(latency_table)
+        if "load_heatmap" in chart_buffers:
+            elements.append(Spacer(1, 4))
+            elements.append(Image(chart_buffers["load_heatmap"], width=doc.width, height=4.6 * cm))
     else:
         elements.append(Paragraph("Sin datos de latencia disponibles.", styles["Body"]))
     elements.append(Spacer(1, 8))
@@ -826,9 +1010,13 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             delta_pct_val = 0.0
         if "ROLLBACK / ELIMINACIÓN DE DATOS" in str(row[6]):
             table_style.append(
-                ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#B91C1C"))
+                ("BACKGROUND", (6, row_idx), (6, row_idx), colors.HexColor("#FEE2E2"))
             )
-            table_style.append(("TEXTCOLOR", (0, row_idx), (-1, row_idx), colors.white))
+            table_style.append(("TEXTCOLOR", (6, row_idx), (6, row_idx), colors.HexColor("#B91C1C")))
+        elif "OUTLIER" in str(row[6]).upper():
+            table_style.append(
+                ("BACKGROUND", (6, row_idx), (6, row_idx), colors.HexColor("#FEF3C7"))
+            )
         elif delta_pct_val <= -1.0:
             table_style.append(
                 ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#fdecea"))
@@ -836,6 +1024,9 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             table_style.append(
                 ("TEXTCOLOR", (2, row_idx), (3, row_idx), colors.HexColor("#D62728"))
             )
+    table_style.append(("FONTNAME", (5, 1), (5, -1), "Courier"))
+    table_style.append(("FONTSIZE", (5, 1), (5, -1), 8))
+    table_style.append(("LEADING", (5, 1), (5, -1), 9))
     anomaly_table.setStyle(TableStyle(table_style))
     elements.append(anomaly_table)
     elements.append(Spacer(1, 8))
@@ -847,6 +1038,11 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             elements.append(Image(buf, width=doc.width, height=5.5 * cm))
             elements.append(Paragraph(caption, styles["Body"]))
             elements.append(Spacer(1, 4))
+    chain_buf = chart_buffers.get("chain")
+    if chain_buf:
+        elements.append(Image(chain_buf, width=doc.width * 0.7, height=3.5 * cm))
+        elements.append(Paragraph("Cadena de snapshots recientes.", styles["Body"]))
+        elements.append(Spacer(1, 4))
 
     elements.append(Paragraph("Sección 4 · Snapshots Recientes", styles["HeadingSecondary"]))
     snapshot_rows = data["snapshot_rows"]
@@ -898,7 +1094,14 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         canvas.drawCentredString(page_size[0] / 2, page_size[1] / 2, "VERIFICABLE")
         canvas.restoreState()
 
-    doc.build(elements, onFirstPage=draw_footer, onLaterPages=draw_footer, canvasmaker=NumberedCanvas)
+    doc.build(
+        elements,
+        onFirstPage=draw_footer,
+        onLaterPages=draw_footer,
+        canvasmaker=lambda *args, **kwargs: NumberedCanvas(
+            *args, root_hash=data.get("footer_root_hash", ""), **kwargs
+        ),
+    )
     buffer.seek(0)
     return buffer.getvalue()
 
@@ -1302,22 +1505,32 @@ with tabs[4]:
                 .sort_values("delta_abs", ascending=False)
                 .head(12)
             )
-    anomaly_rows = [
-        ["Dept", "Candidato", "Δ abs", "Δ %", "Hora", "Hash", "Tipo"],
-    ] + [
-        [
-            row.get("department"),
-            row.get("candidate"),
-            f"{row.get('delta', 0):.0f}",
-            f"{row.get('delta_pct', 0):.2f}%",
-            row.get("hour") or "",
-            row.get("hash") or "",
-            "ROLLBACK / ELIMINACIÓN DE DATOS"
-            if row.get("type") == "Delta negativo"
-            else row.get("type"),
-        ]
-        for _, row in anomalies_sorted.head(12).iterrows()
-    ]
+    anomaly_rows = [["Dept", "Candidato", "Δ abs", "Δ %", "Hora", "Hash", "Tipo"]]
+    prev_hash = ""
+    for _, row in anomalies_sorted.head(12).iterrows():
+        current_hash = str(row.get("hash") or "")
+        chain_hash = ""
+        if current_hash:
+            chain_hash = hashlib.sha256(f"{prev_hash}|{current_hash}".encode("utf-8")).hexdigest()
+        hash_cell = current_hash[:6] if current_hash else ""
+        if current_hash:
+            prev_short = prev_hash[:6] if prev_hash else "------"
+            curr_short = current_hash[:6]
+            hash_cell = f"{prev_short}→{curr_short}"
+        anomaly_rows.append(
+            [
+                row.get("department"),
+                row.get("candidate"),
+                f"{row.get('delta', 0):.0f}",
+                f"{row.get('delta_pct', 0):.2f}%",
+                row.get("hour") or "",
+                hash_cell,
+                "ROLLBACK / ELIMINACIÓN DE DATOS"
+                if row.get("type") == "Delta negativo"
+                else row.get("type"),
+            ]
+        )
+        prev_hash = chain_hash or current_hash
 
     topology = compute_topology_integrity(snapshots_df, departments)
     latency_rows, latency_alert_cells = build_latency_matrix(
@@ -1347,6 +1560,9 @@ with tabs[4]:
         filtered_snapshots,
         heatmap_df,
         filtered_anomalies,
+        topology,
+        snapshots_real,
+        departments,
     )
 
     qr_buffer = None
@@ -1371,6 +1587,31 @@ with tabs[4]:
             "DISCREPANCIA DE AGREGACIÓN: La suma de departamentos difiere "
             f"del nacional en {topology['delta']:+,} votos."
         )
+    if topology["delta"]:
+        topology_alert = (
+            "ALERTA CRÍTICA: Se detectó una inyección/pérdida de "
+            f"{abs(topology['delta']):,} votos que no poseen origen geográfico trazable."
+        )
+    else:
+        topology_alert = ""
+
+    benford_deviation = (benford_df["observed"] - benford_df["expected"]).abs().max()
+    if not topology["is_match"] or benford_deviation > 5:
+        status_badge = {"label": "ESTATUS: COMPROMETIDO", "color": "#B22222"}
+    elif critical_count > 0:
+        status_badge = {"label": "BAJO REVISIÓN", "color": "#DAA520"}
+    else:
+        status_badge = {"label": "ESTATUS: VERIFICADO", "color": "#008000"}
+
+    integrity_pct = 100.0
+    if len(filtered_snapshots) > 0:
+        integrity_pct = max(0.0, 100.0 - (abs(topology["delta"]) / max(1, topology["national_total"])) * 100)
+    deviation_std = float(filtered_snapshots["delta"].std()) if not filtered_snapshots.empty else 0.0
+    forensic_summary = (
+        "Durante el ciclo de análisis, se procesaron "
+        f"{len(snapshot_files)} mensajes. La integridad matemática se mantuvo al "
+        f"{integrity_pct:0.2f}% con una desviación estándar de {deviation_std:0.2f}."
+    )
 
     pdf_data = {
         "title": "Informe de Auditoría C.E.N.T.I.N.E.L.",
@@ -1384,6 +1625,7 @@ with tabs[4]:
             f"Se detectaron {db_inconsistencies} inconsistencias de base de datos "
             f"y {stat_deviations} desviaciones estadísticas."
         ),
+        "forensic_summary": forensic_summary,
         "kpi_rows": [
             [
                 "Auditorías",
@@ -1398,7 +1640,7 @@ with tabs[4]:
                 "2",
                 str(len(snapshot_files)),
                 str(len(rules_df)),
-                anchor.root_hash[:10],
+                anchor.root_hash[:8],
                 f"{velocity_vpm:,.1f} votos/min",
             ],
         ],
@@ -1408,6 +1650,7 @@ with tabs[4]:
         "topology": topology,
         "topology_rows": topology_rows,
         "topology_summary": topology_summary,
+        "topology_alert": topology_alert,
         "latency_rows": latency_rows,
         "latency_alert_cells": latency_alert_cells,
         "crypto_text": f"Hash raíz: {anchor.root_hash}\nQR para escaneo y validación pública.",
@@ -1419,8 +1662,11 @@ with tabs[4]:
             "heatmap": "Mapa de riesgos por departamento/hora (rojo = mayor riesgo).",
         },
         "qr": qr_buffer,
+        "snapshot_count": len(snapshot_files),
+        "status_badge": status_badge,
         "footer_left": f"Hash encadenado: {anchor.root_hash[:16]}…",
         "footer_right": f"Hash reporte: {report_hash[:16]}…",
+        "footer_root_hash": anchor.root_hash,
         "footer_disclaimer": "Uso informativo bajo Ley de Transparencia · Auditoría ciudadana neutral.",
     }
 
