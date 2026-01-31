@@ -1673,7 +1673,48 @@ with tabs[4]:
     }
 
     if REPORTLAB_AVAILABLE:
-        pdf_bytes = build_pdf_report(pdf_data, chart_buffers)
+        use_enhanced_pdf = plt is not None and qrcode is not None
+        if use_enhanced_pdf:
+            from centinel_pdf_report import CentinelPDFReport
+
+            report_data = {
+                **pdf_data,
+                "timestamp_utc": report_time_dt,
+                "root_hash": anchor.root_hash,
+                "status": "COMPROMETIDO"
+                if (not topology["is_match"] or critical_count > 0)
+                else "INTEGRAL",
+                "source": pdf_data.get("input_source", "Endpoint JSON CNE"),
+                "topology_check": {
+                    "total_national": topology["national_total"],
+                    "department_total": topology["department_total"],
+                    "is_match": topology["is_match"],
+                },
+                "anomalies": [
+                    {
+                        "department": row.get("department"),
+                        "hour": row.get("hour"),
+                        "anomaly": 1,
+                    }
+                    for _, row in filtered_anomalies.iterrows()
+                ],
+                "benford": {
+                    "observed": (
+                        benford_df.sort_values("digit")["observed"].tolist()
+                        if not benford_df.empty
+                        else []
+                    ),
+                    "sample_size": max(len(filtered_snapshots), 1),
+                },
+                "time_series": {"values": filtered_snapshots["votes"].tolist()},
+                "snapshots": snapshots_real.head(5).to_dict(orient="records"),
+            }
+
+            buffer = io.BytesIO()
+            CentinelPDFReport().generate(report_data, buffer)
+            pdf_bytes = buffer.getvalue()
+        else:
+            pdf_bytes = build_pdf_report(pdf_data, chart_buffers)
         dept_label = selected_department if selected_department != "Todos" else "nacional"
         st.download_button(
             f"Descargar Informe PDF ({dept_label})",
