@@ -8,12 +8,13 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+import requests
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from anchor.arbitrum_anchor import anchor_batch, anchor_root
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
-from scripts.healthcheck import check_cne_endpoints
+from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
 from sentinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
 from sentinel.utils.config_loader import load_config
@@ -26,6 +27,7 @@ REPORTS_DIR = Path("reports")
 ANCHOR_LOG_DIR = Path("logs") / "anchors"
 STATE_PATH = DATA_DIR / "pipeline_state.json"
 PIPELINE_CHECKPOINT_PATH = TEMP_DIR / "pipeline_checkpoint.json"
+FAILURE_CHECKPOINT_PATH = TEMP_DIR / "checkpoint.json"
 
 DATA_DIR.mkdir(exist_ok=True)
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
@@ -81,6 +83,49 @@ def clear_pipeline_checkpoint() -> None:
     """
     if PIPELINE_CHECKPOINT_PATH.exists():
         PIPELINE_CHECKPOINT_PATH.unlink()
+
+
+def collect_recent_hashes(limit: int = 19) -> list[dict[str, Any]]:
+    """Recolecta hashes recientes para checkpoints de falla.
+
+    English:
+        Collect recent hashes for failure checkpoints.
+    """
+    hash_files = sorted(
+        HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    hashes: list[dict[str, Any]] = []
+    for hash_file in hash_files[:limit]:
+        try:
+            payload = json.loads(hash_file.read_text(encoding="utf-8"))
+            hashes.append(
+                {
+                    "file": hash_file.name,
+                    "hash": payload.get("hash"),
+                    "chained_hash": payload.get("chained_hash"),
+                }
+            )
+        except json.JSONDecodeError:
+            logger.warning("checkpoint_hash_invalid path=%s", hash_file)
+    return hashes
+
+
+def save_failure_checkpoint(run_id: str, stage: str | None, error: str) -> None:
+    """Guarda checkpoint parcial ante fallas de red o timeout.
+
+    English:
+        Save a partial checkpoint on network or timeout failures.
+    """
+    payload = {
+        "run_id": run_id,
+        "stage": stage or "unknown",
+        "timestamp": utcnow().isoformat(),
+        "hashes": collect_recent_hashes(),
+        "error": error,
+    }
+    FAILURE_CHECKPOINT_PATH.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
 
 def run_command(command, description):
@@ -193,7 +238,7 @@ def run_pipeline(config: dict[str, Any]):
         save_pipeline_checkpoint(
             {"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()}
         )
-        health_ok = check_cne_endpoints(config)
+        health_ok = check_cne_connectivity(config)
         download_cmd = [sys.executable, "scripts/download_and_hash.py"]
         if not health_ok:
             log_event(
@@ -279,6 +324,36 @@ def run_pipeline(config: dict[str, Any]):
             run_id=run_id,
             error=str(exc),
         )
+        raise
+
+
+def safe_run_pipeline(config: dict[str, Any]) -> None:
+    """Ejecuta el pipeline con protección contra fallas de red.
+
+    English:
+        Run the pipeline with protection against network failures.
+    """
+    try:
+        run_pipeline(config)
+    except (
+        requests.exceptions.ConnectionError,
+        requests.exceptions.Timeout,
+        TimeoutError,
+        ConnectionError,
+    ) as exc:
+        checkpoint = load_pipeline_checkpoint()
+        run_id = checkpoint.get("run_id", utcnow().strftime("%Y%m%d%H%M%S"))
+        stage = checkpoint.get("stage")
+        log_event(
+            logger,
+            logging.ERROR,
+            "pipeline_network_failure",
+            run_id=run_id,
+            stage=stage or "unknown",
+            error=str(exc),
+        )
+        save_failure_checkpoint(run_id, stage, str(exc))
+    except Exception:
         raise
 
 
@@ -464,14 +539,14 @@ def main():
         return
 
     if args.once:
-        run_pipeline(config)
+        safe_run_pipeline(config)
         return
 
     if args.run_now:
-        run_pipeline(config)
+        safe_run_pipeline(config)
 
     scheduler = BlockingScheduler(timezone="UTC")
-    scheduler.add_job(lambda: run_pipeline(config), CronTrigger(minute=0))
+    scheduler.add_job(lambda: safe_run_pipeline(config), CronTrigger(minute=0))
     print("[+] Scheduler activo: ejecución horaria en minuto 00 UTC")
     scheduler.start()
 

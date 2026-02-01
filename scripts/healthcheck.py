@@ -61,11 +61,54 @@ def _collect_endpoints(config: dict[str, Any]) -> list[str]:
     return sorted(set(targets))
 
 
-def check_cne_endpoints(config: dict[str, Any]) -> bool:
-    """Verifica conectividad con endpoints CNE.
+def check_cne_connectivity(config: dict[str, Any]) -> bool:
+    """Verifica conectividad con CNE usando un HEAD rápido.
 
     English:
-        Check connectivity to CNE endpoints.
+        Check connectivity to CNE using a quick HEAD request.
+    """
+    endpoints = config.get("endpoints", {}) or {}
+    dummy_endpoint = (
+        config.get("healthcheck_url")
+        or config.get("base_url")
+        or endpoints.get("nacional")
+        or endpoints.get("fallback_nacional")
+    )
+    if not dummy_endpoint:
+        log_event(logger, logging.WARNING, "healthcheck_missing_dummy_endpoint")
+        return False
+
+    timeout = 10
+    session = requests.Session()
+    try:
+        response = session.head(dummy_endpoint, timeout=timeout, allow_redirects=True)
+        if response.status_code >= 400:
+            raise requests.HTTPError(f"status={response.status_code}")
+        log_event(
+            logger,
+            logging.INFO,
+            "healthcheck_dummy_ok",
+            endpoint=dummy_endpoint,
+        )
+        return True
+    except requests.RequestException as exc:
+        log_event(
+            logger,
+            logging.WARNING,
+            "healthcheck_dummy_failed",
+            endpoint=dummy_endpoint,
+            error=str(exc),
+        )
+        return False
+    finally:
+        session.close()
+
+
+def check_cne_endpoints(config: dict[str, Any]) -> bool:
+    """Verifica conectividad con endpoints CNE detallados.
+
+    English:
+        Check connectivity to detailed CNE endpoints.
     """
     endpoints = _collect_endpoints(config)
     if not endpoints:
