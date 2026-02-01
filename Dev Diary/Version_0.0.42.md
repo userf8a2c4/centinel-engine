@@ -6,7 +6,7 @@
 
 # [ES] Notas de Parche – C.E.N.T.I.N.E.L.
 
-**Versión:** v0.0.41  
+**Versión:** v0.0.42  
 **Fecha:** 01-feb-2026  
 **Autor:** userf8a2c4
 
@@ -50,7 +50,7 @@ Se consolida dev-v5 con un reporte PDF forense más robusto y un pipeline resili
 
 # [EN] Patch Notes – C.E.N.T.I.N.E.L.
 
-**Version:** v0.0.41  
+**Version:** v0.0.42  
 **Date:** February 01, 2026  
 **Author:** userf8a2c4
 
