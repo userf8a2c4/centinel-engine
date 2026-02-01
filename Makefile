@@ -1,4 +1,4 @@
-.PHONY: init snapshot analyze summary pipeline test-stress
+.PHONY: init snapshot analyze summary pipeline test-stress security-scan
 
 PYTHON_COMMAND ?= python
 
@@ -19,3 +19,7 @@ pipeline:
 
 test-stress:
 	$(PYTHON_COMMAND) -m pytest tests/test_stress.py
+
+security-scan:
+	$(PYTHON_COMMAND) -m bandit -r .
+	$(PYTHON_COMMAND) -m safety check --full-report -r requirements.txt

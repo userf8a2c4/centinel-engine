@@ -8,6 +8,8 @@ from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_js
 
 def test_normalization_is_deterministic():
     raw = {
+        "cargo": "presidencial",
+        "departamento": "Francisco Morazán",
         "total_votes": 100,
         "valid_votes": 95,
         "null_votes": 3,
@@ -22,6 +24,9 @@ def test_normalization_is_deterministic():
     snap1 = normalize_snapshot(raw, "Francisco Morazán", "2025-12-03T17:00:00Z")
     snap2 = normalize_snapshot(raw, "Francisco Morazán", "2025-12-03T17:00:00Z")
 
+    assert snap1 is not None
+    assert snap2 is not None
+
     json1 = snapshot_to_canonical_json(snap1)
     json2 = snapshot_to_canonical_json(snap2)
 
@@ -30,6 +35,9 @@ def test_normalization_is_deterministic():
 
 def test_normalization_parses_nested_totals_and_candidates():
     raw = {
+        "cargo": "presidencial",
+        "departamento": "Atlántida",
+        "votos": 1000,
         "meta": {
             "totals": {
                 "padron": "1,200",
@@ -74,6 +82,7 @@ def test_normalization_parses_nested_totals_and_candidates():
         field_map=field_map,
     )
 
+    assert snapshot is not None
     assert snapshot.totals.registered_voters == 1200
     assert snapshot.totals.total_votes == 1000
     assert snapshot.candidates[0].name == "Alice"

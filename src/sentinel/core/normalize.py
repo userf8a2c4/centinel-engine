@@ -9,9 +9,9 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from typing import Dict, Any, List, Iterable, Optional
+from typing import Dict, Any, List, Iterable, Optional, Literal
 
-from pydantic import BaseModel, Field, ValidationError, validator
+from pydantic import BaseModel, Field, ValidationError, validator, root_validator
 
 import jsonschema
 
@@ -56,6 +56,42 @@ CNE_RAW_SCHEMA = {
 }
 
 
+class PresidentialActa(BaseModel):
+    """/** Esquema estricto de acta presidencial. / Strict schema for presidential acta. **/"""
+
+    cargo: Literal["presidencial"]
+    departamento: str = Field(min_length=1)
+    votos: int = Field(ge=0)
+    registered_voters: int | None = Field(default=None, ge=0)
+    total_votes: int | None = Field(default=None, ge=0)
+    valid_votes: int | None = Field(default=None, ge=0)
+    null_votes: int | None = Field(default=None, ge=0)
+    blank_votes: int | None = Field(default=None, ge=0)
+    candidates: Dict[str, Any] | None = None
+    resultados: Any | None = None
+    actas: Any | None = None
+    votos_totales: Any | None = None
+    meta: Dict[str, Any] | None = None
+
+    @validator("departamento")
+    def _strip_departamento(cls, value: str) -> str:
+        """/** Normaliza departamento y valida no vacío. / Normalize department and validate non-empty. **/"""
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("departamento cannot be empty")
+        return cleaned
+
+    @root_validator(pre=True)
+    def _alias_votes(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """/** Normaliza votos desde claves alternativas. / Normalize votes from alternative keys. **/"""
+        if "votos" not in values and "total_votes" in values:
+            values["votos"] = values["total_votes"]
+        return values
+
+    class Config:
+        extra = "forbid"
+
+
 def _drop_disallowed_keys(payload: Any) -> Any:
     """/** Elimina claves sensibles inesperadas. / Remove unexpected sensitive keys. **/"""
     if isinstance(payload, dict):
@@ -84,6 +120,31 @@ def _sanitize_raw_payload(raw: Any) -> Dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError("Invalid raw snapshot payload: expected object JSON")
     return _drop_disallowed_keys(parsed)
+
+
+def _compute_payload_hash(raw: Any) -> str:
+    """/** Calcula hash SHA-256 del payload crudo. / Compute SHA-256 hash of raw payload. **/"""
+    try:
+        if isinstance(raw, (bytes, bytearray)):
+            encoded = bytes(raw)
+        elif isinstance(raw, str):
+            encoded = raw.encode("utf-8")
+        else:
+            encoded = json.dumps(raw, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    except (TypeError, ValueError):
+        encoded = str(raw).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _validate_presidential_acta(raw: Dict[str, Any], payload_hash: str) -> bool:
+    """/** Valida payload con Pydantic y registra errores. / Validate payload with Pydantic and log errors. **/"""
+    try:
+        PresidentialActa.parse_obj(raw)
+    except ValidationError as exc:
+        # Seguridad: registrar hash del JSON inválido sin datos sensibles. / Security: log invalid JSON hash without sensitive data.
+        logger.error("presidential_acta_invalid hash=%s error=%s", payload_hash, exc)
+        return False
+    return True
 
 
 def _safe_int(value: Any) -> int:
@@ -185,10 +246,16 @@ def normalize_snapshot(
     scope: str = "DEPARTMENT",
     department_code: str | None = None,
     field_map: Dict[str, List[str]] | None = None,
-) -> Snapshot:
+) -> Snapshot | None:
     """/** Convierte JSON crudo en Snapshot canónico inmutable. / Convert raw JSON into an immutable canonical Snapshot. **/"""
-
-    raw = _sanitize_raw_payload(raw)
+    payload_hash = _compute_payload_hash(raw)
+    try:
+        raw = _sanitize_raw_payload(raw)
+    except ValueError as exc:
+        logger.error("raw_payload_invalid hash=%s error=%s", payload_hash, exc)
+        return None
+    if not _validate_presidential_acta(raw, payload_hash):
+        return None
     resolved_department_code = department_code or DEPARTMENT_CODES.get(
         department_name, "00"
     )
