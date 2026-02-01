@@ -16,6 +16,8 @@ def test_store_snapshot_creates_index(tmp_path):
     store = LocalSnapshotStore(str(db_path))
 
     raw = {
+        "cargo": "presidencial",
+        "departamento": "Atlántida",
         "registered_voters": 1000,
         "total_votes": 900,
         "valid_votes": 880,
@@ -24,6 +26,7 @@ def test_store_snapshot_creates_index(tmp_path):
         "candidates": {"1": 400, "2": 300, "3": 180},
     }
     snapshot = normalize_snapshot(raw, "Atlántida", "2025-12-03T17:00:00Z")
+    assert snapshot is not None
     snapshot_hash = store.store_snapshot(snapshot)
 
     canonical_json = snapshot_to_canonical_json(snapshot)
@@ -52,6 +55,8 @@ def test_exports_for_external_review(tmp_path):
     store = LocalSnapshotStore(str(db_path))
 
     raw = {
+        "cargo": "presidencial",
+        "departamento": "Comayagua",
         "registered_voters": 2000,
         "total_votes": 1800,
         "valid_votes": 1700,
@@ -60,6 +65,7 @@ def test_exports_for_external_review(tmp_path):
         "candidates": {"1": 800, "2": 600, "3": 300},
     }
     snapshot = normalize_snapshot(raw, "Comayagua", "2025-12-03T18:00:00Z")
+    assert snapshot is not None
     snapshot_hash = store.store_snapshot(snapshot)
 
     json_path = tmp_path / "exports.json"

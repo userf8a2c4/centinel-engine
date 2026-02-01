@@ -20,3 +20,10 @@ benford_min_samples: 10
 # Límite de JSON presidenciales por ciclo.
 # Presidential JSON limit per cycle.
 max_json_presidenciales: 19
+
+# Configuración de seguridad.
+# Security settings.
+security:
+  encrypt_enabled: true
+  log_sensitive: false
+  rate_limit_rpm: 10

@@ -7,6 +7,7 @@ English:
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 from uuid import uuid4
@@ -132,6 +133,17 @@ def _load_arbitrum_settings() -> dict[str, Any]:
     return config.get("arbitrum", {})
 
 
+def _resolve_private_key(settings: dict[str, Any]) -> str | None:
+    """/** Resuelve la private key desde config/env. / Resolve private key from config/env. **/"""
+    env_key = os.getenv("ARBITRUM_PRIVATE_KEY")
+    if env_key:
+        return env_key
+    private_key = settings.get("private_key")
+    if private_key in {"", None, "0x...", "REPLACE_ME"}:
+        return None
+    return private_key
+
+
 def _build_web3_client(rpc_url: str) -> Web3:
     """Construye un cliente Web3 conectado al RPC.
 
@@ -236,7 +248,7 @@ def anchor_root(root_hash: str) -> Dict[str, Any]:
         raise ValueError("Arbitrum anchoring está deshabilitado en config.")
 
     rpc_url = settings.get("rpc_url")
-    private_key = settings.get("private_key")
+    private_key = _resolve_private_key(settings)
     contract_address = settings.get("contract_address")
 
     if not rpc_url or not contract_address:

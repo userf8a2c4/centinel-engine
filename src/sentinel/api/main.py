@@ -16,6 +16,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
+import yaml
 
 from monitoring.health import register_healthchecks
 from sentinel.core.hashchain import compute_hash
@@ -24,6 +25,8 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 DB_PATH = Path(os.getenv("SNAPSHOTS_DB_PATH", BASE_DIR / "data" / "snapshots.db"))
 ALERTS_JSON = BASE_DIR / "data" / "alerts.json"
 ALERTS_LOG = BASE_DIR / "alerts.log"
+RULES_PATH = BASE_DIR / "command_center" / "rules.yaml"
+SUMMARY_PATH = BASE_DIR / "reports" / "summary.txt"
 
 app = FastAPI(title="C.E.N.T.I.N.E.L. Public API", version="0.1.0")
 logger = logging.getLogger(__name__)
@@ -64,7 +67,26 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
-rate_limit_per_minute = _env_int("API_RATE_LIMIT", 10)
+def _rules_rate_limit(default: int) -> int:
+    """/** Lee rate limit desde command_center/rules.yaml. / Read rate limit from command_center/rules.yaml. **/"""
+    if not RULES_PATH.exists():
+        return default
+    try:
+        payload = yaml.safe_load(RULES_PATH.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return default
+    if not isinstance(payload, dict):
+        return default
+    security = payload.get("security", {})
+    if not isinstance(security, dict):
+        return default
+    try:
+        return int(security.get("rate_limit_rpm", default))
+    except (TypeError, ValueError):
+        return default
+
+
+rate_limit_per_minute = _env_int("API_RATE_LIMIT", _rules_rate_limit(10))
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=[f"{rate_limit_per_minute}/minute"],
@@ -268,6 +290,20 @@ def load_alerts_payload() -> list[dict]:
     return []
 
 
+def load_summaries_payload() -> dict:
+    """/** Carga un resumen textual desde reports/summary.txt. / Load a textual summary from reports/summary.txt. **/"""
+    if not SUMMARY_PATH.exists():
+        return {"summary": [], "updated_at": None}
+    try:
+        lines = SUMMARY_PATH.read_text(encoding="utf-8").splitlines()
+        return {
+            "summary": [line for line in lines if line.strip()],
+            "updated_at": SUMMARY_PATH.stat().st_mtime,
+        }
+    except OSError:
+        return {"summary": [], "updated_at": None}
+
+
 @app.get("/snapshots/latest")
 def get_latest_snapshot() -> dict:
     """Endpoint que devuelve el snapshot más reciente.
@@ -362,6 +398,20 @@ def get_alerts() -> list[dict]:
         list[dict]: Available alerts.
     """
     return load_alerts_payload()
+
+
+@app.get("/api/health")
+@limiter.limit(f"{rate_limit_per_minute}/minute")
+def api_health() -> dict:
+    """/** Endpoint de salud protegido por rate limiting. / Health endpoint protected by rate limiting. **/"""
+    return {"status": "ok"}
+
+
+@app.get("/api/summaries")
+@limiter.limit(f"{rate_limit_per_minute}/minute")
+def api_summaries() -> dict:
+    """/** Endpoint de summaries protegido por rate limiting. / Summaries endpoint protected by rate limiting. **/"""
+    return load_summaries_payload()
 
 
 register_healthchecks(app)

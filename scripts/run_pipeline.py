@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import json
 import logging
+import os
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -17,6 +18,7 @@ from anchor.arbitrum_anchor import anchor_batch, anchor_root
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
 from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
+from scripts.security.encrypt_secrets import decrypt_secrets
 from sentinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
 from sentinel.utils.config_loader import load_config
 
@@ -137,6 +139,42 @@ def load_rules_thresholds() -> dict[str, Any]:
     except (OSError, yaml.YAMLError) as exc:
         logger.warning("rules_yaml_invalid error=%s", exc)
         return {}
+
+
+def load_security_settings() -> dict[str, Any]:
+    """/** Carga configuración de seguridad desde rules.yaml. / Load security settings from rules.yaml. **/"""
+    rules_thresholds = load_rules_thresholds()
+    security = rules_thresholds.get("security", {}) if isinstance(rules_thresholds, dict) else {}
+    return security if isinstance(security, dict) else {}
+
+
+def _has_private_key(arbitrum_config: dict[str, Any]) -> bool:
+    """/** Determina si hay private key disponible. / Determine if a private key is available. **/"""
+    raw_key = arbitrum_config.get("private_key")
+    placeholder_values = {"", None, "0x...", "REPLACE_ME"}
+    if raw_key not in placeholder_values:
+        return True
+    return bool(os.getenv("ARBITRUM_PRIVATE_KEY"))
+
+
+def _ensure_decrypted_private_key(arbitrum_config: dict[str, Any]) -> None:
+    """/** Desencripta private key sólo si falta. / Decrypt private key only when missing. **/"""
+    security_settings = load_security_settings()
+    if not security_settings.get("encrypt_enabled", False):
+        return
+    if _has_private_key(arbitrum_config):
+        return
+    try:
+        decrypted = decrypt_secrets(keys=["ARBITRUM_PRIVATE_KEY"])
+    except ValueError:
+        # Seguridad: si falla la desencriptación, evitar anclaje. / Security: avoid anchoring if decryption fails.
+        logger.error("anchor_decrypt_failed")
+        return
+    private_key = decrypted.get("ARBITRUM_PRIVATE_KEY")
+    if private_key:
+        # Seguridad: mantener secreto en memoria/env sin escribir en disco. / Security: keep secret in memory/env only.
+        os.environ["ARBITRUM_PRIVATE_KEY"] = private_key
+        arbitrum_config["private_key"] = private_key
 
 
 def resolve_max_json_limit(config: dict[str, Any]) -> int:
@@ -614,6 +652,10 @@ def _anchor_if_due(config: dict[str, Any], state: dict[str, Any], now: datetime)
     arbitrum_config = config.get("arbitrum", {})
     if not arbitrum_config.get("enabled", False):
         return
+    _ensure_decrypted_private_key(arbitrum_config)
+    if not _has_private_key(arbitrum_config):
+        logger.warning("anchor_skipped_missing_private_key")
+        return
 
     interval_minutes = int(arbitrum_config.get("interval_minutes", 15))
     batch_size = int(arbitrum_config.get("batch_size", 19))
@@ -661,7 +703,8 @@ def _anchor_snapshot(
         return
     if not arbitrum_config.get("auto_anchor_snapshots", False):
         return
-    if not arbitrum_config.get("private_key"):
+    _ensure_decrypted_private_key(arbitrum_config)
+    if not _has_private_key(arbitrum_config):
         logger.warning("anchor_snapshot_skipped_missing_private_key")
         return
 

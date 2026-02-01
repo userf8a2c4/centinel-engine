@@ -1,7 +1,7 @@
 # Security Policy / Política de Seguridad
 
 ## [ES] Reporte de vulnerabilidades
-Si descubres una vulnerabilidad, **no** la divulgues públicamente. Reporta el hallazgo mediante un *issue privado* o el canal oficial acordado con el equipo mantenedor. Incluye:
+Si descubres una vulnerabilidad, **no** la divulgues públicamente. Reporta el hallazgo mediante un *issue privado* o al correo seguro **security@centinel.org**. Incluye:
 - Descripción detallada y pasos para reproducir.
 - Impacto potencial (confidencialidad, integridad, disponibilidad).
 - Evidencia técnica limitada (sin datos sensibles).
@@ -17,7 +17,7 @@ Este repositorio procesa **datos públicos** del CNE. No almacenamos ni solicita
 ---
 
 ## [EN] Vulnerability reporting
-If you discover a vulnerability, **do not** disclose it publicly. Please report it through a *private issue* or the official channel agreed with the maintainers. Include:
+If you discover a vulnerability, **do not** disclose it publicly. Please report it through a *private issue* or by emailing **security@centinel.org**. Include:
 - Detailed description and reproduction steps.
 - Potential impact (confidentiality, integrity, availability).
 - Minimal technical evidence (avoid sensitive data).
