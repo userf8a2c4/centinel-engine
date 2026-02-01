@@ -13,7 +13,9 @@ from typing import Any
 
 import yaml
 
-logger = logging.getLogger(__name__)
+from scripts.logging_utils import configure_logging, log_event
+
+logger = configure_logging("centinel.bootstrap", log_file="logs/centinel.log")
 
 COMMAND_CENTER_DIR = Path("command_center")
 CONFIG_TEMPLATE_PATH = COMMAND_CENTER_DIR / "config.yaml.example"
@@ -25,29 +27,33 @@ REQUIRED_CONFIG_KEYS = ("base_url", "endpoints")
 
 
 def _copy_if_missing(source_path: Path, destination_path: Path) -> bool:
+    """/** Copia un template si falta. / Copy a template if missing. **/"""
     if destination_path.exists():
-        logger.info("File already exists: %s", destination_path)
+        log_event(logger, logging.INFO, "bootstrap_file_exists", path=str(destination_path))
         return False
     if not source_path.exists():
         raise FileNotFoundError(f"Missing template: {source_path}")
     shutil.copyfile(source_path, destination_path)
-    logger.info("Created: %s", destination_path)
+    log_event(logger, logging.INFO, "bootstrap_file_created", path=str(destination_path))
     return True
 
 
 def _load_config(config_path: Path) -> dict[str, Any]:
+    """/** Carga YAML de configuración. / Load YAML configuration. **/"""
     if not config_path.exists():
-        logger.warning("Config file not found: %s", config_path)
+        log_event(logger, logging.WARNING, "bootstrap_config_missing", path=str(config_path))
         return {}
     return yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
 
 
 def _validate_config(config: dict[str, Any]) -> list[str]:
+    """/** Valida claves mínimas. / Validate minimal keys. **/"""
     missing_keys = [key for key in REQUIRED_CONFIG_KEYS if key not in config]
     return missing_keys
 
 
 def bootstrap_config(force: bool = False) -> int:
+    """/** Inicializa configuración base. / Initialize base configuration. **/"""
     COMMAND_CENTER_DIR.mkdir(parents=True, exist_ok=True)
 
     created_any = False
@@ -62,18 +68,18 @@ def bootstrap_config(force: bool = False) -> int:
     config = _load_config(CONFIG_PATH)
     missing_keys = _validate_config(config)
     if missing_keys:
-        logger.warning("Missing required config keys: %s", ", ".join(missing_keys))
+        log_event(logger, logging.WARNING, "bootstrap_missing_keys", missing_keys=missing_keys)
         return 2
 
     if created_any:
-        logger.info("Bootstrap complete. Review command_center/config.yaml.")
+        log_event(logger, logging.INFO, "bootstrap_complete", created=True)
     else:
-        logger.info("Bootstrap complete. No changes required.")
+        log_event(logger, logging.INFO, "bootstrap_complete", created=False)
     return 0
 
 
 def main() -> int:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    """/** Entrada principal del script. / Script entry point. **/"""
     parser = argparse.ArgumentParser(description="Bootstrap Centinel configuration")
     parser.add_argument(
         "--force",

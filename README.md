@@ -110,8 +110,13 @@ El único punto de control editable es **`command_center/`**.
 - [Contribución](CONTRIBUTING.md)
 - [Roadmap](ROADMAP.md)
 - [Diario de desarrollo](Dev%20Diary/)
-- [Seguridad](Security.md)
+- [Seguridad](SECURITY.md)
 - [Licencia: MIT](LICENSE)
+
+## Seguridad
+- **Secrets management:** carga variables desde `.env`/`.env.local` con python-dotenv y utiliza `scripts/encrypt_secrets.py` para cifrar claves sensibles (ej. `ARBITRUM_KEY`).  
+- **Logging seguro:** los scripts rotan logs y evitan exponer datos sensibles, registrando solo hashes o métricas agregadas.  
+- **Escaneos de vulnerabilidades:** ejecuta el workflow de seguridad con `make scan-security` (requiere GitHub CLI).  
 
 ## Gestión de Secrets y Backup
 Consulta las instrucciones de resguardo seguro en [docs/SECRETS_BACKUP.md](docs/SECRETS_BACKUP.md).
@@ -234,8 +239,13 @@ Enable this in `command_center/config.yaml` under the `arbitrum` section with
 - [Contributing](CONTRIBUTING.md)
 - [Roadmap](ROADMAP.md)
 - [Development diary](Dev%20Diary/)
-- [Security](Security.md)
+- [Security](SECURITY.md)
 - [License: MIT](LICENSE)
+
+## Security
+- **Secrets management:** load variables from `.env`/`.env.local` with python-dotenv and use `scripts/encrypt_secrets.py` to encrypt sensitive keys (e.g., `ARBITRUM_KEY`).  
+- **Safe logging:** scripts rotate logs and avoid exposing sensitive data, recording only hashes or aggregate metrics.  
+- **Vulnerability scans:** trigger the security workflow with `make scan-security` (requires GitHub CLI).  
 
 ## Secrets and backups
 See secure backup instructions in [docs/SECRETS_BACKUP.md](docs/SECRETS_BACKUP.md).

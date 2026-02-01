@@ -23,6 +23,9 @@ reportlab>=4.2.5               # Generación de PDFs institucionales
 # Utilidades generales
 python-dateutil>=2.8.2         # Manejo robusto de timestamps y fechas
 PyYAML>=6.0.2                  # Configuración en YAML
+python-dotenv>=1.0.1           # Carga segura de variables desde .env
+cryptography>=42.0.0           # Encriptación de secretos con Fernet
+jsonschema>=4.22.0             # Validación de esquemas JSON
 web3>=6.20.0                   # Cliente Web3 para Arbitrum/Ethereum
 eth-account>=0.11.0            # Firma de transacciones
 pycryptodome>=3.20.0           # Keccak256 para Merkle Trees
@@ -32,3 +35,5 @@ pytest==8.3.3                  # Suite de pruebas unitarias e integración
 
 # Extras útiles (opcionales pero recomendados)
 rich>=13.7.0                   # Logging bonito en consola durante desarrollo
+cryptography>=42.0.0           # Encriptación de secrets (Fernet)
+slowapi>=0.1.9                 # Rate limiting para FastAPI
