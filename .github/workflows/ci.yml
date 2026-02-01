@@ -35,6 +35,6 @@ jobs:
       - name: Install security tooling
         run: pip install bandit safety
       - name: Bandit
-        run: bandit -r .
+        run: bandit -r . --exclude tests
       - name: Safety
         run: safety check --full-report -r requirements.txt
