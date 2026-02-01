@@ -1,6 +1,7 @@
 services:
   cron:
     build: .
+    restart: on-failure
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml

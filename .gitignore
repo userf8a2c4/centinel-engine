@@ -15,3 +15,5 @@ anomalies_report.json
 *.log
 *.tmp
 .env
+__pycache__/
+node_modules/

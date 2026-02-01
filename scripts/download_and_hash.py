@@ -42,21 +42,15 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from monitoring.health import get_health_state
+from scripts.logging_utils import configure_logging, log_event
 
-# Configuración de logging global (inicializado temprano)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("centinel.log", encoding="utf-8"),
-        logging.StreamHandler(),
-    ],
-)
-logger = logging.getLogger(__name__)
+logger = configure_logging("centinel.download", log_file="logs/centinel.log")
 
 DEFAULT_CONFIG_PATH = "config.yaml"
 COMMAND_CENTER_PATH = Path("command_center") / "config.yaml"
 config_path = DEFAULT_CONFIG_PATH
+TEMP_DIR = Path("data") / "temp"
+CHECKPOINT_PATH = TEMP_DIR / "download_checkpoint.json"
 
 
 def resolve_config_path(config_path_override: str | None = None) -> str:
@@ -246,7 +240,7 @@ def chain_hash(previous_hash: str, current_data: bytes) -> str:
 
 
 def fetch_with_retry(
-    url: str, retries: int = 3, backoff_factor: float = 0.5
+    url: str, retries: int = 5, backoff_factor: float = 0.5, timeout: float = 10.0
 ) -> requests.Response:
     """Realiza request con reintentos.
 
@@ -288,7 +282,7 @@ def fetch_with_retry(
         session.mount("http://", adapter)
 
         try:
-            response = session.get(url, timeout=10)
+            response = session.get(url, timeout=timeout)
             response.raise_for_status()
             return response
         except requests.exceptions.RequestException as e:
@@ -437,7 +431,11 @@ def process_sources(
     Args:
         sources (list[dict[str, Any]]): Configured sources list.
     """
-    previous_hash = "0" * 64
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    checkpoint = _load_checkpoint()
+    previous_hash = checkpoint.get("previous_hash", "0" * 64)
+    processed_sources = set(checkpoint.get("processed_sources", []))
+    max_sources = int(config.get("max_sources_per_cycle", 19))
 
     data_dir = Path("data")
     hash_dir = Path("hashes")
@@ -446,14 +444,23 @@ def process_sources(
 
     health_state = get_health_state()
 
-    for source in sources:
+    for source in sources[:max_sources]:
         endpoint = resolve_endpoint(source, endpoints)
         if not endpoint:
             logger.error("Fuente sin endpoint definido: %s", source)
             continue
+        source_label = source.get("source_id") or source.get("name", "unknown")
+        if source_label in processed_sources:
+            logger.info("Fuente ya procesada en checkpoint: %s", source_label)
+            continue
 
         try:
-            response = fetch_with_retry(endpoint)
+            response = fetch_with_retry(
+                endpoint,
+                retries=int(config.get("retries", 5)),
+                backoff_factor=float(config.get("backoff_base_seconds", 0.5)),
+                timeout=float(config.get("timeout", 10)),
+            )
             try:
                 payload = response.json()
             except ValueError:
@@ -496,9 +503,10 @@ def process_sources(
             )
 
             previous_hash = chained_hash
-            source_label = source.get("source_id") or source.get("name", "unknown")
             logger.info("Snapshot descargado y hasheado para %s", source_label)
             health_state.record_success()
+            processed_sources.add(source_label)
+            _save_checkpoint(previous_hash, processed_sources)
             logger.debug(
                 "current_hash=%s chained_hash=%s source=%s",
                 current_hash,
@@ -508,6 +516,49 @@ def process_sources(
         except Exception as e:
             logger.error("Fallo al descargar %s: %s", endpoint, e)
             health_state.record_failure()
+    _clear_checkpoint()
+
+
+def _load_checkpoint() -> dict[str, Any]:
+    """Carga el checkpoint de descarga si existe.
+
+    English:
+        Load the download checkpoint if available.
+    """
+    if not CHECKPOINT_PATH.exists():
+        return {}
+    try:
+        payload = json.loads(CHECKPOINT_PATH.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
+    except json.JSONDecodeError as exc:
+        logger.warning("checkpoint_invalid error=%s", exc)
+        return {}
+
+
+def _save_checkpoint(previous_hash: str, processed_sources: set[str]) -> None:
+    """Guarda el checkpoint parcial para recuperación de hash chain.
+
+    English:
+        Save the partial checkpoint to recover the hash chain.
+    """
+    payload = {
+        "previous_hash": previous_hash,
+        "processed_sources": sorted(processed_sources),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    CHECKPOINT_PATH.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def _clear_checkpoint() -> None:
+    """Limpia el checkpoint al completar el ciclo.
+
+    English:
+        Clear the checkpoint once the cycle is completed.
+    """
+    if CHECKPOINT_PATH.exists():
+        CHECKPOINT_PATH.unlink()
 
 
 def main() -> None:
@@ -521,6 +572,7 @@ def main() -> None:
     Download CNE snapshots, generate chained hashes and save logs/alerts.
     """
     logger.info("Iniciando download_and_hash")
+    log_event(logger, logging.INFO, "download_start")
 
     parser = argparse.ArgumentParser(
         description="Descarga y hashea snapshots del CNE"
@@ -546,6 +598,7 @@ def main() -> None:
             raise ValueError("Mock mode disabled by configuration.")
         run_mock_mode()
         logger.info("Proceso completado")
+        log_event(logger, logging.INFO, "download_complete")
         return
 
     logger.info("Modo real activado - procediendo con fetch al CNE")
@@ -558,6 +611,7 @@ def main() -> None:
     endpoints = config.get("endpoints", {})
     process_sources(sources, endpoints, config)
     logger.info("Proceso completado")
+    log_event(logger, logging.INFO, "download_complete")
 
 
 if __name__ == "__main__":
