@@ -4,11 +4,18 @@ English:
     Normalizes raw CNE data and builds canonical snapshots.
 """
 
+from __future__ import annotations
+
+import hashlib
 import json
-from typing import Dict, Any, List, Iterable
+import logging
+from typing import Dict, Any, List, Iterable, Optional
+
+from pydantic import BaseModel, Field, ValidationError, validator
 
 from sentinel.core.models import Meta, Totals, CandidateResult, Snapshot
 
+logger = logging.getLogger(__name__)
 
 DEPARTMENT_CODES = {
     "Atlántida": "01",
@@ -30,6 +37,61 @@ DEPARTMENT_CODES = {
     "Valle": "17",
     "Yoro": "18",
 }
+
+
+class CNEResult(BaseModel):
+    """Función segura para validar resultados / Secure function for validating results."""
+
+    partido: str = Field(..., min_length=1)
+    votos: str
+
+    @validator("votos")
+    def _validate_votes(cls, value: str) -> str:  # noqa: N805
+        normalized = str(value).replace(",", "").replace(".", "")
+        if not normalized.isdigit():
+            raise ValueError("votos must be numeric")
+        return str(value)
+
+    class Config:
+        extra = "forbid"
+
+
+class CNEPayload(BaseModel):
+    """Función segura para validar payloads CNE / Secure function for validating CNE payloads."""
+
+    cargo: str = Field(..., min_length=1)
+    departamento: str = Field(..., min_length=1)
+    resultados: List[CNEResult]
+
+    @validator("cargo")
+    def _validate_cargo(cls, value: str) -> str:  # noqa: N805
+        if value.lower() != "presidencial":
+            raise ValueError("cargo must be presidencial")
+        return value
+
+    class Config:
+        extra = "forbid"
+
+
+def _hash_payload(payload: Dict[str, Any]) -> str:
+    """Función segura para hashear payloads / Secure function for hashing payloads."""
+    serialized = json.dumps(payload, sort_keys=True, default=str)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _validate_cne_payload(raw: Dict[str, Any]) -> bool:
+    """Función segura para validar estructura CNE / Secure function for validating CNE structure."""
+    try:
+        CNEPayload.parse_obj(raw)
+    except ValidationError as exc:
+        # Seguridad: Evita exposición de datos sensibles / Security: Avoid exposure of sensitive data.
+        logger.error(
+            "invalid_cne_payload hash=%s errors=%s",
+            _hash_payload(raw),
+            exc.errors(),
+        )
+        return False
+    return True
 
 
 def _safe_int(value: Any) -> int:
@@ -177,7 +239,7 @@ def normalize_snapshot(
     scope: str = "DEPARTMENT",
     department_code: str | None = None,
     field_map: Dict[str, List[str]] | None = None,
-) -> Snapshot:
+) -> Optional[Snapshot]:
     """Convierte un JSON crudo del CNE en un Snapshot canónico e inmutable.
 
     Args:
@@ -191,7 +253,7 @@ def normalize_snapshot(
         field_map (Dict[str, List[str]] | None): Mapeos opcionales de campos.
 
     Returns:
-        Snapshot: Snapshot canónico con metadatos, totales y candidatos.
+        Snapshot | None: Snapshot canónico con metadatos o None si es inválido.
 
     English:
         Converts raw CNE JSON into an immutable canonical Snapshot.
@@ -207,8 +269,16 @@ def normalize_snapshot(
         field_map (Dict[str, List[str]] | None): Optional field mappings.
 
     Returns:
-        Snapshot: Canonical snapshot with metadata, totals, and candidates.
+        Snapshot | None: Canonical snapshot with metadata or None if invalid.
     """
+
+    if not _validate_cne_payload(raw):
+        logger.error(
+            "skip_invalid_snapshot department=%s timestamp=%s",
+            department_name,
+            timestamp_utc,
+        )
+        return None
 
     resolved_department_code = department_code or DEPARTMENT_CODES.get(
         department_name, "00"

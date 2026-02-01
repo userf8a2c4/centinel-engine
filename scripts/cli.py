@@ -7,13 +7,17 @@ CLI for snapshot normalization, hashing, and summaries.
 import argparse
 import hashlib
 import json
+import logging
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from sentinel.core.hashchain import compute_hash
+from scripts.logging_utils import configure_logging, log_event
 from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
+
+logger = configure_logging(__name__)
 
 
 @dataclass(frozen=True)
@@ -63,19 +67,37 @@ def normalize_snapshots(
     Normalize snapshots for reproducible analysis.
     """
     normalized: List[NormalizedSnapshot] = []
-    for snapshot in snapshots:
+    max_snapshots = 19
+    for index, snapshot in enumerate(snapshots[:max_snapshots]):
         normalized_snapshot = normalize_snapshot(
             snapshot.raw,
             department,
             snapshot.timestamp,
             year=year,
         )
+        if normalized_snapshot is None:
+            log_event(
+                logger,
+                logging.ERROR,
+                "normalize_snapshot_skipped",
+                reason="invalid_cne_payload",
+                snapshot_name=snapshot.path.stem,
+            )
+            continue
         canonical_json = snapshot_to_canonical_json(normalized_snapshot)
         normalized.append(
             NormalizedSnapshot(
                 name=snapshot.path.stem,
                 canonical_json=canonical_json,
             )
+        )
+    if len(snapshots) > max_snapshots:
+        log_event(
+            logger,
+            logging.WARNING,
+            "normalize_snapshot_limit",
+            processed=max_snapshots,
+            skipped=len(snapshots) - max_snapshots,
         )
     return normalized
 

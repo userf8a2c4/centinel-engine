@@ -25,3 +25,16 @@ jobs:
         run: poetry run mypy .
       - name: Pytest
         run: poetry run pytest --cov=src/centinel --cov-report=term-missing tests tests/integration
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install security tooling
+        run: pip install bandit safety
+      - name: Bandit
+        run: bandit -r src/sentinel scripts
+      - name: Safety
+        run: safety check -r requirements.txt
