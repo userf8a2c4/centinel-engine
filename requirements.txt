@@ -35,3 +35,5 @@ pytest==8.3.3                  # Suite de pruebas unitarias e integración
 
 # Extras útiles (opcionales pero recomendados)
 rich>=13.7.0                   # Logging bonito en consola durante desarrollo
+cryptography>=42.0.0           # Encriptación de secrets (Fernet)
+slowapi>=0.1.9                 # Rate limiting para FastAPI

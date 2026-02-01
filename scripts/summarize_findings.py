@@ -12,6 +12,7 @@ alerts_payload = json.loads(Path("analysis/alerts.json").read_text())
 
 summary_lines: list[str] = []
 critical_p_alerts: list[dict] = []
+CHI2_FORMULA = "chi2 = sum((O-E)^2 / E)"
 
 
 def _extract_p_value(alert: dict) -> float | None:
@@ -43,6 +44,31 @@ def _extract_p_value(alert: dict) -> float | None:
             return None
     return None
 
+
+def _is_benford_chi2_alert(alert: dict) -> bool:
+    """Verifica si la alerta es de Benford o chi2.
+
+    English:
+        Check whether the alert is Benford or chi2-related.
+    """
+    description = alert.get("description") or alert.get("descripcion") or ""
+    rule_name = alert.get("rule") or ""
+    combined = f"{rule_name} {description}".lower()
+    keywords = ("benford", "chi2", "chi-square", "chi cuadrado", "chi-cuadrado")
+    return any(keyword in combined for keyword in keywords)
+
+
+def _build_math_explanation() -> str:
+    """Devuelve explicación matemática para chi-cuadrado.
+
+    /** Explicación con fórmula. / Explanation with formula. */
+
+    English:
+        Return the chi-square mathematical explanation.
+    """
+    return CHI2_FORMULA
+
+
 if not alerts_payload:
     summary_lines.append(
         "No se detectaron eventos atípicos en los datos públicos analizados."
@@ -64,12 +90,17 @@ else:
                     f"- Regla activada: {triggered_rule['rule']}"
                 )
             p_value = _extract_p_value(triggered_rule)
-            if p_value is not None and p_value < 0.01:
+            if (
+                p_value is not None
+                and p_value < 0.01
+                and _is_benford_chi2_alert(triggered_rule)
+            ):
                 critical_p_alerts.append(
                     {
                         "rule": triggered_rule.get("rule"),
                         "p_value": p_value,
                         "description": description,
+                        "math": _build_math_explanation(),
                     }
                 )
 
@@ -80,11 +111,14 @@ if critical_p_alerts:
     now = datetime.now(timezone.utc).isoformat()
     with alert_log.open("a", encoding="utf-8") as handle:
         for entry in critical_p_alerts:
-            # /** Alerta crítica p<0.01. / Critical alert p<0.01. */
+            # /** Envía alerta crítica. / Sends critical alert.
+            #  chi2 = sum((O-E)^2 / E). */
             handle.write(
                 (
                     f"[{now}] ALERTA CRITICA p<0.01 "
+                    "tipo=benford/chi2 "
                     f"rule={entry.get('rule')} p_value={entry.get('p_value'):.4f} "
+                    f"explicacion={entry.get('math')} "
                     f"detalle={entry.get('description') or ''}\n"
                 )
             )

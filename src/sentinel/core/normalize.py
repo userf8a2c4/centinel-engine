@@ -4,13 +4,20 @@ English:
     Normalizes raw CNE data and builds canonical snapshots.
 """
 
+from __future__ import annotations
+
+import hashlib
 import json
-from typing import Dict, Any, List, Iterable
+import logging
+from typing import Dict, Any, List, Iterable, Optional
+
+from pydantic import BaseModel, Field, ValidationError, validator
 
 import jsonschema
 
 from sentinel.core.models import Meta, Totals, CandidateResult, Snapshot
 
+logger = logging.getLogger(__name__)
 
 DEPARTMENT_CODES = {
     "Atlántida": "01",

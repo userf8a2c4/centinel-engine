@@ -21,6 +21,12 @@ El Proyecto C.E.N.T.I.N.E.L. implementa un protocolo anti-manipulación basado e
 #### 4. ALCANCE DE SEGURIDAD
 Esta política cubre exclusivamente el código fuente y la estructura de datos contenida en este repositorio. No se tiene control sobre la disponibilidad o veracidad de los servidores de origen del CNE.
 
+#### 5. ENDURECIMIENTO PROACTIVO (SUGERIDO)
+* **Secrets cifrados:** Use `scripts/encrypt_secrets.py` para cifrar `ARBITRUM_PRIVATE_KEY` u otros secretos antes de almacenarlos. Mantenga `SECRET_ENCRYPTION_KEY` fuera del repositorio.
+* **Validación estricta de JSONs:** Rechace estructuras no válidas y registre solo hashes de verificación.
+* **Logging seguro:** Rotación de logs y redacción de valores sensibles para evitar exposición accidental.
+* **Rate limiting:** Mantenga límites por IP para mitigar abuso de endpoints públicos.
+
 ---
 
 ### [EN] ENGLISH SECTION
@@ -40,6 +46,12 @@ Proyecto C.E.N.T.I.N.E.L. implements an anti-tampering protocol based on:
 
 #### 4. SECURITY SCOPE
 This policy exclusively covers the source code and data structure contained within this repository. There is no control over the availability or veracity of the CNE source servers.
+
+#### 5. PROACTIVE HARDENING (SUGGESTED)
+* **Encrypted secrets:** Use `scripts/encrypt_secrets.py` to encrypt `ARBITRUM_PRIVATE_KEY` or other secrets before storage. Keep `SECRET_ENCRYPTION_KEY` out of the repo.
+* **Strict JSON validation:** Reject invalid structures and log only verification hashes.
+* **Secure logging:** Log rotation and redaction to avoid accidental exposure.
+* **Rate limiting:** Keep per-IP limits to mitigate abuse of public endpoints.
 
 ---
 

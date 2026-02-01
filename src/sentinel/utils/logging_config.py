@@ -4,6 +4,8 @@ English:
     Sets up application logging based on a config file.
 """
 
+from __future__ import annotations
+
 import logging
 import logging.handlers
 

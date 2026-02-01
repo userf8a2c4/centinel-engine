@@ -510,6 +510,7 @@ def process_sources(
 
     retry_max, backoff_factor = resolve_retry_policy(config)
     session = build_retry_session(retry_max=retry_max, backoff_factor=backoff_factor)
+    had_failures = False
 
     for source in sources[:max_sources]:
         endpoint = resolve_endpoint(source, endpoints)
@@ -582,8 +583,13 @@ def process_sources(
         except Exception as e:
             logger.error("Fallo al descargar %s: %s", endpoint, e)
             health_state.record_failure()
+            had_failures = True
     session.close()
-    _clear_checkpoint()
+    if had_failures:
+        # /** Conserva checkpoint para reintento. / Keep checkpoint for retries. */
+        logger.warning("Descarga incompleta, checkpoint preservado para reintentos.")
+    else:
+        _clear_checkpoint()
 
 
 def _load_checkpoint() -> dict[str, Any]:

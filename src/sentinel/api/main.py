@@ -10,12 +10,14 @@ import os
 import sqlite3
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 from monitoring.health import register_healthchecks
-from sentinel.api.rate_limit import RateLimitConfig, RateLimitExceeded, RateLimiter
 from sentinel.core.hashchain import compute_hash
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -62,86 +64,14 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
-global_rate_limiter = RateLimiter(
-    RateLimitConfig(
-        limit=_env_int("API_RATE_LIMIT", 100),
-        window_seconds=_env_int("API_RATE_WINDOW_SECONDS", 60),
-    )
+rate_limit_per_minute = _env_int("API_RATE_LIMIT", 10)
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[f"{rate_limit_per_minute}/minute"],
 )
-compare_rate_limiter = RateLimiter(
-    RateLimitConfig(
-        limit=_env_int("API_COMPARE_RATE_LIMIT", 10),
-        window_seconds=_env_int("API_COMPARE_RATE_WINDOW_SECONDS", 60),
-    )
-)
-
-
-def _get_client_ip(request: Request) -> str:
-    """Determina la IP del cliente respetando encabezados de proxy.
-
-    Prefiere `x-forwarded-for` (primer IP) y cae al host del cliente si no
-    existe, devolviendo "unknown" cuando no hay información.
-
-    English:
-        Determine the client IP honoring proxy headers.
-
-        Prefers `x-forwarded-for` (first IP) and falls back to the client host,
-        returning "unknown" when no information is available.
-    """
-    forwarded_for = request.headers.get("x-forwarded-for", "").strip()
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
-
-
-@app.exception_handler(RateLimitExceeded)
-def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:  # noqa: ARG001
-    """Devuelve una respuesta HTTP 429 cuando se excede el rate limit.
-
-    Incluye un mensaje claro para el usuario final sin exponer detalles internos.
-
-    English:
-        Return an HTTP 429 response when the rate limit is exceeded.
-
-        Includes a clear user-facing message without exposing internal details.
-    """
-    return JSONResponse(
-        status_code=429,
-        content={"error": "Demasiadas solicitudes. Intenta de nuevo en un minuto."},
-    )
-
-
-@app.middleware("http")
-async def enforce_global_rate_limit(request: Request, call_next):
-    """Middleware global que aplica rate limiting por IP.
-
-    Bloquea solicitudes cuando se supera la cuota y delega al siguiente handler
-    cuando la solicitud es permitida.
-
-    English:
-        Global middleware that enforces IP-based rate limiting.
-
-        Blocks requests when the quota is exceeded and forwards allowed requests.
-    """
-    client_ip = _get_client_ip(request)
-    if not global_rate_limiter.allow(client_ip):
-        raise RateLimitExceeded()
-    return await call_next(request)
-
-
-def enforce_compare_rate_limit(request: Request) -> None:
-    """Aplica rate limit específico para el endpoint de comparación.
-
-    Se usa como dependencia para proteger operaciones más costosas.
-
-    English:
-        Apply a specific rate limit for the compare endpoint.
-
-        Used as a dependency to protect more expensive operations.
-    """
-    client_ip = _get_client_ip(request)
-    if not compare_rate_limiter.allow(client_ip):
-        raise RateLimitExceeded()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 
 def get_connection() -> sqlite3.Connection:
@@ -390,7 +320,8 @@ def get_snapshot(snapshot_id: str) -> dict:
     return payload
 
 
-@app.get("/hashchain/verify", dependencies=[Depends(enforce_compare_rate_limit)])
+@app.get("/hashchain/verify")
+@limiter.limit(f"{rate_limit_per_minute}/minute")
 def verify_hash(hash_value: str = Query(..., alias="hash")) -> dict:
     """Endpoint de verificación de hash encadenado.
 
