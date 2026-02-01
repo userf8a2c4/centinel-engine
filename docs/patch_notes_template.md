@@ -7,8 +7,8 @@
 # [ES] Notas de Parche – C.E.N.T.I.N.E.L.
 
 **Versión:** v0.X.X (o fecha/commit si no hay release aún)  
-**Fecha:** 08-ene-2026  
-**Autor:** ___.
+**Fecha:** XX-mes-202X  
+**Autor:** userf8a2c4
 
 ### Resumen
 [Una frase corta que diga qué pasó en este parche]  
@@ -38,8 +38,8 @@
 # [EN] Patch Notes – C.E.N.T.I.N.E.L.
 
 **Version:** v0.X.X (or date/commit if no release yet)  
-**Date:** January 08, 2026  
-**Author:** ___.
+**Date:** Month XX, 202X  
+**Author:** userf8a2c4
 
 ### Summary
 [A short sentence describing what changed in this patch]
