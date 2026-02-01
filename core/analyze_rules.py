@@ -13,9 +13,56 @@ from __future__ import annotations
 
 from typing import Iterable
 
+import logging
+import math
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+import yaml
 from scipy.stats import chisquare
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_RULES_CONFIG = {
+    "benford_law": {"p_threshold": 0.05, "min_samples": 10},
+    "distribution_chi2": {
+        "p_threshold": 0.05,
+        "min_groups": 2,
+        "min_expected": 1.0,
+        "expected_basis": "uniform",
+        "historical_shares": {},
+    },
+}
+
+
+def _load_rules_config() -> dict:
+    """Carga reglas desde command_center/rules.yaml con fallback seguro.
+
+    English:
+        Load rules from command_center/rules.yaml with a safe fallback.
+    """
+    rules_path = Path(__file__).resolve().parents[1] / "command_center" / "rules.yaml"
+    if not rules_path.exists():
+        return {}
+    try:
+        with rules_path.open("r", encoding="utf-8") as handle:
+            return yaml.safe_load(handle) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        logger.warning("No se pudo leer rules.yaml: %s", exc)
+        return {}
+
+
+def _get_rule_param(config: dict, *keys: str, default):
+    """Obtiene un parámetro de reglas usando múltiples llaves.
+
+    English:
+        Fetch a rules parameter using multiple keys.
+    """
+    for key in keys:
+        if key in config:
+            return config[key]
+    return default
 
 
 def _first_digits(values: Iterable[int]) -> list[int]:
@@ -53,15 +100,31 @@ def apply_benford_law(votes_list: list[int]) -> dict:
         expected distribution P(d) = log10(1 + 1/d). The chi-square test uses:
         chi2 = Σ (O_d - E_d)^2 / E_d, where O_d are observed and E_d expected.
     """
+    config = _load_rules_config()
+    benford_config = config.get("benford_law", {})
+    p_threshold = float(
+        _get_rule_param(
+            config,
+            "benford_p_threshold",
+            default=benford_config.get("p_threshold", _DEFAULT_RULES_CONFIG["benford_law"]["p_threshold"]),
+        )
+    )
+    min_samples = int(benford_config.get("min_samples", _DEFAULT_RULES_CONFIG["benford_law"]["min_samples"]))
+
     digits = _first_digits(votes_list)
-    if not digits:
+    if len(digits) < min_samples:
         return {
             "status": "OK",
             "p_value": 1.0,
-            "detalle": "Sin datos válidos para evaluar Benford.",
+            "observed_freq": {},
+            "expected_freq": {},
+            "detalle": (
+                "Muestras insuficientes para Benford "
+                f"(min={min_samples}, actuales={len(digits)})."
+            ),
         }
 
-    observed = (
+    observed_counts = (
         pd.Series(digits).value_counts().reindex(range(1, 10), fill_value=0).sort_index()
     )
     total = observed.sum()
@@ -72,7 +135,7 @@ def apply_benford_law(votes_list: list[int]) -> dict:
             "detalle": "Total de votos igual a cero; Benford omitido.",
         }
     # Distribución Benford: P(d) = log10(1 + 1/d).
-    expected_prob = np.array([np.log10(1 + 1 / d) for d in range(1, 10)])
+    expected_prob = np.array([math.log10(1 + 1 / d) for d in range(1, 10)])
     expected_counts = expected_prob * total
 
     try:
@@ -90,33 +153,52 @@ def apply_benford_law(votes_list: list[int]) -> dict:
     detalle = (
         "Benford primer dígito: chi2="
         f"{chi_result.statistic:.2f}, p_value={p_value:.4f}, "
-        f"muestras={int(total)}."
+        f"muestras={total}, umbral={p_threshold:.2f}."
     )
-    return {"status": status, "p_value": p_value, "detalle": detalle}
+    if status == "ANOMALIA":
+        logger.warning("Benford detectó anomalía: %s", detalle)
+    return {
+        "status": status,
+        "p_value": p_value,
+        "observed_freq": observed_freq,
+        "expected_freq": expected_freq,
+        "detalle": detalle,
+    }
 
 
 def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
     """Prueba chi-cuadrado sobre distribución partido/departamento.
 
-    Agrupa votos observados por partido y departamento, y compara contra
-    esperados proporcionales a la participación global del partido.
-    Esperado = total_departamento * (votos_partido_global / votos_global).
-    La prueba usa chi2 = Σ (O - E)^2 / E sobre todas las celdas.
+    Agrupa votos observados por partido (o departamento si aplica) y compara
+    contra esperados proporcionales a un reparto uniforme u histórico.
+    La prueba usa chi2 = Σ (O - E)^2 / E sobre los grupos evaluados.
 
     English:
         Chi-square test over party/department distribution.
 
-        It groups observed votes by party and department, and compares them to
-        expected counts proportional to each party's global share.
-        Expected = department_total * (party_global_votes / global_votes).
-        The test uses chi2 = Σ (O - E)^2 / E over all cells.
+        It groups observed votes by party (or department when applicable) and
+        compares them to expected counts based on uniform or historical shares.
+        The test uses chi2 = Σ (O - E)^2 / E across evaluated groups.
     """
     if df_normalized is None or df_normalized.empty:
         return {
             "status": "OK",
             "p_value": 1.0,
+            "chi2_stat": 0.0,
             "detalle": "Sin datos para evaluar distribución chi-cuadrado.",
         }
+
+    config = _load_rules_config()
+    dist_config = config.get("distribution_chi2", {})
+    p_threshold = float(dist_config.get("p_threshold", _DEFAULT_RULES_CONFIG["distribution_chi2"]["p_threshold"]))
+    min_groups = int(dist_config.get("min_groups", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_groups"]))
+    min_expected = float(dist_config.get("min_expected", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_expected"]))
+    expected_basis = dist_config.get(
+        "expected_basis", _DEFAULT_RULES_CONFIG["distribution_chi2"]["expected_basis"]
+    )
+    historical_shares = dist_config.get(
+        "historical_shares", _DEFAULT_RULES_CONFIG["distribution_chi2"]["historical_shares"]
+    )
 
     dept_col = next(
         (col for col in ["departamento", "department", "dep"] if col in df_normalized),
@@ -135,53 +217,71 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
         None,
     )
 
-    if not dept_col or not party_col or not votes_col:
+    group_col = party_col or dept_col
+    if not group_col or not votes_col:
         return {
             "status": "OK",
             "p_value": 1.0,
+            "chi2_stat": 0.0,
             "detalle": "Columnas requeridas faltantes para distribución chi-cuadrado.",
         }
 
-    df = df_normalized[[dept_col, party_col, votes_col]].copy()
+    df = df_normalized[[group_col, votes_col]].copy()
     df[votes_col] = pd.to_numeric(df[votes_col], errors="coerce").fillna(0)
     df = df[df[votes_col] >= 0]
 
-    observed_table = (
-        df.groupby([dept_col, party_col])[votes_col].sum().unstack(fill_value=0)
-    )
-    if observed_table.empty:
+    observed_series = df.groupby(group_col)[votes_col].sum()
+    if observed_series.empty:
         return {
             "status": "OK",
             "p_value": 1.0,
+            "chi2_stat": 0.0,
             "detalle": "Tabla de observados vacía para chi-cuadrado.",
         }
 
-    party_totals = observed_table.sum(axis=0)
-    total_votes = party_totals.sum()
+    total_votes = float(observed_series.sum())
     if total_votes == 0:
         return {
             "status": "OK",
             "p_value": 1.0,
+            "chi2_stat": 0.0,
             "detalle": "Total de votos igual a cero para chi-cuadrado.",
         }
 
-    party_share = party_totals / total_votes
-    dept_totals = observed_table.sum(axis=1)
-    # Esperado por celda: E_{d,p} = total_departamento_d * share_partido_p.
-    expected_table = pd.DataFrame(
-        np.outer(dept_totals.values, party_share.values),
-        index=dept_totals.index,
-        columns=party_share.index,
-    )
-
-    observed_flat = observed_table.values.ravel()
-    expected_flat = expected_table.values.ravel()
-    valid_mask = expected_flat > 0
-    if not np.any(valid_mask):
+    group_names = list(observed_series.index.astype(str))
+    if len(group_names) < min_groups:
         return {
             "status": "OK",
             "p_value": 1.0,
-            "detalle": "Esperados nulos para chi-cuadrado.",
+            "chi2_stat": 0.0,
+            "detalle": f"Grupos insuficientes (min={min_groups}, actuales={len(group_names)}).",
+        }
+
+    use_historical = (
+        expected_basis == "historical"
+        and isinstance(historical_shares, dict)
+        and set(group_names).issubset(historical_shares.keys())
+    )
+    if use_historical:
+        raw_shares = np.array([float(historical_shares[name]) for name in group_names])
+        share_total = float(raw_shares.sum())
+        if share_total <= 0:
+            use_historical = False
+    if use_historical:
+        expected_share = raw_shares / raw_shares.sum()
+        basis_label = "historica"
+    else:
+        # Distribución uniforme: cada grupo recibe 1 / n.
+        expected_share = np.array([1.0 / len(group_names)] * len(group_names))
+        basis_label = "uniforme"
+
+    expected_counts = expected_share * total_votes
+    if np.any(expected_counts < min_expected):
+        return {
+            "status": "OK",
+            "p_value": 1.0,
+            "chi2_stat": 0.0,
+            "detalle": "Esperados demasiado bajos para chi-cuadrado.",
         }
 
     try:
@@ -199,8 +299,24 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
 
     status = "ANOMALIA" if p_value < 0.05 else "OK"
     detalle = (
-        "Distribución partido/departamento: chi2="
-        f"{chi_result.statistic:.2f}, p_value={p_value:.4f}, "
-        f"celdas={int(valid_mask.sum())}."
+        f"Distribución {group_col} ({basis_label}): chi2={chi2_stat:.2f}, "
+        f"p_value={p_value:.4f}, grupos={len(group_names)}, umbral={p_threshold:.2f}."
     )
-    return {"status": status, "p_value": p_value, "detalle": detalle}
+    if status == "ANOMALIA":
+        logger.warning("Chi-cuadrado detectó anomalía: %s", detalle)
+    return {"status": status, "p_value": p_value, "chi2_stat": chi2_stat, "detalle": detalle}
+
+
+if __name__ == "__main__":
+    # Ejemplo de uso / Usage example.
+    sample_votes = [120, 340, 560, 780, 910, 101, 230, 456, 789, 905]
+    print(apply_benford_law(sample_votes))
+
+    sample_df = pd.DataFrame(
+        {
+            "departamento": ["Atlántida", "Atlántida", "Cortés", "Cortés"],
+            "partido": ["PARTIDO A", "PARTIDO B", "PARTIDO A", "PARTIDO B"],
+            "votos": [1200, 800, 2400, 1600],
+        }
+    )
+    print(check_distribution_chi2(sample_df))
