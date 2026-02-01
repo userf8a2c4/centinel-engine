@@ -8,3 +8,15 @@ retry_max: 5
 # Factor de backoff exponencial (segundos base).
 # Exponential backoff factor (base seconds).
 backoff_factor: 2
+
+# Umbral crítico para chi-cuadrado y Benford.
+# Critical threshold for chi-square and Benford.
+chi2_p_critical: 0.01
+
+# Mínimo de muestras para Benford.
+# Minimum samples for Benford.
+benford_min_samples: 10
+
+# Límite de JSON presidenciales por ciclo.
+# Presidential JSON limit per cycle.
+max_json_presidenciales: 19

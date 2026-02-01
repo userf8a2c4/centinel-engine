@@ -57,11 +57,7 @@ DEFAULT_BACKOFF_FACTOR = 2.0
 
 
 def resolve_config_path(config_path_override: str | None = None) -> str:
-    """Resuelve la ruta de configuración priorizando command_center.
-
-    English:
-        Resolve configuration path prioritizing command_center.
-    """
+    """/** Resuelve ruta de configuración priorizando command_center. / Resolve configuration path prioritizing command_center. **"""
     if config_path_override:
         return config_path_override
     if COMMAND_CENTER_PATH.exists():
@@ -70,23 +66,7 @@ def resolve_config_path(config_path_override: str | None = None) -> str:
 
 
 def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
-    """Aplica overrides desde variables de entorno.
-
-    Args:
-        config (dict[str, Any]): Configuración base cargada.
-
-    Returns:
-        dict[str, Any]: Configuración con overrides aplicados.
-
-    English:
-        Apply overrides from environment variables.
-
-    Args:
-        config (dict[str, Any]): Loaded base configuration.
-
-    Returns:
-        dict[str, Any]: Configuration with applied overrides.
-    """
+    """/** Aplica overrides desde variables de entorno. / Apply overrides from environment variables. **"""
     env_base_url = os.getenv("BASE_URL")
     env_timeout = os.getenv("TIMEOUT")
     env_retries = os.getenv("RETRIES")
@@ -128,11 +108,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
 
 
 def normalize_master_switch(value: Any) -> str:
-    """Normaliza el switch maestro a 'ON' o 'OFF'.
-
-    English:
-        Normalize master switch to 'ON' or 'OFF'.
-    """
+    """/** Normaliza el switch maestro a 'ON' o 'OFF'. / Normalize master switch to 'ON' or 'OFF'. **"""
     if value is None:
         return "ON"
     if isinstance(value, bool):
@@ -147,40 +123,12 @@ def normalize_master_switch(value: Any) -> str:
 
 
 def is_master_switch_on(config: dict[str, Any]) -> bool:
-    """Indica si el switch maestro permite procesos automáticos.
-
-    English:
-        Indicates whether the master switch allows automatic processes.
-    """
+    """/** Indica si el switch maestro permite procesos automáticos. / Indicates whether the master switch allows automatic processes. **"""
     return normalize_master_switch(config.get("master_switch")) == "ON"
 
 
 def load_config(config_path_override: str | None = None) -> dict[str, Any]:
-    """Carga la configuración desde config.yaml.
-
-    Args:
-        config_path_override (str | None): Ruta al archivo de configuración si se proporciona.
-
-    Returns:
-        dict[str, Any]: Configuración cargada.
-
-    Raises:
-        FileNotFoundError: Si el archivo no existe.
-        yaml.YAMLError: Si hay error de sintaxis YAML.
-
-    English:
-        Load configuration from config.yaml.
-
-    Args:
-        config_path_override (str | None): Path to config file when provided.
-
-    Returns:
-        dict[str, Any]: Loaded configuration.
-
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        yaml.YAMLError: If YAML syntax errors are found.
-    """
+    """/** Carga la configuración desde config.yaml. / Load configuration from config.yaml. **"""
     try:
         resolved_path = resolve_config_path(config_path_override)
         with open(resolved_path, "r", encoding="utf-8") as f:
@@ -196,50 +144,61 @@ def load_config(config_path_override: str | None = None) -> dict[str, Any]:
 
 
 def compute_hash(data: bytes) -> str:
-    """Calcula hash SHA-256 de los datos.
-
-    Args:
-        data (bytes): Datos a hashear.
-
-    Returns:
-        str: Hash hexadecimal.
-
-    English:
-        Compute SHA-256 hash of data.
-
-    Args:
-        data (bytes): Data to hash.
-
-    Returns:
-        str: Hexadecimal hash.
-    """
+    """/** Calcula hash SHA-256. / Compute SHA-256 hash. **"""
     return hashlib.sha256(data).hexdigest()
 
 
 def chain_hash(previous_hash: str, current_data: bytes) -> str:
-    """Genera hash encadenado: hash(previous_hash + current_data).
-
-    Args:
-        previous_hash (str): Hash anterior.
-        current_data (bytes): Datos actuales.
-
-    Returns:
-        str: Nuevo hash encadenado.
-
-    English:
-        Generate chained hash: hash(previous_hash + current_data).
-
-    Args:
-        previous_hash (str): Previous hash.
-        current_data (bytes): Current data.
-
-    Returns:
-        str: New chained hash.
-    """
+    """/** Genera hash encadenado. / Generate chained hash. **"""
     combined = (previous_hash + current_data.decode("utf-8", errors="ignore")).encode(
         "utf-8"
     )
     return compute_hash(combined)
+
+
+def download_with_retries(
+    url: str,
+    *,
+    timeout: float = 10.0,
+) -> requests.Response:
+    """/** Descarga con reintentos explícitos y backoff. / Download with explicit retries and backoff. **"""
+    rules_thresholds = load_rules_thresholds()
+    retry_max = int(rules_thresholds.get("retry_max", DEFAULT_RETRY_MAX))
+    backoff_factor = float(
+        rules_thresholds.get("backoff_factor", DEFAULT_BACKOFF_FACTOR)
+    )
+    retry_strategy = Retry(
+        total=retry_max,
+        connect=retry_max,
+        read=retry_max,
+        backoff_factor=backoff_factor,
+        status_forcelist=[500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET", "OPTIONS"],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+
+    try:
+        for attempt in range(1, retry_max + 1):
+            logger.info("download_attempt=%s/%s url=%s", attempt, retry_max, url)
+            try:
+                response = session.get(url, timeout=timeout)
+                response.raise_for_status()
+                return response
+            except requests.exceptions.RequestException as exc:
+                logger.warning(
+                    "download_attempt_failed attempt=%s url=%s error=%s",
+                    attempt,
+                    url,
+                    exc,
+                )
+                if attempt == retry_max:
+                    logger.error("download_retries_exhausted url=%s", url)
+                    raise
+    finally:
+        session.close()
 
 
 def fetch_with_retry(
@@ -248,56 +207,21 @@ def fetch_with_retry(
     timeout: float = 10.0,
     session: Optional[requests.Session] = None,
 ) -> requests.Response:
-    """Realiza request con reintentos fijos y backoff.
-
-    Args:
-        url (str): Endpoint a consultar.
-        timeout (float): Tiempo de espera del request en segundos.
-        session (Optional[requests.Session]): Sesión opcional con retries.
-
-    Returns:
-        requests.Response: Respuesta exitosa.
-
-    Raises:
-        requests.exceptions.RequestException: Si todos los reintentos fallan.
-
-    English:
-        Perform request with fixed retries and backoff.
-
-    Args:
-        url (str): Endpoint to fetch.
-        timeout (float): Request timeout in seconds.
-        session (Optional[requests.Session]): Optional session with retries.
-
-    Returns:
-        requests.Response: Successful response.
-
-    Raises:
-        requests.exceptions.RequestException: If all retries fail.
-    """
-    owns_session = session is None
-    session = session or build_retry_session(
-        retry_max=DEFAULT_RETRY_MAX, backoff_factor=DEFAULT_BACKOFF_FACTOR
-    )
+    """/** Realiza request con reintentos fijos y backoff. / Perform request with fixed retries and backoff. **"""
+    if session is None:
+        return download_with_retries(url, timeout=timeout)
 
     try:
         response = session.get(url, timeout=timeout)
         response.raise_for_status()
         return response
-    except requests.exceptions.RequestException as e:
-        logger.warning("Error en fetch: %s", e)
+    except requests.exceptions.RequestException as exc:
+        logger.warning("Error en fetch: %s", exc)
         raise
-    finally:
-        if owns_session:
-            session.close()
 
 
 def load_rules_thresholds() -> dict[str, Any]:
-    """Carga umbrales desde command_center/rules.yaml si existe.
-
-    English:
-        Load thresholds from command_center/rules.yaml when available.
-    """
+    """/** Carga umbrales desde command_center/rules.yaml. / Load thresholds from command_center/rules.yaml. **"""
     if not RULES_CONFIG_PATH.exists():
         return {}
     try:
@@ -309,15 +233,7 @@ def load_rules_thresholds() -> dict[str, Any]:
 
 
 def resolve_retry_policy(config: dict[str, Any]) -> tuple[int, float]:
-    """Resuelve política de reintentos (retry_max, backoff_factor).
-
-    Nota: retry_max prioriza command_center/rules.yaml, luego config.yaml.
-
-    English:
-        Resolve retry policy (retry_max, backoff_factor).
-
-        Note: retry_max prioritizes command_center/rules.yaml, then config.yaml.
-    """
+    """/** Resuelve política de reintentos. / Resolve retry policy. **"""
     rules_thresholds = load_rules_thresholds()
     retry_max = int(
         rules_thresholds.get("retry_max", config.get("retries", DEFAULT_RETRY_MAX))
@@ -332,13 +248,7 @@ def resolve_retry_policy(config: dict[str, Any]) -> tuple[int, float]:
 
 
 def build_retry_session(retry_max: int, backoff_factor: float) -> requests.Session:
-    """Crea sesión HTTP con reintentos y backoff exponencial.
-
-    /** Maneja retries para estabilidad. / Handles retries for stability. */
-
-    English:
-        Build an HTTP session with retries and exponential backoff.
-    """
+    """/** Crea sesión HTTP con reintentos y backoff. / Build HTTP session with retries and backoff. **"""
     retry_strategy = Retry(
         total=retry_max,
         connect=retry_max,
@@ -355,17 +265,7 @@ def build_retry_session(retry_max: int, backoff_factor: float) -> requests.Sessi
 
 
 def create_mock_snapshot() -> Path:
-    """Crea un snapshot mock para modo CI.
-
-    Returns:
-        Path: Ruta al archivo mock creado.
-
-    English:
-        Create a mock snapshot for CI mode.
-
-    Returns:
-        Path: Path to created mock file.
-    """
+    """/** Crea snapshot mock para modo CI. / Create mock snapshot for CI mode. **"""
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
 
@@ -385,17 +285,14 @@ def create_mock_snapshot() -> Path:
 
 
 def run_mock_mode() -> None:
-    """Ejecuta el flujo mock para CI.
-
-    English:
-        Run the mock flow for CI.
-    """
+    """/** Ejecuta flujo mock para CI. / Run mock flow for CI. **"""
     logger.info("MODO MOCK ACTIVADO (CI) - No se intentará descargar del CNE real")
     create_mock_snapshot()
     logger.info("Modo mock completado - pipeline continúa con datos dummy")
 
 
 def _extract_payload_timestamp(payload: Any) -> Optional[datetime]:
+    """/** Extrae timestamp desde payload. / Extract timestamp from payload. **"""
     if isinstance(payload, list) and payload:
         payload = payload[0]
     if not isinstance(payload, dict):
@@ -421,6 +318,7 @@ def _extract_payload_timestamp(payload: Any) -> Optional[datetime]:
 
 
 def _payload_has_cne_source(payload: Any) -> bool:
+    """/** Valida fuente CNE en payload. / Validate CNE source in payload. **"""
     if isinstance(payload, list) and payload:
         payload = payload[0]
     if not isinstance(payload, dict):
@@ -434,6 +332,7 @@ def _payload_has_cne_source(payload: Any) -> bool:
 
 
 def _is_cne_endpoint(endpoint: str, config: dict[str, Any]) -> bool:
+    """/** Verifica si endpoint pertenece a CNE. / Check whether endpoint belongs to CNE. **"""
     domains = config.get("cne_domains") or ["cne.hn"]
     endpoint_lower = endpoint.lower()
     return any(domain.lower() in endpoint_lower for domain in domains)
@@ -442,6 +341,7 @@ def _is_cne_endpoint(endpoint: str, config: dict[str, Any]) -> bool:
 def _validate_real_payload(
     payload: Any, endpoint: str, config: dict[str, Any]
 ) -> bool:
+    """/** Valida payload real del CNE. / Validate real CNE payload. **"""
     if not _is_cne_endpoint(endpoint, config):
         logger.error("Endpoint fuera de CNE: %s", endpoint)
         return False
@@ -468,7 +368,7 @@ def _validate_real_payload(
 
 
 def resolve_endpoint(source: dict[str, Any], endpoints: dict[str, str]) -> str | None:
-    """Resuelve el endpoint para una fuente configurada."""
+    """/** Resuelve endpoint para una fuente configurada. / Resolve endpoint for a configured source. **"""
     scope = source.get("scope")
     if scope == "NATIONAL":
         return endpoints.get("nacional") or endpoints.get("fallback_nacional")
@@ -484,17 +384,7 @@ def process_sources(
     endpoints: dict[str, str],
     config: dict[str, Any],
 ) -> None:
-    """Procesa fuentes reales y actualiza la cadena de hashes.
-
-    Args:
-        sources (list[dict[str, Any]]): Lista de fuentes configuradas.
-
-    English:
-        Process real sources and update the hash chain.
-
-    Args:
-        sources (list[dict[str, Any]]): Configured sources list.
-    """
+    """/** Procesa fuentes reales y actualiza hashes. / Process real sources and update hashes. **"""
     TEMP_DIR.mkdir(parents=True, exist_ok=True)
     checkpoint = _load_checkpoint()
     previous_hash = checkpoint.get("previous_hash", "0" * 64)
@@ -508,10 +398,6 @@ def process_sources(
 
     health_state = get_health_state()
 
-    retry_max, backoff_factor = resolve_retry_policy(config)
-    session = build_retry_session(retry_max=retry_max, backoff_factor=backoff_factor)
-    had_failures = False
-
     for source in sources[:max_sources]:
         endpoint = resolve_endpoint(source, endpoints)
         if not endpoint:
@@ -523,10 +409,9 @@ def process_sources(
             continue
 
         try:
-            response = fetch_with_retry(
+            response = download_with_retries(
                 endpoint,
                 timeout=float(config.get("timeout", 10)),
-                session=session,
             )
             try:
                 payload = response.json()
@@ -583,21 +468,11 @@ def process_sources(
         except Exception as e:
             logger.error("Fallo al descargar %s: %s", endpoint, e)
             health_state.record_failure()
-            had_failures = True
-    session.close()
-    if had_failures:
-        # /** Conserva checkpoint para reintento. / Keep checkpoint for retries. */
-        logger.warning("Descarga incompleta, checkpoint preservado para reintentos.")
-    else:
-        _clear_checkpoint()
+    _clear_checkpoint()
 
 
 def _load_checkpoint() -> dict[str, Any]:
-    """Carga el checkpoint de descarga si existe.
-
-    English:
-        Load the download checkpoint if available.
-    """
+    """/** Carga checkpoint de descarga si existe. / Load download checkpoint if available. **"""
     if not CHECKPOINT_PATH.exists():
         return {}
     try:
@@ -609,11 +484,7 @@ def _load_checkpoint() -> dict[str, Any]:
 
 
 def _save_checkpoint(previous_hash: str, processed_sources: set[str]) -> None:
-    """Guarda el checkpoint parcial para recuperación de hash chain.
-
-    English:
-        Save the partial checkpoint to recover the hash chain.
-    """
+    """/** Guarda checkpoint parcial para recuperar hash chain. / Save partial checkpoint to recover hash chain. **"""
     payload = {
         "previous_hash": previous_hash,
         "processed_sources": sorted(processed_sources),
@@ -625,25 +496,13 @@ def _save_checkpoint(previous_hash: str, processed_sources: set[str]) -> None:
 
 
 def _clear_checkpoint() -> None:
-    """Limpia el checkpoint al completar el ciclo.
-
-    English:
-        Clear the checkpoint once the cycle is completed.
-    """
+    """/** Limpia el checkpoint al completar el ciclo. / Clear checkpoint once cycle completes. **"""
     if CHECKPOINT_PATH.exists():
         CHECKPOINT_PATH.unlink()
 
 
 def main() -> None:
-    """Función principal del script.
-
-    Descarga snapshots del CNE, genera hashes encadenados y guarda logs/alertas.
-
-    English:
-        Main script function.
-
-    Download CNE snapshots, generate chained hashes and save logs/alerts.
-    """
+    """/** Función principal del script. / Main script function. **"""
     logger.info("Iniciando download_and_hash")
     log_event(logger, logging.INFO, "download_start")
 

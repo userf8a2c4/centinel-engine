@@ -1,4 +1,4 @@
-.PHONY: init snapshot analyze summary pipeline scan-security
+.PHONY: init snapshot analyze summary pipeline test-stress
 
 PYTHON_COMMAND ?= python
 
@@ -17,5 +17,5 @@ summary:
 pipeline:
 	$(PYTHON_COMMAND) scripts/run_pipeline.py --once
 
-scan-security:
-	gh workflow run security-scan.yml
+test-stress:
+	$(PYTHON_COMMAND) -m pytest tests/test_stress.py
