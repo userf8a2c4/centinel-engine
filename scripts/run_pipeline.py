@@ -28,6 +28,16 @@ ANCHOR_LOG_DIR = Path("logs") / "anchors"
 STATE_PATH = DATA_DIR / "pipeline_state.json"
 PIPELINE_CHECKPOINT_PATH = TEMP_DIR / "pipeline_checkpoint.json"
 FAILURE_CHECKPOINT_PATH = TEMP_DIR / "checkpoint.json"
+RESILIENCE_STAGE_ORDER = [
+    "start",
+    "healthcheck",
+    "download",
+    "normalize",
+    "analyze",
+    "report",
+    "anchor",
+    "complete",
+]
 
 DATA_DIR.mkdir(exist_ok=True)
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
@@ -85,6 +95,73 @@ def clear_pipeline_checkpoint() -> None:
         PIPELINE_CHECKPOINT_PATH.unlink()
 
 
+def load_resilience_checkpoint() -> dict[str, Any]:
+    """Carga checkpoint de resiliencia desde data/temp/checkpoint.json.
+
+    English:
+        Load resilience checkpoint from data/temp/checkpoint.json.
+    """
+    if not FAILURE_CHECKPOINT_PATH.exists():
+        return {}
+    try:
+        payload = json.loads(FAILURE_CHECKPOINT_PATH.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
+    except json.JSONDecodeError:
+        logger.warning("resilience_checkpoint_invalid path=%s", FAILURE_CHECKPOINT_PATH)
+        return {}
+
+
+def collect_snapshot_index(limit: int = 19) -> list[dict[str, Any]]:
+    """Genera índice JSON con los snapshots recientes (máximo 19).
+
+    English:
+        Generate a JSON index with recent snapshots (max 19).
+    """
+    snapshots = sorted(
+        DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    index: list[dict[str, Any]] = []
+    for snapshot in snapshots[:limit]:
+        index.append(
+            {
+                "file": snapshot.name,
+                "mtime": snapshot.stat().st_mtime,
+            }
+        )
+    return index
+
+
+def save_resilience_checkpoint(
+    run_id: str,
+    stage: str | None,
+    *,
+    latest_snapshot: Path | None = None,
+    content_hash: str | None = None,
+    error: str | None = None,
+) -> None:
+    """Guarda estado intermedio con hashes e índice JSON.
+
+    /** Checkpointing avanzado para reanudación. / Advanced checkpointing for resume. */
+
+    English:
+        Persist intermediate state with hashes and JSON index.
+    """
+    payload = {
+        "run_id": run_id,
+        "stage": stage or "unknown",
+        "timestamp": utcnow().isoformat(),
+        "hashes": collect_recent_hashes(),
+        "snapshot_index": collect_snapshot_index(),
+        "latest_snapshot": latest_snapshot.name if latest_snapshot else None,
+        "last_content_hash": content_hash,
+    }
+    if error:
+        payload["error"] = error
+    FAILURE_CHECKPOINT_PATH.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
 def collect_recent_hashes(limit: int = 19) -> list[dict[str, Any]]:
     """Recolecta hashes recientes para checkpoints de falla.
 
@@ -110,22 +187,28 @@ def collect_recent_hashes(limit: int = 19) -> list[dict[str, Any]]:
     return hashes
 
 
-def save_failure_checkpoint(run_id: str, stage: str | None, error: str) -> None:
-    """Guarda checkpoint parcial ante fallas de red o timeout.
+def clear_resilience_checkpoint() -> None:
+    """Elimina el checkpoint avanzado cuando el pipeline completa.
 
     English:
-        Save a partial checkpoint on network or timeout failures.
+        Remove the advanced checkpoint when the pipeline completes.
     """
-    payload = {
-        "run_id": run_id,
-        "stage": stage or "unknown",
-        "timestamp": utcnow().isoformat(),
-        "hashes": collect_recent_hashes(),
-        "error": error,
-    }
-    FAILURE_CHECKPOINT_PATH.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    if FAILURE_CHECKPOINT_PATH.exists():
+        FAILURE_CHECKPOINT_PATH.unlink()
+
+
+def should_run_stage(current_stage: str, start_stage: str) -> bool:
+    """Determina si una etapa debe ejecutarse al reanudar.
+
+    English:
+        Determine if a stage should run when resuming.
+    """
+    try:
+        return RESILIENCE_STAGE_ORDER.index(current_stage) >= RESILIENCE_STAGE_ORDER.index(
+            start_stage
+        )
+    except ValueError:
+        return True
 
 
 def run_command(command, description):
@@ -230,37 +313,74 @@ def run_pipeline(config: dict[str, Any]):
     now = utcnow()
     state = load_state()
     checkpoint = load_pipeline_checkpoint()
-    run_id = checkpoint.get("run_id") or now.strftime("%Y%m%d%H%M%S")
+    resilience_checkpoint = load_resilience_checkpoint()
+    run_id = checkpoint.get("run_id") or resilience_checkpoint.get("run_id") or now.strftime(
+        "%Y%m%d%H%M%S"
+    )
+    start_stage = "start"
+    latest_snapshot: Path | None = None
+    content_hash: str | None = None
+    resume_stage = resilience_checkpoint.get("stage")
+    resume_snapshot_name = resilience_checkpoint.get("latest_snapshot")
+    if (
+        resume_stage in RESILIENCE_STAGE_ORDER
+        and resume_snapshot_name
+        and resume_stage not in {"start", "healthcheck", "download"}
+    ):
+        candidate_snapshot = DATA_DIR / resume_snapshot_name
+        if candidate_snapshot.exists():
+            latest_snapshot = candidate_snapshot
+            content_hash = resilience_checkpoint.get("last_content_hash")
+            start_stage = resume_stage
+            log_event(
+                logger,
+                logging.INFO,
+                "pipeline_resume",
+                run_id=run_id,
+                stage=resume_stage,
+                snapshot=resume_snapshot_name,
+            )
     save_pipeline_checkpoint({"run_id": run_id, "stage": "start", "at": now.isoformat()})
+    save_resilience_checkpoint(
+        run_id,
+        "start",
+        latest_snapshot=latest_snapshot,
+        content_hash=content_hash,
+    )
     log_event(logger, logging.INFO, "pipeline_start", run_id=run_id)
 
     try:
-        save_pipeline_checkpoint(
-            {"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()}
-        )
-        health_ok = check_cne_connectivity(config)
-        download_cmd = [sys.executable, "scripts/download_and_hash.py"]
-        if not health_ok:
-            log_event(
-                logger,
-                logging.WARNING,
-                "healthcheck_failed_fallback_mock",
-                run_id=run_id,
+        if should_run_stage("healthcheck", start_stage):
+            save_pipeline_checkpoint(
+                {"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()}
             )
-            download_cmd.append("--mock")
+            save_resilience_checkpoint(run_id, "healthcheck")
+            health_ok = check_cne_connectivity(config)
+            download_cmd = [sys.executable, "scripts/download_and_hash.py"]
+            if not health_ok:
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "healthcheck_failed_fallback_mock",
+                    run_id=run_id,
+                )
+                download_cmd.append("--mock")
 
-        save_pipeline_checkpoint(
-            {"run_id": run_id, "stage": "download", "at": utcnow().isoformat()}
-        )
-        run_command(download_cmd, "descarga + hash")
+            if should_run_stage("download", start_stage):
+                save_pipeline_checkpoint(
+                    {"run_id": run_id, "stage": "download", "at": utcnow().isoformat()}
+                )
+                save_resilience_checkpoint(run_id, "download")
+                run_command(download_cmd, "descarga + hash")
 
-        latest_snapshot = latest_file(DATA_DIR, "*.json")
+        if latest_snapshot is None:
+            latest_snapshot = latest_file(DATA_DIR, "*.json")
         if not latest_snapshot:
             print("[!] No se encontró snapshot para procesar")
             log_event(logger, logging.WARNING, "snapshot_missing", run_id=run_id)
             return
 
-        content_hash = compute_content_hash(latest_snapshot)
+        content_hash = content_hash or compute_content_hash(latest_snapshot)
         if state.get("last_content_hash") == content_hash:
             state["last_run_at"] = now.isoformat()
             save_state(state)
@@ -271,21 +391,35 @@ def run_pipeline(config: dict[str, Any]):
         state["last_content_hash"] = content_hash
         state["last_snapshot"] = latest_snapshot.name
 
-        save_pipeline_checkpoint(
-            {"run_id": run_id, "stage": "normalize", "at": utcnow().isoformat()}
-        )
-        if should_normalize(latest_snapshot):
-            run_command(
-                [sys.executable, "scripts/normalize_presidential.py"], "normalización"
+        if should_run_stage("normalize", start_stage):
+            save_pipeline_checkpoint(
+                {"run_id": run_id, "stage": "normalize", "at": utcnow().isoformat()}
             )
-        else:
-            print("[i] Normalización omitida: estructura no compatible")
-            log_event(logger, logging.INFO, "normalize_skipped", run_id=run_id)
+            save_resilience_checkpoint(
+                run_id,
+                "normalize",
+                latest_snapshot=latest_snapshot,
+                content_hash=content_hash,
+            )
+            if should_normalize(latest_snapshot):
+                run_command(
+                    [sys.executable, "scripts/normalize_presidential.py"], "normalización"
+                )
+            else:
+                print("[i] Normalización omitida: estructura no compatible")
+                log_event(logger, logging.INFO, "normalize_skipped", run_id=run_id)
 
-        save_pipeline_checkpoint(
-            {"run_id": run_id, "stage": "analyze", "at": utcnow().isoformat()}
-        )
-        run_command([sys.executable, "scripts/analyze_rules.py"], "análisis")
+        if should_run_stage("analyze", start_stage):
+            save_pipeline_checkpoint(
+                {"run_id": run_id, "stage": "analyze", "at": utcnow().isoformat()}
+            )
+            save_resilience_checkpoint(
+                run_id,
+                "analyze",
+                latest_snapshot=latest_snapshot,
+                content_hash=content_hash,
+            )
+            run_command([sys.executable, "scripts/analyze_rules.py"], "análisis")
 
         anomalies_path = Path("anomalies_report.json")
         anomalies = []
@@ -298,23 +432,38 @@ def run_pipeline(config: dict[str, Any]):
             json.dumps(alerts, indent=2), encoding="utf-8"
         )
 
-        save_pipeline_checkpoint(
-            {"run_id": run_id, "stage": "report", "at": utcnow().isoformat()}
-        )
-        if should_generate_report(state, now):
-            run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
-            state["last_report_at"] = now.isoformat()
-        else:
-            print("[i] Reporte omitido por cadencia")
-            log_event(logger, logging.INFO, "report_skipped", run_id=run_id)
+        if should_run_stage("report", start_stage):
+            save_pipeline_checkpoint(
+                {"run_id": run_id, "stage": "report", "at": utcnow().isoformat()}
+            )
+            save_resilience_checkpoint(
+                run_id,
+                "report",
+                latest_snapshot=latest_snapshot,
+                content_hash=content_hash,
+            )
+            if should_generate_report(state, now):
+                run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
+                state["last_report_at"] = now.isoformat()
+            else:
+                print("[i] Reporte omitido por cadencia")
+                log_event(logger, logging.INFO, "report_skipped", run_id=run_id)
 
-        _anchor_snapshot(config, state, now, latest_snapshot)
-        _anchor_if_due(config, state, now)
+        if should_run_stage("anchor", start_stage):
+            save_resilience_checkpoint(
+                run_id,
+                "anchor",
+                latest_snapshot=latest_snapshot,
+                content_hash=content_hash,
+            )
+            _anchor_snapshot(config, state, now, latest_snapshot)
+            _anchor_if_due(config, state, now)
 
         update_daily_summary(state, now, len(anomalies))
         state["last_run_at"] = now.isoformat()
         save_state(state)
         clear_pipeline_checkpoint()
+        clear_resilience_checkpoint()
         log_event(logger, logging.INFO, "pipeline_complete", run_id=run_id)
     except Exception as exc:  # noqa: BLE001
         log_event(
@@ -322,6 +471,13 @@ def run_pipeline(config: dict[str, Any]):
             logging.ERROR,
             "pipeline_failed",
             run_id=run_id,
+            error=str(exc),
+        )
+        save_resilience_checkpoint(
+            run_id,
+            checkpoint.get("stage") or "error",
+            latest_snapshot=latest_snapshot,
+            content_hash=content_hash,
             error=str(exc),
         )
         raise
@@ -352,7 +508,7 @@ def safe_run_pipeline(config: dict[str, Any]) -> None:
             stage=stage or "unknown",
             error=str(exc),
         )
-        save_failure_checkpoint(run_id, stage, str(exc))
+        save_resilience_checkpoint(run_id, stage, error=str(exc))
     except Exception:
         raise
 

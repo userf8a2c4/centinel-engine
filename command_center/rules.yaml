@@ -1,14 +1,10 @@
-benford_p_threshold: 0.05
+# Umbrales de resiliencia y reglas generales del command center.
+# Resilience thresholds and general rules for the command center.
 
-benford_law:
-  p_threshold: 0.05
-  min_samples: 10
+# Máximo de reintentos de red (HTTPAdapter/Retry).
+# Max retry count for network calls (HTTPAdapter/Retry).
+retry_max: 5
 
-distribution_chi2:
-  p_threshold: 0.05
-  min_groups: 2
-  min_expected: 1.0
-  expected_basis: "uniform"
-  # Si tienes distribución histórica, agrega shares por grupo.
-  # If you have historical distribution, add shares per group.
-  historical_shares: {}
+# Factor de backoff exponencial (segundos base).
+# Exponential backoff factor (base seconds).
+backoff_factor: 2
