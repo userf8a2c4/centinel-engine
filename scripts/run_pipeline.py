@@ -13,23 +13,28 @@ from apscheduler.triggers.cron import CronTrigger
 
 from anchor.arbitrum_anchor import anchor_batch, anchor_root
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
+from scripts.healthcheck import check_cne_endpoints
+from scripts.logging_utils import configure_logging, log_event
 from sentinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
 from sentinel.utils.config_loader import load_config
 
 DATA_DIR = Path("data")
+TEMP_DIR = DATA_DIR / "temp"
 HASH_DIR = Path("hashes")
 ANALYSIS_DIR = Path("analysis")
 REPORTS_DIR = Path("reports")
 ANCHOR_LOG_DIR = Path("logs") / "anchors"
 STATE_PATH = DATA_DIR / "pipeline_state.json"
+PIPELINE_CHECKPOINT_PATH = TEMP_DIR / "pipeline_checkpoint.json"
 
 DATA_DIR.mkdir(exist_ok=True)
+TEMP_DIR.mkdir(parents=True, exist_ok=True)
 HASH_DIR.mkdir(exist_ok=True)
 ANALYSIS_DIR.mkdir(exist_ok=True)
 REPORTS_DIR.mkdir(exist_ok=True)
 ANCHOR_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-logger = logging.getLogger(__name__)
+logger = configure_logging("centinel.pipeline", log_file="logs/centinel.log")
 
 
 def utcnow():
@@ -44,6 +49,38 @@ def load_state():
 
 def save_state(state):
     STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+
+def load_pipeline_checkpoint() -> dict[str, Any]:
+    """Carga el checkpoint del pipeline si existe.
+
+    English:
+        Load the pipeline checkpoint when present.
+    """
+    if not PIPELINE_CHECKPOINT_PATH.exists():
+        return {}
+    return json.loads(PIPELINE_CHECKPOINT_PATH.read_text(encoding="utf-8"))
+
+
+def save_pipeline_checkpoint(payload: dict[str, Any]) -> None:
+    """Guarda el estado intermedio del pipeline en disco.
+
+    English:
+        Persist intermediate pipeline state to disk.
+    """
+    PIPELINE_CHECKPOINT_PATH.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def clear_pipeline_checkpoint() -> None:
+    """Elimina el checkpoint si el pipeline finalizó correctamente.
+
+    English:
+        Remove the checkpoint once the pipeline completes successfully.
+    """
+    if PIPELINE_CHECKPOINT_PATH.exists():
+        PIPELINE_CHECKPOINT_PATH.unlink()
 
 
 def run_command(command, description):
@@ -147,56 +184,102 @@ def update_daily_summary(state, now, anomalies_count):
 def run_pipeline(config: dict[str, Any]):
     now = utcnow()
     state = load_state()
+    checkpoint = load_pipeline_checkpoint()
+    run_id = checkpoint.get("run_id") or now.strftime("%Y%m%d%H%M%S")
+    save_pipeline_checkpoint({"run_id": run_id, "stage": "start", "at": now.isoformat()})
+    log_event(logger, logging.INFO, "pipeline_start", run_id=run_id)
 
-    run_command([sys.executable, "scripts/download_and_hash.py"], "descarga + hash")
+    try:
+        save_pipeline_checkpoint(
+            {"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()}
+        )
+        health_ok = check_cne_endpoints(config)
+        download_cmd = [sys.executable, "scripts/download_and_hash.py"]
+        if not health_ok:
+            log_event(
+                logger,
+                logging.WARNING,
+                "healthcheck_failed_fallback_mock",
+                run_id=run_id,
+            )
+            download_cmd.append("--mock")
 
-    latest_snapshot = latest_file(DATA_DIR, "*.json")
-    if not latest_snapshot:
-        print("[!] No se encontró snapshot para procesar")
-        return
+        save_pipeline_checkpoint(
+            {"run_id": run_id, "stage": "download", "at": utcnow().isoformat()}
+        )
+        run_command(download_cmd, "descarga + hash")
 
-    content_hash = compute_content_hash(latest_snapshot)
-    if state.get("last_content_hash") == content_hash:
+        latest_snapshot = latest_file(DATA_DIR, "*.json")
+        if not latest_snapshot:
+            print("[!] No se encontró snapshot para procesar")
+            log_event(logger, logging.WARNING, "snapshot_missing", run_id=run_id)
+            return
+
+        content_hash = compute_content_hash(latest_snapshot)
+        if state.get("last_content_hash") == content_hash:
+            state["last_run_at"] = now.isoformat()
+            save_state(state)
+            print("[i] Snapshot duplicado detectado, se omite procesamiento")
+            log_event(logger, logging.INFO, "snapshot_duplicate", run_id=run_id)
+            return
+
+        state["last_content_hash"] = content_hash
+        state["last_snapshot"] = latest_snapshot.name
+
+        save_pipeline_checkpoint(
+            {"run_id": run_id, "stage": "normalize", "at": utcnow().isoformat()}
+        )
+        if should_normalize(latest_snapshot):
+            run_command(
+                [sys.executable, "scripts/normalize_presidential.py"], "normalización"
+            )
+        else:
+            print("[i] Normalización omitida: estructura no compatible")
+            log_event(logger, logging.INFO, "normalize_skipped", run_id=run_id)
+
+        save_pipeline_checkpoint(
+            {"run_id": run_id, "stage": "analyze", "at": utcnow().isoformat()}
+        )
+        run_command([sys.executable, "scripts/analyze_rules.py"], "análisis")
+
+        anomalies_path = Path("anomalies_report.json")
+        anomalies = []
+        if anomalies_path.exists():
+            anomalies = json.loads(anomalies_path.read_text(encoding="utf-8"))
+
+        critical_anomalies = filter_critical_anomalies(anomalies, config)
+        alerts = build_alerts(critical_anomalies)
+        (ANALYSIS_DIR / "alerts.json").write_text(
+            json.dumps(alerts, indent=2), encoding="utf-8"
+        )
+
+        save_pipeline_checkpoint(
+            {"run_id": run_id, "stage": "report", "at": utcnow().isoformat()}
+        )
+        if should_generate_report(state, now):
+            run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
+            state["last_report_at"] = now.isoformat()
+        else:
+            print("[i] Reporte omitido por cadencia")
+            log_event(logger, logging.INFO, "report_skipped", run_id=run_id)
+
+        _anchor_snapshot(config, state, now, latest_snapshot)
+        _anchor_if_due(config, state, now)
+
+        update_daily_summary(state, now, len(anomalies))
         state["last_run_at"] = now.isoformat()
         save_state(state)
-        print("[i] Snapshot duplicado detectado, se omite procesamiento")
-        return
-
-    state["last_content_hash"] = content_hash
-    state["last_snapshot"] = latest_snapshot.name
-
-    if should_normalize(latest_snapshot):
-        run_command(
-            [sys.executable, "scripts/normalize_presidential.py"], "normalización"
+        clear_pipeline_checkpoint()
+        log_event(logger, logging.INFO, "pipeline_complete", run_id=run_id)
+    except Exception as exc:  # noqa: BLE001
+        log_event(
+            logger,
+            logging.ERROR,
+            "pipeline_failed",
+            run_id=run_id,
+            error=str(exc),
         )
-    else:
-        print("[i] Normalización omitida: estructura no compatible")
-
-    run_command([sys.executable, "scripts/analyze_rules.py"], "análisis")
-
-    anomalies_path = Path("anomalies_report.json")
-    anomalies = []
-    if anomalies_path.exists():
-        anomalies = json.loads(anomalies_path.read_text(encoding="utf-8"))
-
-    critical_anomalies = filter_critical_anomalies(anomalies, config)
-    alerts = build_alerts(critical_anomalies)
-    (ANALYSIS_DIR / "alerts.json").write_text(
-        json.dumps(alerts, indent=2), encoding="utf-8"
-    )
-
-    if should_generate_report(state, now):
-        run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
-        state["last_report_at"] = now.isoformat()
-    else:
-        print("[i] Reporte omitido por cadencia")
-
-    _anchor_snapshot(config, state, now, latest_snapshot)
-    _anchor_if_due(config, state, now)
-
-    update_daily_summary(state, now, len(anomalies))
-    state["last_run_at"] = now.isoformat()
-    save_state(state)
+        raise
 
 
 def _read_hashes_for_anchor(batch_size: int) -> list[str]:
