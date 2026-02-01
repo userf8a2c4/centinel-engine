@@ -7,6 +7,8 @@ English:
 import json
 from typing import Dict, Any, List, Iterable
 
+import jsonschema
+
 from sentinel.core.models import Meta, Totals, CandidateResult, Snapshot
 
 
@@ -31,17 +33,54 @@ DEPARTMENT_CODES = {
     "Yoro": "18",
 }
 
+DISALLOWED_KEYS = {
+    "personal_data",
+    "datos_personales",
+    "dni",
+    "cedula",
+    "documento",
+    "direccion",
+    "telefono",
+}
+
+CNE_RAW_SCHEMA = {
+    "type": "object",
+    "additionalProperties": True,
+}
+
+
+def _drop_disallowed_keys(payload: Any) -> Any:
+    """/** Elimina claves sensibles inesperadas. / Remove unexpected sensitive keys. **/"""
+    if isinstance(payload, dict):
+        sanitized: Dict[str, Any] = {}
+        for key, value in payload.items():
+            if str(key).lower() in DISALLOWED_KEYS:
+                # Seguridad: evita almacenar datos personales. / Security: avoid storing personal data.
+                continue
+            sanitized[key] = _drop_disallowed_keys(value)
+        return sanitized
+    if isinstance(payload, list):
+        return [_drop_disallowed_keys(item) for item in payload]
+    return payload
+
+
+def _sanitize_raw_payload(raw: Any) -> Dict[str, Any]:
+    """/** Sanitiza JSON y valida esquema básico. / Sanitize JSON and validate basic schema. **/"""
+    try:
+        if isinstance(raw, (str, bytes, bytearray)):
+            parsed = json.loads(raw)
+        else:
+            parsed = json.loads(json.dumps(raw, ensure_ascii=False))
+        jsonschema.validate(parsed, CNE_RAW_SCHEMA)
+    except (json.JSONDecodeError, jsonschema.ValidationError, TypeError) as exc:
+        raise ValueError(f"Invalid raw snapshot payload: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise ValueError("Invalid raw snapshot payload: expected object JSON")
+    return _drop_disallowed_keys(parsed)
+
 
 def _safe_int(value: Any) -> int:
-    """Convierte valores heterogéneos a entero de forma segura.
-
-    Acepta cadenas con separadores y devuelve 0 cuando el valor no es válido.
-
-    English:
-        Safely convert heterogeneous values to integers.
-
-        Accepts strings with separators and returns 0 when the value is invalid.
-    """
+    """/** Convierte valores heterogéneos a entero de forma segura. / Safely convert heterogeneous values to integers. **/"""
     try:
         if value is None:
             return 0
@@ -51,17 +90,7 @@ def _safe_int(value: Any) -> int:
 
 
 def _get_nested_value(payload: Dict[str, Any], path: str) -> Any:
-    """Obtiene un valor anidado usando una ruta con puntos.
-
-    Recorre claves del diccionario separadas por "." y retorna None si la ruta
-    no existe.
-
-    English:
-        Get a nested value using a dot-delimited path.
-
-        Traverses dictionary keys separated by "." and returns None if the path
-        is missing.
-    """
+    """/** Obtiene un valor anidado usando una ruta con puntos. / Get a nested value using a dot-delimited path. **/"""
     current: Any = payload
     for part in path.split("."):
         if not isinstance(current, dict):
@@ -71,15 +100,7 @@ def _get_nested_value(payload: Dict[str, Any], path: str) -> Any:
 
 
 def _first_value(payload: Dict[str, Any], keys: Iterable[str]) -> Any:
-    """Devuelve el primer valor no nulo entre varias claves.
-
-    Soporta claves simples y rutas anidadas en formato dotted-path.
-
-    English:
-        Return the first non-null value among multiple keys.
-
-        Supports simple keys and dotted-path nested lookups.
-    """
+    """/** Devuelve el primer valor no nulo entre varias claves. / Return the first non-null value among multiple keys. **/"""
     for key in keys:
         if "." in key:
             value = _get_nested_value(payload, key)
@@ -93,17 +114,7 @@ def _first_value(payload: Dict[str, Any], keys: Iterable[str]) -> Any:
 def _extract_candidates_root(
     raw: Dict[str, Any], candidate_roots: Iterable[str]
 ) -> Any:
-    """Localiza el contenedor de candidatos dentro del JSON crudo.
-
-    Busca en múltiples rutas posibles y normaliza cuando el contenedor incluye
-    una clave "candidatos".
-
-    English:
-        Locate the candidate container within the raw JSON.
-
-        Searches multiple possible roots and normalizes when the container
-        includes a "candidatos" key.
-    """
+    """/** Localiza el contenedor de candidatos dentro del JSON crudo. / Locate the candidate container within the raw JSON. **/"""
     for key in candidate_roots:
         value = _get_nested_value(raw, key) if "." in key else raw.get(key)
         if isinstance(value, dict) and "candidatos" in value:
@@ -118,17 +129,7 @@ def _iter_candidates(
     candidate_count: int,
     candidate_roots: Iterable[str],
 ) -> Iterable[CandidateResult]:
-    """Itera candidatos en varias estructuras con fallback robusto.
-
-    Genera objetos `CandidateResult` desde listas, diccionarios o valores
-    simples, y rellena con votos cero cuando falten datos.
-
-    English:
-        Iterate candidates across multiple structures with robust fallbacks.
-
-        Builds `CandidateResult` objects from lists, dicts, or scalar values and
-        fills missing candidates with zero votes.
-    """
+    """/** Itera candidatos con fallback robusto. / Iterate candidates with robust fallbacks. **/"""
     raw_candidates = _extract_candidates_root(raw, candidate_roots)
 
     if isinstance(raw_candidates, list):
@@ -169,7 +170,7 @@ def _iter_candidates(
 
 
 def normalize_snapshot(
-    raw: Dict[str, Any],
+    raw: Dict[str, Any] | str | bytes,
     department_name: str,
     timestamp_utc: str,
     year: int = 2025,
@@ -178,38 +179,9 @@ def normalize_snapshot(
     department_code: str | None = None,
     field_map: Dict[str, List[str]] | None = None,
 ) -> Snapshot:
-    """Convierte un JSON crudo del CNE en un Snapshot canónico e inmutable.
+    """/** Convierte JSON crudo en Snapshot canónico inmutable. / Convert raw JSON into an immutable canonical Snapshot. **/"""
 
-    Args:
-        raw (Dict[str, Any]): JSON crudo del CNE.
-        department_name (str): Nombre del departamento.
-        timestamp_utc (str): Timestamp en UTC.
-        year (int): Año electoral.
-        candidate_count (int): Cantidad esperada de candidatos.
-        scope (str): Alcance del snapshot (p. ej., DEPARTMENT).
-        department_code (str | None): Código de departamento, si se conoce.
-        field_map (Dict[str, List[str]] | None): Mapeos opcionales de campos.
-
-    Returns:
-        Snapshot: Snapshot canónico con metadatos, totales y candidatos.
-
-    English:
-        Converts raw CNE JSON into an immutable canonical Snapshot.
-
-    Args:
-        raw (Dict[str, Any]): Raw CNE JSON data.
-        department_name (str): Department name.
-        timestamp_utc (str): UTC timestamp.
-        year (int): Election year.
-        candidate_count (int): Expected number of candidates.
-        scope (str): Snapshot scope (e.g., DEPARTMENT).
-        department_code (str | None): Department code, if known.
-        field_map (Dict[str, List[str]] | None): Optional field mappings.
-
-    Returns:
-        Snapshot: Canonical snapshot with metadata, totals, and candidates.
-    """
-
+    raw = _sanitize_raw_payload(raw)
     resolved_department_code = department_code or DEPARTMENT_CODES.get(
         department_name, "00"
     )
@@ -289,23 +261,7 @@ def normalize_snapshot(
 
 
 def snapshot_to_canonical_json(snapshot: Snapshot) -> str:
-    """Serializa un Snapshot a JSON canónico (orden fijo, sin espacios).
-
-    Args:
-        snapshot (Snapshot): Snapshot a serializar.
-
-    Returns:
-        str: JSON canónico del snapshot.
-
-    English:
-        Serializes a Snapshot into canonical JSON (stable order, no spaces).
-
-    Args:
-        snapshot (Snapshot): Snapshot to serialize.
-
-    Returns:
-        str: Canonical JSON string.
-    """
+    """/** Serializa un Snapshot a JSON canónico. / Serialize a Snapshot into canonical JSON. **/"""
 
     payload = {
         "meta": snapshot.meta.__dict__,
@@ -317,23 +273,7 @@ def snapshot_to_canonical_json(snapshot: Snapshot) -> str:
 
 
 def snapshot_to_dict(snapshot: Snapshot) -> Dict[str, Any]:
-    """Convierte un Snapshot en un diccionario simple.
-
-    Args:
-        snapshot (Snapshot): Snapshot a convertir.
-
-    Returns:
-        Dict[str, Any]: Representación del snapshot en dict.
-
-    English:
-        Converts a Snapshot into a plain dictionary.
-
-    Args:
-        snapshot (Snapshot): Snapshot to convert.
-
-    Returns:
-        Dict[str, Any]: Dictionary representation of the snapshot.
-    """
+    """/** Convierte un Snapshot en diccionario simple. / Convert a Snapshot into a plain dictionary. **/"""
     return {
         "meta": snapshot.meta.__dict__,
         "totals": snapshot.totals.__dict__,

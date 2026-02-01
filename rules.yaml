@@ -34,3 +34,7 @@ resiliencia:
   retry_max: 5
   backoff_factor: 2
   max_json_presidenciales: 19
+
+security:
+  encrypt_secrets: true
+  log_sensitive: false
