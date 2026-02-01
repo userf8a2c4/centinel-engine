@@ -1,0 +1,14 @@
+benford_p_threshold: 0.05
+
+benford_law:
+  p_threshold: 0.05
+  min_samples: 10
+
+distribution_chi2:
+  p_threshold: 0.05
+  min_groups: 2
+  min_expected: 1.0
+  expected_basis: "uniform"
+  # Si tienes distribución histórica, agrega shares por grupo.
+  # If you have historical distribution, add shares per group.
+  historical_shares: {}
