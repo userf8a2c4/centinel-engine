@@ -1,4 +1,4 @@
-.PHONY: init snapshot analyze summary pipeline
+.PHONY: init snapshot analyze summary pipeline test-stress
 
 PYTHON_COMMAND ?= python
 
@@ -16,3 +16,6 @@ summary:
 
 pipeline:
 	$(PYTHON_COMMAND) scripts/run_pipeline.py --once
+
+test-stress:
+	$(PYTHON_COMMAND) -m pytest tests/test_stress.py

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import requests
+import yaml
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -28,6 +29,7 @@ ANCHOR_LOG_DIR = Path("logs") / "anchors"
 STATE_PATH = DATA_DIR / "pipeline_state.json"
 PIPELINE_CHECKPOINT_PATH = TEMP_DIR / "pipeline_checkpoint.json"
 FAILURE_CHECKPOINT_PATH = TEMP_DIR / "checkpoint.json"
+RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
 RESILIENCE_STAGE_ORDER = [
     "start",
     "healthcheck",
@@ -50,57 +52,56 @@ logger = configure_logging("centinel.pipeline", log_file="logs/centinel.log")
 
 
 def utcnow():
+    """/** Obtiene hora UTC actual. / Get current UTC time. **"""
     return datetime.now(timezone.utc)
 
 
 def load_state():
+    """/** Carga estado del pipeline si existe. / Load pipeline state when present. **"""
     if not STATE_PATH.exists():
         return {}
-    return json.loads(STATE_PATH.read_text(encoding="utf-8"))
+    try:
+        return json.loads(STATE_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        logger.error("pipeline_state_invalid path=%s error=%s", STATE_PATH, exc)
+        return {}
 
 
 def save_state(state):
+    """/** Guarda el estado del pipeline. / Save pipeline state. **"""
     STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
 def load_pipeline_checkpoint() -> dict[str, Any]:
-    """Carga el checkpoint del pipeline si existe.
-
-    English:
-        Load the pipeline checkpoint when present.
-    """
+    """/** Carga checkpoint del pipeline si existe. / Load the pipeline checkpoint when present. **"""
     if not PIPELINE_CHECKPOINT_PATH.exists():
         return {}
-    return json.loads(PIPELINE_CHECKPOINT_PATH.read_text(encoding="utf-8"))
+    try:
+        return json.loads(PIPELINE_CHECKPOINT_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        logger.error(
+            "pipeline_checkpoint_invalid path=%s error=%s",
+            PIPELINE_CHECKPOINT_PATH,
+            exc,
+        )
+        return {}
 
 
 def save_pipeline_checkpoint(payload: dict[str, Any]) -> None:
-    """Guarda el estado intermedio del pipeline en disco.
-
-    English:
-        Persist intermediate pipeline state to disk.
-    """
+    """/** Guarda estado intermedio del pipeline en disco. / Persist intermediate pipeline state to disk. **"""
     PIPELINE_CHECKPOINT_PATH.write_text(
         json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
 
 def clear_pipeline_checkpoint() -> None:
-    """Elimina el checkpoint si el pipeline finalizó correctamente.
-
-    English:
-        Remove the checkpoint once the pipeline completes successfully.
-    """
+    """/** Elimina el checkpoint si el pipeline finalizó correctamente. / Remove the checkpoint once the pipeline completes successfully. **"""
     if PIPELINE_CHECKPOINT_PATH.exists():
         PIPELINE_CHECKPOINT_PATH.unlink()
 
 
 def load_resilience_checkpoint() -> dict[str, Any]:
-    """Carga checkpoint de resiliencia desde data/temp/checkpoint.json.
-
-    English:
-        Load resilience checkpoint from data/temp/checkpoint.json.
-    """
+    """/** Carga checkpoint desde data/temp/checkpoint.json. / Load checkpoint from data/temp/checkpoint.json. **"""
     if not FAILURE_CHECKPOINT_PATH.exists():
         return {}
     try:
@@ -112,11 +113,7 @@ def load_resilience_checkpoint() -> dict[str, Any]:
 
 
 def collect_snapshot_index(limit: int = 19) -> list[dict[str, Any]]:
-    """Genera índice JSON con los snapshots recientes (máximo 19).
-
-    English:
-        Generate a JSON index with recent snapshots (max 19).
-    """
+    """/** Genera índice JSON con snapshots recientes. / Generate a JSON index with recent snapshots. **"""
     snapshots = sorted(
         DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
     )
@@ -131,6 +128,70 @@ def collect_snapshot_index(limit: int = 19) -> list[dict[str, Any]]:
     return index
 
 
+def load_rules_thresholds() -> dict[str, Any]:
+    """/** Carga reglas desde command_center/rules.yaml. / Load rules from command_center/rules.yaml. **"""
+    if not RULES_CONFIG_PATH.exists():
+        return {}
+    try:
+        return yaml.safe_load(RULES_CONFIG_PATH.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        logger.warning("rules_yaml_invalid error=%s", exc)
+        return {}
+
+
+def resolve_max_json_limit(config: dict[str, Any]) -> int:
+    """/** Resuelve límite de JSON presidenciales. / Resolve presidential JSON limit. **"""
+    rules_thresholds = load_rules_thresholds()
+    return int(
+        rules_thresholds.get(
+            "max_json_presidenciales", config.get("max_sources_per_cycle", 19)
+        )
+    )
+
+
+def build_snapshot_queue(limit: int) -> list[Path]:
+    """/** Construye lista ordenada de snapshots. / Build ordered snapshot list. **"""
+    snapshots = sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime)
+    return snapshots[-limit:]
+
+
+def process_snapshot_queue(
+    snapshots: list[Path],
+    checkpoint: dict[str, Any],
+    *,
+    run_id: str,
+) -> tuple[list[str], int, Path | None]:
+    """/** Procesa snapshots con checkpointing avanzado. / Process snapshots with advanced checkpointing. **"""
+    processed_hashes = list(checkpoint.get("processed_hashes", []))
+    start_index = int(checkpoint.get("current_index", 0))
+    snapshot_index = collect_snapshot_index(limit=len(snapshots))
+    latest_snapshot: Path | None = snapshots[-1] if snapshots else None
+
+    for idx in range(start_index, len(snapshots)):
+        snapshot_path = snapshots[idx]
+        try:
+            content_hash = compute_content_hash(snapshot_path)
+        except Exception as exc:  # noqa: BLE001
+            logger.error(
+                "snapshot_hash_failed path=%s error=%s",
+                snapshot_path,
+                exc,
+            )
+            continue
+        processed_hashes.append(content_hash)
+        save_resilience_checkpoint(
+            run_id,
+            "checkpoint",
+            latest_snapshot=snapshot_path,
+            content_hash=content_hash,
+            processed_hashes=processed_hashes,
+            snapshot_index=snapshot_index,
+            current_index=idx + 1,
+        )
+
+    return processed_hashes, start_index, latest_snapshot
+
+
 def save_resilience_checkpoint(
     run_id: str,
     stage: str | None,
@@ -138,36 +199,35 @@ def save_resilience_checkpoint(
     latest_snapshot: Path | None = None,
     content_hash: str | None = None,
     error: str | None = None,
+    processed_hashes: list[str] | None = None,
+    snapshot_index: list[dict[str, Any]] | None = None,
+    current_index: int | None = None,
 ) -> None:
-    """Guarda estado intermedio con hashes e índice JSON.
-
-    /** Checkpointing avanzado para reanudación. / Advanced checkpointing for resume. */
-
-    English:
-        Persist intermediate state with hashes and JSON index.
-    """
+    """/** Guarda estado intermedio con hashes e índice JSON. / Persist intermediate state with hashes and JSON index. **"""
+    existing = load_resilience_checkpoint()
     payload = {
+        **existing,
         "run_id": run_id,
         "stage": stage or "unknown",
         "timestamp": utcnow().isoformat(),
         "hashes": collect_recent_hashes(),
-        "snapshot_index": collect_snapshot_index(),
-        "latest_snapshot": latest_snapshot.name if latest_snapshot else None,
-        "last_content_hash": content_hash,
+        "snapshot_index": snapshot_index or collect_snapshot_index(),
+        "latest_snapshot": latest_snapshot.name if latest_snapshot else existing.get("latest_snapshot"),
+        "last_content_hash": content_hash or existing.get("last_content_hash"),
     }
     if error:
         payload["error"] = error
+    if processed_hashes is not None:
+        payload["processed_hashes"] = processed_hashes
+    if current_index is not None:
+        payload["current_index"] = current_index
     FAILURE_CHECKPOINT_PATH.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
 
 def collect_recent_hashes(limit: int = 19) -> list[dict[str, Any]]:
-    """Recolecta hashes recientes para checkpoints de falla.
-
-    English:
-        Collect recent hashes for failure checkpoints.
-    """
+    """/** Recolecta hashes recientes para checkpoint. / Collect recent hashes for checkpoint. **"""
     hash_files = sorted(
         HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True
     )
@@ -188,21 +248,13 @@ def collect_recent_hashes(limit: int = 19) -> list[dict[str, Any]]:
 
 
 def clear_resilience_checkpoint() -> None:
-    """Elimina el checkpoint avanzado cuando el pipeline completa.
-
-    English:
-        Remove the advanced checkpoint when the pipeline completes.
-    """
+    """/** Elimina checkpoint cuando el pipeline completa. / Remove checkpoint when pipeline completes. **"""
     if FAILURE_CHECKPOINT_PATH.exists():
         FAILURE_CHECKPOINT_PATH.unlink()
 
 
 def should_run_stage(current_stage: str, start_stage: str) -> bool:
-    """Determina si una etapa debe ejecutarse al reanudar.
-
-    English:
-        Determine if a stage should run when resuming.
-    """
+    """/** Determina si una etapa debe ejecutarse al reanudar. / Determine if a stage should run when resuming. **"""
     try:
         return RESILIENCE_STAGE_ORDER.index(current_stage) >= RESILIENCE_STAGE_ORDER.index(
             start_stage
@@ -212,11 +264,13 @@ def should_run_stage(current_stage: str, start_stage: str) -> bool:
 
 
 def run_command(command, description):
+    """/** Ejecuta un comando del sistema. / Execute a system command. **"""
     print(f"[+] {description}: {' '.join(command)}")
     subprocess.run(command, check=True)
 
 
 def latest_file(directory, pattern):
+    """/** Obtiene archivo más reciente por patrón. / Get newest file by pattern. **"""
     files = sorted(
         directory.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True
     )
@@ -224,12 +278,14 @@ def latest_file(directory, pattern):
 
 
 def compute_content_hash(snapshot_path):
+    """/** Calcula hash de contenido del snapshot. / Compute snapshot content hash. **"""
     payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
     normalized = json.dumps(payload, sort_keys=True).encode("utf-8")
     return hashlib.sha256(normalized).hexdigest()
 
 
 def should_normalize(snapshot_path):
+    """/** Determina si requiere normalización. / Determine if normalization is required. **"""
     payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
     return "resultados" in payload and "estadisticas" in payload
 
@@ -237,6 +293,7 @@ def should_normalize(snapshot_path):
 
 
 def build_alerts(anomalies):
+    """/** Construye alertas desde anomalías. / Build alerts from anomalies. **"""
     if not anomalies:
         return []
 
@@ -262,7 +319,7 @@ def build_alerts(anomalies):
 
 
 def critical_rules(config: dict[str, Any]):
-    """Resuelve las reglas críticas desde config/config.yaml."""
+    """/** Resuelve reglas críticas desde configuración. / Resolve critical rules from configuration. **"""
     raw_rules = config.get("alerts", {}).get("critical_anomaly_types", [])
     if isinstance(raw_rules, str):
         raw_list = [rule.strip() for rule in raw_rules.split(",") if rule.strip()]
@@ -272,6 +329,7 @@ def critical_rules(config: dict[str, Any]):
 
 
 def filter_critical_anomalies(anomalies, config: dict[str, Any]):
+    """/** Filtra anomalías críticas según reglas. / Filter critical anomalies by rules. **"""
     rules = critical_rules(config)
     if not rules:
         return anomalies
@@ -281,6 +339,7 @@ def filter_critical_anomalies(anomalies, config: dict[str, Any]):
 
 
 def should_generate_report(state, now):
+    """/** Determina si generar reporte por cadencia. / Determine if report cadence allows generation. **"""
     last_report = state.get("last_report_at")
     if not last_report:
         return True
@@ -290,6 +349,7 @@ def should_generate_report(state, now):
 
 
 def update_daily_summary(state, now, anomalies_count):
+    """/** Actualiza resumen diario. / Update daily summary. **"""
     today = now.date().isoformat()
     daily = state.get("daily_summary", {})
     if daily.get("date") != today:
@@ -310,6 +370,7 @@ def update_daily_summary(state, now, anomalies_count):
 
 
 def run_pipeline(config: dict[str, Any]):
+    """/** Ejecuta el pipeline completo. / Run the full pipeline. **"""
     now = utcnow()
     state = load_state()
     checkpoint = load_pipeline_checkpoint()
@@ -373,8 +434,17 @@ def run_pipeline(config: dict[str, Any]):
                 save_resilience_checkpoint(run_id, "download")
                 run_command(download_cmd, "descarga + hash")
 
+        max_json = resolve_max_json_limit(config)
+        snapshots = build_snapshot_queue(max_json)
+        if snapshots:
+            process_snapshot_queue(
+                snapshots,
+                resilience_checkpoint,
+                run_id=run_id,
+            )
+
         if latest_snapshot is None:
-            latest_snapshot = latest_file(DATA_DIR, "*.json")
+            latest_snapshot = snapshots[-1] if snapshots else latest_file(DATA_DIR, "*.json")
         if not latest_snapshot:
             print("[!] No se encontró snapshot para procesar")
             log_event(logger, logging.WARNING, "snapshot_missing", run_id=run_id)
@@ -484,11 +554,7 @@ def run_pipeline(config: dict[str, Any]):
 
 
 def safe_run_pipeline(config: dict[str, Any]) -> None:
-    """Ejecuta el pipeline con protección contra fallas de red.
-
-    English:
-        Run the pipeline with protection against network failures.
-    """
+    """/** Ejecuta pipeline con protección contra fallas de red. / Run pipeline with protection against network failures. **"""
     try:
         run_pipeline(config)
     except (
@@ -514,7 +580,7 @@ def safe_run_pipeline(config: dict[str, Any]) -> None:
 
 
 def _read_hashes_for_anchor(batch_size: int) -> list[str]:
-    """Lee los hashes más recientes para anclaje en Arbitrum."""
+    """/** Lee hashes recientes para anclaje en Arbitrum. / Read recent hashes for Arbitrum anchoring. **"""
     hash_files = sorted(
         HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True
     )
@@ -532,7 +598,7 @@ def _read_hashes_for_anchor(batch_size: int) -> list[str]:
 
 
 def _should_anchor(state: dict[str, Any], now: datetime, interval_minutes: int) -> bool:
-    """Determina si debe ejecutarse el anclaje según intervalo."""
+    """/** Determina si debe anclarse según intervalo. / Determine whether to anchor based on interval. **"""
     last_anchor = state.get("last_anchor_at")
     if not last_anchor:
         return True
@@ -544,7 +610,7 @@ def _should_anchor(state: dict[str, Any], now: datetime, interval_minutes: int) 
 
 
 def _anchor_if_due(config: dict[str, Any], state: dict[str, Any], now: datetime) -> None:
-    """Ejecuta el anclaje de hashes si corresponde."""
+    """/** Ejecuta anclaje de hashes si corresponde. / Execute hash anchoring when due. **"""
     arbitrum_config = config.get("arbitrum", {})
     if not arbitrum_config.get("enabled", False):
         return
@@ -589,7 +655,7 @@ def _anchor_snapshot(
     now: datetime,
     snapshot_path: Path,
 ) -> None:
-    """Genera hash raíz post-reglas y ancla automáticamente el snapshot."""
+    """/** Genera hash raíz post-reglas y ancla snapshot. / Generate post-rule root hash and anchor snapshot. **"""
     arbitrum_config = config.get("arbitrum", {})
     if not arbitrum_config.get("enabled", False):
         return
@@ -675,6 +741,7 @@ def _anchor_snapshot(
 
 
 def main():
+    """/** Punto de entrada principal. / Main entry point. **"""
     parser = argparse.ArgumentParser(
         description="Pipeline Proyecto C.E.N.T.I.N.E.L.: descarga → normaliza → hash → análisis → reportes → alertas"
     )

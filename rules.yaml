@@ -34,3 +34,5 @@ resiliencia:
   retry_max: 5
   backoff_factor: 2
   max_json_presidenciales: 19
+  chi2_p_critical: 0.01
+  benford_min_samples: 10
