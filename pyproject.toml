@@ -40,6 +40,8 @@ pydantic = "*"
 pydantic-settings = "*"
 structlog = "*"
 typer = "*"
+cryptography = ">=42.0.0"
+slowapi = ">=0.1.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "8.3.3"

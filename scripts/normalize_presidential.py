@@ -4,12 +4,16 @@ Normalize presidential snapshots into a consistent format.
 """
 
 import json
+import logging
 import re
 from pathlib import Path
+
+from scripts.logging_utils import configure_logging, log_event
 
 INPUT_DIR = Path("data")
 OUTPUT_DIR = Path("normalized")
 OUTPUT_DIR.mkdir(exist_ok=True)
+logger = configure_logging(__name__)
 
 
 def to_int(x):
@@ -28,7 +32,9 @@ def to_float(x):
     return float(x.replace(",", "."))
 
 
-for file in sorted(INPUT_DIR.glob("*.json")):
+max_files = 19
+files = sorted(INPUT_DIR.glob("*.json"))
+for index, file in enumerate(files[:max_files]):
     raw = json.loads(file.read_text(encoding="utf-8"))
 
     timestamp = file.stem.split(" ", 1)[-1]
@@ -65,3 +71,19 @@ for file in sorted(INPUT_DIR.glob("*.json")):
 
     out = OUTPUT_DIR / f"{file.stem}.normalized.json"
     out.write_text(json.dumps(normalized, indent=2), encoding="utf-8")
+    log_event(
+        logger,
+        logging.INFO,
+        "normalized_snapshot_written",
+        snapshot=file.stem,
+        sequence=index + 1,
+    )
+
+if len(files) > max_files:
+    # Seguridad: Evita exposición de datos sensibles / Security: Avoid exposure of sensitive data.
+    log_event(
+        logger,
+        logging.WARNING,
+        "snapshot_limit_enforced",
+        processed=max_files,
+    )
