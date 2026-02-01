@@ -1,0 +1,10 @@
+# Umbrales de resiliencia y reglas generales del command center.
+# Resilience thresholds and general rules for the command center.
+
+# Máximo de reintentos de red (HTTPAdapter/Retry).
+# Max retry count for network calls (HTTPAdapter/Retry).
+retry_max: 5
+
+# Factor de backoff exponencial (segundos base).
+# Exponential backoff factor (base seconds).
+backoff_factor: 2

@@ -48,9 +48,12 @@ logger = configure_logging("centinel.download", log_file="logs/centinel.log")
 
 DEFAULT_CONFIG_PATH = "config.yaml"
 COMMAND_CENTER_PATH = Path("command_center") / "config.yaml"
+RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
 config_path = DEFAULT_CONFIG_PATH
 TEMP_DIR = Path("data") / "temp"
 CHECKPOINT_PATH = TEMP_DIR / "download_checkpoint.json"
+DEFAULT_RETRY_MAX = 5
+DEFAULT_BACKOFF_FACTOR = 2.0
 
 
 def resolve_config_path(config_path_override: str | None = None) -> str:
@@ -239,12 +242,18 @@ def chain_hash(previous_hash: str, current_data: bytes) -> str:
     return compute_hash(combined)
 
 
-def fetch_with_retry(url: str, timeout: float = 10.0) -> requests.Response:
+def fetch_with_retry(
+    url: str,
+    *,
+    timeout: float = 10.0,
+    session: Optional[requests.Session] = None,
+) -> requests.Response:
     """Realiza request con reintentos fijos y backoff.
 
     Args:
         url (str): Endpoint a consultar.
         timeout (float): Tiempo de espera del request en segundos.
+        session (Optional[requests.Session]): Sesión opcional con retries.
 
     Returns:
         requests.Response: Respuesta exitosa.
@@ -258,6 +267,7 @@ def fetch_with_retry(url: str, timeout: float = 10.0) -> requests.Response:
     Args:
         url (str): Endpoint to fetch.
         timeout (float): Request timeout in seconds.
+        session (Optional[requests.Session]): Optional session with retries.
 
     Returns:
         requests.Response: Successful response.
@@ -265,16 +275,10 @@ def fetch_with_retry(url: str, timeout: float = 10.0) -> requests.Response:
     Raises:
         requests.exceptions.RequestException: If all retries fail.
     """
-    retry_strategy = Retry(
-        total=5,
-        backoff_factor=2,
-        status_forcelist=[500, 502, 503, 504],
-        allowed_methods=["HEAD", "GET", "OPTIONS"],
+    owns_session = session is None
+    session = session or build_retry_session(
+        retry_max=DEFAULT_RETRY_MAX, backoff_factor=DEFAULT_BACKOFF_FACTOR
     )
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-    session = requests.Session()
-    session.mount("https://", adapter)
-    session.mount("http://", adapter)
 
     try:
         response = session.get(url, timeout=timeout)
@@ -284,7 +288,70 @@ def fetch_with_retry(url: str, timeout: float = 10.0) -> requests.Response:
         logger.warning("Error en fetch: %s", e)
         raise
     finally:
-        session.close()
+        if owns_session:
+            session.close()
+
+
+def load_rules_thresholds() -> dict[str, Any]:
+    """Carga umbrales desde command_center/rules.yaml si existe.
+
+    English:
+        Load thresholds from command_center/rules.yaml when available.
+    """
+    if not RULES_CONFIG_PATH.exists():
+        return {}
+    try:
+        payload = yaml.safe_load(RULES_CONFIG_PATH.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        logger.warning("rules_yaml_invalid error=%s", exc)
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def resolve_retry_policy(config: dict[str, Any]) -> tuple[int, float]:
+    """Resuelve política de reintentos (retry_max, backoff_factor).
+
+    Nota: retry_max prioriza command_center/rules.yaml, luego config.yaml.
+
+    English:
+        Resolve retry policy (retry_max, backoff_factor).
+
+        Note: retry_max prioritizes command_center/rules.yaml, then config.yaml.
+    """
+    rules_thresholds = load_rules_thresholds()
+    retry_max = int(
+        rules_thresholds.get("retry_max", config.get("retries", DEFAULT_RETRY_MAX))
+    )
+    backoff_factor = float(
+        rules_thresholds.get(
+            "backoff_factor",
+            config.get("backoff_base_seconds", DEFAULT_BACKOFF_FACTOR),
+        )
+    )
+    return retry_max, backoff_factor
+
+
+def build_retry_session(retry_max: int, backoff_factor: float) -> requests.Session:
+    """Crea sesión HTTP con reintentos y backoff exponencial.
+
+    /** Maneja retries para estabilidad. / Handles retries for stability. */
+
+    English:
+        Build an HTTP session with retries and exponential backoff.
+    """
+    retry_strategy = Retry(
+        total=retry_max,
+        connect=retry_max,
+        read=retry_max,
+        backoff_factor=backoff_factor,
+        status_forcelist=[500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET", "OPTIONS"],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
 
 
 def create_mock_snapshot() -> Path:
@@ -441,6 +508,9 @@ def process_sources(
 
     health_state = get_health_state()
 
+    retry_max, backoff_factor = resolve_retry_policy(config)
+    session = build_retry_session(retry_max=retry_max, backoff_factor=backoff_factor)
+
     for source in sources[:max_sources]:
         endpoint = resolve_endpoint(source, endpoints)
         if not endpoint:
@@ -453,7 +523,9 @@ def process_sources(
 
         try:
             response = fetch_with_retry(
-                endpoint, timeout=float(config.get("timeout", 10))
+                endpoint,
+                timeout=float(config.get("timeout", 10)),
+                session=session,
             )
             try:
                 payload = response.json()
@@ -510,6 +582,7 @@ def process_sources(
         except Exception as e:
             logger.error("Fallo al descargar %s: %s", endpoint, e)
             health_state.record_failure()
+    session.close()
     _clear_checkpoint()
 
 

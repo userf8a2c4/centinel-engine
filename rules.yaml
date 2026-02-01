@@ -27,3 +27,10 @@ reglas_auditoria:
       status: "OK"
       p_value: 0.18
       detalle: "Distribución partido/departamento: chi2=3.21, p_value=0.1800, celdas=4."
+
+# Parámetros sugeridos de resiliencia (documentación).
+# Suggested resilience parameters (documentation).
+resiliencia:
+  retry_max: 5
+  backoff_factor: 2
+  max_json_presidenciales: 19

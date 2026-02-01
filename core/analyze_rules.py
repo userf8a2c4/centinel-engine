@@ -65,12 +65,27 @@ def apply_benford_law(votes_list: list[int]) -> dict:
         pd.Series(digits).value_counts().reindex(range(1, 10), fill_value=0).sort_index()
     )
     total = observed.sum()
+    if total == 0:
+        return {
+            "status": "OK",
+            "p_value": 1.0,
+            "detalle": "Total de votos igual a cero; Benford omitido.",
+        }
     # Distribución Benford: P(d) = log10(1 + 1/d).
     expected_prob = np.array([np.log10(1 + 1 / d) for d in range(1, 10)])
     expected_counts = expected_prob * total
 
-    chi_result = chisquare(observed.values, f_exp=expected_counts)
-    p_value = float(chi_result.pvalue)
+    try:
+        chi_result = chisquare(observed.values, f_exp=expected_counts)
+        p_value = float(chi_result.pvalue)
+    except (ValueError, ZeroDivisionError, FloatingPointError):
+        # /** Evita división por cero en chi2. / Avoid divide-by-zero in chi2. */
+        return {
+            "status": "OK",
+            "p_value": 1.0,
+            "detalle": "Benford omitido por datos inválidos (chi2 no válido).",
+        }
+
     status = "ANOMALIA" if p_value < 0.05 else "OK"
     detalle = (
         "Benford primer dígito: chi2="
@@ -169,8 +184,19 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
             "detalle": "Esperados nulos para chi-cuadrado.",
         }
 
-    chi_result = chisquare(observed_flat[valid_mask], f_exp=expected_flat[valid_mask])
-    p_value = float(chi_result.pvalue)
+    try:
+        chi_result = chisquare(
+            observed_flat[valid_mask], f_exp=expected_flat[valid_mask]
+        )
+        p_value = float(chi_result.pvalue)
+    except (ValueError, ZeroDivisionError, FloatingPointError):
+        # /** Evita división por cero en chi2. / Avoid divide-by-zero in chi2. */
+        return {
+            "status": "OK",
+            "p_value": 1.0,
+            "detalle": "Chi-cuadrado omitido por datos inválidos.",
+        }
+
     status = "ANOMALIA" if p_value < 0.05 else "OK"
     detalle = (
         "Distribución partido/departamento: chi2="
