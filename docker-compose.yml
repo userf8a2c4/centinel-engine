@@ -1,9 +1,10 @@
 services:
   cron:
     build: .
-    restart: on-failure
+    restart: on-failure:5
     volumes:
       - ./data:/app/data
+      - ./logs:/app/logs
       - ./config.yaml:/app/config.yaml
       - ./.env:/app/.env
     entrypoint: /bin/sh

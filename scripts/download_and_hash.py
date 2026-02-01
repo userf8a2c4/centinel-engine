@@ -239,15 +239,12 @@ def chain_hash(previous_hash: str, current_data: bytes) -> str:
     return compute_hash(combined)
 
 
-def fetch_with_retry(
-    url: str, retries: int = 5, backoff_factor: float = 0.5, timeout: float = 10.0
-) -> requests.Response:
-    """Realiza request con reintentos.
+def fetch_with_retry(url: str, timeout: float = 10.0) -> requests.Response:
+    """Realiza request con reintentos fijos y backoff.
 
     Args:
         url (str): Endpoint a consultar.
-        retries (int): Número máximo de reintentos.
-        backoff_factor (float): Factor de espera entre reintentos.
+        timeout (float): Tiempo de espera del request en segundos.
 
     Returns:
         requests.Response: Respuesta exitosa.
@@ -256,12 +253,11 @@ def fetch_with_retry(
         requests.exceptions.RequestException: Si todos los reintentos fallan.
 
     English:
-        Perform request with retries.
+        Perform request with fixed retries and backoff.
 
     Args:
         url (str): Endpoint to fetch.
-        retries (int): Max retries.
-        backoff_factor (float): Backoff factor.
+        timeout (float): Request timeout in seconds.
 
     Returns:
         requests.Response: Successful response.
@@ -270,24 +266,25 @@ def fetch_with_retry(
         requests.exceptions.RequestException: If all retries fail.
     """
     retry_strategy = Retry(
-        total=retries,
-        backoff_factor=backoff_factor,
-        status_forcelist=[429, 500, 502, 503, 504],
+        total=5,
+        backoff_factor=2,
+        status_forcelist=[500, 502, 503, 504],
         allowed_methods=["HEAD", "GET", "OPTIONS"],
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
 
-    with requests.Session() as session:
-        session.mount("https://", adapter)
-        session.mount("http://", adapter)
-
-        try:
-            response = session.get(url, timeout=timeout)
-            response.raise_for_status()
-            return response
-        except requests.exceptions.RequestException as e:
-            logger.warning("Error en fetch: %s", e)
-            raise
+    try:
+        response = session.get(url, timeout=timeout)
+        response.raise_for_status()
+        return response
+    except requests.exceptions.RequestException as e:
+        logger.warning("Error en fetch: %s", e)
+        raise
+    finally:
+        session.close()
 
 
 def create_mock_snapshot() -> Path:
@@ -456,10 +453,7 @@ def process_sources(
 
         try:
             response = fetch_with_retry(
-                endpoint,
-                retries=int(config.get("retries", 5)),
-                backoff_factor=float(config.get("backoff_base_seconds", 0.5)),
-                timeout=float(config.get("timeout", 10)),
+                endpoint, timeout=float(config.get("timeout", 10))
             )
             try:
                 payload = response.json()
