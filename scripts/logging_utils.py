@@ -8,7 +8,9 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import logging.handlers
 import os
+import hashlib
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -66,14 +68,53 @@ class SensitiveDataFilter(logging.Filter):
         record.args = ()
         return True
 
+SENSITIVE_KEYS = {
+    "votes",
+    "votos",
+    "total_votes",
+    "votos_totales",
+    "payload",
+    "raw",
+    "raw_payload",
+    "personal_data",
+    "datos_personales",
+    "dni",
+    "documento",
+    "cedula",
+    "acta",
+    "actas",
+    "resultados",
+}
+
+
+def _hash_value(value: Any) -> str:
+    """/** Hashea valores sensibles para trazabilidad. / Hash sensitive values for traceability. **/"""
+    try:
+        encoded = json.dumps(value, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    except TypeError:
+        encoded = str(value).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _redact_sensitive_fields(payload: Any) -> Any:
+    """/** Redacta claves sensibles en estructuras anidadas. / Redact sensitive keys in nested structures. **/"""
+    if isinstance(payload, dict):
+        sanitized: dict[str, Any] = {}
+        for key, value in payload.items():
+            if str(key).lower() in SENSITIVE_KEYS:
+                sanitized[key] = f"hash:{_hash_value(value)}"
+            else:
+                sanitized[key] = _redact_sensitive_fields(value)
+        return sanitized
+    if isinstance(payload, list):
+        return [_redact_sensitive_fields(item) for item in payload]
+    return payload
+
 
 def configure_logging(
     logger_name: str, log_file: str | None = None, level: int | None = None
 ) -> logging.Logger:
-    """Configura un logger con salida a archivo JSONL y consola.
-
-    Configure a logger with JSONL file output and console output.
-    """
+    """/** Configura logging seguro con rotación y salida JSONL. / Configure secure logging with rotation and JSONL output. **/"""
     log_path = log_file or os.getenv("LOG_FILE", "logs/centinel.jsonl")
     log_level = level or getattr(
         logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO
@@ -91,8 +132,8 @@ def configure_logging(
     sensitive_values = [os.getenv(key, "") for key in SENSITIVE_ENV_KEYS]
     redact_filter = SensitiveDataFilter(sensitive_values)
 
-    file_handler = RotatingFileHandler(
-        log_path, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
+    file_handler = logging.handlers.RotatingFileHandler(
+        log_path, maxBytes=5_000_000, backupCount=5, encoding="utf-8"
     )
     file_handler.setLevel(log_level)
     file_handler.setFormatter(formatter)
@@ -103,17 +144,20 @@ def configure_logging(
     stream_handler.setFormatter(formatter)
     stream_handler.addFilter(redact_filter)
 
+    # Seguridad: usar handlers rotativos para evitar leaks en archivos grandes. / Security: rotate logs to avoid large leaks.
+    logging.basicConfig(
+        level=log_level,
+        handlers=[file_handler, stream_handler],
+        format="%(message)s",
+        force=True,
+    )
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
     return logger
 
 
 def log_event(logger: logging.Logger, level: int, event: str, **fields: Any) -> None:
-    """Registra un evento estructurado con un payload JSON.
-
-    Log a structured event with a JSON payload.
-    """
-    safe_fields = _scrub_fields(fields)
+    """/** Registra un evento JSON con datos saneados. / Log a JSON event with sanitized data. **/"""
     payload = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "level": logging.getLevelName(level),
@@ -121,4 +165,6 @@ def log_event(logger: logging.Logger, level: int, event: str, **fields: Any) -> 
         "event": event,
         **safe_fields,
     }
-    logger.log(level, json.dumps(payload, ensure_ascii=False))
+    # Seguridad: evitar registrar datos sensibles en claro. / Security: avoid logging sensitive values in clear text.
+    sanitized = _redact_sensitive_fields(payload)
+    logger.log(level, json.dumps(sanitized, ensure_ascii=False))

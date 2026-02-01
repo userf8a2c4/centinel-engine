@@ -35,8 +35,6 @@ resiliencia:
   backoff_factor: 2
   max_json_presidenciales: 19
 
-# Parámetros de seguridad (documentación).
-# Security parameters (documentation).
 security:
-  encrypt_enabled: true
+  encrypt_secrets: true
   log_sensitive: false
