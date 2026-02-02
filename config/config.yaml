@@ -271,6 +271,26 @@ alerts:
     - RELATIVE_DELTA
     - SCRUTINY_JUMP
     - VOTE_BREAKDOWN_MISMATCH
+  # Ruta de log de alertas críticas.
+  # Critical alerts log path.
+  log_path: "alerts.log"
+  # Salida JSON para API pública.
+  # JSON output for public API.
+  output_path: "data/alerts.json"
+
+# Resiliencia operativa.
+# Operational resilience.
+resilience:
+  auto_resume:
+    enabled: true
+    max_attempts: 5
+    backoff_base_seconds: 5
+    backoff_max_seconds: 60
+    retry_on: "any"
+  chaos:
+    enabled: false
+    failure_rate: 0.9
+    seed: 2026
 
 # Configuración Arbitrum (opcional).
 # Arbitrum configuration (optional).
