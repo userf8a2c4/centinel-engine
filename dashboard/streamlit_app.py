@@ -32,7 +32,15 @@ try:
 except Exception:
     sitecustomize = None
 
-from centinel.checkpointing import CheckpointConfig, CheckpointManager
+try:
+    from centinel.checkpointing import CheckpointConfig, CheckpointManager
+    CHECKPOINTING_AVAILABLE = True
+    CHECKPOINTING_ERROR = ""
+except Exception as exc:  # noqa: BLE001
+    CheckpointConfig = None
+    CheckpointManager = None
+    CHECKPOINTING_AVAILABLE = False
+    CHECKPOINTING_ERROR = str(exc)
 from monitoring.strict_health import is_healthy_strict
 
 try:
@@ -322,7 +330,9 @@ def _detect_supervisor() -> str:
     return f"No detectado ({platform.system()})"
 
 
-def _build_checkpoint_manager() -> CheckpointManager | None:
+def _build_checkpoint_manager() -> "CheckpointManager | None":
+    if not CHECKPOINTING_AVAILABLE:
+        return None
     bucket = os.getenv("CHECKPOINT_BUCKET", "").strip()
     if not bucket:
         return None
@@ -2249,7 +2259,13 @@ with tabs[5]:
             try:
                 manager = _build_checkpoint_manager()
                 if manager is None:
-                    st.error("Checkpoint no configurado: define CHECKPOINT_BUCKET.")
+                    if not CHECKPOINTING_AVAILABLE:
+                        st.error(
+                            "Checkpoint deshabilitado: falta dependencia de cifrado "
+                            f"({CHECKPOINTING_ERROR})."
+                        )
+                    else:
+                        st.error("Checkpoint no configurado: define CHECKPOINT_BUCKET.")
                 else:
                     manager.save_checkpoint(
                         {
