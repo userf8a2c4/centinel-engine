@@ -1210,6 +1210,12 @@ css = """
         font-size: 0.82rem;
         color: var(--muted);
     }
+    .hero-stack { display: flex; flex-direction: column; gap: 1.2rem; }
+    .hero-side { height: 100%; display: flex; align-items: stretch; }
+    .status-card { height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+    .status-card h3 { margin-top: 0.2rem; margin-bottom: 0.6rem; font-size: 1.4rem; }
+    .status-card .section-subtitle { margin-bottom: 0.2rem; }
+    .alert-bar { margin-top: 0.4rem; }
     .kpi {
         background: var(--panel-soft);
         border-radius: 16px;
@@ -1293,40 +1299,45 @@ if not snapshots_df.empty:
     )
 latest_label = latest_timestamp.strftime("%Y-%m-%d %H:%M UTC") if latest_timestamp else "Sin datos"
 
-hero_cols = st.columns([0.78, 0.22])
+hero_cols = st.columns([0.74, 0.26])
 with hero_cols[0]:
     st.markdown(
         """
-<div class="hero">
-  <span class="badge">Observatorio Electoral · Honduras</span>
-  <h1>C.E.N.T.I.N.E.L. · Centro de Vigilancia Electoral</h1>
-  <p>Sistema de auditoría técnica con deltas por departamento, validaciones estadísticas y evidencia criptográfica.</p>
-  <div class="hero-meta">
-    <span>🔎 Modo auditoría: Activo</span>
-    <span>🛰️ Última actualización: {latest_label}</span>
-    <span>🔐 Hash raíz: {root_hash}</span>
+<div class="hero-stack">
+  <div class="hero">
+    <span class="badge">Observatorio Electoral · Honduras</span>
+    <h1>C.E.N.T.I.N.E.L. · Centro de Vigilancia Electoral</h1>
+    <p>Sistema de auditoría técnica con deltas por departamento, validaciones estadísticas y evidencia criptográfica.</p>
+    <div class="hero-meta">
+      <span>🔎 Modo auditoría: Activo</span>
+      <span>🛰️ Última actualización: {latest_label}</span>
+      <span>🔐 Hash raíz: {root_hash}</span>
+    </div>
   </div>
 </div>
         """.format(latest_label=latest_label, root_hash=anchor.root_hash[:12] + "…"),
         unsafe_allow_html=True,
     )
 with hero_cols[1]:
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
+    st.markdown("<div class='glass status-card'>", unsafe_allow_html=True)
     st.markdown("<div class='status-pill'>✅ Verificable</div>", unsafe_allow_html=True)
     st.markdown(
         f"<p class='section-subtitle'>Cobertura activa</p>"
         f"<h3>{selected_department}</h3>"
-        f"<p class='section-subtitle'>Snapshots observados: {len(snapshot_files)}</p>",
+        f"<p class='section-subtitle'>Snapshots observados: {len(snapshot_files)}</p>"
+        f"<p class='section-subtitle'>Último lote: {latest_label}</p>",
         unsafe_allow_html=True,
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
 if not filtered_anomalies.empty:
+    st.markdown("<div class='alert-bar'>", unsafe_allow_html=True)
     st.warning(
         f"Se detectaron {len(filtered_anomalies)} anomalías recientes. "
         "Revisar deltas negativos y outliers.",
         icon="⚠️",
     )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div class='section-title'>Resumen Ejecutivo</div>", unsafe_allow_html=True)
 st.markdown(
