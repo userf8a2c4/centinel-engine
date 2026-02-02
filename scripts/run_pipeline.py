@@ -5,10 +5,12 @@ import logging
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+import random
 import requests
 import yaml
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -146,6 +148,67 @@ def load_security_settings() -> dict[str, Any]:
     rules_thresholds = load_rules_thresholds()
     security = rules_thresholds.get("security", {}) if isinstance(rules_thresholds, dict) else {}
     return security if isinstance(security, dict) else {}
+
+
+def load_resilience_settings(config: dict[str, Any]) -> dict[str, Any]:
+    """/** Carga configuración de resiliencia desde el config principal. / Load resilience settings from main config. **/"""
+    resilience = config.get("resilience", {}) if isinstance(config, dict) else {}
+    return resilience if isinstance(resilience, dict) else {}
+
+
+def resolve_alert_paths(config: dict[str, Any]) -> tuple[Path, Path]:
+    """/** Resuelve rutas para alertas críticas. / Resolve paths for critical alerts. **/"""
+    alerts_config = config.get("alerts", {}) if isinstance(config, dict) else {}
+    if not isinstance(alerts_config, dict):
+        alerts_config = {}
+    alerts_log_path = Path(alerts_config.get("log_path", "alerts.log"))
+    alerts_output_path = Path(alerts_config.get("output_path", "data/alerts.json"))
+    return alerts_log_path, alerts_output_path
+
+
+def build_chaos_rng(resilience: dict[str, Any]) -> random.Random:
+    """/** Construye generador aleatorio para caos. / Build random generator for chaos. **/"""
+    chaos_settings = resilience.get("chaos", {}) if isinstance(resilience, dict) else {}
+    if not isinstance(chaos_settings, dict):
+        return random.Random()
+    seed = chaos_settings.get("seed")
+    return random.Random(seed)
+
+
+def maybe_inject_chaos_failure(stage: str, resilience: dict[str, Any], rng: random.Random) -> None:
+    """/** Inyecta falla caótica si está habilitado. / Inject chaos failure when enabled. **/"""
+    chaos_settings = resilience.get("chaos", {}) if isinstance(resilience, dict) else {}
+    if not isinstance(chaos_settings, dict):
+        return
+    if not chaos_settings.get("enabled", False):
+        return
+    failure_rate = float(chaos_settings.get("failure_rate", 0.0))
+    if failure_rate <= 0:
+        return
+    if rng.random() < min(max(failure_rate, 0.0), 1.0):
+        raise RuntimeError(f"chaos_injected stage={stage}")
+
+
+def build_auto_resume_settings(resilience: dict[str, Any]) -> dict[str, Any]:
+    """/** Normaliza configuración de auto-resume. / Normalize auto-resume settings. **/"""
+    auto_resume = resilience.get("auto_resume", {}) if isinstance(resilience, dict) else {}
+    if not isinstance(auto_resume, dict):
+        auto_resume = {}
+    return {
+        "enabled": bool(auto_resume.get("enabled", True)),
+        "max_attempts": int(auto_resume.get("max_attempts", 3)),
+        "backoff_base_seconds": float(auto_resume.get("backoff_base_seconds", 5)),
+        "backoff_max_seconds": float(auto_resume.get("backoff_max_seconds", 60)),
+        "retry_on": str(auto_resume.get("retry_on", "any")).lower(),
+    }
+
+
+def compute_backoff_delay(attempt: int, base_seconds: float, max_seconds: float) -> float:
+    """/** Calcula backoff exponencial. / Compute exponential backoff delay. **/"""
+    if attempt <= 0:
+        return 0.0
+    delay = base_seconds * (2 ** (attempt - 1))
+    return min(max(delay, 0.0), max_seconds)
 
 
 def _has_private_key(arbitrum_config: dict[str, Any]) -> bool:
@@ -330,7 +393,7 @@ def should_normalize(snapshot_path):
 
 
 
-def build_alerts(anomalies):
+def build_alerts(anomalies, *, severity: str = "HIGH"):
     """/** Construye alertas desde anomalías. / Build alerts from anomalies. **"""
     if not anomalies:
         return []
@@ -342,7 +405,7 @@ def build_alerts(anomalies):
     for anomaly in anomalies:
         rule = anomaly.get("type", "ANOMALY")
         description = anomaly.get("description") or anomaly.get("descripcion")
-        alert = {"rule": rule}
+        alert = {"rule": rule, "severity": severity}
         if description:
             alert["description"] = description
         alerts.append(alert)
@@ -354,6 +417,48 @@ def build_alerts(anomalies):
             "alerts": alerts,
         }
     ]
+
+
+def emit_critical_alerts(
+    critical_anomalies: list[dict[str, Any]],
+    config: dict[str, Any],
+    *,
+    run_id: str,
+) -> None:
+    """/** Emite alertas críticas en JSON y log. / Emit critical alerts to JSON and log. **/"""
+    if not critical_anomalies:
+        return
+    alerts_payload = build_alerts(critical_anomalies, severity="CRITICAL")
+    alerts_log_path, alerts_output_path = resolve_alert_paths(config)
+    alerts_output_path.parent.mkdir(parents=True, exist_ok=True)
+    alerts_output_path.write_text(
+        json.dumps(alerts_payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    alerts_log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_lines = [
+        json.dumps(
+            {
+                "timestamp": utcnow().isoformat(),
+                "run_id": run_id,
+                "severity": "CRITICAL",
+                "rule": alert.get("rule"),
+                "description": alert.get("description", ""),
+            },
+            ensure_ascii=False,
+        )
+        for window in alerts_payload
+        for alert in window.get("alerts", [])
+    ]
+    if log_lines:
+        with alerts_log_path.open("a", encoding="utf-8") as handle:
+            handle.write("\n".join(log_lines) + "\n")
+    log_event(
+        logger,
+        logging.CRITICAL,
+        "critical_alerts_detected",
+        run_id=run_id,
+        count=len(critical_anomalies),
+    )
 
 
 def critical_rules(config: dict[str, Any]):
@@ -410,6 +515,8 @@ def update_daily_summary(state, now, anomalies_count):
 def run_pipeline(config: dict[str, Any]):
     """/** Ejecuta el pipeline completo. / Run the full pipeline. **"""
     now = utcnow()
+    resilience_settings = load_resilience_settings(config)
+    chaos_rng = build_chaos_rng(resilience_settings)
     state = load_state()
     checkpoint = load_pipeline_checkpoint()
     resilience_checkpoint = load_resilience_checkpoint()
@@ -454,6 +561,7 @@ def run_pipeline(config: dict[str, Any]):
                 {"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()}
             )
             save_resilience_checkpoint(run_id, "healthcheck")
+            maybe_inject_chaos_failure("healthcheck", resilience_settings, chaos_rng)
             health_ok = check_cne_connectivity(config)
             download_cmd = [sys.executable, "scripts/download_and_hash.py"]
             if not health_ok:
@@ -470,6 +578,7 @@ def run_pipeline(config: dict[str, Any]):
                     {"run_id": run_id, "stage": "download", "at": utcnow().isoformat()}
                 )
                 save_resilience_checkpoint(run_id, "download")
+                maybe_inject_chaos_failure("download", resilience_settings, chaos_rng)
                 run_command(download_cmd, "descarga + hash")
 
         max_json = resolve_max_json_limit(config)
@@ -509,6 +618,7 @@ def run_pipeline(config: dict[str, Any]):
                 latest_snapshot=latest_snapshot,
                 content_hash=content_hash,
             )
+            maybe_inject_chaos_failure("normalize", resilience_settings, chaos_rng)
             if should_normalize(latest_snapshot):
                 run_command(
                     [sys.executable, "scripts/normalize_presidential.py"], "normalización"
@@ -527,6 +637,7 @@ def run_pipeline(config: dict[str, Any]):
                 latest_snapshot=latest_snapshot,
                 content_hash=content_hash,
             )
+            maybe_inject_chaos_failure("analyze", resilience_settings, chaos_rng)
             run_command([sys.executable, "scripts/analyze_rules.py"], "análisis")
 
         anomalies_path = Path("anomalies_report.json")
@@ -535,10 +646,11 @@ def run_pipeline(config: dict[str, Any]):
             anomalies = json.loads(anomalies_path.read_text(encoding="utf-8"))
 
         critical_anomalies = filter_critical_anomalies(anomalies, config)
-        alerts = build_alerts(critical_anomalies)
+        alerts = build_alerts(critical_anomalies, severity="CRITICAL")
         (ANALYSIS_DIR / "alerts.json").write_text(
             json.dumps(alerts, indent=2), encoding="utf-8"
         )
+        emit_critical_alerts(critical_anomalies, config, run_id=run_id)
 
         if should_run_stage("report", start_stage):
             save_pipeline_checkpoint(
@@ -550,6 +662,7 @@ def run_pipeline(config: dict[str, Any]):
                 latest_snapshot=latest_snapshot,
                 content_hash=content_hash,
             )
+            maybe_inject_chaos_failure("report", resilience_settings, chaos_rng)
             if should_generate_report(state, now):
                 run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
                 state["last_report_at"] = now.isoformat()
@@ -564,6 +677,7 @@ def run_pipeline(config: dict[str, Any]):
                 latest_snapshot=latest_snapshot,
                 content_hash=content_hash,
             )
+            maybe_inject_chaos_failure("anchor", resilience_settings, chaos_rng)
             _anchor_snapshot(config, state, now, latest_snapshot)
             _anchor_if_due(config, state, now)
 
@@ -593,28 +707,78 @@ def run_pipeline(config: dict[str, Any]):
 
 def safe_run_pipeline(config: dict[str, Any]) -> None:
     """/** Ejecuta pipeline con protección contra fallas de red. / Run pipeline with protection against network failures. **"""
-    try:
-        run_pipeline(config)
-    except (
-        requests.exceptions.ConnectionError,
-        requests.exceptions.Timeout,
-        TimeoutError,
-        ConnectionError,
-    ) as exc:
-        checkpoint = load_pipeline_checkpoint()
-        run_id = checkpoint.get("run_id", utcnow().strftime("%Y%m%d%H%M%S"))
-        stage = checkpoint.get("stage")
-        log_event(
-            logger,
-            logging.ERROR,
-            "pipeline_network_failure",
-            run_id=run_id,
-            stage=stage or "unknown",
-            error=str(exc),
-        )
-        save_resilience_checkpoint(run_id, stage, error=str(exc))
-    except Exception:
-        raise
+    resilience_settings = load_resilience_settings(config)
+    auto_resume = build_auto_resume_settings(resilience_settings)
+    attempt = 0
+    while True:
+        try:
+            run_pipeline(config)
+            return
+        except (
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            TimeoutError,
+            ConnectionError,
+        ) as exc:
+            checkpoint = load_pipeline_checkpoint()
+            run_id = checkpoint.get("run_id", utcnow().strftime("%Y%m%d%H%M%S"))
+            stage = checkpoint.get("stage")
+            log_event(
+                logger,
+                logging.ERROR,
+                "pipeline_network_failure",
+                run_id=run_id,
+                stage=stage or "unknown",
+                error=str(exc),
+            )
+            save_resilience_checkpoint(run_id, stage, error=str(exc))
+            retry_on = auto_resume["retry_on"]
+            retryable = retry_on in {"any", "network"}
+            attempt += 1
+            if not auto_resume["enabled"] or not retryable or attempt >= auto_resume["max_attempts"]:
+                return
+            delay = compute_backoff_delay(
+                attempt, auto_resume["backoff_base_seconds"], auto_resume["backoff_max_seconds"]
+            )
+            log_event(
+                logger,
+                logging.WARNING,
+                "pipeline_auto_resume_wait",
+                run_id=run_id,
+                attempt=attempt,
+                delay_seconds=delay,
+            )
+            time.sleep(delay)
+        except Exception as exc:
+            checkpoint = load_pipeline_checkpoint()
+            run_id = checkpoint.get("run_id", utcnow().strftime("%Y%m%d%H%M%S"))
+            stage = checkpoint.get("stage")
+            log_event(
+                logger,
+                logging.ERROR,
+                "pipeline_failure",
+                run_id=run_id,
+                stage=stage or "unknown",
+                error=str(exc),
+            )
+            save_resilience_checkpoint(run_id, stage, error=str(exc))
+            attempt += 1
+            if not auto_resume["enabled"] or auto_resume["retry_on"] != "any":
+                raise
+            if attempt >= auto_resume["max_attempts"]:
+                raise
+            delay = compute_backoff_delay(
+                attempt, auto_resume["backoff_base_seconds"], auto_resume["backoff_max_seconds"]
+            )
+            log_event(
+                logger,
+                logging.WARNING,
+                "pipeline_auto_resume_wait",
+                run_id=run_id,
+                attempt=attempt,
+                delay_seconds=delay,
+            )
+            time.sleep(delay)
 
 
 def _read_hashes_for_anchor(batch_size: int) -> list[str]:

@@ -99,6 +99,22 @@ alerts:
     - RELATIVE_DELTA
     - SCRUTINY_JUMP
     - VOTE_BREAKDOWN_MISMATCH
+  log_path: "alerts.log"
+  output_path: "data/alerts.json"
+
+# Resiliencia operativa.
+# Operational resilience.
+resilience:
+  auto_resume:
+    enabled: true
+    max_attempts: 5
+    backoff_base_seconds: 5
+    backoff_max_seconds: 60
+    retry_on: "any"
+  chaos:
+    enabled: false
+    failure_rate: 0.9
+    seed: 2026
 
 # Configuración Arbitrum (placeholder).
 # Arbitrum configuration (placeholder).
