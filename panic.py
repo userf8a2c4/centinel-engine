@@ -8,6 +8,7 @@ generar un reporte auditable y notificar canales de alerta.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import getpass
 import json
 import logging
@@ -183,8 +184,8 @@ def get_health_status() -> dict[str, Any]:
     try:
         from monitoring.strict_health import is_healthy_strict
 
-        ok, message = is_healthy_strict()
-        return {"ok": ok, "message": message}
+        ok, diagnostics = asyncio.run(is_healthy_strict())
+        return {"ok": ok, "diagnostics": diagnostics}
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "message": f"healthcheck_error: {exc}"}
 
