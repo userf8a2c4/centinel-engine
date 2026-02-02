@@ -64,6 +64,31 @@ field_map:
   candidate_roots:
     - "resultados"
 
+# Fuentes de ingesta (DataSourceManager).
+# Ingestion sources (DataSourceManager).
+data_sources:
+  - source_id: "cne_api"
+    kind: "cne_api"
+    base_url: "https://results.example.org"
+    batch_path: "/api/v1/actas/batch"
+    data_key: "actas"
+    headers:
+      Accept: "application/json"
+  - source_id: "mirror_bucket"
+    kind: "mirror_bucket"
+    base_url: "https://public-bucket.s3.amazonaws.com"
+    batch_path: "/actas/latest.json"
+  - source_id: "citizen_mirror"
+    kind: "citizen_mirror"
+    base_url: "https://mirror.example.org"
+    batch_path: "/actas/latest.json"
+  - source_id: "telegram_channel"
+    kind: "telegram_channel"
+    enabled: false
+  - source_id: "fallback_scrape"
+    kind: "fallback_scrape"
+    enabled: false
+
 # Fuentes configurables.
 # Configurable sources.
 sources:

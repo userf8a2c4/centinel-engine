@@ -21,9 +21,9 @@ from pathlib import Path
 from typing import Any
 
 import boto3
-import requests
 import yaml
 
+from monitoring.alerts import dispatch_alert
 from scripts.logging_utils import configure_logging
 
 DATA_DIR = Path("data")
@@ -269,30 +269,17 @@ def build_report_url(bucket: str, key: str) -> str | None:
 
 
 def send_alert_message(report_url: str | None, final_hash: str | None, timestamp: str) -> None:
-    message = "MODO PÁNICO ACTIVADO\n"
+    message = "MODO PÁNICO ACTIVADO"
     if report_url:
-        message += f"Reporte: {report_url}\n"
-    if final_hash:
-        message += f"Hash final: {final_hash}\n"
-    message += f"Timestamp: {timestamp}"
-
-    telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
-    telegram_chat = os.getenv("TELEGRAM_CHAT_ID")
-    if telegram_token and telegram_chat:
-        telegram_url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
-        requests.post(
-            telegram_url,
-            data={"chat_id": telegram_chat, "text": message},
-            timeout=10,
-        )
-
-    discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
-    if discord_webhook:
-        requests.post(
-            discord_webhook,
-            json={"content": message},
-            timeout=10,
-        )
+        message += f" - Reporte: {report_url}"
+    context = {
+        "timestamp": timestamp,
+        "report_url": report_url,
+        "final_hash": final_hash,
+        "checkpoint_hash": final_hash,
+        "source": "panic_mode",
+    }
+    dispatch_alert("PANIC", message, context)
 
 
 def shutdown_worker() -> None:

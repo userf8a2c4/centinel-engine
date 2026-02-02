@@ -40,6 +40,8 @@ from fastapi.responses import JSONResponse
 
 from centinel.checkpointing import CheckpointConfig, CheckpointManager
 
+from monitoring.alerts import dispatch_alert
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_CHECKPOINT_AGE_SECONDS = 1200
