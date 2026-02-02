@@ -1,14 +1,141 @@
+version: "3.9"
+
+# Docker Compose para Centinel Engine
+# - Diseño resiliente con healthchecks estrictos, restart agresivo y límites de recursos.
+# - Logs persistentes en volumen local; estado en cloud storage.
+
 services:
-  cron:
-    build: .
-    restart: on-failure:5
+  centinel-engine:
+    # Construye la imagen localmente desde el Dockerfile del repo.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: centinel-engine:latest
+    container_name: centinel-engine
+
+    # Reinicio automático agresivo en caso de caída.
+    restart: unless-stopped
+
+    # Healthcheck estricto: requiere endpoint /healthz en el puerto 8000.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+    # Variables de entorno clave (ajusta valores en .env o aquí).
+    environment:
+      # Runtime / entorno
+      APP_ENV: "production"
+      LOG_LEVEL: "info"
+      PORT: "8000"
+      TZ: "UTC"
+
+      # Autenticación / secretos
+      API_KEY: "${API_KEY}"
+      JWT_SECRET: "${JWT_SECRET}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
+
+      # Cloud storage / buckets
+      STORAGE_PROVIDER: "${STORAGE_PROVIDER}"
+      STORAGE_BUCKET: "${STORAGE_BUCKET}"
+      STORAGE_REGION: "${STORAGE_REGION}"
+      STORAGE_ACCESS_KEY_ID: "${STORAGE_ACCESS_KEY_ID}"
+      STORAGE_SECRET_ACCESS_KEY: "${STORAGE_SECRET_ACCESS_KEY}"
+
+      # Alerting / observabilidad
+      ALERTING_ENABLED: "${ALERTING_ENABLED:-true}"
+      ALERT_WEBHOOK_URL: "${ALERT_WEBHOOK_URL}"
+      ALERT_SLACK_CHANNEL: "${ALERT_SLACK_CHANNEL}"
+      SENTRY_DSN: "${SENTRY_DSN}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT}"
+
+      # Redis opcional (cola / cache temporal)
+      REDIS_URL: "${REDIS_URL}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+
+      # Otras integraciones / límites
+      RATE_LIMIT_MAX: "${RATE_LIMIT_MAX:-1000}"
+      REQUEST_TIMEOUT_SECONDS: "${REQUEST_TIMEOUT_SECONDS:-30}"
+
+    # Persistencia solo para logs.
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./config.yaml:/app/config.yaml
-      - ./.env:/app/.env
-    entrypoint: /bin/sh
-    command: >-
-      -c "echo '*/5 * * * * cd /app && python scripts/run_pipeline.py --once >> /app/data/cron.log 2>&1' > /etc/cron.d/centinel &&
-      crontab /etc/cron.d/centinel &&
-      cron -f"
+      - centinel-logs:/app/logs
+
+    # Exponer el puerto del servicio.
+    ports:
+      - "8000:8000"
+
+    # Red interna para minimizar exposición.
+    networks:
+      - centinel-internal
+
+    # Políticas de reinicio en modo swarm (no-op en compose clásico).
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+      resources:
+        # Límites razonables para proteger el host.
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+    # Rotación de logs en json-file.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    # Dependencia opcional de Redis (descomenta si lo usas).
+    # depends_on:
+    #   - redis
+
+  # Redis mínimo para cola/estado temporal (opcional, comentado).
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: centinel-redis
+  #   restart: unless-stopped
+  #   command: ["redis-server", "--appendonly", "no"]
+  #   environment:
+  #     REDIS_PASSWORD: "${REDIS_PASSWORD}"
+  #   # Ejemplo con password (descomenta si lo usas):
+  #   # command: ["redis-server", "--appendonly", "no", "--requirepass", "${REDIS_PASSWORD}"]
+  #   networks:
+  #     - centinel-internal
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 10s
+
+  # Watchtower para auto-actualización de la imagen (opcional, comentado).
+  # watchtower:
+  #   image: containrrr/watchtower:latest
+  #   container_name: centinel-watchtower
+  #   restart: unless-stopped
+  #   environment:
+  #     WATCHTOWER_POLL_INTERVAL: "${WATCHTOWER_POLL_INTERVAL:-300}"
+  #     WATCHTOWER_CLEANUP: "${WATCHTOWER_CLEANUP:-true}"
+  #     WATCHTOWER_INCLUDE_STOPPED: "${WATCHTOWER_INCLUDE_STOPPED:-true}"
+  #     WATCHTOWER_LABEL_ENABLE: "${WATCHTOWER_LABEL_ENABLE:-false}"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #     - centinel-internal
+
+volumes:
+  centinel-logs:
+    driver: local
+
+networks:
+  centinel-internal:
+    driver: bridge
+    internal: true
