@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import hashlib
-import json
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -9,86 +8,97 @@ import pytest
 from monitoring import strict_health
 
 
-def _make_checkpoint_payload(timestamp: datetime) -> tuple[bytes, dict]:
-    payload = {"timestamp": timestamp.isoformat(), "hash": "placeholder"}
-    raw = json.dumps(payload, sort_keys=True).encode("utf-8")
-    expected_hash = hashlib.sha256(raw).hexdigest()
-    payload["hash"] = expected_hash
-    raw = json.dumps(payload, sort_keys=True).encode("utf-8")
-    return raw, payload
+def _make_payload(timestamp: datetime) -> dict:
+    return {"metadata": {"checkpoint_timestamp": timestamp.isoformat()}, "state": {}}
 
 
-def test_verify_checkpoint_integrity_ok(monkeypatch: pytest.MonkeyPatch) -> None:
-    raw, payload = _make_checkpoint_payload(datetime.now(timezone.utc))
-    expected_hash = hashlib.sha256(raw).hexdigest()
-    monkeypatch.setenv("CHECKPOINT_EXPECTED_HASH", expected_hash)
-    ok, message = strict_health._verify_checkpoint_integrity(
-        {"payload": payload, "raw": raw, "meta": {}}
-    )
-    assert ok is True
-    assert message == "checkpoint_hash_ok"
-
-
-def test_verify_checkpoint_age_stale(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_check_checkpoint_age_stale(monkeypatch: pytest.MonkeyPatch) -> None:
     timestamp = datetime.now(timezone.utc) - timedelta(minutes=30)
-    raw, payload = _make_checkpoint_payload(timestamp)
-    monkeypatch.setenv("MAX_AGE_CHECKPOINT_SECONDS", "60")
-    ok, message = strict_health._verify_checkpoint_age(
-        {"payload": payload, "raw": raw, "meta": {}}
-    )
-    assert ok is False
-    assert message == "checkpoint_stale"
+    monkeypatch.setenv("MAX_CHECKPOINT_AGE_SECONDS", "60")
+    result = strict_health._check_checkpoint_age(timestamp)
+    assert result["ok"] is False
+    assert result["message"] == "checkpoint_stale"
 
 
 def test_is_healthy_strict_failure_logs_reason(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    monkeypatch.setattr(strict_health, "_read_checkpoint", lambda: (True, "ok", {}))
+    monkeypatch.setattr(strict_health, "_get_checkpoint_manager", lambda: (object(), None))
+    monkeypatch.setattr(strict_health, "_build_s3_client", lambda: object())
     monkeypatch.setattr(
-        strict_health, "_verify_checkpoint_integrity", lambda _: (False, "bad_hash")
+        strict_health,
+        "_check_bucket_latency",
+        lambda *_: {"ok": True, "message": "bucket_latency_ok"},
     )
     monkeypatch.setattr(
-        strict_health, "_verify_checkpoint_age", lambda _: (True, "fresh")
+        strict_health,
+        "_load_checkpoint_payload",
+        lambda *_: (_make_payload(datetime.now(timezone.utc)), "checkpoint_integrity_ok"),
     )
     monkeypatch.setattr(
-        strict_health, "_check_pending_actas", lambda: (True, "pending_ok")
+        strict_health,
+        "_check_storage_write",
+        lambda *_: {"ok": True, "message": "storage_write_ok"},
     )
     monkeypatch.setattr(
-        strict_health, "_check_critical_errors", lambda: (True, "critical_ok")
+        strict_health,
+        "_check_critical_errors",
+        lambda: {"ok": True, "message": "critical_errors_ok"},
     )
-    monkeypatch.setattr(strict_health, "_check_resources", lambda: (True, "resources_ok"))
     monkeypatch.setattr(
-        strict_health, "_check_storage_write", lambda: (True, "write_ok")
+        strict_health,
+        "_check_resources",
+        lambda: {"ok": False, "message": "resources_threshold_exceeded"},
+    )
+    monkeypatch.setattr(
+        strict_health,
+        "_check_paused_flag",
+        lambda: {"ok": True, "message": "paused_flag_clear"},
     )
 
     with caplog.at_level("CRITICAL"):
-        ok, message = strict_health.is_healthy_strict()
+        ok, diagnostics = asyncio.run(strict_health.is_healthy_strict())
 
     assert ok is False
-    assert "bad_hash" in message
+    assert "resources_threshold_exceeded" in diagnostics["failures"]
     assert any("strict_healthcheck_failed" in record.message for record in caplog.records)
 
 
 def test_is_healthy_strict_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(strict_health, "_read_checkpoint", lambda: (True, "ok", {}))
+    monkeypatch.setattr(strict_health, "_get_checkpoint_manager", lambda: (object(), None))
+    monkeypatch.setattr(strict_health, "_build_s3_client", lambda: object())
     monkeypatch.setattr(
-        strict_health, "_verify_checkpoint_integrity", lambda _: (True, "hash_ok")
+        strict_health,
+        "_check_bucket_latency",
+        lambda *_: {"ok": True, "message": "bucket_latency_ok"},
     )
     monkeypatch.setattr(
-        strict_health, "_verify_checkpoint_age", lambda _: (True, "fresh")
+        strict_health,
+        "_load_checkpoint_payload",
+        lambda *_: (_make_payload(datetime.now(timezone.utc)), "checkpoint_integrity_ok"),
     )
     monkeypatch.setattr(
-        strict_health, "_check_pending_actas", lambda: (True, "pending_ok")
+        strict_health,
+        "_check_storage_write",
+        lambda *_: {"ok": True, "message": "storage_write_ok"},
     )
     monkeypatch.setattr(
-        strict_health, "_check_critical_errors", lambda: (True, "critical_ok")
+        strict_health,
+        "_check_critical_errors",
+        lambda: {"ok": True, "message": "critical_errors_ok"},
     )
-    monkeypatch.setattr(strict_health, "_check_resources", lambda: (True, "resources_ok"))
     monkeypatch.setattr(
-        strict_health, "_check_storage_write", lambda: (True, "write_ok")
+        strict_health,
+        "_check_resources",
+        lambda: {"ok": True, "message": "resources_ok"},
+    )
+    monkeypatch.setattr(
+        strict_health,
+        "_check_paused_flag",
+        lambda: {"ok": True, "message": "paused_flag_clear"},
     )
 
-    ok, message = strict_health.is_healthy_strict()
+    ok, diagnostics = asyncio.run(strict_health.is_healthy_strict())
 
     assert ok is True
-    assert message == "healthcheck_strict_ok"
+    assert diagnostics["healthy"] is True

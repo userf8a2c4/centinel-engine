@@ -7,6 +7,7 @@ status inspection, key rotation, backups, and recovery testing.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import base64
 import hashlib
 import importlib.util
@@ -307,8 +308,13 @@ def command_status(runtime: RuntimeConfig, logger: logging.Logger) -> None:
 
     health_status = ("unknown", "strict_health_unavailable")
     diagnostics: list[dict[str, Any]] = []
-    ok, message = is_healthy_strict()
-    health_status = ("ok" if ok else "fail", message)
+    ok, diagnostics = asyncio.run(is_healthy_strict())
+    detail = (
+        "strict_health_ok"
+        if ok
+        else "; ".join(diagnostics.get("failures", [])) or "strict_health_failed"
+    )
+    health_status = ("ok" if ok else "fail", detail)
     diagnostics = get_recent_health_diagnostics()
 
     cpu_percent = psutil.cpu_percent(interval=0.1)

@@ -18,6 +18,7 @@ import pandas as pd
 import psutil
 from dateutil import parser as date_parser
 import streamlit as st
+import asyncio
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
@@ -2154,7 +2155,16 @@ with tabs[5]:
             health_message = f"healthcheck_disabled: {STRICT_HEALTH_ERROR}"
         else:
             try:
-                health_ok, health_message = is_healthy_strict()
+                health_ok, diagnostics = asyncio.run(is_healthy_strict())
+                if health_ok:
+                    health_message = "healthcheck_strict_ok"
+                else:
+                    failures = diagnostics.get("failures", [])
+                    health_message = (
+                        "; ".join(failures)
+                        if failures
+                        else "healthcheck_strict_failed"
+                    )
             except Exception as exc:  # noqa: BLE001
                 health_ok = False
                 health_message = f"healthcheck_error: {exc}"
