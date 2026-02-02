@@ -6,6 +6,7 @@ import os
 import platform
 import random
 import shutil
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,8 +19,36 @@ import psutil
 from dateutil import parser as date_parser
 import streamlit as st
 
-from centinel.checkpointing import CheckpointConfig, CheckpointManager
-from monitoring.strict_health import is_healthy_strict
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = REPO_ROOT / "src"
+
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+try:
+    import sitecustomize  # noqa: F401
+except Exception:
+    sitecustomize = None
+
+try:
+    from centinel.checkpointing import CheckpointConfig, CheckpointManager
+    CHECKPOINTING_AVAILABLE = True
+    CHECKPOINTING_ERROR = ""
+except Exception as exc:  # noqa: BLE001
+    CheckpointConfig = None
+    CheckpointManager = None
+    CHECKPOINTING_AVAILABLE = False
+    CHECKPOINTING_ERROR = str(exc)
+try:
+    from monitoring.strict_health import is_healthy_strict
+    STRICT_HEALTH_AVAILABLE = True
+    STRICT_HEALTH_ERROR = ""
+except Exception as exc:  # noqa: BLE001
+    is_healthy_strict = None
+    STRICT_HEALTH_AVAILABLE = False
+    STRICT_HEALTH_ERROR = str(exc)
 
 try:
     import yaml
@@ -308,7 +337,9 @@ def _detect_supervisor() -> str:
     return f"No detectado ({platform.system()})"
 
 
-def _build_checkpoint_manager() -> CheckpointManager | None:
+def _build_checkpoint_manager() -> "CheckpointManager | None":
+    if not CHECKPOINTING_AVAILABLE:
+        return None
     bucket = os.getenv("CHECKPOINT_BUCKET", "").strip()
     if not bucket:
         return None
@@ -2119,11 +2150,14 @@ with tabs[5]:
 
         health_ok = False
         health_message = "healthcheck_strict_no_data"
-        try:
-            health_ok, health_message = is_healthy_strict()
-        except Exception as exc:  # noqa: BLE001
-            health_ok = False
-            health_message = f"healthcheck_error: {exc}"
+        if not STRICT_HEALTH_AVAILABLE:
+            health_message = f"healthcheck_disabled: {STRICT_HEALTH_ERROR}"
+        else:
+            try:
+                health_ok, health_message = is_healthy_strict()
+            except Exception as exc:  # noqa: BLE001
+                health_ok = False
+                health_message = f"healthcheck_error: {exc}"
 
         failed_retries = 0
         try:
@@ -2235,7 +2269,13 @@ with tabs[5]:
             try:
                 manager = _build_checkpoint_manager()
                 if manager is None:
-                    st.error("Checkpoint no configurado: define CHECKPOINT_BUCKET.")
+                    if not CHECKPOINTING_AVAILABLE:
+                        st.error(
+                            "Checkpoint deshabilitado: falta dependencia de cifrado "
+                            f"({CHECKPOINTING_ERROR})."
+                        )
+                    else:
+                        st.error("Checkpoint no configurado: define CHECKPOINT_BUCKET.")
                 else:
                     manager.save_checkpoint(
                         {
