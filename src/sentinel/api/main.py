@@ -19,6 +19,7 @@ from slowapi.util import get_remote_address
 import yaml
 
 from monitoring.health import register_healthchecks
+from monitoring.strict_health import register_strict_health_endpoints
 from sentinel.core.hashchain import compute_hash
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -415,3 +416,4 @@ def api_summaries() -> dict:
 
 
 register_healthchecks(app)
+register_strict_health_endpoints(app)
