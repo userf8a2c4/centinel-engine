@@ -1861,6 +1861,7 @@ with tabs[4]:
             f"Descargar Informe PDF ({dept_label})",
             data=pdf_bytes,
             file_name=f"centinel_informe_{dept_label.lower().replace(' ', '_')}.pdf",
+            mime="application/pdf",
         )
     else:
         st.warning("Exportación PDF no disponible: falta instalar reportlab.")
