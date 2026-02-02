@@ -41,7 +41,14 @@ except Exception as exc:  # noqa: BLE001
     CheckpointManager = None
     CHECKPOINTING_AVAILABLE = False
     CHECKPOINTING_ERROR = str(exc)
-from monitoring.strict_health import is_healthy_strict
+try:
+    from monitoring.strict_health import is_healthy_strict
+    STRICT_HEALTH_AVAILABLE = True
+    STRICT_HEALTH_ERROR = ""
+except Exception as exc:  # noqa: BLE001
+    is_healthy_strict = None
+    STRICT_HEALTH_AVAILABLE = False
+    STRICT_HEALTH_ERROR = str(exc)
 
 try:
     import yaml
@@ -2143,11 +2150,14 @@ with tabs[5]:
 
         health_ok = False
         health_message = "healthcheck_strict_no_data"
-        try:
-            health_ok, health_message = is_healthy_strict()
-        except Exception as exc:  # noqa: BLE001
-            health_ok = False
-            health_message = f"healthcheck_error: {exc}"
+        if not STRICT_HEALTH_AVAILABLE:
+            health_message = f"healthcheck_disabled: {STRICT_HEALTH_ERROR}"
+        else:
+            try:
+                health_ok, health_message = is_healthy_strict()
+            except Exception as exc:  # noqa: BLE001
+                health_ok = False
+                health_message = f"healthcheck_error: {exc}"
 
         failed_retries = 0
         try:
