@@ -2,15 +2,24 @@ import datetime as dt
 import hashlib
 import io
 import json
+import os
+import platform
 import random
+import shutil
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import altair as alt
+import boto3
 import pandas as pd
+import psutil
 from dateutil import parser as date_parser
 import streamlit as st
+
+from centinel.checkpointing import CheckpointConfig, CheckpointManager
+from monitoring.strict_health import is_healthy_strict
 
 try:
     import yaml
@@ -148,6 +157,171 @@ def load_configs() -> dict[str, dict]:
         "core": load_yaml_config(Path("config") / "config.yaml"),
         "command_center": load_yaml_config(command_center_config),
     }
+
+
+def _get_query_param(name: str) -> str | None:
+    if hasattr(st, "query_params"):
+        value = st.query_params.get(name)
+        if isinstance(value, list):
+            return value[0] if value else None
+        return value
+    params = st.experimental_get_query_params()
+    value = params.get(name)
+    if isinstance(value, list):
+        return value[0] if value else None
+    return value
+
+
+def _get_secret_value(name: str) -> str:
+    value = st.secrets.get(name)
+    return str(value) if value is not None else ""
+
+
+def render_admin_gate() -> bool:
+    expected_user = _get_secret_value("admin_user") or _get_secret_value("admin_username")
+    expected_password = _get_secret_value("admin_password")
+    token = _get_secret_value("admin_token")
+    query_token = _get_query_param("admin")
+
+    if token and query_token and query_token == token:
+        return True
+
+    if not expected_user or not expected_password:
+        st.error(
+            "Autenticación no configurada. Define admin_user y admin_password en st.secrets."
+        )
+        return False
+
+    if st.session_state.get("admin_authenticated"):
+        return True
+
+    with st.form("admin_login"):
+        user = st.text_input("Usuario")
+        password = st.text_input("Contraseña", type="password")
+        submitted = st.form_submit_button("Ingresar")
+        if submitted:
+            if user == expected_user and password == expected_password:
+                st.session_state.admin_authenticated = True
+                st.success("Autenticación exitosa.")
+                rerun_app()
+            else:
+                st.error("Credenciales inválidas.")
+    return False
+
+
+def _format_short_hash(value: str | None) -> str:
+    if not value:
+        return "N/D"
+    if len(value) <= 16:
+        return value
+    return f"{value[:8]}…{value[-8:]}"
+
+
+def _format_timedelta(delta: dt.timedelta | None) -> str:
+    if delta is None:
+        return "Sin datos"
+    total_seconds = int(delta.total_seconds())
+    if total_seconds < 0:
+        total_seconds = 0
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours}h {minutes}m"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
+
+
+def _parse_timestamp(value: Any) -> dt.datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, dt.datetime):
+        return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)
+    if isinstance(value, (int, float)):
+        return dt.datetime.fromtimestamp(value, tz=dt.timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = date_parser.parse(value)
+        except (ValueError, TypeError):
+            return None
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=dt.timezone.utc)
+    return None
+
+
+def _pick_latest_snapshot(snapshot_files: list[dict[str, Any]]) -> dict[str, Any]:
+    if not snapshot_files:
+        return {}
+
+    def sort_key(entry: dict[str, Any]) -> dt.datetime:
+        timestamp = _parse_timestamp(entry.get("timestamp"))
+        if timestamp:
+            return timestamp
+        try:
+            return dt.datetime.fromtimestamp(
+                entry["path"].stat().st_mtime, tz=dt.timezone.utc
+            )
+        except OSError:
+            return dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+
+    latest = max(snapshot_files, key=sort_key)
+    return latest
+
+
+def _count_failed_retries(log_path: Path) -> int:
+    if not log_path.exists():
+        return 0
+    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
+    count = 0
+    for line in log_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        lowered = line.lower()
+        if "retry" not in lowered:
+            continue
+        if "error" not in lowered and "fail" not in lowered:
+            continue
+        timestamp = _parse_timestamp(line.split(" ", 1)[0])
+        if timestamp is None or timestamp >= cutoff:
+            count += 1
+    return count
+
+
+def _check_bucket_connection() -> dict[str, Any]:
+    bucket = os.getenv("CHECKPOINT_BUCKET", "").strip()
+    if not bucket:
+        return {"status": "No configurado", "latency_ms": None, "message": ""}
+    endpoint = os.getenv("STORAGE_ENDPOINT_URL")
+    region = os.getenv("AWS_REGION", "us-east-1")
+    start = time.perf_counter()
+    try:
+        client = boto3.client("s3", endpoint_url=endpoint, region_name=region)
+        client.head_bucket(Bucket=bucket)
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "Error", "latency_ms": None, "message": str(exc)}
+    latency_ms = (time.perf_counter() - start) * 1000
+    return {"status": "OK", "latency_ms": latency_ms, "message": ""}
+
+
+def _detect_supervisor() -> str:
+    if os.path.exists("/.dockerenv"):
+        return "Docker detectado"
+    if os.path.exists("/run/systemd/system") or shutil.which("systemctl"):
+        return "systemd detectado"
+    return f"No detectado ({platform.system()})"
+
+
+def _build_checkpoint_manager() -> CheckpointManager | None:
+    bucket = os.getenv("CHECKPOINT_BUCKET", "").strip()
+    if not bucket:
+        return None
+    config = CheckpointConfig(
+        bucket=bucket,
+        pipeline_version=os.getenv("PIPELINE_VERSION", "v1"),
+        run_id=os.getenv("RUN_ID", "dashboard"),
+        s3_endpoint_url=os.getenv("STORAGE_ENDPOINT_URL"),
+        s3_region=os.getenv("AWS_REGION", "us-east-1"),
+        s3_access_key=os.getenv("AWS_ACCESS_KEY_ID"),
+        s3_secret_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    )
+    return CheckpointManager(config)
 
 
 @st.cache_data(show_spinner=False)
@@ -1391,7 +1565,16 @@ st.markdown(
 
 st.markdown("---")
 
-tabs = st.tabs(["Resumen", "Anomalías", "Snapshots y Reglas", "Verificación", "Reportes"])
+tabs = st.tabs(
+    [
+        "Resumen",
+        "Anomalías",
+        "Snapshots y Reglas",
+        "Verificación",
+        "Reportes",
+        "Estado del Sistema",
+    ]
+)
 
 with tabs[0]:
     st.markdown("### Panorama Ejecutivo")
@@ -1876,6 +2059,200 @@ with tabs[4]:
         data=filtered_snapshots.to_json(orient="records"),
         file_name="centinel_snapshots.json",
     )
+
+with tabs[5]:
+    st.markdown("### Estado del Sistema")
+    st.caption(
+        "Panel reservado para mantenimiento y salud operativa. "
+        "Requiere autenticación administrativa."
+    )
+    access_granted = render_admin_gate()
+    if not access_granted:
+        st.info("Acceso restringido: autentícate para ver el estado del sistema.")
+    else:
+        refresh_cols = st.columns([0.4, 0.6])
+        with refresh_cols[0]:
+            auto_refresh = st.checkbox(
+                "Auto-refrescar", value=True, key="auto_refresh_system"
+            )
+        with refresh_cols[1]:
+            refresh_interval = st.select_slider(
+                "Intervalo de refresco (segundos)",
+                options=[30, 45, 60],
+                value=45,
+                key="refresh_interval_system",
+            )
+
+        latest_snapshot = {}
+        latest_timestamp = None
+        last_batch_label = "N/D"
+        hash_accumulator = anchor.root_hash
+        try:
+            latest_snapshot = _pick_latest_snapshot(snapshot_files)
+            content = latest_snapshot.get("content", {}) if latest_snapshot else {}
+            latest_timestamp = _parse_timestamp(latest_snapshot.get("timestamp"))
+            if latest_timestamp is None and latest_snapshot.get("path"):
+                latest_timestamp = dt.datetime.fromtimestamp(
+                    latest_snapshot["path"].stat().st_mtime, tz=dt.timezone.utc
+                )
+            last_batch_label = (
+                content.get("acta_id")
+                or content.get("batch_id")
+                or content.get("last_batch")
+                or (latest_snapshot.get("path").stem if latest_snapshot else "N/D")
+            )
+            hash_accumulator = latest_snapshot.get("hash") or anchor.root_hash
+        except Exception as exc:  # noqa: BLE001
+            st.warning(f"No se pudo cargar el último checkpoint local: {exc}")
+
+        time_since_last = (
+            dt.datetime.now(dt.timezone.utc) - latest_timestamp
+            if latest_timestamp
+            else None
+        )
+        time_since_label = _format_timedelta(time_since_last)
+        latest_checkpoint_label = (
+            latest_timestamp.strftime("%Y-%m-%d %H:%M UTC")
+            if latest_timestamp
+            else "Sin datos"
+        )
+
+        health_ok = False
+        health_message = "healthcheck_strict_no_data"
+        try:
+            health_ok, health_message = is_healthy_strict()
+        except Exception as exc:  # noqa: BLE001
+            health_ok = False
+            health_message = f"healthcheck_error: {exc}"
+
+        failed_retries = 0
+        try:
+            log_path = Path(core_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log"))
+            failed_retries = _count_failed_retries(log_path)
+        except Exception as exc:  # noqa: BLE001
+            st.warning(f"No se pudo leer el conteo de reintentos: {exc}")
+
+        bucket_status = {}
+        try:
+            bucket_status = _check_bucket_connection()
+        except Exception as exc:  # noqa: BLE001
+            bucket_status = {"status": "Error", "latency_ms": None, "message": str(exc)}
+
+        critical_alerts = filtered_anomalies.copy()
+        if not critical_alerts.empty:
+            critical_alerts = critical_alerts[critical_alerts["type"] == "Delta negativo"]
+        if not critical_alerts.empty:
+            critical_alerts["timestamp_dt"] = pd.to_datetime(
+                critical_alerts["timestamp"], errors="coerce", utc=True
+            )
+            critical_alerts = critical_alerts.sort_values("timestamp_dt", ascending=False)
+        critical_alerts = critical_alerts.head(5)
+
+        pipeline_status = "Activo"
+        if not health_ok:
+            pipeline_status = "Con errores críticos"
+        elif not critical_alerts.empty:
+            pipeline_status = "Con errores críticos"
+        elif latest_timestamp is None or time_since_last > dt.timedelta(minutes=45):
+            pipeline_status = "Pausado"
+        elif failed_retries > 0:
+            pipeline_status = "Recuperándose"
+
+        status_emoji = {
+            "Activo": "🟢",
+            "Pausado": "🟡",
+            "Recuperándose": "🟡",
+            "Con errores críticos": "🔴",
+        }.get(pipeline_status, "⚪️")
+
+        header_cols = st.columns(3)
+        with header_cols[0]:
+            st.metric("Estado del pipeline", f"{status_emoji} {pipeline_status}")
+        with header_cols[1]:
+            st.metric("Último checkpoint", latest_checkpoint_label)
+            st.caption(
+                f"Acta/Lote: {last_batch_label} · Hash: {_format_short_hash(hash_accumulator)}"
+            )
+        with header_cols[2]:
+            st.metric("Tiempo desde última acta", time_since_label)
+
+        health_cols = st.columns([1.1, 0.9])
+        with health_cols[0]:
+            health_state = "complete" if health_ok else "error"
+            with st.status(
+                f"Healthcheck estricto: {'OK' if health_ok else 'ERROR'}",
+                state=health_state,
+            ):
+                st.write(health_message)
+        with health_cols[1]:
+            supervisor_status = _detect_supervisor()
+            st.metric("Supervisor externo", supervisor_status)
+
+        st.markdown("#### Recursos en tiempo real")
+        resource_cols = st.columns(3)
+        cpu_percent = psutil.cpu_percent(interval=0.2)
+        memory_percent = psutil.virtual_memory().percent
+        disk_percent = psutil.disk_usage("/").percent
+        with resource_cols[0]:
+            st.metric("CPU", f"{cpu_percent:.1f}%")
+        with resource_cols[1]:
+            st.metric("Memoria", f"{memory_percent:.1f}%")
+        with resource_cols[2]:
+            st.metric("Disco", f"{disk_percent:.1f}%")
+
+        connection_cols = st.columns(3)
+        with connection_cols[0]:
+            bucket_label = bucket_status.get("status", "N/D")
+            latency = bucket_status.get("latency_ms")
+            latency_label = f"{latency:.0f} ms" if latency is not None else "N/D"
+            st.metric("Bucket checkpoints", bucket_label)
+            st.caption(f"Latencia: {latency_label}")
+        with connection_cols[1]:
+            st.metric("Reintentos fallidos (24h)", str(failed_retries))
+        with connection_cols[2]:
+            st.metric("Hash acumulado", _format_short_hash(hash_accumulator))
+
+        st.markdown("#### Últimas alertas críticas")
+        if critical_alerts.empty:
+            st.success("Sin alertas críticas recientes.")
+        else:
+            alert_table = critical_alerts[
+                ["timestamp", "department", "type", "delta", "hash"]
+            ].rename(
+                columns={
+                    "timestamp": "Timestamp",
+                    "department": "Departamento",
+                    "type": "Motivo",
+                    "delta": "Δ votos",
+                    "hash": "Hash",
+                }
+            )
+            alert_table["Hash"] = alert_table["Hash"].apply(_format_short_hash)
+            st.dataframe(alert_table, use_container_width=True, hide_index=True)
+
+        st.markdown("#### Acciones de mantenimiento")
+        if st.button("Forzar checkpoint ahora", type="primary"):
+            try:
+                manager = _build_checkpoint_manager()
+                if manager is None:
+                    st.error("Checkpoint no configurado: define CHECKPOINT_BUCKET.")
+                else:
+                    manager.save_checkpoint(
+                        {
+                            "last_acta_id": last_batch_label,
+                            "last_batch_offset": len(snapshot_files),
+                            "rules_state": {"source": "dashboard"},
+                            "hash_accumulator": hash_accumulator,
+                        }
+                    )
+                    st.success("Checkpoint guardado exitosamente.")
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"No se pudo guardar el checkpoint: {exc}")
+
+        if auto_refresh:
+            st.caption(f"Auto-refresco activo · próxima actualización en {refresh_interval}s.")
+            time.sleep(refresh_interval)
+            rerun_app()
 
 st.markdown("---")
 st.markdown(
