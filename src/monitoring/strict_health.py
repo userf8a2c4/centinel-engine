@@ -21,6 +21,8 @@ import psutil
 from dateutil import parser as date_parser
 from fastapi import APIRouter, FastAPI, HTTPException
 
+from monitoring.alerts import dispatch_alert
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_AGE_CHECKPOINT_SECONDS = 900
@@ -355,6 +357,15 @@ def is_healthy_strict() -> Tuple[bool, str]:
     if failed:
         diagnostic = "; ".join(failed)
         logger.critical("strict_healthcheck_failed reason=%s", diagnostic)
+        dispatch_alert(
+            "CRITICAL",
+            "Healthcheck estricto fallido",
+            {
+                "diagnostic": diagnostic,
+                "checks": [{"ok": ok, "message": message} for ok, message in checks],
+                "source": "strict_healthcheck",
+            },
+        )
         _record_diagnostic(False, diagnostic)
         return False, diagnostic
 

@@ -19,6 +19,8 @@ import boto3
 from botocore.exceptions import ClientError, EndpointConnectionError
 from cryptography.fernet import Fernet, InvalidToken
 
+from monitoring.alerts import dispatch_alert
+
 
 AlertCallback = Callable[[str, Dict[str, Any]], None]
 
@@ -262,6 +264,11 @@ class CheckpointManager:
             self.alert_callback(code, payload)
         else:
             self.logger.critical("Alerta crítica de checkpoint.", extra={"code": code, **payload})
+            dispatch_alert(
+                "CRITICAL",
+                f"Fallo crítico en checkpoint: {code}",
+                {"code": code, "payload": payload, "source": "checkpointing"},
+            )
 
     def _ensure_required_state(self, state_dict: Dict[str, Any]) -> None:
         missing = self.required_state_keys - set(state_dict.keys())
