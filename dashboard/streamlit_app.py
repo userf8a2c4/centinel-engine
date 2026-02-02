@@ -6,6 +6,7 @@ import os
 import platform
 import random
 import shutil
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +18,19 @@ import pandas as pd
 import psutil
 from dateutil import parser as date_parser
 import streamlit as st
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = REPO_ROOT / "src"
+
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+try:
+    import sitecustomize  # noqa: F401
+except Exception:
+    sitecustomize = None
 
 from centinel.checkpointing import CheckpointConfig, CheckpointManager
 from monitoring.strict_health import is_healthy_strict
