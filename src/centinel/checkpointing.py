@@ -22,6 +22,8 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
+from monitoring.alerts import dispatch_alert
+
 
 CheckpointState = Dict[str, Any]
 
@@ -281,62 +283,16 @@ class CheckpointManager:
                     raise CheckpointStorageError("checkpoint_write_failed") from exc
                 await asyncio.sleep(2 ** (attempt - 1))
 
-    async def _get_object_with_retry(self, key: str) -> bytes:
-        for attempt in range(1, 6):
-            try:
-                response = await self._run_with_timeout(self._get_object_raw, key)
-                return response["Body"].read()
-            except (ClientError, EndpointConnectionError, asyncio.TimeoutError) as exc:
-                self.logger.warning(
-                    "checkpoint_read_retry",
-                    extra={
-                        "checkpoint_key": key,
-                        "attempt": attempt,
-                        "error": str(exc),
-                    },
-                )
-                if attempt == 5:
-                    self.logger.critical(
-                        "checkpoint_read_failed",
-                        extra={"checkpoint_key": key, "error": str(exc)},
-                    )
-                    raise CheckpointStorageError("checkpoint_read_failed") from exc
-                await asyncio.sleep(2 ** (attempt - 1))
-
-    async def _list_objects_with_retry(self, prefix: str) -> Dict[str, Any]:
-        for attempt in range(1, 6):
-            try:
-                return await self._run_with_timeout(self._list_objects_raw, prefix)
-            except (ClientError, EndpointConnectionError, asyncio.TimeoutError) as exc:
-                self.logger.warning(
-                    "checkpoint_list_retry",
-                    extra={
-                        "checkpoint_prefix": prefix,
-                        "attempt": attempt,
-                        "error": str(exc),
-                    },
-                )
-                if attempt == 5:
-                    self.logger.critical(
-                        "checkpoint_list_failed",
-                        extra={"checkpoint_prefix": prefix, "error": str(exc)},
-                    )
-                    raise CheckpointStorageError("checkpoint_list_failed") from exc
-                await asyncio.sleep(2 ** (attempt - 1))
-
-    async def _run_with_timeout(self, func, *args) -> Any:  # noqa: ANN001
-        return await asyncio.wait_for(asyncio.to_thread(func, *args), timeout=self._timeout_seconds)
-
-    def _put_object(self, key: str, data: bytes) -> None:
-        self._s3_client.put_object(
-            Bucket=self.bucket_name,
-            Key=key,
-            Body=data,
-            ContentType="application/json",
-        )
-
-    def _get_object_raw(self, key: str) -> Dict[str, Any]:
-        return self._s3_client.get_object(Bucket=self.bucket_name, Key=key)
+    def _alert_critical(self, code: str, payload: Dict[str, Any]) -> None:
+        if self.alert_callback:
+            self.alert_callback(code, payload)
+        else:
+            self.logger.critical("Alerta crítica de checkpoint.", extra={"code": code, **payload})
+            dispatch_alert(
+                "CRITICAL",
+                f"Fallo crítico en checkpoint: {code}",
+                {"code": code, "payload": payload, "source": "checkpointing"},
+            )
 
     def _list_objects_raw(self, prefix: str) -> Dict[str, Any]:
         return self._s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
