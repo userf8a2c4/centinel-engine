@@ -18,11 +18,13 @@ services:
 
     # Healthcheck estricto: requiere endpoint /healthz en el puerto 8000.
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
-      interval: 30s
+      # Healthcheck estricto y silencioso para detectar fallos rápido.
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:8000/healthz"]
+      interval: 20s
       timeout: 10s
       retries: 5
       start_period: 60s
+      start_interval: 5s
 
     # Variables de entorno clave (ajusta valores en .env o aquí).
     environment:
@@ -36,6 +38,8 @@ services:
       API_KEY: "${API_KEY}"
       JWT_SECRET: "${JWT_SECRET}"
       ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
+      CHECKPOINT_KEY: "${CHECKPOINT_KEY}"
+      MASTER_KEY: "${MASTER_KEY}"
 
       # Cloud storage / buckets
       STORAGE_PROVIDER: "${STORAGE_PROVIDER}"
@@ -43,6 +47,8 @@ services:
       STORAGE_REGION: "${STORAGE_REGION}"
       STORAGE_ACCESS_KEY_ID: "${STORAGE_ACCESS_KEY_ID}"
       STORAGE_SECRET_ACCESS_KEY: "${STORAGE_SECRET_ACCESS_KEY}"
+      STORAGE_ENDPOINT: "${STORAGE_ENDPOINT}"
+      STORAGE_PREFIX: "${STORAGE_PREFIX}"
 
       # Alerting / observabilidad
       ALERTING_ENABLED: "${ALERTING_ENABLED:-true}"
@@ -58,10 +64,14 @@ services:
       # Otras integraciones / límites
       RATE_LIMIT_MAX: "${RATE_LIMIT_MAX:-1000}"
       REQUEST_TIMEOUT_SECONDS: "${REQUEST_TIMEOUT_SECONDS:-30}"
+      WORKER_CONCURRENCY: "${WORKER_CONCURRENCY:-2}"
+      MAX_PAYLOAD_MB: "${MAX_PAYLOAD_MB:-10}"
+      FEATURE_FLAGS: "${FEATURE_FLAGS}"
 
     # Persistencia solo para logs.
     volumes:
-      - centinel-logs:/app/logs
+      # Persistencia estricta solo para logs locales del contenedor.
+      - ./logs:/app/logs
 
     # Exponer el puerto del servicio.
     ports:
@@ -130,10 +140,6 @@ services:
   #     - /var/run/docker.sock:/var/run/docker.sock
   #   networks:
   #     - centinel-internal
-
-volumes:
-  centinel-logs:
-    driver: local
 
 networks:
   centinel-internal:
