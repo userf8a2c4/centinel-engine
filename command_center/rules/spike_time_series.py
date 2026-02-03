@@ -35,20 +35,20 @@ def detect_spike_in_time_series(
     """
     # Implementación simple: suma de incrementos en ventana > 30% del total.
     # Simple implementation: sum of increments in window > 30% of total.
-    total = sum(values)
-    if total == 0:
+    total_value_sum = sum(values)
+    if total_value_sum == 0:
         return False
 
-    spike_sum = 0
-    for ts, val in zip(timestamps, values):
-        hour = int(ts.split(":")[0])
+    spike_window_value_sum = 0
+    for timestamp_value, value_increment in zip(timestamps, values):
+        hour_of_day = int(timestamp_value.split(":")[0])
         if (
             int(suspicious_window_start.split(":")[0])
-            <= hour
+            <= hour_of_day
             < int(suspicious_window_end.split(":")[0])
         ):
-            spike_sum += val
+            spike_window_value_sum += value_increment
 
     # Umbral temporal 30%.
     # Temporary threshold 30%.
-    return (spike_sum / total) > 0.30
+    return (spike_window_value_sum / total_value_sum) > 0.30

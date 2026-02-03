@@ -113,18 +113,25 @@ def apply_benford_law(votes_list: list[int]) -> dict:
     observed_counts = (
         pd.Series(digits).value_counts().reindex(range(1, 10), fill_value=0).sort_index()
     )
-    total = observed_counts.sum()
-    if total == 0:
+    total_observed_count = observed_counts.sum()
+    if total_observed_count == 0:
         return {
             "status": "OK",
             "p_value": 1.0,
             "detalle": "Total de votos igual a cero; Benford omitido.",
         }
     # Distribución Benford: P(d) = log10(1 + 1/d). / Benford distribution formula.
-    expected_prob = np.array([math.log10(1 + 1 / d) for d in range(1, 10)])
-    expected_counts = expected_prob * total
-    observed_freq = {str(k): float(v) for k, v in (observed_counts / total).items()}
-    expected_freq = {str(idx + 1): float(value) for idx, value in enumerate(expected_prob)}
+    expected_probabilities = np.array(
+        [math.log10(1 + 1 / digit_value) for digit_value in range(1, 10)]
+    )
+    expected_counts = expected_probabilities * total_observed_count
+    observed_freq = {
+        str(k): float(v) for k, v in (observed_counts / total_observed_count).items()
+    }
+    expected_freq = {
+        str(digit_index + 1): float(value)
+        for digit_index, value in enumerate(expected_probabilities)
+    }
 
     try:
         # Chi-cuadrado = Σ((O - E)^2 / E). / Chi-square = Σ((O - E)^2 / E).
@@ -142,7 +149,7 @@ def apply_benford_law(votes_list: list[int]) -> dict:
     detalle = (
         "Benford primer dígito: chi2="
         f"{chi_result.statistic:.2f}, p_value={p_value:.4f}, "
-        f"muestras={total}, umbral={p_threshold:.2f}."
+        f"muestras={total_observed_count}, umbral={p_threshold:.2f}."
     )
     if status == "ANOMALIA":
         logger.warning("Benford detectó anomalía: %s", detalle)
@@ -211,10 +218,12 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
             "detalle": "Columnas requeridas faltantes para distribución chi-cuadrado.",
         }
 
-    df = df_normalized[[group_col, votes_col]].copy()
-    df[votes_col] = pd.to_numeric(df[votes_col], errors="coerce").fillna(0)
-    df = df[df[votes_col] >= 0]
-    votes_list = df[votes_col].tolist()
+    grouped_votes_frame = df_normalized[[group_col, votes_col]].copy()
+    grouped_votes_frame[votes_col] = pd.to_numeric(
+        grouped_votes_frame[votes_col], errors="coerce"
+    ).fillna(0)
+    grouped_votes_frame = grouped_votes_frame[grouped_votes_frame[votes_col] >= 0]
+    votes_list = grouped_votes_frame[votes_col].tolist()
     if not votes_list or len(votes_list) < 10:
         return {
             "status": "INSUFICIENTE_DATOS",
@@ -223,7 +232,7 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
             "detalle": "No hay suficientes votos para análisis",
         }
 
-    observed_series = df.groupby(group_col)[votes_col].sum()
+    observed_series = grouped_votes_frame.groupby(group_col)[votes_col].sum()
     if observed_series.empty:
         return {
             "status": "OK",
@@ -308,11 +317,11 @@ if __name__ == "__main__":
     sample_votes = [120, 340, 560, 780, 910, 101, 230, 456, 789, 905]
     print(apply_benford_law(sample_votes))
 
-    sample_df = pd.DataFrame(
+    sample_votes_frame = pd.DataFrame(
         {
             "departamento": ["Atlántida", "Atlántida", "Cortés", "Cortés"],
             "partido": ["PARTIDO A", "PARTIDO B", "PARTIDO A", "PARTIDO B"],
             "votos": [1200, 800, 2400, 1600],
         }
     )
-    print(check_distribution_chi2(sample_df))
+    print(check_distribution_chi2(sample_votes_frame))
