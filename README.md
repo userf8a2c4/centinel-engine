@@ -21,19 +21,15 @@ poetry run python scripts/run_pipeline.py --once
 make pipeline
 ```
 
-## Enlaces clave / Key links
-- **/docs/manual.md** — operación, límites legales, cadencia recomendada. / operations, legal boundaries, recommended cadence.
-- **/docs/methodology.md** — metodología de auditoría y reglas. / audit methodology and rules.
-- **/docs/architecture.md** — arquitectura técnica. / technical architecture.
-- **/docs/operating_principles.md** — principios de neutralidad y alcance. / neutrality and scope principles.
-- **/docs/ANCHOR_SETUP_GUIDE.md** — anclaje opcional en Arbitrum L2. / optional Arbitrum L2 anchoring.
-- **/docs/SECRETS_BACKUP.md** — respaldo y resguardo de secretos. / secrets backup.
-- **/command_center/** — fuente de verdad operativa. / single operational source of truth.
-- **/SECURITY.md** — seguridad y disclosure. / security and disclosure.
-- **/QUICKSTART.md** — guía ampliada. / extended quick start.
-- **/CONTRIBUTING.md** — contribución. / contributing.
-- **/ROADMAP.md** — roadmap técnico. / technical roadmap.
-- **/LICENSE** — licencia del proyecto. / project license.
+## Enlaces importantes / Documentación
+
+| Documentación | Operación y seguridad |
+| --- | --- |
+| [Índice de documentación](docs/README.md) | [Manual de operación](docs/manual.md) |
+| [Arquitectura](docs/architecture.md) | [Flujo operativo y cadencia](docs/OPERATIONAL-FLOW-AND-CADENCE.md) |
+| [Metodología](docs/methodology.md) | [Límites legales y operativos](docs/LEGAL-AND-OPERATIONAL-BOUNDARIES.md) |
+| [Principios operativos](docs/operating_principles.md) | [Seguridad](docs/security.md) |
+| [Reglas](docs/rules.md) | [Secrets/backup](docs/SECRETS_BACKUP.md) |
 
 <details>
 <summary><strong>Detalles operativos / Operational details</strong></summary>
