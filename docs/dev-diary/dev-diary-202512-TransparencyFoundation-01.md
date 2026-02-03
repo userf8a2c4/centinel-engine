@@ -1,3 +1,22 @@
+# Dev Diary - 202512 - TransparencyFoundation - 01
+
+**Fecha aproximada / Approximate date:** Diciembre 2025 (estimada) / December 2025 (estimated)  
+**Fase / Phase:** Transparencia base e infraestructura de verificación / Transparency foundations & verification infrastructure  
+**Versión interna / Internal version:** v0.0.3 (dev-v3)  
+**Rama / Branch:** dev-v3  
+**Autor / Author:** userf8a2c4
+
+**Resumen de avances / Summary of progress:**
+- Publicación de hashes y CIDs en blockchain; publicación de snapshots vía IPFS.  
+  Blockchain publishing of hashes/CIDs; IPFS-based snapshot distribution.
+- API pública para auditoría externa (FastAPI).  
+  Public API for external audits (FastAPI).
+- Visualizaciones avanzadas y normalización de alertas para reportes técnicos.  
+  Advanced visualizations and normalized alerts for technical reports.
+- Persistencia de metadatos on-chain e IPFS junto a cada snapshot.  
+  On-chain/IPFS metadata persisted alongside each snapshot.
+
+---
 # Version 0.0.3 - Dev-v3
 
 ## Overview

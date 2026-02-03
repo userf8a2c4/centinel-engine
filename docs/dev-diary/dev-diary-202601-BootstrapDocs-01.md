@@ -1,3 +1,20 @@
+# Dev Diary - 202601 - BootstrapDocs - 01
+
+**Fecha aproximada / Approximate date:** 22-ene-2026 / January 22, 2026  
+**Fase / Phase:** Inicio simplificado y documentación / Simplified bootstrap & documentation  
+**Versión interna / Internal version:** v0.0.41 (dev-v5)  
+**Rama / Branch:** dev-v5  
+**Autor / Author:** userf8a2c4
+
+**Resumen de avances / Summary of progress:**
+- Helper de bootstrap y Makefile para estandarizar el arranque.  
+  Bootstrap helper and Makefile to standardize startup.
+- Actualización de README, QUICKSTART y docs de scripts.  
+  Updates to README, QUICKSTART, and scripts documentation.
+- Manual operativo ajustado con notas de despliegue.  
+  Operational manual updated with deployment notes.
+
+---
 # [ES] Inicio simplificado dev-v5 – Bootstrap y documentación 2026
 
   /dev: Notas del parche: Versión: v0.0.41_-_dev-v5 (commit c5f6585)

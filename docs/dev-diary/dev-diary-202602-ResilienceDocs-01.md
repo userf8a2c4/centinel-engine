@@ -1,3 +1,20 @@
+# Dev Diary - 202602 - ResilienceDocs - 01
+
+**Fecha aproximada / Approximate date:** 03-feb-2026 / February 3, 2026  
+**Fase / Phase:** Documentación de resiliencia / Resilience documentation  
+**Versión interna / Internal version:** v0.0.43  
+**Rama / Branch:** main (dev-6)  
+**Autor / Author:** userf8a2c4
+
+**Resumen de avances / Summary of progress:**
+- Guía dedicada de resiliencia en `docs/resilience.md`.  
+  Dedicated resilience guide in `docs/resilience.md`.
+- README enlazado a la guía y sus secciones clave.  
+  README linked to the guide and key sections.
+- Referencias explícitas a `command_center/config.yaml`, `retry_config.yaml` y flujos de descarga.  
+  Explicit references to `command_center/config.yaml`, `retry_config.yaml`, and download flows.
+
+---
 # [ES] Reordenamiento de documentación de resiliencia – Circuit breaker y reintentos 2026
 
   /dev: Notas del parche: Versión: v0.0.43 (commit por definir)
