@@ -34,12 +34,12 @@ def test_check_checkpoint_age_stale(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_is_healthy_strict_failure_logs_reason(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     """Español: Función test_is_healthy_strict_failure_logs_reason del módulo tests/monitoring/test_strict_health.py.
 
     English: Function test_is_healthy_strict_failure_logs_reason defined in tests/monitoring/test_strict_health.py.
     """
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
     monkeypatch.setattr(strict_health, "_get_checkpoint_manager", lambda: (object(), None))
     monkeypatch.setattr(strict_health, "_build_s3_client", lambda: object())
     monkeypatch.setattr(

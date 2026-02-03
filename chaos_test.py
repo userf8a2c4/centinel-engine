@@ -380,12 +380,12 @@ def report_context(request):
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=[s.name for s in SCENARIOS])
 def test_chaos_auto_resume(
+    scenario: ChaosScenario, pipeline_runner: FakePipelineRunner, report_context
+) -> None:
     """Español: Función test_chaos_auto_resume del módulo chaos_test.py.
 
     English: Function test_chaos_auto_resume defined in chaos_test.py.
     """
-    scenario: ChaosScenario, pipeline_runner: FakePipelineRunner, report_context
-) -> None:
     runner = pipeline_runner
     runner.process_until(100)
     before_failure_processed = runner.state.processed

@@ -187,10 +187,6 @@ class RecoveryManager:
     """
 
     def __init__(
-        """Español: Función __init__ del módulo src/centinel/recovery.py.
-
-        English: Function __init__ defined in src/centinel/recovery.py.
-        """
         self,
         *,
         storage_path: Path,
@@ -201,6 +197,10 @@ class RecoveryManager:
         stale_threshold_minutes: int = 60,
         state_probe: Optional[StateProbe] = None,
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/recovery.py.
+
+        English: Function __init__ defined in src/centinel/recovery.py.
+        """
         self.storage_path = storage_path
         self.checkpoint_dir = storage_path / "checkpoints"
         self.logger = logger or logging.getLogger(__name__)
@@ -331,12 +331,12 @@ class RecoveryManager:
         return decision
 
     def _decide_from_age(
+        self, checkpoint: CheckpointData, path: Path, age_minutes: float
+    ) -> RecoveryDecision:
         """Español: Función _decide_from_age del módulo src/centinel/recovery.py.
 
         English: Function _decide_from_age defined in src/centinel/recovery.py.
         """
-        self, checkpoint: CheckpointData, path: Path, age_minutes: float
-    ) -> RecoveryDecision:
         if age_minutes <= self.recent_threshold_minutes:
             reason = "Checkpoint is recent; continuing from last acta."
             return RecoveryDecision(
@@ -394,12 +394,12 @@ class RecoveryManager:
         )
 
     def _log_state_differences(
+        self, checkpoint: CheckpointData, state: RecoveryState
+    ) -> None:
         """Español: Función _log_state_differences del módulo src/centinel/recovery.py.
 
         English: Function _log_state_differences defined in src/centinel/recovery.py.
         """
-        self, checkpoint: CheckpointData, state: RecoveryState
-    ) -> None:
         differences: dict[str, Any] = {}
         if state.last_acta_id and state.last_acta_id != checkpoint.acta_id:
             differences["acta_id"] = {
@@ -445,12 +445,12 @@ def _checkpoint_candidates(checkpoint_dir: Path) -> Iterable[Path]:
 
 
 def _load_first_valid(
+    candidates: Iterable[Path],
+) -> tuple[Optional[CheckpointData], Optional[Path], list[str], Optional[Exception]]:
     """Español: Función _load_first_valid del módulo src/centinel/recovery.py.
 
     English: Function _load_first_valid defined in src/centinel/recovery.py.
     """
-    candidates: Iterable[Path],
-) -> tuple[Optional[CheckpointData], Optional[Path], list[str], Optional[Exception]]:
     warnings: list[str] = []
     last_error: Optional[Exception] = None
     for path in candidates:

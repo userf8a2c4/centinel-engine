@@ -177,12 +177,12 @@ def _set_pipeline_paths(monkeypatch, base_path: Path) -> None:
 
 
 def test_safe_run_pipeline_saves_checkpoint_on_connection_error(
+    monkeypatch, tmp_path
+) -> None:
     """Español: Función test_safe_run_pipeline_saves_checkpoint_on_connection_error del módulo tests/test_failure_injection.py.
 
     English: Function test_safe_run_pipeline_saves_checkpoint_on_connection_error defined in tests/test_failure_injection.py.
     """
-    monkeypatch, tmp_path
-) -> None:
     _set_pipeline_paths(monkeypatch, tmp_path)
 
     def _raise_connection_error(_config):

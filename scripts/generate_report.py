@@ -318,15 +318,15 @@ class NumberedCanvas(reportlab_canvas.Canvas):
 
 
 def create_pdf_charts(
-    """Español: Función create_pdf_charts del módulo scripts/generate_report.py.
-
-    English: Function create_pdf_charts defined in scripts/generate_report.py.
-    """
     benford_df: pd.DataFrame,
     votes_df: pd.DataFrame,
     heatmap_df: pd.DataFrame,
     anomalies_df: pd.DataFrame,
 ) -> dict:
+    """Español: Función create_pdf_charts del módulo scripts/generate_report.py.
+
+    English: Function create_pdf_charts defined in scripts/generate_report.py.
+    """
     if plt is None:
         return {}
 
