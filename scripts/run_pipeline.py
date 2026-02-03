@@ -31,7 +31,6 @@ ANCHOR_LOG_DIR = Path("logs") / "anchors"
 STATE_PATH = DATA_DIR / "pipeline_state.json"
 PIPELINE_CHECKPOINT_PATH = TEMP_DIR / "pipeline_checkpoint.json"
 FAILURE_CHECKPOINT_PATH = TEMP_DIR / "checkpoint.json"
-HEARTBEAT_PATH = DATA_DIR / "heartbeat.json"
 RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
 RESILIENCE_STAGE_ORDER = [
     "start",
@@ -57,23 +56,6 @@ logger = configure_logging("centinel.pipeline", log_file="logs/centinel.log")
 def utcnow():
     """/** Obtiene hora UTC actual. / Get current UTC time. **"""
     return datetime.now(timezone.utc)
-
-
-def update_heartbeat(status: str = "ok", details: dict[str, Any] | None = None) -> None:
-    """/** Actualiza archivo heartbeat para monitoreo. / Update heartbeat file for monitoring. **/"""
-    payload = {
-        "updated_at": utcnow().isoformat(),
-        "status": status,
-        "pid": os.getpid(),
-    }
-    if details:
-        payload["details"] = details
-    try:
-        HEARTBEAT_PATH.write_text(
-            json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-    except OSError as exc:
-        logger.warning("heartbeat_write_failed path=%s error=%s", HEARTBEAT_PATH, exc)
 
 
 def load_state():
@@ -1077,21 +1059,7 @@ def main():
         print("[!] Ejecución detenida por switch maestro (OFF)")
         return
 
-    if args.once:
-        update_heartbeat(status="manual_once")
-        safe_run_pipeline(config)
-        update_heartbeat(status="manual_once_completed")
-        return
-
-    if args.run_now:
-        update_heartbeat(status="manual_run_now")
-        safe_run_pipeline(config)
-
-    scheduler = BlockingScheduler(timezone="UTC")
-    scheduler.add_job(update_heartbeat, "interval", minutes=1)
-    scheduler.add_job(lambda: safe_run_pipeline(config), CronTrigger(minute=0))
-    print("[+] Scheduler activo: ejecución horaria en minuto 00 UTC")
-    scheduler.start()
+    run_polling_loop(config, run_once=args.once, run_now=args.run_now)
 
 
 if __name__ == "__main__":

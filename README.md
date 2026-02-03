@@ -36,45 +36,47 @@ poetry run python scripts/run_pipeline.py --once
 make pipeline
 ```
 
-## Watchdog & Self-Healing
+## Proxy Rotation & IP Rotation
 
-El watchdog agrega auto-curación básica cuando el pipeline se atasca, deja de generar snapshots o el heartbeat no se actualiza. Corre en un proceso separado (contenedor `centinel-watchdog`) y revisa cada 3–5 minutos:
+Centinel puede operar en tres modos configurables para reducir bloqueos por IP:
 
-- Último snapshot JSON válido en `data/`.
-- Crecimiento de logs (`logs/centinel.log`).
-- Locks “atascados” en `data/temp/`.
-- Heartbeat actualizado cada minuto (`data/heartbeat.json`, generado por `scripts/run_pipeline.py`).
+- **direct**: sin proxy.
+- **proxy_list**: usa una lista fija de proxies en orden.
+- **proxy_rotator**: rota proxies en round-robin o random.
 
-### Configuración
+### Configuración vía `proxies.yaml`
 
-Edita `watchdog.yaml` según tu entorno:
+El archivo `proxies.yaml` (incluido como ejemplo en el repo) soporta:
 
-- `max_inactivity_minutes`: minutos máximos sin snapshots nuevos.
-- `heartbeat_timeout`: tolerancia máxima del heartbeat.
-- `aggressive_restart`: `false` (modo simple) o `true` (reinicio automático).
-- `alert_urls`: lista de webhooks (Telegram/Slack/email relay).
+```yaml
+mode: proxy_rotator
+rotation_strategy: round_robin
+rotation_every_n: 1
+proxy_timeout_seconds: 15
+test_url: https://httpbin.org/ip
+proxies:
+  - "http://user:pass@ip:port"
+  - "socks5://ip:port"
+```
 
-El modo agresivo requiere `restart: always` en `docker-compose.yml` y el socket de Docker montado.
+### Configuración vía `.env`
 
-### Cómo probar el watchdog (simular atasco)
+También puedes configurar proxies en `.env`:
 
-1. **Simular lock atascado**:
-   ```bash
-   touch data/temp/pipeline.lock
-   # esperar > lock_timeout_minutes para disparar alerta
-   ```
-2. **Simular heartbeat detenido**:
-   ```bash
-   mv data/heartbeat.json data/heartbeat.json.bak
-   # esperar > heartbeat_timeout minutos
-   ```
-3. **Simular falta de snapshots**:
-   ```bash
-   mv data/*.json data/temp/  # mueve snapshots a un temp
-   # esperar > max_inactivity_minutes
-   ```
+```bash
+PROXY_MODE=proxy_rotator
+PROXY_ROTATION_STRATEGY=round_robin
+PROXY_ROTATION_EVERY_N=1
+PROXY_TIMEOUT_SECONDS=15
+PROXY_TEST_URL=https://httpbin.org/ip
+PROXY_LIST=http://user:pass@ip:port,socks5://ip:port
+```
 
-Cuando el watchdog detecta la condición por más de `failure_grace_minutes`, registra un evento crítico, envía alerta y, si está en modo agresivo, intenta reiniciar el contenedor automáticamente.
+### Buenas prácticas para no exponer credenciales
+
+- **No guardes credenciales reales en el repositorio**: usa `.env` o un archivo local (por ejemplo, `proxies.local.yaml`) y configura `PROXY_CONFIG_PATH`.
+- Agrega tus archivos locales a `.gitignore` (ej.: `proxies.local.yaml`) para evitar filtraciones.
+- Usa cuentas/credenciales rotativas cuando sea posible y revoca las expuestas.
 
 ## Enlaces importantes / Documentación
 
