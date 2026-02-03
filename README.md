@@ -5,6 +5,7 @@
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue)](https://www.python.org/)
 [![Último commit](https://img.shields.io/github/last-commit/userf8a2c4/centinel-engine/dev-6)](https://github.com/userf8a2c4/centinel-engine/commits/dev-6)
+[![CI](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci-lint-test.yml/badge.svg)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci-lint-test.yml)
 
 ## Descripción breve
 
