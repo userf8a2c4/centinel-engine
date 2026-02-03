@@ -362,6 +362,40 @@ def _pick_latest_snapshot(snapshot_files: list[dict[str, Any]]) -> dict[str, Any
     return latest
 
 
+def _resolve_latest_snapshot_info(
+    snapshot_files: list[dict[str, Any]],
+    default_hash: str,
+) -> tuple[dict[str, Any], dt.datetime | None, str, str]:
+    """Español: Resuelve el último snapshot y sus metadatos principales.
+
+    English: Resolve latest snapshot and core metadata.
+    """
+    latest_snapshot: dict[str, Any] = {}
+    latest_timestamp = None
+    last_batch_label = "N/D"
+    hash_accumulator = default_hash
+    if not snapshot_files:
+        return latest_snapshot, latest_timestamp, last_batch_label, hash_accumulator
+    latest_snapshot = _pick_latest_snapshot(snapshot_files)
+    content = latest_snapshot.get("content", {}) if latest_snapshot else {}
+    latest_timestamp = _parse_timestamp(latest_snapshot.get("timestamp"))
+    if latest_timestamp is None and latest_snapshot.get("path"):
+        try:
+            latest_timestamp = dt.datetime.fromtimestamp(
+                latest_snapshot["path"].stat().st_mtime, tz=dt.timezone.utc
+            )
+        except OSError:
+            latest_timestamp = None
+    last_batch_label = (
+        content.get("acta_id")
+        or content.get("batch_id")
+        or content.get("last_batch")
+        or (latest_snapshot.get("path").stem if latest_snapshot else "N/D")
+    )
+    hash_accumulator = latest_snapshot.get("hash") or default_hash
+    return latest_snapshot, latest_timestamp, last_batch_label, hash_accumulator
+
+
 def _count_failed_retries(log_path: Path) -> int:
     """Español: Función _count_failed_retries del módulo dashboard/streamlit_app.py.
 
@@ -376,6 +410,27 @@ def _count_failed_retries(log_path: Path) -> int:
         if "retry" not in lowered:
             continue
         if "error" not in lowered and "fail" not in lowered:
+            continue
+        timestamp = _parse_timestamp(line.split(" ", 1)[0])
+        if timestamp is None or timestamp >= cutoff:
+            count += 1
+    return count
+
+
+def _count_rate_limit_retries(log_path: Path) -> int:
+    """Español: Cuenta reintentos con rate-limit en el log.
+
+    English: Count rate-limit retries in log.
+    """
+    if not log_path.exists():
+        return 0
+    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
+    count = 0
+    for line in log_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        lowered = line.lower()
+        if "rate" not in lowered and "429" not in lowered:
+            continue
+        if "limit" not in lowered and "too many requests" not in lowered and "429" not in lowered:
             continue
         timestamp = _parse_timestamp(line.split(" ", 1)[0])
         if timestamp is None or timestamp >= cutoff:
@@ -438,13 +493,25 @@ def _build_checkpoint_manager() -> "CheckpointManager | None":
 
 
 @st.cache_data(show_spinner=False)
-def load_snapshot_files(base_dir: Path) -> list[dict[str, Any]]:
+def load_snapshot_files(
+    base_dir: Path,
+    pattern: str = "snapshot_*.json",
+    explicit_files: list[str] | None = None,
+) -> list[dict[str, Any]]:
     """Español: Función load_snapshot_files del módulo dashboard/streamlit_app.py.
 
     English: Function load_snapshot_files defined in dashboard/streamlit_app.py.
     """
+    if explicit_files:
+        paths = [base_dir / name for name in explicit_files]
+    else:
+        paths = sorted(base_dir.glob(pattern))
+        if not paths and pattern != "*.json":
+            paths = sorted(base_dir.glob("*.json"))
     snapshots = []
-    for path in sorted(base_dir.glob("snapshot_*.json")):
+    for path in paths:
+        if not path.exists():
+            continue
         content = path.read_text(encoding="utf-8")
         payload = json.loads(content)
         timestamp = payload.get("timestamp")
@@ -1503,16 +1570,66 @@ command_center_cfg = configs.get("command_center", {})
 anchor = load_blockchain_anchor()
 
 snapshot_source = st.sidebar.selectbox(
-    "Fuente de snapshots",
-    ["data", "data/2025"],
+    "Fuente de snapshots (Snapshot source)",
+    [
+        "Datos reales (Real data)",
+        "Mock normal (Normal mock)",
+        "Mock anomalía (Anomaly mock)",
+        "Mock reversión (Reversal mock)",
+    ],
     index=0,
 )
-snapshot_base_dir = Path(snapshot_source)
-snapshot_files = load_snapshot_files(snapshot_base_dir)
+
+snapshot_sources = {
+    "Datos reales (Real data)": {
+        "base_dir": Path("data"),
+        "pattern": "snapshot_*.json",
+        "explicit_files": None,
+    },
+    "Mock normal (Normal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_normal.json"],
+    },
+    "Mock anomalía (Anomaly mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_anomaly.json"],
+    },
+    "Mock reversión (Reversal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_reversal.json"],
+    },
+}
+source_config = snapshot_sources[snapshot_source]
+snapshot_base_dir = source_config["base_dir"]
+snapshot_files = load_snapshot_files(
+    snapshot_base_dir,
+    pattern=source_config["pattern"],
+    explicit_files=source_config["explicit_files"],
+)
 progress = st.progress(0, text="Cargando snapshots inmutables…")
 for step in range(1, 5):
     progress.progress(step * 25, text=f"Sincronizando evidencia {step}/4")
 progress.empty()
+
+latest_snapshot = {}
+latest_timestamp = None
+last_batch_label = "N/D"
+hash_accumulator = anchor.root_hash
+try:
+    (
+        latest_snapshot,
+        latest_timestamp,
+        last_batch_label,
+        hash_accumulator,
+    ) = _resolve_latest_snapshot_info(snapshot_files, anchor.root_hash)
+except Exception as exc:  # noqa: BLE001
+    st.warning(
+        "No se pudo determinar el último snapshot (Unable to resolve latest snapshot): "
+        f"{exc}"
+    )
 
 snapshots_df = build_snapshot_metrics(snapshot_files)
 anomalies_df = build_anomalies(snapshots_df)
@@ -1522,10 +1639,49 @@ rules_df = build_rules_table(command_center_cfg)
 
 rules_engine_output = run_rules_engine(snapshots_df, command_center_cfg)
 
+failed_retries = 0
+rate_limit_failures = 0
+try:
+    log_path = Path(
+        command_center_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log")
+    )
+    failed_retries = _count_failed_retries(log_path)
+    rate_limit_failures = _count_rate_limit_retries(log_path)
+except Exception as exc:  # noqa: BLE001
+    st.warning(
+        "No se pudo leer el conteo de reintentos (Unable to read retry count): "
+        f"{exc}"
+    )
+
+time_since_last = (
+    dt.datetime.now(dt.timezone.utc) - latest_timestamp if latest_timestamp else None
+)
+refresh_interval = st.session_state.get("refresh_interval_system", 45)
+
+alerts_container = st.container()
+with alerts_container:
+    if rate_limit_failures > 0:
+        st.error(
+            "Polling fallido por rate-limit del CNE (CNE rate-limit polling failure) · "
+            f"Intentos: {rate_limit_failures} (Attempts: {rate_limit_failures})"
+        )
+    if failed_retries > 0:
+        st.warning(
+            "Conexión perdida – reintentando en "
+            f"{refresh_interval} segundos (Connection lost – retrying in "
+            f"{refresh_interval} seconds)."
+        )
+    if latest_timestamp is None or (
+        time_since_last and time_since_last > dt.timedelta(minutes=45)
+    ):
+        st.warning(
+            "No se encontraron snapshots recientes (No recent snapshots found)."
+        )
+
 if snapshots_df.empty:
     st.warning(
-        f"No se encontraron snapshots en {snapshot_base_dir.as_posix()}/. "
-        "El panel está en modo demo."
+        f"No se encontraron snapshots en {snapshot_base_dir.as_posix()}/ "
+        "(No snapshots found). El panel está en modo demo (Dashboard is in demo mode)."
     )
 
 css = """
@@ -2291,28 +2447,6 @@ with tabs[5]:
                 key="refresh_interval_system",
             )
 
-        latest_snapshot = {}
-        latest_timestamp = None
-        last_batch_label = "N/D"
-        hash_accumulator = anchor.root_hash
-        try:
-            latest_snapshot = _pick_latest_snapshot(snapshot_files)
-            content = latest_snapshot.get("content", {}) if latest_snapshot else {}
-            latest_timestamp = _parse_timestamp(latest_snapshot.get("timestamp"))
-            if latest_timestamp is None and latest_snapshot.get("path"):
-                latest_timestamp = dt.datetime.fromtimestamp(
-                    latest_snapshot["path"].stat().st_mtime, tz=dt.timezone.utc
-                )
-            last_batch_label = (
-                content.get("acta_id")
-                or content.get("batch_id")
-                or content.get("last_batch")
-                or (latest_snapshot.get("path").stem if latest_snapshot else "N/D")
-            )
-            hash_accumulator = latest_snapshot.get("hash") or anchor.root_hash
-        except Exception as exc:  # noqa: BLE001
-            st.warning(f"No se pudo cargar el último checkpoint local: {exc}")
-
         time_since_last = (
             dt.datetime.now(dt.timezone.utc) - latest_timestamp
             if latest_timestamp
@@ -2344,15 +2478,6 @@ with tabs[5]:
             except Exception as exc:  # noqa: BLE001
                 health_ok = False
                 health_message = f"healthcheck_error: {exc}"
-
-        failed_retries = 0
-        try:
-            log_path = Path(
-                command_center_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log")
-            )
-            failed_retries = _count_failed_retries(log_path)
-        except Exception as exc:  # noqa: BLE001
-            st.warning(f"No se pudo leer el conteo de reintentos: {exc}")
 
         bucket_status = {}
         try:
