@@ -35,7 +35,7 @@ class SensitiveLogFilter(logging.Filter):
 
 
 def setup_logging() -> None:
-    """/** Configura el logging global desde config/config.yaml. / Sets up global logging from config/config.yaml. **/"""
+    """/** Configura el logging global desde command_center/config.yaml. / Sets up global logging from command_center/config.yaml. **/"""
     try:
         config = load_config()
         log_config = config.get("logging", {})

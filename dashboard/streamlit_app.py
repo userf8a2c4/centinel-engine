@@ -180,11 +180,11 @@ def load_yaml_config(path: Path) -> dict:
 
 
 def load_configs() -> dict[str, dict]:
+    """/** Carga configuración central desde command_center. / Load central configuration from command_center. **/"""
     command_center_config = Path("command_center") / "config.yaml"
     if not command_center_config.exists():
         command_center_config = Path("command_center") / "config.yaml.example"
     return {
-        "core": load_yaml_config(Path("config") / "config.yaml"),
         "command_center": load_yaml_config(command_center_config),
     }
 
@@ -1321,7 +1321,6 @@ st.set_page_config(
 )
 
 configs = load_configs()
-core_cfg = configs.get("core", {})
 command_center_cfg = configs.get("command_center", {})
 
 anchor = load_blockchain_anchor()
@@ -2171,7 +2170,9 @@ with tabs[5]:
 
         failed_retries = 0
         try:
-            log_path = Path(core_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log"))
+            log_path = Path(
+                command_center_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log")
+            )
             failed_retries = _count_failed_retries(log_path)
         except Exception as exc:  # noqa: BLE001
             st.warning(f"No se pudo leer el conteo de reintentos: {exc}")

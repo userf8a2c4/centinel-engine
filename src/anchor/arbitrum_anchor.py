@@ -120,12 +120,12 @@ def _build_merkle_root(hashes: List[str]) -> str:
 
 
 def _load_arbitrum_settings() -> dict[str, Any]:
-    """Carga la configuración de Arbitrum desde config/config.yaml.
+    """Carga la configuración de Arbitrum desde command_center/config.yaml.
 
     :return: Diccionario con configuración de Arbitrum.
 
     English:
-        Loads Arbitrum configuration from config/config.yaml.
+        Loads Arbitrum configuration from command_center/config.yaml.
 
     :return: Dictionary with Arbitrum configuration.
     """
@@ -252,7 +252,9 @@ def anchor_root(root_hash: str) -> Dict[str, Any]:
     contract_address = settings.get("contract_address")
 
     if not rpc_url or not contract_address:
-        raise ValueError("Configuración incompleta de Arbitrum en config/config.yaml.")
+        raise ValueError(
+            "Configuración incompleta de Arbitrum en command_center/config.yaml."
+        )
     if not private_key:
         raise ValueError("Missing private key for Arbitrum anchoring.")
 
@@ -308,7 +310,9 @@ def anchor_batch(hashes: List[str]) -> Dict[str, Any]:
     contract_address = settings.get("contract_address")
 
     if not rpc_url or not private_key or not contract_address:
-        raise ValueError("Configuración incompleta de Arbitrum en config/config.yaml.")
+        raise ValueError(
+            "Configuración incompleta de Arbitrum en command_center/config.yaml."
+        )
 
     batch_id = uuid4().hex
     timestamp = datetime.now(timezone.utc).isoformat()
