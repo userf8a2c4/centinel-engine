@@ -29,7 +29,7 @@ make pipeline
 | [Arquitectura](docs/architecture.md) | [Flujo operativo y cadencia](docs/OPERATIONAL-FLOW-AND-CADENCE.md) |
 | [Metodología](docs/methodology.md) | [Límites legales y operativos](docs/LEGAL-AND-OPERATIONAL-BOUNDARIES.md) |
 | [Principios operativos](docs/operating_principles.md) | [Seguridad](docs/security.md) |
-| [Reglas](docs/rules.md) | [Secrets/backup](docs/SECRETS_BACKUP.md) |
+| [Reglas](docs/rules.md) | [Secretos y respaldos](docs/SECRETS_BACKUP.md) |
 
 <details>
 <summary><strong>Detalles operativos / Operational details</strong></summary>
