@@ -1,19 +1,19 @@
-# C.E.N.T.I.N.E.L.
-**Centinela Electrónico Neutral Transparente Íntegro Nacional Electoral Libre**
-**Electronic Neutral Transparent Integral National Electoral Sentinel**
+# C.E.N.T.I.N.E.L. — auditoría cívica de datos electorales públicos
 
-C.E.N.T.I.N.E.L. es un sistema técnico independiente para observar y auditar datos electorales públicos en Honduras, con evidencia reproducible y trazable.
-C.E.N.T.I.N.E.L. is an independent technical system to observe and audit public electoral data in Honduras, producing reproducible, traceable evidence.
-Opera de forma cívica, defensiva y no intrusiva, sin sustituir a autoridades ni interpretar resultados.
-It operates in a civic, defensive, non-intrusive manner, without replacing authorities or interpreting outcomes.
+## Descripción breve
+C.E.N.T.I.N.E.L. es un sistema técnico independiente y open-source para observar y auditar datos electorales **públicos** en Honduras. Genera evidencia verificable (hashes, diffs, snapshots, metadatos) sin interpretar resultados ni sustituir a ninguna autoridad. Opera de forma cívica, defensiva y no intrusiva.
 
-**Estado actual / Current status:** **AUDIT ACTIVE**
+## Características principales
+- Evidencia técnica reproducible con hashes y snapshots encadenados.
+- Trazabilidad histórica para comparar cambios en datos públicos.
+- Reglas de análisis configurables para detectar eventos anómalos.
+- Operación neutral, cívica y no intrusiva.
+- Configuración centralizada en [`command_center/`](command_center/).
 
-![Licencia AGPL/MIT](https://img.shields.io/badge/license-AGPL%2FMIT-blue)
-![Python](https://img.shields.io/badge/python-3.11%2B-informational)
-![Último commit / Last commit](https://img.shields.io/badge/last%20commit-recent-brightgreen)
+## Estado actual del proyecto
+**DEV**.
 
-## Quick Start (4 comandos / 4 commands)
+## Quick Start (4–6 comandos)
 ```bash
 poetry install
 poetry run python scripts/bootstrap.py
