@@ -37,6 +37,10 @@ class CheckpointCorruptError(RecoveryError):
     """
 
     def __init__(self, message: str, *, partial: bool = False) -> None:
+        """Español: Función __init__ del módulo src/centinel/recovery.py.
+
+        English: Function __init__ defined in src/centinel/recovery.py.
+        """
         super().__init__(message)
         self.partial = partial
 
@@ -193,6 +197,10 @@ class RecoveryManager:
         stale_threshold_minutes: int = 60,
         state_probe: Optional[StateProbe] = None,
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/recovery.py.
+
+        English: Function __init__ defined in src/centinel/recovery.py.
+        """
         self.storage_path = storage_path
         self.checkpoint_dir = storage_path / "checkpoints"
         self.logger = logger or logging.getLogger(__name__)
@@ -325,6 +333,10 @@ class RecoveryManager:
     def _decide_from_age(
         self, checkpoint: CheckpointData, path: Path, age_minutes: float
     ) -> RecoveryDecision:
+        """Español: Función _decide_from_age del módulo src/centinel/recovery.py.
+
+        English: Function _decide_from_age defined in src/centinel/recovery.py.
+        """
         if age_minutes <= self.recent_threshold_minutes:
             reason = "Checkpoint is recent; continuing from last acta."
             return RecoveryDecision(
@@ -384,6 +396,10 @@ class RecoveryManager:
     def _log_state_differences(
         self, checkpoint: CheckpointData, state: RecoveryState
     ) -> None:
+        """Español: Función _log_state_differences del módulo src/centinel/recovery.py.
+
+        English: Function _log_state_differences defined in src/centinel/recovery.py.
+        """
         differences: dict[str, Any] = {}
         if state.last_acta_id and state.last_acta_id != checkpoint.acta_id:
             differences["acta_id"] = {
@@ -411,6 +427,10 @@ class RecoveryManager:
 
 
 def _checkpoint_candidates(checkpoint_dir: Path) -> Iterable[Path]:
+    """Español: Función _checkpoint_candidates del módulo src/centinel/recovery.py.
+
+    English: Function _checkpoint_candidates defined in src/centinel/recovery.py.
+    """
     if not checkpoint_dir.exists():
         return []
     candidates = set()
@@ -427,6 +447,10 @@ def _checkpoint_candidates(checkpoint_dir: Path) -> Iterable[Path]:
 def _load_first_valid(
     candidates: Iterable[Path],
 ) -> tuple[Optional[CheckpointData], Optional[Path], list[str], Optional[Exception]]:
+    """Español: Función _load_first_valid del módulo src/centinel/recovery.py.
+
+    English: Function _load_first_valid defined in src/centinel/recovery.py.
+    """
     warnings: list[str] = []
     last_error: Optional[Exception] = None
     for path in candidates:
@@ -441,6 +465,10 @@ def _load_first_valid(
 
 
 def _load_checkpoint(path: Path) -> tuple[CheckpointData, list[str]]:
+    """Español: Función _load_checkpoint del módulo src/centinel/recovery.py.
+
+    English: Function _load_checkpoint defined in src/centinel/recovery.py.
+    """
     try:
         raw = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -473,6 +501,10 @@ def _load_checkpoint(path: Path) -> tuple[CheckpointData, list[str]]:
 
 
 def _parse_timestamp(value: Any) -> datetime:
+    """Español: Función _parse_timestamp del módulo src/centinel/recovery.py.
+
+    English: Function _parse_timestamp defined in src/centinel/recovery.py.
+    """
     if isinstance(value, datetime):
         return value.astimezone(timezone.utc)
     if not isinstance(value, str):
@@ -485,11 +517,19 @@ def _parse_timestamp(value: Any) -> datetime:
 
 
 def _age_minutes(timestamp: datetime) -> float:
+    """Español: Función _age_minutes del módulo src/centinel/recovery.py.
+
+    English: Function _age_minutes defined in src/centinel/recovery.py.
+    """
     now = datetime.now(timezone.utc)
     return (now - timestamp).total_seconds() / 60.0
 
 
 def _checksum_payload(payload: Mapping[str, Any]) -> str:
+    """Español: Función _checksum_payload del módulo src/centinel/recovery.py.
+
+    English: Function _checksum_payload defined in src/centinel/recovery.py.
+    """
     payload_bytes = json.dumps(
         payload,
         ensure_ascii=False,

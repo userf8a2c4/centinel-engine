@@ -89,6 +89,10 @@ class PresidentialActa(BaseModel):
         return values
 
     class Config:
+        """Español: Clase Config del módulo src/sentinel/core/normalize.py.
+
+        English: Config class defined in src/sentinel/core/normalize.py.
+        """
         extra = "forbid"
 
 

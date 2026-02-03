@@ -7,6 +7,10 @@ from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_js
 
 
 def test_normalization_is_deterministic():
+    """Español: Función test_normalization_is_deterministic del módulo tests/test_normalize.py.
+
+    English: Function test_normalization_is_deterministic defined in tests/test_normalize.py.
+    """
     raw = {
         "cargo": "presidencial",
         "departamento": "Francisco Morazán",
@@ -34,6 +38,10 @@ def test_normalization_is_deterministic():
 
 
 def test_normalization_parses_nested_totals_and_candidates():
+    """Español: Función test_normalization_parses_nested_totals_and_candidates del módulo tests/test_normalize.py.
+
+    English: Function test_normalization_parses_nested_totals_and_candidates defined in tests/test_normalize.py.
+    """
     raw = {
         "cargo": "presidencial",
         "departamento": "Atlántida",

@@ -27,11 +27,19 @@ class PipelineCursor:
     batch_id: Optional[str] = None
 
     def reset(self) -> None:
+        """Español: Función reset del módulo src/centinel/pipeline.py.
+
+        English: Function reset defined in src/centinel/pipeline.py.
+        """
         self.acta_id = None
         self.offset = 0
         self.batch_id = None
 
     def reprocess_last_batch(self) -> None:
+        """Español: Función reprocess_last_batch del módulo src/centinel/pipeline.py.
+
+        English: Function reprocess_last_batch defined in src/centinel/pipeline.py.
+        """
         self.offset = 0
 
 

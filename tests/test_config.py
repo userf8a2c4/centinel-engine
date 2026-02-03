@@ -11,6 +11,10 @@ yaml = pytest.importorskip("yaml")
 
 
 def test_load_config_reads_yaml(tmp_path, monkeypatch):
+    """Español: Función test_load_config_reads_yaml del módulo tests/test_config.py.
+
+    English: Function test_load_config_reads_yaml defined in tests/test_config.py.
+    """
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
         yaml.safe_dump(
@@ -82,6 +86,10 @@ def test_load_config_reads_yaml(tmp_path, monkeypatch):
 
 
 def test_load_config_missing_key_raises(tmp_path, monkeypatch):
+    """Español: Función test_load_config_missing_key_raises del módulo tests/test_config.py.
+
+    English: Function test_load_config_missing_key_raises defined in tests/test_config.py.
+    """
     config_file = tmp_path / "config.yaml"
     config_file.write_text(yaml.safe_dump({"base_url": "https://example.test"}))
 

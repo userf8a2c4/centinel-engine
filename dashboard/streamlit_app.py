@@ -1,3 +1,8 @@
+"""Español: Módulo con utilidades y definiciones para dashboard/streamlit_app.py.
+
+English: Module utilities and definitions for dashboard/streamlit_app.py.
+"""
+
 import datetime as dt
 import hashlib
 import io
@@ -100,6 +105,10 @@ except ImportError:  # pragma: no cover - optional dependency for rules engine
 
 @dataclass(frozen=True)
 class BlockchainAnchor:
+    """Español: Clase BlockchainAnchor del módulo dashboard/streamlit_app.py.
+
+    English: BlockchainAnchor class defined in dashboard/streamlit_app.py.
+    """
     root_hash: str
     network: str
     tx_url: str
@@ -107,6 +116,10 @@ class BlockchainAnchor:
 
 
 def rerun_app() -> None:
+    """Español: Función rerun_app del módulo dashboard/streamlit_app.py.
+
+    English: Function rerun_app defined in dashboard/streamlit_app.py.
+    """
     if hasattr(st, "rerun"):
         st.rerun()
         return
@@ -115,6 +128,10 @@ def rerun_app() -> None:
 
 
 def _load_latest_anchor_record() -> dict | None:
+    """Español: Función _load_latest_anchor_record del módulo dashboard/streamlit_app.py.
+
+    English: Function _load_latest_anchor_record defined in dashboard/streamlit_app.py.
+    """
     anchor_dir = Path("logs") / "anchors"
     if not anchor_dir.exists():
         return None
@@ -140,6 +157,10 @@ def _load_latest_anchor_record() -> dict | None:
 
 
 def load_blockchain_anchor() -> BlockchainAnchor:
+    """Español: Función load_blockchain_anchor del módulo dashboard/streamlit_app.py.
+
+    English: Function load_blockchain_anchor defined in dashboard/streamlit_app.py.
+    """
     record = _load_latest_anchor_record()
     if record:
         tx_hash = record.get("tx_hash", "")
@@ -161,10 +182,18 @@ def load_blockchain_anchor() -> BlockchainAnchor:
 
 
 def compute_report_hash(payload: str) -> str:
+    """Español: Función compute_report_hash del módulo dashboard/streamlit_app.py.
+
+    English: Function compute_report_hash defined in dashboard/streamlit_app.py.
+    """
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def build_qr_bytes(payload: str) -> bytes | None:
+    """Español: Función build_qr_bytes del módulo dashboard/streamlit_app.py.
+
+    English: Function build_qr_bytes defined in dashboard/streamlit_app.py.
+    """
     if qrcode is None:
         return None
     buffer = io.BytesIO()
@@ -174,6 +203,10 @@ def build_qr_bytes(payload: str) -> bytes | None:
 
 
 def load_yaml_config(path: Path) -> dict:
+    """Español: Función load_yaml_config del módulo dashboard/streamlit_app.py.
+
+    English: Function load_yaml_config defined in dashboard/streamlit_app.py.
+    """
     if not path.exists() or yaml is None:
         return {}
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -190,6 +223,10 @@ def load_configs() -> dict[str, dict]:
 
 
 def _get_query_param(name: str) -> str | None:
+    """Español: Función _get_query_param del módulo dashboard/streamlit_app.py.
+
+    English: Function _get_query_param defined in dashboard/streamlit_app.py.
+    """
     if hasattr(st, "query_params"):
         value = st.query_params.get(name)
         if isinstance(value, list):
@@ -203,11 +240,19 @@ def _get_query_param(name: str) -> str | None:
 
 
 def _get_secret_value(name: str) -> str:
+    """Español: Función _get_secret_value del módulo dashboard/streamlit_app.py.
+
+    English: Function _get_secret_value defined in dashboard/streamlit_app.py.
+    """
     value = st.secrets.get(name)
     return str(value) if value is not None else ""
 
 
 def render_admin_gate() -> bool:
+    """Español: Función render_admin_gate del módulo dashboard/streamlit_app.py.
+
+    English: Function render_admin_gate defined in dashboard/streamlit_app.py.
+    """
     expected_user = _get_secret_value("admin_user") or _get_secret_value("admin_username")
     expected_password = _get_secret_value("admin_password")
     token = _get_secret_value("admin_token")
@@ -240,6 +285,10 @@ def render_admin_gate() -> bool:
 
 
 def _format_short_hash(value: str | None) -> str:
+    """Español: Función _format_short_hash del módulo dashboard/streamlit_app.py.
+
+    English: Function _format_short_hash defined in dashboard/streamlit_app.py.
+    """
     if not value:
         return "N/D"
     if len(value) <= 16:
@@ -248,6 +297,10 @@ def _format_short_hash(value: str | None) -> str:
 
 
 def _format_timedelta(delta: dt.timedelta | None) -> str:
+    """Español: Función _format_timedelta del módulo dashboard/streamlit_app.py.
+
+    English: Function _format_timedelta defined in dashboard/streamlit_app.py.
+    """
     if delta is None:
         return "Sin datos"
     total_seconds = int(delta.total_seconds())
@@ -263,6 +316,10 @@ def _format_timedelta(delta: dt.timedelta | None) -> str:
 
 
 def _parse_timestamp(value: Any) -> dt.datetime | None:
+    """Español: Función _parse_timestamp del módulo dashboard/streamlit_app.py.
+
+    English: Function _parse_timestamp defined in dashboard/streamlit_app.py.
+    """
     if value is None:
         return None
     if isinstance(value, dt.datetime):
@@ -279,10 +336,18 @@ def _parse_timestamp(value: Any) -> dt.datetime | None:
 
 
 def _pick_latest_snapshot(snapshot_files: list[dict[str, Any]]) -> dict[str, Any]:
+    """Español: Función _pick_latest_snapshot del módulo dashboard/streamlit_app.py.
+
+    English: Function _pick_latest_snapshot defined in dashboard/streamlit_app.py.
+    """
     if not snapshot_files:
         return {}
 
     def sort_key(entry: dict[str, Any]) -> dt.datetime:
+        """Español: Función sort_key del módulo dashboard/streamlit_app.py.
+
+        English: Function sort_key defined in dashboard/streamlit_app.py.
+        """
         timestamp = _parse_timestamp(entry.get("timestamp"))
         if timestamp:
             return timestamp
@@ -297,7 +362,45 @@ def _pick_latest_snapshot(snapshot_files: list[dict[str, Any]]) -> dict[str, Any
     return latest
 
 
+def _resolve_latest_snapshot_info(
+    snapshot_files: list[dict[str, Any]],
+    default_hash: str,
+) -> tuple[dict[str, Any], dt.datetime | None, str, str]:
+    """Español: Resuelve el último snapshot y sus metadatos principales.
+
+    English: Resolve latest snapshot and core metadata.
+    """
+    latest_snapshot: dict[str, Any] = {}
+    latest_timestamp = None
+    last_batch_label = "N/D"
+    hash_accumulator = default_hash
+    if not snapshot_files:
+        return latest_snapshot, latest_timestamp, last_batch_label, hash_accumulator
+    latest_snapshot = _pick_latest_snapshot(snapshot_files)
+    content = latest_snapshot.get("content", {}) if latest_snapshot else {}
+    latest_timestamp = _parse_timestamp(latest_snapshot.get("timestamp"))
+    if latest_timestamp is None and latest_snapshot.get("path"):
+        try:
+            latest_timestamp = dt.datetime.fromtimestamp(
+                latest_snapshot["path"].stat().st_mtime, tz=dt.timezone.utc
+            )
+        except OSError:
+            latest_timestamp = None
+    last_batch_label = (
+        content.get("acta_id")
+        or content.get("batch_id")
+        or content.get("last_batch")
+        or (latest_snapshot.get("path").stem if latest_snapshot else "N/D")
+    )
+    hash_accumulator = latest_snapshot.get("hash") or default_hash
+    return latest_snapshot, latest_timestamp, last_batch_label, hash_accumulator
+
+
 def _count_failed_retries(log_path: Path) -> int:
+    """Español: Función _count_failed_retries del módulo dashboard/streamlit_app.py.
+
+    English: Function _count_failed_retries defined in dashboard/streamlit_app.py.
+    """
     if not log_path.exists():
         return 0
     cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
@@ -314,7 +417,32 @@ def _count_failed_retries(log_path: Path) -> int:
     return count
 
 
+def _count_rate_limit_retries(log_path: Path) -> int:
+    """Español: Cuenta reintentos con rate-limit en el log.
+
+    English: Count rate-limit retries in log.
+    """
+    if not log_path.exists():
+        return 0
+    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
+    count = 0
+    for line in log_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        lowered = line.lower()
+        if "rate" not in lowered and "429" not in lowered:
+            continue
+        if "limit" not in lowered and "too many requests" not in lowered and "429" not in lowered:
+            continue
+        timestamp = _parse_timestamp(line.split(" ", 1)[0])
+        if timestamp is None or timestamp >= cutoff:
+            count += 1
+    return count
+
+
 def _check_bucket_connection() -> dict[str, Any]:
+    """Español: Función _check_bucket_connection del módulo dashboard/streamlit_app.py.
+
+    English: Function _check_bucket_connection defined in dashboard/streamlit_app.py.
+    """
     bucket = os.getenv("CHECKPOINT_BUCKET", "").strip()
     if not bucket:
         return {"status": "No configurado", "latency_ms": None, "message": ""}
@@ -331,6 +459,10 @@ def _check_bucket_connection() -> dict[str, Any]:
 
 
 def _detect_supervisor() -> str:
+    """Español: Función _detect_supervisor del módulo dashboard/streamlit_app.py.
+
+    English: Function _detect_supervisor defined in dashboard/streamlit_app.py.
+    """
     if os.path.exists("/.dockerenv"):
         return "Docker detectado"
     if os.path.exists("/run/systemd/system") or shutil.which("systemctl"):
@@ -339,6 +471,10 @@ def _detect_supervisor() -> str:
 
 
 def _build_checkpoint_manager() -> "CheckpointManager | None":
+    """Español: Función _build_checkpoint_manager del módulo dashboard/streamlit_app.py.
+
+    English: Function _build_checkpoint_manager defined in dashboard/streamlit_app.py.
+    """
     if not CHECKPOINTING_AVAILABLE:
         return None
     bucket = os.getenv("CHECKPOINT_BUCKET", "").strip()
@@ -357,9 +493,25 @@ def _build_checkpoint_manager() -> "CheckpointManager | None":
 
 
 @st.cache_data(show_spinner=False)
-def load_snapshot_files(base_dir: Path) -> list[dict[str, Any]]:
+def load_snapshot_files(
+    base_dir: Path,
+    pattern: str = "snapshot_*.json",
+    explicit_files: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Español: Función load_snapshot_files del módulo dashboard/streamlit_app.py.
+
+    English: Function load_snapshot_files defined in dashboard/streamlit_app.py.
+    """
+    if explicit_files:
+        paths = [base_dir / name for name in explicit_files]
+    else:
+        paths = sorted(base_dir.glob(pattern))
+        if not paths and pattern != "*.json":
+            paths = sorted(base_dir.glob("*.json"))
     snapshots = []
-    for path in sorted(base_dir.glob("snapshot_*.json")):
+    for path in paths:
+        if not path.exists():
+            continue
         content = path.read_text(encoding="utf-8")
         payload = json.loads(content)
         timestamp = payload.get("timestamp")
@@ -394,12 +546,20 @@ def load_snapshot_files(base_dir: Path) -> list[dict[str, Any]]:
 
 
 def _pick_from_seed(seed: int, options: list[str]) -> str:
+    """Español: Función _pick_from_seed del módulo dashboard/streamlit_app.py.
+
+    English: Function _pick_from_seed defined in dashboard/streamlit_app.py.
+    """
     rng = random.Random(seed)
     return options[rng.randint(0, len(options) - 1)]
 
 
 @st.cache_data(show_spinner=False)
 def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame:
+    """Español: Función build_snapshot_metrics del módulo dashboard/streamlit_app.py.
+
+    English: Function build_snapshot_metrics defined in dashboard/streamlit_app.py.
+    """
     if not snapshot_files:
         return pd.DataFrame(
             columns=[
@@ -483,6 +643,10 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
 
 
 def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
+    """Español: Función build_anomalies del módulo dashboard/streamlit_app.py.
+
+    English: Function build_anomalies defined in dashboard/streamlit_app.py.
+    """
     if df.empty:
         return pd.DataFrame(
             columns=[
@@ -528,6 +692,10 @@ def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_heatmap(anomalies: pd.DataFrame) -> pd.DataFrame:
+    """Español: Función build_heatmap del módulo dashboard/streamlit_app.py.
+
+    English: Function build_heatmap defined in dashboard/streamlit_app.py.
+    """
     if anomalies.empty:
         return pd.DataFrame()
     anomalies = anomalies.copy()
@@ -543,6 +711,10 @@ def build_heatmap(anomalies: pd.DataFrame) -> pd.DataFrame:
 def compute_topology_integrity(
     snapshots_df: pd.DataFrame, departments: list[str]
 ) -> dict[str, int | bool | list[dict[str, int | str]]]:
+    """Español: Función compute_topology_integrity del módulo dashboard/streamlit_app.py.
+
+    English: Function compute_topology_integrity defined in dashboard/streamlit_app.py.
+    """
     if snapshots_df.empty:
         return {
             "department_total": 0,
@@ -582,6 +754,10 @@ def compute_topology_integrity(
 def build_latency_matrix(
     snapshots_df: pd.DataFrame, departments: list[str], report_time: dt.datetime
 ) -> tuple[list[list[str]], list[dict[str, int | bool]]]:
+    """Español: Función build_latency_matrix del módulo dashboard/streamlit_app.py.
+
+    English: Function build_latency_matrix defined in dashboard/streamlit_app.py.
+    """
     if report_time.tzinfo is None:
         report_time = report_time.replace(tzinfo=dt.timezone.utc)
     df = snapshots_df.copy()
@@ -620,6 +796,10 @@ def build_latency_matrix(
 
 
 def compute_ingestion_velocity(snapshots_df: pd.DataFrame) -> float:
+    """Español: Función compute_ingestion_velocity del módulo dashboard/streamlit_app.py.
+
+    English: Function compute_ingestion_velocity defined in dashboard/streamlit_app.py.
+    """
     if snapshots_df.empty:
         return 0.0
     df = snapshots_df.copy()
@@ -640,6 +820,10 @@ def compute_ingestion_velocity(snapshots_df: pd.DataFrame) -> float:
 
 @st.cache_data(show_spinner=False)
 def build_benford_data() -> pd.DataFrame:
+    """Español: Función build_benford_data del módulo dashboard/streamlit_app.py.
+
+    English: Function build_benford_data defined in dashboard/streamlit_app.py.
+    """
     expected = [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6]
     observed = [29.3, 18.2, 12.1, 10.4, 7.2, 6.9, 5.5, 5.0, 5.4]
     digits = list(range(1, 10))
@@ -647,6 +831,10 @@ def build_benford_data() -> pd.DataFrame:
 
 
 def build_rules_table(command_center_cfg: dict) -> pd.DataFrame:
+    """Español: Función build_rules_table del módulo dashboard/streamlit_app.py.
+
+    English: Function build_rules_table defined in dashboard/streamlit_app.py.
+    """
     rules_cfg = command_center_cfg.get("rules", {}) if command_center_cfg else {}
     rows = []
     for key, settings in rules_cfg.items():
@@ -667,6 +855,10 @@ def build_rules_table(command_center_cfg: dict) -> pd.DataFrame:
 
 
 def build_rules_engine_payload(snapshot_row: pd.Series) -> dict:
+    """Español: Función build_rules_engine_payload del módulo dashboard/streamlit_app.py.
+
+    English: Function build_rules_engine_payload defined in dashboard/streamlit_app.py.
+    """
     return {
         "timestamp": snapshot_row["timestamp"],
         "departamento": snapshot_row["department"],
@@ -689,6 +881,10 @@ def build_rules_engine_payload(snapshot_row: pd.Series) -> dict:
 
 
 def run_rules_engine(snapshot_df: pd.DataFrame, config: dict) -> dict:
+    """Español: Función run_rules_engine del módulo dashboard/streamlit_app.py.
+
+    English: Function run_rules_engine defined in dashboard/streamlit_app.py.
+    """
     if RulesEngine is None or snapshot_df.empty:
         return {"alerts": [], "critical": []}
     engine = RulesEngine(config=config)
@@ -707,6 +903,10 @@ def create_pdf_charts(
     snapshots_df: pd.DataFrame,
     departments: list[str],
 ) -> dict:
+    """Español: Función create_pdf_charts del módulo dashboard/streamlit_app.py.
+
+    English: Function create_pdf_charts defined in dashboard/streamlit_app.py.
+    """
     if plt is None:
         return {}
 
@@ -890,6 +1090,10 @@ def create_pdf_charts(
 
 
 def _register_pdf_fonts() -> tuple[str, str]:
+    """Español: Función _register_pdf_fonts del módulo dashboard/streamlit_app.py.
+
+    English: Function _register_pdf_fonts defined in dashboard/streamlit_app.py.
+    """
     if not REPORTLAB_AVAILABLE:
         return "Helvetica", "Helvetica-Bold"
     font_candidates = [
@@ -919,17 +1123,33 @@ def _register_pdf_fonts() -> tuple[str, str]:
 
 if REPORTLAB_AVAILABLE:
     class NumberedCanvas(reportlab_canvas.Canvas):
+        """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
+
+        English: NumberedCanvas class defined in dashboard/streamlit_app.py.
+        """
         def __init__(self, *args, root_hash: str = "", **kwargs) -> None:
+            """Español: Función __init__ del módulo dashboard/streamlit_app.py.
+
+            English: Function __init__ defined in dashboard/streamlit_app.py.
+            """
             super().__init__(*args, **kwargs)
             self._saved_page_states = []
             self._root_hash = root_hash
             self._page_hashes: list[str] = []
 
         def showPage(self) -> None:
+            """Español: Función showPage del módulo dashboard/streamlit_app.py.
+
+            English: Function showPage defined in dashboard/streamlit_app.py.
+            """
             self._saved_page_states.append(dict(self.__dict__))
             self._startPage()
 
         def save(self) -> None:
+            """Español: Función save del módulo dashboard/streamlit_app.py.
+
+            English: Function save defined in dashboard/streamlit_app.py.
+            """
             total_pages = len(self._saved_page_states)
             prev_hash = hashlib.sha256(self._root_hash.encode("utf-8")).hexdigest()[:12]
             for state in self._saved_page_states:
@@ -944,6 +1164,10 @@ if REPORTLAB_AVAILABLE:
             super().save()
 
         def draw_page_number(self, total_pages: int, current_hash: str) -> None:
+            """Español: Función draw_page_number del módulo dashboard/streamlit_app.py.
+
+            English: Function draw_page_number defined in dashboard/streamlit_app.py.
+            """
             self.setFont("Helvetica", 8)
             self.setFillColor(colors.grey)
             page = self.getPageNumber()
@@ -966,10 +1190,18 @@ if REPORTLAB_AVAILABLE:
             )
 else:
     class NumberedCanvas:  # pragma: no cover - placeholder when reportlab is absent
+        """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
+
+        English: NumberedCanvas class defined in dashboard/streamlit_app.py.
+        """
         pass
 
 
 def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
+    """Español: Función build_pdf_report del módulo dashboard/streamlit_app.py.
+
+    English: Function build_pdf_report defined in dashboard/streamlit_app.py.
+    """
     if not REPORTLAB_AVAILABLE:
         raise RuntimeError("reportlab is required to build the PDF report.")
 
@@ -1043,9 +1275,17 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     )
 
     def as_paragraph(value: object, style: ParagraphStyle) -> Paragraph:
+        """Español: Función as_paragraph del módulo dashboard/streamlit_app.py.
+
+        English: Function as_paragraph defined in dashboard/streamlit_app.py.
+        """
         return Paragraph(str(value), style)
 
     def build_table(rows: list[list[object]], col_widths: list[float]) -> Table:
+        """Español: Función build_table del módulo dashboard/streamlit_app.py.
+
+        English: Function build_table defined in dashboard/streamlit_app.py.
+        """
         header = [as_paragraph(cell, styles["TableHeader"]) for cell in rows[0]]
         body = [
             [as_paragraph(cell, styles["TableCell"]) for cell in row]
@@ -1289,6 +1529,10 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(Spacer(1, 6))
 
     def draw_footer(canvas, _doc):
+        """Español: Función draw_footer del módulo dashboard/streamlit_app.py.
+
+        English: Function draw_footer defined in dashboard/streamlit_app.py.
+        """
         canvas.saveState()
         canvas.setFont(regular_font, 8)
         canvas.setFillColor(colors.grey)
@@ -1326,16 +1570,66 @@ command_center_cfg = configs.get("command_center", {})
 anchor = load_blockchain_anchor()
 
 snapshot_source = st.sidebar.selectbox(
-    "Fuente de snapshots",
-    ["data", "data/2025"],
+    "Fuente de snapshots (Snapshot source)",
+    [
+        "Datos reales (Real data)",
+        "Mock normal (Normal mock)",
+        "Mock anomalía (Anomaly mock)",
+        "Mock reversión (Reversal mock)",
+    ],
     index=0,
 )
-snapshot_base_dir = Path(snapshot_source)
-snapshot_files = load_snapshot_files(snapshot_base_dir)
+
+snapshot_sources = {
+    "Datos reales (Real data)": {
+        "base_dir": Path("data"),
+        "pattern": "snapshot_*.json",
+        "explicit_files": None,
+    },
+    "Mock normal (Normal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_normal.json"],
+    },
+    "Mock anomalía (Anomaly mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_anomaly.json"],
+    },
+    "Mock reversión (Reversal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_reversal.json"],
+    },
+}
+source_config = snapshot_sources[snapshot_source]
+snapshot_base_dir = source_config["base_dir"]
+snapshot_files = load_snapshot_files(
+    snapshot_base_dir,
+    pattern=source_config["pattern"],
+    explicit_files=source_config["explicit_files"],
+)
 progress = st.progress(0, text="Cargando snapshots inmutables…")
 for step in range(1, 5):
     progress.progress(step * 25, text=f"Sincronizando evidencia {step}/4")
 progress.empty()
+
+latest_snapshot = {}
+latest_timestamp = None
+last_batch_label = "N/D"
+hash_accumulator = anchor.root_hash
+try:
+    (
+        latest_snapshot,
+        latest_timestamp,
+        last_batch_label,
+        hash_accumulator,
+    ) = _resolve_latest_snapshot_info(snapshot_files, anchor.root_hash)
+except Exception as exc:  # noqa: BLE001
+    st.warning(
+        "No se pudo determinar el último snapshot (Unable to resolve latest snapshot): "
+        f"{exc}"
+    )
 
 snapshots_df = build_snapshot_metrics(snapshot_files)
 anomalies_df = build_anomalies(snapshots_df)
@@ -1345,10 +1639,49 @@ rules_df = build_rules_table(command_center_cfg)
 
 rules_engine_output = run_rules_engine(snapshots_df, command_center_cfg)
 
+failed_retries = 0
+rate_limit_failures = 0
+try:
+    log_path = Path(
+        command_center_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log")
+    )
+    failed_retries = _count_failed_retries(log_path)
+    rate_limit_failures = _count_rate_limit_retries(log_path)
+except Exception as exc:  # noqa: BLE001
+    st.warning(
+        "No se pudo leer el conteo de reintentos (Unable to read retry count): "
+        f"{exc}"
+    )
+
+time_since_last = (
+    dt.datetime.now(dt.timezone.utc) - latest_timestamp if latest_timestamp else None
+)
+refresh_interval = st.session_state.get("refresh_interval_system", 45)
+
+alerts_container = st.container()
+with alerts_container:
+    if rate_limit_failures > 0:
+        st.error(
+            "Polling fallido por rate-limit del CNE (CNE rate-limit polling failure) · "
+            f"Intentos: {rate_limit_failures} (Attempts: {rate_limit_failures})"
+        )
+    if failed_retries > 0:
+        st.warning(
+            "Conexión perdida – reintentando en "
+            f"{refresh_interval} segundos (Connection lost – retrying in "
+            f"{refresh_interval} seconds)."
+        )
+    if latest_timestamp is None or (
+        time_since_last and time_since_last > dt.timedelta(minutes=45)
+    ):
+        st.warning(
+            "No se encontraron snapshots recientes (No recent snapshots found)."
+        )
+
 if snapshots_df.empty:
     st.warning(
-        f"No se encontraron snapshots en {snapshot_base_dir.as_posix()}/. "
-        "El panel está en modo demo."
+        f"No se encontraron snapshots en {snapshot_base_dir.as_posix()}/ "
+        "(No snapshots found). El panel está en modo demo (Dashboard is in demo mode)."
     )
 
 css = """
@@ -2114,28 +2447,6 @@ with tabs[5]:
                 key="refresh_interval_system",
             )
 
-        latest_snapshot = {}
-        latest_timestamp = None
-        last_batch_label = "N/D"
-        hash_accumulator = anchor.root_hash
-        try:
-            latest_snapshot = _pick_latest_snapshot(snapshot_files)
-            content = latest_snapshot.get("content", {}) if latest_snapshot else {}
-            latest_timestamp = _parse_timestamp(latest_snapshot.get("timestamp"))
-            if latest_timestamp is None and latest_snapshot.get("path"):
-                latest_timestamp = dt.datetime.fromtimestamp(
-                    latest_snapshot["path"].stat().st_mtime, tz=dt.timezone.utc
-                )
-            last_batch_label = (
-                content.get("acta_id")
-                or content.get("batch_id")
-                or content.get("last_batch")
-                or (latest_snapshot.get("path").stem if latest_snapshot else "N/D")
-            )
-            hash_accumulator = latest_snapshot.get("hash") or anchor.root_hash
-        except Exception as exc:  # noqa: BLE001
-            st.warning(f"No se pudo cargar el último checkpoint local: {exc}")
-
         time_since_last = (
             dt.datetime.now(dt.timezone.utc) - latest_timestamp
             if latest_timestamp
@@ -2167,15 +2478,6 @@ with tabs[5]:
             except Exception as exc:  # noqa: BLE001
                 health_ok = False
                 health_message = f"healthcheck_error: {exc}"
-
-        failed_retries = 0
-        try:
-            log_path = Path(
-                command_center_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log")
-            )
-            failed_retries = _count_failed_retries(log_path)
-        except Exception as exc:  # noqa: BLE001
-            st.warning(f"No se pudo leer el conteo de reintentos: {exc}")
 
         bucket_status = {}
         try:

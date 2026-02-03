@@ -42,14 +42,26 @@ logger = configure_logging("centinel.panic", log_file="logs/centinel.log")
 
 
 def utc_now() -> datetime:
+    """Español: Función utc_now del módulo panic.py.
+
+    English: Function utc_now defined in panic.py.
+    """
     return datetime.now(timezone.utc)
 
 
 def utc_stamp() -> str:
+    """Español: Función utc_stamp del módulo panic.py.
+
+    English: Function utc_stamp defined in panic.py.
+    """
     return utc_now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 def prompt_confirmation() -> None:
+    """Español: Función prompt_confirmation del módulo panic.py.
+
+    English: Function prompt_confirmation defined in panic.py.
+    """
     first = input("¿Estás seguro? (si/no): ").strip().lower()
     if first not in {"si", "sí", "yes", "y"}:
         print("[!] Operación cancelada.")
@@ -61,6 +73,10 @@ def prompt_confirmation() -> None:
 
 
 def prompt_emergency_token() -> None:
+    """Español: Función prompt_emergency_token del módulo panic.py.
+
+    English: Function prompt_emergency_token defined in panic.py.
+    """
     token_required = os.getenv("CENTINEL_PANIC_TOKEN") or os.getenv("PANIC_TOKEN")
     if not token_required:
         return
@@ -71,6 +87,10 @@ def prompt_emergency_token() -> None:
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
+    """Español: Función load_yaml del módulo panic.py.
+
+    English: Function load_yaml defined in panic.py.
+    """
     try:
         return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except FileNotFoundError:
@@ -81,6 +101,10 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 
 def update_master_switch(status: str) -> list[Path]:
+    """Español: Función update_master_switch del módulo panic.py.
+
+    English: Function update_master_switch defined in panic.py.
+    """
     updated: list[Path] = []
     for path in CONFIG_PATHS:
         if not path.exists():
@@ -99,6 +123,10 @@ def update_master_switch(status: str) -> list[Path]:
 
 
 def set_panic_flag(user: str, timestamp: str) -> dict[str, Any]:
+    """Español: Función set_panic_flag del módulo panic.py.
+
+    English: Function set_panic_flag defined in panic.py.
+    """
     payload = {
         "active": True,
         "user": user,
@@ -111,6 +139,10 @@ def set_panic_flag(user: str, timestamp: str) -> dict[str, Any]:
 
 
 def load_checkpoint_candidate() -> dict[str, Any]:
+    """Español: Función load_checkpoint_candidate del módulo panic.py.
+
+    English: Function load_checkpoint_candidate defined in panic.py.
+    """
     for path in (TEMP_DIR / "checkpoint.json", TEMP_DIR / "pipeline_checkpoint.json"):
         if path.exists():
             try:
@@ -123,6 +155,10 @@ def load_checkpoint_candidate() -> dict[str, Any]:
 
 
 def resolve_alert_paths() -> tuple[Path, Path]:
+    """Español: Función resolve_alert_paths del módulo panic.py.
+
+    English: Function resolve_alert_paths defined in panic.py.
+    """
     alerts_log_path = Path("alerts.log")
     alerts_output_path = Path("data/alerts.json")
     for path in CONFIG_PATHS:
@@ -140,6 +176,10 @@ def resolve_alert_paths() -> tuple[Path, Path]:
 
 
 def load_last_alerts(limit: int = 10) -> list[dict[str, Any]]:
+    """Español: Función load_last_alerts del módulo panic.py.
+
+    English: Function load_last_alerts defined in panic.py.
+    """
     alerts_log_path, alerts_output_path = resolve_alert_paths()
     alerts: list[dict[str, Any]] = []
     if alerts_log_path.exists():
@@ -165,6 +205,10 @@ def load_last_alerts(limit: int = 10) -> list[dict[str, Any]]:
 
 
 def latest_hash() -> str | None:
+    """Español: Función latest_hash del módulo panic.py.
+
+    English: Function latest_hash defined in panic.py.
+    """
     hash_files = sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)
     if not hash_files:
         return None
@@ -181,6 +225,10 @@ def latest_hash() -> str | None:
 
 
 def get_health_status() -> dict[str, Any]:
+    """Español: Función get_health_status del módulo panic.py.
+
+    English: Function get_health_status defined in panic.py.
+    """
     try:
         from monitoring.strict_health import is_healthy_strict
 
@@ -191,6 +239,10 @@ def get_health_status() -> dict[str, Any]:
 
 
 def build_report(user: str, timestamp: str, checkpoint: dict[str, Any]) -> dict[str, Any]:
+    """Español: Función build_report del módulo panic.py.
+
+    English: Function build_report defined in panic.py.
+    """
     report = {
         "panic_activated_at": timestamp,
         "user": user,
@@ -207,6 +259,10 @@ def build_report(user: str, timestamp: str, checkpoint: dict[str, Any]) -> dict[
 
 
 def build_s3_client() -> tuple[Any | None, str | None]:
+    """Español: Función build_s3_client del módulo panic.py.
+
+    English: Function build_s3_client defined in panic.py.
+    """
     bucket = os.getenv("CENTINEL_PANIC_BUCKET") or os.getenv("CENTINEL_CHECKPOINT_BUCKET")
     if not bucket:
         return None, None
@@ -229,6 +285,10 @@ def upload_to_bucket(
     checkpoint_path: Path | None,
     panic_flag: dict[str, Any],
 ) -> dict[str, str]:
+    """Español: Función upload_to_bucket del módulo panic.py.
+
+    English: Function upload_to_bucket defined in panic.py.
+    """
     uploaded: dict[str, str] = {}
     report_key = f"{prefix}/{report_path.name}"
     client.put_object(
@@ -259,6 +319,10 @@ def upload_to_bucket(
 
 
 def build_report_url(bucket: str, key: str) -> str | None:
+    """Español: Función build_report_url del módulo panic.py.
+
+    English: Function build_report_url defined in panic.py.
+    """
     base_url = os.getenv("CENTINEL_PANIC_PUBLIC_BASE_URL")
     if base_url:
         return f"{base_url.rstrip('/')}/{key}"
@@ -269,6 +333,10 @@ def build_report_url(bucket: str, key: str) -> str | None:
 
 
 def send_alert_message(report_url: str | None, final_hash: str | None, timestamp: str) -> None:
+    """Español: Función send_alert_message del módulo panic.py.
+
+    English: Function send_alert_message defined in panic.py.
+    """
     message = "MODO PÁNICO ACTIVADO"
     if report_url:
         message += f" - Reporte: {report_url}"
@@ -283,6 +351,10 @@ def send_alert_message(report_url: str | None, final_hash: str | None, timestamp
 
 
 def shutdown_worker() -> None:
+    """Español: Función shutdown_worker del módulo panic.py.
+
+    English: Function shutdown_worker defined in panic.py.
+    """
     pid_env = os.getenv("CENTINEL_WORKER_PID")
     pid_path = DATA_DIR / "worker.pid"
     pid: int | None = None
@@ -306,6 +378,10 @@ def shutdown_worker() -> None:
 
 
 def main() -> int:
+    """Español: Función main del módulo panic.py.
+
+    English: Function main defined in panic.py.
+    """
     parser = argparse.ArgumentParser(description="Activa el modo pánico de Centinel Engine.")
     parser.add_argument("--user", help="Usuario que activa el modo pánico.")
     args = parser.parse_args()

@@ -25,6 +25,7 @@ from typing import Any, Callable, Iterable, Optional
 
 import boto3
 import psutil
+import yaml
 from botocore.exceptions import ClientError, EndpointConnectionError
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
@@ -46,6 +47,9 @@ else:  # pragma: no cover - optional dependency
 LOG_FORMAT = "%(asctime)s | %(levelname)s | %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 DEFAULT_LOG_PATH = Path("logs/maintain.log")
+DEFAULT_RATE_LIMIT_STATE_PATH = Path("data/temp/polling_rate_limit.json")
+DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS = 10
+CONFIG_PATH = Path("command_center/config.yaml")
 
 
 @dataclass(frozen=True)
@@ -89,7 +93,18 @@ def build_console() -> "Console | None":
 
 
 def setup_logging(log_path: Path) -> logging.Logger:
-    """Configure logging to file and console with timestamps."""
+    """Español:
+        Configura logging a archivo y consola con timestamps.
+
+    English:
+        Configure logging to file and console with timestamps.
+
+    Args:
+        log_path: Ruta del archivo de log.
+
+    Returns:
+        Logger configurado para el módulo maintain.
+    """
 
     log_path.parent.mkdir(parents=True, exist_ok=True)
     handlers: list[logging.Handler] = []
@@ -109,6 +124,122 @@ def setup_logging(log_path: Path) -> logging.Logger:
     logger = logging.getLogger("maintain")
     logger.setLevel(logging.INFO)
     return logger
+
+
+def resolve_rate_limit_settings(logger: logging.Logger) -> tuple[int, Path]:
+    """Español:
+        Resuelve la configuración de rate limiting desde config.yaml.
+
+    English:
+        Resolve rate limiting settings from config.yaml.
+
+    Args:
+        logger: Logger para registrar advertencias.
+
+    Returns:
+        Tupla con cooldown_seconds y state_path.
+    """
+    cooldown_seconds = DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS
+    state_path = DEFAULT_RATE_LIMIT_STATE_PATH
+
+    if not CONFIG_PATH.exists():
+        return cooldown_seconds, state_path
+
+    try:
+        config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        logger.warning("Config YAML inválido para rate limiting: %s", exc)
+        return cooldown_seconds, state_path
+
+    rate_limit_cfg = config.get("polling_rate_limit", {}) if isinstance(config, dict) else {}
+    if isinstance(rate_limit_cfg, dict):
+        cooldown_seconds = int(
+            rate_limit_cfg.get("cooldown_seconds", DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS)
+        )
+        state_path_value = rate_limit_cfg.get("state_path")
+        if state_path_value:
+            state_path = Path(state_path_value)
+
+    return cooldown_seconds, state_path
+
+
+def _read_rate_limit_state(state_path: Path, logger: logging.Logger) -> float | None:
+    """Español:
+        Lee el timestamp del último request desde un archivo de estado.
+
+    English:
+        Read the last request timestamp from a state file.
+
+    Args:
+        state_path: Ruta del archivo de estado.
+        logger: Logger para registrar advertencias.
+
+    Returns:
+        Timestamp epoch en segundos o None si no existe.
+    """
+    if not state_path.exists():
+        return None
+    try:
+        payload = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Estado de rate limit inválido: %s", exc)
+        return None
+    last_request = payload.get("last_request_epoch")
+    try:
+        return float(last_request) if last_request is not None else None
+    except (TypeError, ValueError):
+        logger.warning("Estado de rate limit corrupto en %s", state_path)
+        return None
+
+
+def _write_rate_limit_state(state_path: Path, timestamp: float, logger: logging.Logger) -> None:
+    """Español:
+        Escribe el timestamp del último request en el archivo de estado.
+
+    English:
+        Write the last request timestamp into the state file.
+
+    Args:
+        state_path: Ruta del archivo de estado.
+        timestamp: Timestamp epoch en segundos.
+        logger: Logger para registrar advertencias.
+    """
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        state_path.write_text(
+            json.dumps({"last_request_epoch": timestamp}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        logger.warning("No se pudo actualizar el estado de rate limit: %s", exc)
+
+
+def is_rate_limited(state_path: Path, cooldown_seconds: int, logger: logging.Logger) -> bool:
+    """Español:
+        Determina si debe saltarse una petición por cooldown activo.
+
+    English:
+        Determine whether a request should be skipped due to cooldown.
+
+    Args:
+        state_path: Ruta del archivo de estado.
+        cooldown_seconds: Cooldown mínimo entre requests.
+        logger: Logger para registrar advertencias.
+
+    Returns:
+        True si la petición debe omitirse por rate limiting.
+    """
+    last_request = _read_rate_limit_state(state_path, logger)
+    now = time.time()
+    if last_request is not None and now - last_request < cooldown_seconds:
+        remaining = round(cooldown_seconds - (now - last_request), 2)
+        logger.warning(
+            "Rate limit activo. Omitiendo petición (restante=%ss).", remaining
+        )
+        return True
+
+    _write_rate_limit_state(state_path, now, logger)
+    return False
 
 
 def parse_runtime_config() -> RuntimeConfig:
@@ -258,21 +389,47 @@ def command_checkpoint_now(runtime: RuntimeConfig, logger: logging.Logger) -> No
 
 
 def _latest_checkpoint_key(runtime: RuntimeConfig) -> str:
+    """Español: Función _latest_checkpoint_key del módulo maintain.py.
+
+    English: Function _latest_checkpoint_key defined in maintain.py.
+    """
     return f"centinel/checkpoints/{runtime.pipeline_version}/{runtime.run_id}/latest.json"
 
 
 def fetch_latest_checkpoint_metadata(
     runtime: RuntimeConfig, logger: logging.Logger
 ) -> dict[str, Any]:
-    """Fetch the latest checkpoint metadata from the bucket."""
+    """Español:
+        Obtiene metadata del último checkpoint con rate limiting interno.
+
+    English:
+        Fetch latest checkpoint metadata with internal rate limiting.
+
+    Args:
+        runtime: Configuración de runtime.
+        logger: Logger para registrar eventos.
+
+    Returns:
+        Diccionario con metadata o estado de error.
+    """
 
     bucket_config = build_bucket_config()
     if not bucket_config.bucket:
         return {"status": "bucket_not_configured"}
+    cooldown_seconds, state_path = resolve_rate_limit_settings(logger)
+    if is_rate_limited(state_path, cooldown_seconds, logger):
+        return {
+            "status": "rate_limited",
+            "cooldown_seconds": cooldown_seconds,
+        }
     s3 = build_s3_client(bucket_config)
     key = _latest_checkpoint_key(runtime)
 
     def _get() -> dict[str, Any]:
+        """Español: Función _get del módulo maintain.py.
+
+        English: Function _get defined in maintain.py.
+        """
         response = s3.get_object(Bucket=bucket_config.bucket, Key=key)
         body = response.get("Body")
         raw = body.read() if body else b""
@@ -421,6 +578,10 @@ def command_clean_old_checkpoints(
 
     while True:
         def _list_page() -> dict[str, Any]:
+            """Español: Función _list_page del módulo maintain.py.
+
+            English: Function _list_page defined in maintain.py.
+            """
             params = {"Bucket": bucket_config.bucket, "Prefix": prefix}
             if continuation:
                 params["ContinuationToken"] = continuation
@@ -447,6 +608,10 @@ def command_clean_old_checkpoints(
         return
 
     def _delete_batch(batch: list[dict[str, str]]) -> Any:
+        """Español: Función _delete_batch del módulo maintain.py.
+
+        English: Function _delete_batch defined in maintain.py.
+        """
         return s3.delete_objects(Bucket=bucket_config.bucket, Delete={"Objects": batch})
 
     for idx in range(0, len(keys_to_delete), 1000):
@@ -461,6 +626,10 @@ def command_clean_old_checkpoints(
 
 
 def _build_backup_fernet(runtime: RuntimeConfig) -> Fernet:
+    """Español: Función _build_backup_fernet del módulo maintain.py.
+
+    English: Function _build_backup_fernet defined in maintain.py.
+    """
     secret = runtime.backup_secret or os.getenv("CENTINEL_CHECKPOINT_SECRET")
     if not secret:
         raise RuntimeError("CENTINEL_BACKUP_SECRET no configurado para backup.")

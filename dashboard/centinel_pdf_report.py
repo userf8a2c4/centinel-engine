@@ -1,3 +1,8 @@
+"""Español: Módulo con utilidades y definiciones para dashboard/centinel_pdf_report.py.
+
+English: Module utilities and definitions for dashboard/centinel_pdf_report.py.
+"""
+
 import datetime as dt
 import hashlib
 import io
@@ -17,16 +22,32 @@ from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Tabl
 
 
 class ReportCanvas(reportlab_canvas.Canvas):
+    """Español: Clase ReportCanvas del módulo dashboard/centinel_pdf_report.py.
+
+    English: ReportCanvas class defined in dashboard/centinel_pdf_report.py.
+    """
     def __init__(self, *args, footer_data: dict[str, str] | None = None, **kwargs) -> None:
+        """Español: Función __init__ del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function __init__ defined in dashboard/centinel_pdf_report.py.
+        """
         super().__init__(*args, **kwargs)
         self._saved_page_states: list[dict[str, Any]] = []
         self._footer_data = footer_data or {}
 
     def showPage(self) -> None:
+        """Español: Función showPage del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function showPage defined in dashboard/centinel_pdf_report.py.
+        """
         self._saved_page_states.append(dict(self.__dict__))
         self._startPage()
 
     def save(self) -> None:
+        """Español: Función save del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function save defined in dashboard/centinel_pdf_report.py.
+        """
         total_pages = len(self._saved_page_states)
         for state in self._saved_page_states:
             self.__dict__.update(state)
@@ -35,6 +56,10 @@ class ReportCanvas(reportlab_canvas.Canvas):
         super().save()
 
     def _draw_footer(self, total_pages: int) -> None:
+        """Español: Función _draw_footer del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _draw_footer defined in dashboard/centinel_pdf_report.py.
+        """
         page = self.getPageNumber()
         root_hash = self._footer_data.get("root_hash", "")
         page_payload = f"{root_hash}|{page}"
@@ -52,7 +77,15 @@ class ReportCanvas(reportlab_canvas.Canvas):
 
 
 class CentinelPDFReport:
+    """Español: Clase CentinelPDFReport del módulo dashboard/centinel_pdf_report.py.
+
+    English: CentinelPDFReport class defined in dashboard/centinel_pdf_report.py.
+    """
     def __init__(self) -> None:
+        """Español: Función __init__ del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function __init__ defined in dashboard/centinel_pdf_report.py.
+        """
         self.palette = {
             "navy": colors.HexColor("#0B1F3B"),
             "slate": colors.HexColor("#1F2937"),
@@ -64,6 +97,10 @@ class CentinelPDFReport:
         }
 
     def generate(self, data: dict[str, Any], target: str | BinaryIO) -> None:
+        """Español: Función generate del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function generate defined in dashboard/centinel_pdf_report.py.
+        """
         report_time = self._parse_timestamp(data.get("timestamp_utc"))
         root_hash = str(data.get("root_hash", "N/A"))
         status = str(data.get("status", "INTEGRAL")).upper()
@@ -157,6 +194,10 @@ class CentinelPDFReport:
         )
 
     def _build_styles(self) -> dict[str, ParagraphStyle]:
+        """Español: Función _build_styles del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_styles defined in dashboard/centinel_pdf_report.py.
+        """
         styles = getSampleStyleSheet()
         styles.add(
             ParagraphStyle(
@@ -224,6 +265,10 @@ class CentinelPDFReport:
         root_hash: str,
         source: str,
     ) -> list[Any]:
+        """Español: Función _build_header del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_header defined in dashboard/centinel_pdf_report.py.
+        """
         title = Paragraph("CENTINEL INTEGRITY REPORT", styles["Heading"])
         meta_rows = [
             ["Timestamp UTC", report_time.strftime("%Y-%m-%d %H:%M:%S UTC")],
@@ -273,6 +318,10 @@ class CentinelPDFReport:
     def _build_topology_section(
         self, styles: dict[str, ParagraphStyle], topology: dict[str, Any]
     ) -> Any:
+        """Español: Función _build_topology_section del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_topology_section defined in dashboard/centinel_pdf_report.py.
+        """
         national_total = float(topology.get("total_national", topology.get("national_total", 0)))
         dept_total = float(topology.get("department_total", 0))
         delta = national_total - dept_total
@@ -295,6 +344,10 @@ class CentinelPDFReport:
     def _build_executive_section(
         self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
     ) -> list[Any]:
+        """Español: Función _build_executive_section del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_executive_section defined in dashboard/centinel_pdf_report.py.
+        """
         elements: list[Any] = []
         subtitle = data.get("subtitle")
         if subtitle:
@@ -318,6 +371,10 @@ class CentinelPDFReport:
     def _build_snapshot_section(
         self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
     ) -> list[Any]:
+        """Español: Función _build_snapshot_section del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_snapshot_section defined in dashboard/centinel_pdf_report.py.
+        """
         snapshot_rows = data.get("snapshot_rows")
         if not snapshot_rows:
             return []
@@ -329,6 +386,10 @@ class CentinelPDFReport:
     def _build_rules_section(
         self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
     ) -> list[Any]:
+        """Español: Función _build_rules_section del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_rules_section defined in dashboard/centinel_pdf_report.py.
+        """
         rules = data.get("rules_list") or []
         if not rules:
             return []
@@ -340,6 +401,10 @@ class CentinelPDFReport:
     def _build_crypto_section(
         self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
     ) -> list[Any]:
+        """Español: Función _build_crypto_section del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_crypto_section defined in dashboard/centinel_pdf_report.py.
+        """
         crypto_text = data.get("crypto_text")
         if not crypto_text:
             return []
@@ -351,6 +416,10 @@ class CentinelPDFReport:
     def _build_governance_section(
         self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
     ) -> list[Any]:
+        """Español: Función _build_governance_section del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_governance_section defined in dashboard/centinel_pdf_report.py.
+        """
         risk_text = data.get("risk_text")
         governance_text = data.get("governance_text")
         if not risk_text and not governance_text:
@@ -368,6 +437,10 @@ class CentinelPDFReport:
         rows: list[list[Any]],
         row_background: str,
     ) -> Table:
+        """Español: Función _build_table del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_table defined in dashboard/centinel_pdf_report.py.
+        """
         header = [Paragraph(str(cell), styles["TableHeader"]) for cell in rows[0]]
         body = [
             [Paragraph(str(cell), styles["TableCell"]) for cell in row]
@@ -392,6 +465,10 @@ class CentinelPDFReport:
         return table
 
     def _render_waterfall(self, dept_total: float, national_total: float) -> io.BytesIO | None:
+        """Español: Función _render_waterfall del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _render_waterfall defined in dashboard/centinel_pdf_report.py.
+        """
         delta = national_total - dept_total
         fig, ax = plt.subplots(figsize=(6, 2.4))
         ax.bar([0], [dept_total], color="#1F77B4")
@@ -409,6 +486,10 @@ class CentinelPDFReport:
         return buf
 
     def _render_heatmap(self, anomalies: list[dict[str, Any]]) -> io.BytesIO | None:
+        """Español: Función _render_heatmap del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _render_heatmap defined in dashboard/centinel_pdf_report.py.
+        """
         if not anomalies:
             return None
         df = pd.DataFrame(anomalies)
@@ -442,6 +523,10 @@ class CentinelPDFReport:
         return buf
 
     def _render_benford(self, data: dict[str, Any]) -> io.BytesIO | None:
+        """Español: Función _render_benford del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _render_benford defined in dashboard/centinel_pdf_report.py.
+        """
         benford = data.get("benford", {})
         observed = benford.get("observed")
         sample_size = benford.get("sample_size")
@@ -480,6 +565,10 @@ class CentinelPDFReport:
         return buf
 
     def _render_chain(self, snapshots: list[dict[str, Any]]) -> io.BytesIO | None:
+        """Español: Función _render_chain del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _render_chain defined in dashboard/centinel_pdf_report.py.
+        """
         if not snapshots:
             return None
         recent = snapshots[-5:]
@@ -507,6 +596,10 @@ class CentinelPDFReport:
         return buf
 
     def _render_qr(self, payload: str) -> io.BytesIO | None:
+        """Español: Función _render_qr del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _render_qr defined in dashboard/centinel_pdf_report.py.
+        """
         if not payload:
             return None
         buffer = io.BytesIO()
@@ -519,6 +612,10 @@ class CentinelPDFReport:
         return buffer
 
     def _compute_first_digit(self, values: list[Any]) -> list[float]:
+        """Español: Función _compute_first_digit del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _compute_first_digit defined in dashboard/centinel_pdf_report.py.
+        """
         digits = []
         for value in values:
             try:
@@ -534,9 +631,17 @@ class CentinelPDFReport:
         return [(counts.get(d, 0) / total) for d in range(1, 10)]
 
     def _benford_prob(self, digit: int) -> float:
+        """Español: Función _benford_prob del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _benford_prob defined in dashboard/centinel_pdf_report.py.
+        """
         return math.log10(1 + 1 / digit)
 
     def _parse_timestamp(self, value: Any) -> dt.datetime:
+        """Español: Función _parse_timestamp del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _parse_timestamp defined in dashboard/centinel_pdf_report.py.
+        """
         if isinstance(value, dt.datetime):
             return value.astimezone(dt.timezone.utc)
         if isinstance(value, str):

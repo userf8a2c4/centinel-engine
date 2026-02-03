@@ -17,18 +17,38 @@ from scripts.healthcheck import check_cne_endpoints
 
 
 class _DummyResponse:
+    """Español: Clase _DummyResponse del módulo tests/test_failure_resilience.py.
+
+    English: _DummyResponse class defined in tests/test_failure_resilience.py.
+    """
     def __init__(self, url: str, payload: dict) -> None:
+        """Español: Función __init__ del módulo tests/test_failure_resilience.py.
+
+        English: Function __init__ defined in tests/test_failure_resilience.py.
+        """
         self.url = url
         self._payload = payload
 
     def raise_for_status(self) -> None:
+        """Español: Función raise_for_status del módulo tests/test_failure_resilience.py.
+
+        English: Function raise_for_status defined in tests/test_failure_resilience.py.
+        """
         return None
 
     def json(self):  # type: ignore[override]
+        """Español: Función json del módulo tests/test_failure_resilience.py.
+
+        English: Function json defined in tests/test_failure_resilience.py.
+        """
         return self._payload
 
 
 def test_process_sources_handles_connection_error(monkeypatch, tmp_path) -> None:
+    """Español: Función test_process_sources_handles_connection_error del módulo tests/test_failure_resilience.py.
+
+    English: Function test_process_sources_handles_connection_error defined in tests/test_failure_resilience.py.
+    """
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(
         download_and_hash,
@@ -37,6 +57,10 @@ def test_process_sources_handles_connection_error(monkeypatch, tmp_path) -> None
     )
 
     def _raise_error(*_args, **_kwargs):
+        """Español: Función _raise_error del módulo tests/test_failure_resilience.py.
+
+        English: Function _raise_error defined in tests/test_failure_resilience.py.
+        """
         raise requests.ConnectionError("network down")
 
     monkeypatch.setattr(download_and_hash, "request_json_with_retry", _raise_error)
@@ -49,7 +73,15 @@ def test_process_sources_handles_connection_error(monkeypatch, tmp_path) -> None
 
 
 def test_healthcheck_returns_false_on_failures(monkeypatch) -> None:
+    """Español: Función test_healthcheck_returns_false_on_failures del módulo tests/test_failure_resilience.py.
+
+    English: Function test_healthcheck_returns_false_on_failures defined in tests/test_failure_resilience.py.
+    """
     def _fail(*_args, **_kwargs):
+        """Español: Función _fail del módulo tests/test_failure_resilience.py.
+
+        English: Function _fail defined in tests/test_failure_resilience.py.
+        """
         raise requests.ConnectionError("offline")
 
     monkeypatch.setattr(requests.Session, "get", _fail)
@@ -63,6 +95,10 @@ def test_healthcheck_returns_false_on_failures(monkeypatch) -> None:
 
 
 def test_process_sources_saves_snapshot(monkeypatch, tmp_path) -> None:
+    """Español: Función test_process_sources_saves_snapshot del módulo tests/test_failure_resilience.py.
+
+    English: Function test_process_sources_saves_snapshot defined in tests/test_failure_resilience.py.
+    """
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(
         download_and_hash,

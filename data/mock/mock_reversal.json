@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-01-07T09:40:00Z",
+  "source": "MOCK-CNE",
+  "actas_escrutadas": 1505,
+  "actas_total": 1600,
+  "total_votos": 1082200,
+  "candidatos": {
+    "Candidato A": 420500,
+    "Candidato B": 352900,
+    "Candidato C": 195300,
+    "Candidato D": 113500
+  },
+  "departamentos": [
+    {
+      "nombre": "Cortés",
+      "actas_escrutadas": 185,
+      "actas_total": 200,
+      "total_votos": 151900,
+      "candidatos": {
+        "Candidato A": 63200,
+        "Candidato B": 48600,
+        "Candidato C": 25500,
+        "Candidato D": 14600
+      }
+    },
+    {
+      "nombre": "Francisco Morazán",
+      "actas_escrutadas": 216,
+      "actas_total": 230,
+      "total_votos": 170400,
+      "candidatos": {
+        "Candidato A": 61000,
+        "Candidato B": 64200,
+        "Candidato C": 31200,
+        "Candidato D": 14000
+      }
+    },
+    {
+      "nombre": "Olancho",
+      "actas_escrutadas": 144,
+      "actas_total": 160,
+      "total_votos": 107600,
+      "candidatos": {
+        "Candidato A": 42500,
+        "Candidato B": 30000,
+        "Candidato C": 22000,
+        "Candidato D": 13100
+      }
+    },
+    {
+      "nombre": "Santa Bárbara",
+      "actas_escrutadas": 98,
+      "actas_total": 110,
+      "total_votos": 70100,
+      "candidatos": {
+        "Candidato A": 23600,
+        "Candidato B": 19600,
+        "Candidato C": 15700,
+        "Candidato D": 11200
+      }
+    }
+  ],
+  "irreversibilidad": {
+    "estado_inicial": "irreversible",
+    "timestamp_inicial": "2026-01-07T09:10:00Z",
+    "reversion_detectada": true,
+    "timestamp_reversion": "2026-01-07T09:35:00Z",
+    "detalle": "Se revirtió un lote previamente marcado como irreversible (Reversal after initial irreversibility)."
+  },
+  "eventos": [
+    {
+      "timestamp": "2026-01-07T09:10:00Z",
+      "actas_escrutadas": 1490,
+      "total_votos": 1074800
+    },
+    {
+      "timestamp": "2026-01-07T09:35:00Z",
+      "actas_escrutadas": 1505,
+      "total_votos": 1082200,
+      "reversion": true
+    }
+  ]
+}

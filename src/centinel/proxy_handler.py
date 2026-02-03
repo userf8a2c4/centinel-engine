@@ -27,10 +27,18 @@ class ProxyInfo:
     last_error: Optional[str] = None
 
     def mark_success(self) -> None:
+        """Español: Función mark_success del módulo src/centinel/proxy_handler.py.
+
+        English: Function mark_success defined in src/centinel/proxy_handler.py.
+        """
         self.consecutive_failures = 0
         self.last_error = None
 
     def mark_failure(self, reason: str) -> None:
+        """Español: Función mark_failure del módulo src/centinel/proxy_handler.py.
+
+        English: Function mark_failure defined in src/centinel/proxy_handler.py.
+        """
         self.consecutive_failures += 1
         self.last_error = reason
         if self.consecutive_failures >= 3:
@@ -47,6 +55,10 @@ class ProxyValidator:
         timeout_seconds: float = 10.0,
         logger: Optional[logging.Logger] = None,
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/proxy_handler.py.
+
+        English: Function __init__ defined in src/centinel/proxy_handler.py.
+        """
         self.test_url = test_url
         self.timeout_seconds = timeout_seconds
         self.logger = logger or logging.getLogger(__name__)
@@ -100,6 +112,10 @@ class ProxyRotator:
         proxy_timeout_seconds: float = DEFAULT_PROXY_TIMEOUT_SECONDS,
         logger: Optional[logging.Logger] = None,
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/proxy_handler.py.
+
+        English: Function __init__ defined in src/centinel/proxy_handler.py.
+        """
         self.mode = mode
         self.rotation_strategy = rotation_strategy
         self.rotation_every_n = max(rotation_every_n, 1)
@@ -112,15 +128,27 @@ class ProxyRotator:
 
     @property
     def active_proxies(self) -> List[ProxyInfo]:
+        """Español: Función active_proxies del módulo src/centinel/proxy_handler.py.
+
+        English: Function active_proxies defined in src/centinel/proxy_handler.py.
+        """
         return [proxy for proxy in self._proxies if not proxy.dead]
 
     def _fallback_to_direct(self) -> None:
+        """Español: Función _fallback_to_direct del módulo src/centinel/proxy_handler.py.
+
+        English: Function _fallback_to_direct defined in src/centinel/proxy_handler.py.
+        """
         if self.mode != "direct":
             self.logger.warning("proxy_fallback_direct", reason="no_active_proxies")
         self.mode = "direct"
         self._current_proxy = None
 
     def _select_next_proxy(self) -> Optional[ProxyInfo]:
+        """Español: Función _select_next_proxy del módulo src/centinel/proxy_handler.py.
+
+        English: Function _select_next_proxy defined in src/centinel/proxy_handler.py.
+        """
         active = self.active_proxies
         if not active:
             self._fallback_to_direct()
@@ -151,11 +179,19 @@ class ProxyRotator:
         return self._current_proxy.url if self._current_proxy else None
 
     def mark_success(self, proxy_url: str) -> None:
+        """Español: Función mark_success del módulo src/centinel/proxy_handler.py.
+
+        English: Function mark_success defined in src/centinel/proxy_handler.py.
+        """
         proxy = self._find_proxy(proxy_url)
         if proxy:
             proxy.mark_success()
 
     def mark_failure(self, proxy_url: str, reason: str) -> None:
+        """Español: Función mark_failure del módulo src/centinel/proxy_handler.py.
+
+        English: Function mark_failure defined in src/centinel/proxy_handler.py.
+        """
         proxy = self._find_proxy(proxy_url)
         if not proxy:
             return
@@ -170,6 +206,10 @@ class ProxyRotator:
             self._fallback_to_direct()
 
     def _find_proxy(self, proxy_url: str) -> Optional[ProxyInfo]:
+        """Español: Función _find_proxy del módulo src/centinel/proxy_handler.py.
+
+        English: Function _find_proxy defined in src/centinel/proxy_handler.py.
+        """
         for proxy in self._proxies:
             if proxy.url == proxy_url:
                 return proxy
@@ -184,6 +224,10 @@ def load_proxy_config(config_path: Optional[Path] = None) -> dict:
         payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
     def env(name: str, default: Optional[str] = None) -> Optional[str]:
+        """Español: Función env del módulo src/centinel/proxy_handler.py.
+
+        English: Function env defined in src/centinel/proxy_handler.py.
+        """
         return os.getenv(name, default)
 
     proxies_env = env("PROXY_LIST")

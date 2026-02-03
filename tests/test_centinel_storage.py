@@ -9,6 +9,10 @@ from centinel.storage import save_snapshot
 
 
 def test_save_snapshot_creates_files(tmp_path):
+    """Español: Función test_save_snapshot_creates_files del módulo tests/test_centinel_storage.py.
+
+    English: Function test_save_snapshot_creates_files defined in tests/test_centinel_storage.py.
+    """
     content = b"payload"
     metadata = {"source": "test"}
     previous_hash = "abc"

@@ -27,18 +27,34 @@ def _install_apscheduler_stubs() -> None:
         """/** Scheduler dummy para pruebas. / Dummy scheduler for tests. **"""
 
         def __init__(self, *args, **kwargs):
+            """Español: Función __init__ del módulo tests/test_failure_injection.py.
+
+            English: Function __init__ defined in tests/test_failure_injection.py.
+            """
             self.jobs = []
 
         def add_job(self, *args, **kwargs):
+            """Español: Función add_job del módulo tests/test_failure_injection.py.
+
+            English: Function add_job defined in tests/test_failure_injection.py.
+            """
             self.jobs.append((args, kwargs))
 
         def start(self):
+            """Español: Función start del módulo tests/test_failure_injection.py.
+
+            English: Function start defined in tests/test_failure_injection.py.
+            """
             return None
 
     class DummyCronTrigger:
         """/** Cron trigger dummy. / Dummy cron trigger. **"""
 
         def __init__(self, *args, **kwargs):
+            """Español: Función __init__ del módulo tests/test_failure_injection.py.
+
+            English: Function __init__ defined in tests/test_failure_injection.py.
+            """
             self.args = args
             self.kwargs = kwargs
 
@@ -69,16 +85,32 @@ def _install_crypto_stub() -> None:
         """/** Fernet dummy para pruebas. / Dummy Fernet for tests. **"""
 
         def __init__(self, *_args, **_kwargs):
+            """Español: Función __init__ del módulo tests/test_failure_injection.py.
+
+            English: Function __init__ defined in tests/test_failure_injection.py.
+            """
             return None
 
         @staticmethod
         def generate_key() -> bytes:
+            """Español: Función generate_key del módulo tests/test_failure_injection.py.
+
+            English: Function generate_key defined in tests/test_failure_injection.py.
+            """
             return b"test-key"
 
         def encrypt(self, data: bytes) -> bytes:
+            """Español: Función encrypt del módulo tests/test_failure_injection.py.
+
+            English: Function encrypt defined in tests/test_failure_injection.py.
+            """
             return data
 
         def decrypt(self, data: bytes) -> bytes:
+            """Español: Función decrypt del módulo tests/test_failure_injection.py.
+
+            English: Function decrypt defined in tests/test_failure_injection.py.
+            """
             return data
 
     fernet_module.Fernet = DummyFernet
@@ -96,6 +128,10 @@ def _install_dotenv_stub() -> None:
     dotenv_module = types.ModuleType("dotenv")
 
     def _load_dotenv(*_args, **_kwargs):
+        """Español: Función _load_dotenv del módulo tests/test_failure_injection.py.
+
+        English: Function _load_dotenv defined in tests/test_failure_injection.py.
+        """
         return None
 
     dotenv_module.load_dotenv = _load_dotenv
@@ -143,9 +179,17 @@ def _set_pipeline_paths(monkeypatch, base_path: Path) -> None:
 def test_safe_run_pipeline_saves_checkpoint_on_connection_error(
     monkeypatch, tmp_path
 ) -> None:
+    """Español: Función test_safe_run_pipeline_saves_checkpoint_on_connection_error del módulo tests/test_failure_injection.py.
+
+    English: Function test_safe_run_pipeline_saves_checkpoint_on_connection_error defined in tests/test_failure_injection.py.
+    """
     _set_pipeline_paths(monkeypatch, tmp_path)
 
     def _raise_connection_error(_config):
+        """Español: Función _raise_connection_error del módulo tests/test_failure_injection.py.
+
+        English: Function _raise_connection_error defined in tests/test_failure_injection.py.
+        """
         raise requests.ConnectionError("network down")
 
     monkeypatch.setattr(run_pipeline, "run_pipeline", _raise_connection_error)
@@ -161,6 +205,10 @@ def test_safe_run_pipeline_saves_checkpoint_on_connection_error(
 
 
 def test_run_pipeline_resumes_from_checkpoint(monkeypatch, tmp_path) -> None:
+    """Español: Función test_run_pipeline_resumes_from_checkpoint del módulo tests/test_failure_injection.py.
+
+    English: Function test_run_pipeline_resumes_from_checkpoint defined in tests/test_failure_injection.py.
+    """
     _set_pipeline_paths(monkeypatch, tmp_path)
     snapshot_path = run_pipeline.DATA_DIR / "snapshot_resume.json"
     snapshot_path.write_text('{"resultados": {"foo": 1}}', encoding="utf-8")
@@ -185,6 +233,10 @@ def test_run_pipeline_resumes_from_checkpoint(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(run_pipeline, "should_normalize", lambda *_args: False)
 
     def _record_command(command, _description):
+        """Español: Función _record_command del módulo tests/test_failure_injection.py.
+
+        English: Function _record_command defined in tests/test_failure_injection.py.
+        """
         commands.append(command)
 
     monkeypatch.setattr(run_pipeline, "run_command", _record_command)
@@ -198,10 +250,18 @@ def test_run_pipeline_resumes_from_checkpoint(monkeypatch, tmp_path) -> None:
 
 
 def test_safe_run_pipeline_auto_resume_retries(monkeypatch, tmp_path) -> None:
+    """Español: Función test_safe_run_pipeline_auto_resume_retries del módulo tests/test_failure_injection.py.
+
+    English: Function test_safe_run_pipeline_auto_resume_retries defined in tests/test_failure_injection.py.
+    """
     _set_pipeline_paths(monkeypatch, tmp_path)
     attempts = {"count": 0}
 
     def _flaky(_config):
+        """Español: Función _flaky del módulo tests/test_failure_injection.py.
+
+        English: Function _flaky defined in tests/test_failure_injection.py.
+        """
         attempts["count"] += 1
         if attempts["count"] < 3:
             raise RuntimeError("boom")
@@ -228,6 +288,10 @@ def test_safe_run_pipeline_auto_resume_retries(monkeypatch, tmp_path) -> None:
 
 
 def test_emit_critical_alerts_writes_outputs(monkeypatch, tmp_path) -> None:
+    """Español: Función test_emit_critical_alerts_writes_outputs del módulo tests/test_failure_injection.py.
+
+    English: Function test_emit_critical_alerts_writes_outputs defined in tests/test_failure_injection.py.
+    """
     _set_pipeline_paths(monkeypatch, tmp_path)
     alerts_log = tmp_path / "alerts.log"
     alerts_output = tmp_path / "data" / "alerts.json"
@@ -249,6 +313,10 @@ def test_emit_critical_alerts_writes_outputs(monkeypatch, tmp_path) -> None:
 
 
 def test_maybe_inject_chaos_failure_raises() -> None:
+    """Español: Función test_maybe_inject_chaos_failure_raises del módulo tests/test_failure_injection.py.
+
+    English: Function test_maybe_inject_chaos_failure_raises defined in tests/test_failure_injection.py.
+    """
     resilience = {"chaos": {"enabled": True, "failure_rate": 1.0, "seed": 7}}
     rng = run_pipeline.build_chaos_rng(resilience)
     try:

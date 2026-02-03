@@ -42,6 +42,10 @@ UNWANTED_KEYS = {"actas", "mesas", "tables"}
 
 
 def _load_config() -> dict:
+    """Español: Función _load_config del módulo scripts/analyze_rules.py.
+
+    English: Function _load_config defined in scripts/analyze_rules.py.
+    """
     if CONFIG_PATH.exists():
         return load_config()
     example_path = Path("command_center") / "config.yaml.example"
@@ -51,16 +55,28 @@ def _load_config() -> dict:
 
 
 def _load_snapshot(path: Path) -> dict:
+    """Español: Función _load_snapshot del módulo scripts/analyze_rules.py.
+
+    English: Function _load_snapshot defined in scripts/analyze_rules.py.
+    """
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _normalize_level(level: Optional[str]) -> Optional[str]:
+    """Español: Función _normalize_level del módulo scripts/analyze_rules.py.
+
+    English: Function _normalize_level defined in scripts/analyze_rules.py.
+    """
     if level is None:
         return None
     return str(level).strip().upper()
 
 
 def _extract_level(payload: dict) -> Optional[str]:
+    """Español: Función _extract_level del módulo scripts/analyze_rules.py.
+
+    English: Function _extract_level defined in scripts/analyze_rules.py.
+    """
     metadata = payload.get("meta") or payload.get("metadata") or {}
     return (
         payload.get("election_level")
@@ -72,6 +88,10 @@ def _extract_level(payload: dict) -> Optional[str]:
 
 
 def _extract_department(payload: dict) -> Optional[str]:
+    """Español: Función _extract_department del módulo scripts/analyze_rules.py.
+
+    English: Function _extract_department defined in scripts/analyze_rules.py.
+    """
     metadata = payload.get("meta") or payload.get("metadata") or {}
     return (
         payload.get("departamento")
@@ -83,10 +103,18 @@ def _extract_department(payload: dict) -> Optional[str]:
 
 
 def _strip_unwanted_fields(payload: dict) -> dict:
+    """Español: Función _strip_unwanted_fields del módulo scripts/analyze_rules.py.
+
+    English: Function _strip_unwanted_fields defined in scripts/analyze_rules.py.
+    """
     return {key: value for key, value in payload.items() if key not in UNWANTED_KEYS}
 
 
 def _build_source_map(config: dict) -> dict[str, dict[str, Any]]:
+    """Español: Función _build_source_map del módulo scripts/analyze_rules.py.
+
+    English: Function _build_source_map defined in scripts/analyze_rules.py.
+    """
     source_map: dict[str, dict[str, Any]] = {}
     for source in config.get("sources", []):
         source_id = source.get("source_id") or source.get("name")
@@ -97,12 +125,20 @@ def _build_source_map(config: dict) -> dict[str, dict[str, Any]]:
 
 
 def _normalize_department_label(label: str) -> str:
+    """Español: Función _normalize_department_label del módulo scripts/analyze_rules.py.
+
+    English: Function _normalize_department_label defined in scripts/analyze_rules.py.
+    """
     cleaned = unicodedata.normalize("NFKD", label)
     cleaned = "".join(char for char in cleaned if not unicodedata.combining(char))
     return cleaned.strip().upper()
 
 
 def _allowed_departments(config: dict) -> set[str]:
+    """Español: Función _allowed_departments del módulo scripts/analyze_rules.py.
+
+    English: Function _allowed_departments defined in scripts/analyze_rules.py.
+    """
     departments: set[str] = set()
     for source in config.get("sources", []):
         if source.get("scope") != "DEPARTMENT":
@@ -116,6 +152,10 @@ def _allowed_departments(config: dict) -> set[str]:
 
 
 def _aggregate_national(entries: list[dict]) -> dict:
+    """Español: Función _aggregate_national del módulo scripts/analyze_rules.py.
+
+    English: Function _aggregate_national defined in scripts/analyze_rules.py.
+    """
     totals_by_candidate: dict[str, int] = {}
     total_votes_sum = 0
     for entry in entries:
@@ -140,6 +180,10 @@ def _aggregate_national(entries: list[dict]) -> dict:
 
 
 def _filter_presidential_snapshot(snapshot: dict, config: dict) -> dict:
+    """Español: Función _filter_presidential_snapshot del módulo scripts/analyze_rules.py.
+
+    English: Function _filter_presidential_snapshot defined in scripts/analyze_rules.py.
+    """
     source_map = _build_source_map(config)
     allowed_departments = _allowed_departments(config)
     scope = {scope.lower() for scope in config.get("scope", ["presidential"])}
@@ -191,11 +235,19 @@ def _filter_presidential_snapshot(snapshot: dict, config: dict) -> dict:
 
 
 def _snapshot_hash(payload: dict) -> str:
+    """Español: Función _snapshot_hash del módulo scripts/analyze_rules.py.
+
+    English: Function _snapshot_hash defined in scripts/analyze_rules.py.
+    """
     canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()
 
 
 def _latest_snapshots() -> tuple[Optional[Path], Optional[Path]]:
+    """Español: Función _latest_snapshots del módulo scripts/analyze_rules.py.
+
+    English: Function _latest_snapshots defined in scripts/analyze_rules.py.
+    """
     normalized_dir = Path("normalized")
     candidates = sorted(
         normalized_dir.glob("*.normalized.json"),
@@ -214,6 +266,10 @@ def _latest_snapshots() -> tuple[Optional[Path], Optional[Path]]:
 
 
 def _locate_hashchain(current_path: Path) -> Optional[Path]:
+    """Español: Función _locate_hashchain del módulo scripts/analyze_rules.py.
+
+    English: Function _locate_hashchain defined in scripts/analyze_rules.py.
+    """
     if current_path.parent.name == "normalized":
         candidate = current_path.parent.parent / "hashchain.json"
         if candidate.exists():
@@ -225,6 +281,10 @@ def _locate_hashchain(current_path: Path) -> Optional[Path]:
 
 
 def _verify_hashchain(normalized_dir: Path, hashchain_path: Path) -> list[dict]:
+    """Español: Función _verify_hashchain del módulo scripts/analyze_rules.py.
+
+    English: Function _verify_hashchain defined in scripts/analyze_rules.py.
+    """
     alerts: list[dict] = []
     try:
         entries = json.loads(hashchain_path.read_text(encoding="utf-8"))
@@ -285,6 +345,10 @@ def _verify_hashchain(normalized_dir: Path, hashchain_path: Path) -> list[dict]:
 
 
 def main() -> None:
+    """Español: Función main del módulo scripts/analyze_rules.py.
+
+    English: Function main defined in scripts/analyze_rules.py.
+    """
     current_path, previous_path = _latest_snapshots()
     if not current_path:
         print("[!] No se encontraron snapshots para analizar")

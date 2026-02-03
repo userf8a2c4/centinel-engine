@@ -11,7 +11,15 @@ import scripts.analyze_rules as analyze_rules
 
 
 def _make_rule(tag: str, bucket: List[str]):
+    """Español: Función _make_rule del módulo tests/test_rules_orchestrator.py.
+
+    English: Function _make_rule defined in tests/test_rules_orchestrator.py.
+    """
     def _rule(current: dict, previous: Optional[dict], config: dict) -> List[dict]:
+        """Español: Función _rule del módulo tests/test_rules_orchestrator.py.
+
+        English: Function _rule defined in tests/test_rules_orchestrator.py.
+        """
         bucket.append(tag)
         return [
             {
@@ -25,6 +33,10 @@ def _make_rule(tag: str, bucket: List[str]):
 
 
 def test_run_all_rules_respects_global_enabled(monkeypatch):
+    """Español: Función test_run_all_rules_respects_global_enabled del módulo tests/test_rules_orchestrator.py.
+
+    English: Function test_run_all_rules_respects_global_enabled defined in tests/test_rules_orchestrator.py.
+    """
     called: List[str] = []
     monkeypatch.setattr(
         analyze_rules,
@@ -39,6 +51,10 @@ def test_run_all_rules_respects_global_enabled(monkeypatch):
 
 
 def test_run_all_rules_filters_enabled_rules(monkeypatch):
+    """Español: Función test_run_all_rules_filters_enabled_rules del módulo tests/test_rules_orchestrator.py.
+
+    English: Function test_run_all_rules_filters_enabled_rules defined in tests/test_rules_orchestrator.py.
+    """
     called: List[str] = []
     rules = [
         ("alpha", _make_rule("alpha", called)),

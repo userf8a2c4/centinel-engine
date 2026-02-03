@@ -30,9 +30,17 @@ def block_network(monkeypatch: pytest.MonkeyPatch) -> None:
     """
 
     def guarded_connect(*args: Any, **kwargs: Any) -> None:
+        """Español: Función guarded_connect del módulo conftest.py.
+
+        English: Function guarded_connect defined in conftest.py.
+        """
         raise RuntimeError("Network access is disabled during tests.")
 
     def guarded_create_connection(*args: Any, **kwargs: Any) -> None:
+        """Español: Función guarded_create_connection del módulo conftest.py.
+
+        English: Function guarded_create_connection defined in conftest.py.
+        """
         raise RuntimeError("Network access is disabled during tests.")
 
     monkeypatch.setattr(socket.socket, "connect", guarded_connect, raising=True)

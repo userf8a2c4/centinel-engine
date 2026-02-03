@@ -1,3 +1,22 @@
+# Dev Diary - 202601 - RulesModularization - 01
+
+**Fecha aproximada / Approximate date:** 11-ene-2026 / January 11, 2026  
+**Fase / Phase:** Modularización de reglas y reglas forenses / Rule modularization & forensic rules  
+**Versión interna / Internal version:** v0.0.31  
+**Rama / Branch:** main (dev-6)  
+**Autor / Author:** userf8a2c4
+
+**Resumen de avances / Summary of progress:**
+- Modularización completa de reglas de análisis en `sentinel/core/rules/`.  
+  Full modularization of analysis rules under `sentinel/core/rules/`.
+- Nuevas reglas forenses (trend shift, processing speed, irreversibility).  
+  New forensic rules (trend shift, processing speed, irreversibility).
+- Orquestador configurable en `scripts/analyze_rules.py` con reglas habilitables por config.  
+  Configurable orchestrator in `scripts/analyze_rules.py` with config-driven rule toggles.
+- Pruebas de orquestación y ajustes de configuración en `config.yaml`.  
+  Orchestrator tests and configuration updates in `config.yaml`.
+
+---
 # [ES] Refactor modular de reglas + nuevas reglas forenses
 
   /dev: Notas del parche: Versión: v0.0.31 (commit ae6296f)
