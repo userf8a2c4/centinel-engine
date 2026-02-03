@@ -122,10 +122,6 @@ class RetryableStatusError(RetryableError):
     """Retryable HTTP status error."""
 
     def __init__(
-        """Español: Función __init__ del módulo src/centinel/downloader.py.
-
-        English: Function __init__ defined in src/centinel/downloader.py.
-        """
         self,
         status_code: int,
         policy: RetryPolicy,
@@ -133,6 +129,10 @@ class RetryableStatusError(RetryableError):
         *,
         context: dict[str, Any] | None = None,
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/downloader.py.
+
+        English: Function __init__ defined in src/centinel/downloader.py.
+        """
         message = f"retryable_status={status_code}"
         super().__init__(message, policy, context=context)
         self.status_code = status_code
@@ -147,10 +147,6 @@ class RetryableParsingError(RetryableError):
     """Retryable JSON parsing error."""
 
     def __init__(
-        """Español: Función __init__ del módulo src/centinel/downloader.py.
-
-        English: Function __init__ defined in src/centinel/downloader.py.
-        """
         self,
         message: str,
         policy: RetryPolicy,
@@ -158,6 +154,10 @@ class RetryableParsingError(RetryableError):
         *,
         context: dict[str, Any] | None = None,
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/downloader.py.
+
+        English: Function __init__ defined in src/centinel/downloader.py.
+        """
         super().__init__(message, policy, context=context)
         self.response_text = response_text
 

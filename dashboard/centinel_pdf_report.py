@@ -257,10 +257,6 @@ class CentinelPDFReport:
         return styles
 
     def _build_header(
-        """Español: Función _build_header del módulo dashboard/centinel_pdf_report.py.
-
-        English: Function _build_header defined in dashboard/centinel_pdf_report.py.
-        """
         self,
         styles: dict[str, ParagraphStyle],
         status_label: str,
@@ -269,6 +265,10 @@ class CentinelPDFReport:
         root_hash: str,
         source: str,
     ) -> list[Any]:
+        """Español: Función _build_header del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_header defined in dashboard/centinel_pdf_report.py.
+        """
         title = Paragraph("CENTINEL INTEGRITY REPORT", styles["Heading"])
         meta_rows = [
             ["Timestamp UTC", report_time.strftime("%Y-%m-%d %H:%M:%S UTC")],
@@ -316,12 +316,12 @@ class CentinelPDFReport:
         return [header_table]
 
     def _build_topology_section(
+        self, styles: dict[str, ParagraphStyle], topology: dict[str, Any]
+    ) -> Any:
         """Español: Función _build_topology_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_topology_section defined in dashboard/centinel_pdf_report.py.
         """
-        self, styles: dict[str, ParagraphStyle], topology: dict[str, Any]
-    ) -> Any:
         national_total = float(topology.get("total_national", topology.get("national_total", 0)))
         dept_total = float(topology.get("department_total", 0))
         delta = national_total - dept_total
@@ -342,12 +342,12 @@ class CentinelPDFReport:
         return Table([[item] for item in items], colWidths=[16.5 * cm])
 
     def _build_executive_section(
+        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
+    ) -> list[Any]:
         """Español: Función _build_executive_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_executive_section defined in dashboard/centinel_pdf_report.py.
         """
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
         elements: list[Any] = []
         subtitle = data.get("subtitle")
         if subtitle:
@@ -369,12 +369,12 @@ class CentinelPDFReport:
         return elements
 
     def _build_snapshot_section(
+        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
+    ) -> list[Any]:
         """Español: Función _build_snapshot_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_snapshot_section defined in dashboard/centinel_pdf_report.py.
         """
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
         snapshot_rows = data.get("snapshot_rows")
         if not snapshot_rows:
             return []
@@ -384,12 +384,12 @@ class CentinelPDFReport:
         ]
 
     def _build_rules_section(
+        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
+    ) -> list[Any]:
         """Español: Función _build_rules_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_rules_section defined in dashboard/centinel_pdf_report.py.
         """
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
         rules = data.get("rules_list") or []
         if not rules:
             return []
@@ -399,12 +399,12 @@ class CentinelPDFReport:
         return elements
 
     def _build_crypto_section(
+        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
+    ) -> list[Any]:
         """Español: Función _build_crypto_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_crypto_section defined in dashboard/centinel_pdf_report.py.
         """
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
         crypto_text = data.get("crypto_text")
         if not crypto_text:
             return []
@@ -414,12 +414,12 @@ class CentinelPDFReport:
         ]
 
     def _build_governance_section(
+        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
+    ) -> list[Any]:
         """Español: Función _build_governance_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_governance_section defined in dashboard/centinel_pdf_report.py.
         """
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
         risk_text = data.get("risk_text")
         governance_text = data.get("governance_text")
         if not risk_text and not governance_text:
@@ -432,15 +432,15 @@ class CentinelPDFReport:
         return elements
 
     def _build_table(
-        """Español: Función _build_table del módulo dashboard/centinel_pdf_report.py.
-
-        English: Function _build_table defined in dashboard/centinel_pdf_report.py.
-        """
         self,
         styles: dict[str, ParagraphStyle],
         rows: list[list[Any]],
         row_background: str,
     ) -> Table:
+        """Español: Función _build_table del módulo dashboard/centinel_pdf_report.py.
+
+        English: Function _build_table defined in dashboard/centinel_pdf_report.py.
+        """
         header = [Paragraph(str(cell), styles["TableHeader"]) for cell in rows[0]]
         body = [
             [Paragraph(str(cell), styles["TableCell"]) for cell in row]

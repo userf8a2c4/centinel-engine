@@ -179,16 +179,16 @@ class DataSourceManager:
     """Administra la selección de fuentes con fallback automático."""
 
     def __init__(
-        """Español: Función __init__ del módulo src/centinel/data_sources.py.
-
-        English: Function __init__ defined in src/centinel/data_sources.py.
-        """
         self,
         settings: DataSourceSettings,
         *,
         logger: Optional[logging.Logger] = None,
         alert_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/data_sources.py.
+
+        English: Function __init__ defined in src/centinel/data_sources.py.
+        """
         self.settings = settings
         self.logger = logger or logging.getLogger(__name__)
         self.alert_callback = alert_callback

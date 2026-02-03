@@ -642,12 +642,12 @@ def build_heatmap(anomalies: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_topology_integrity(
+    snapshots_df: pd.DataFrame, departments: list[str]
+) -> dict[str, int | bool | list[dict[str, int | str]]]:
     """Español: Función compute_topology_integrity del módulo dashboard/streamlit_app.py.
 
     English: Function compute_topology_integrity defined in dashboard/streamlit_app.py.
     """
-    snapshots_df: pd.DataFrame, departments: list[str]
-) -> dict[str, int | bool | list[dict[str, int | str]]]:
     if snapshots_df.empty:
         return {
             "department_total": 0,
@@ -685,12 +685,12 @@ def compute_topology_integrity(
 
 
 def build_latency_matrix(
+    snapshots_df: pd.DataFrame, departments: list[str], report_time: dt.datetime
+) -> tuple[list[list[str]], list[dict[str, int | bool]]]:
     """Español: Función build_latency_matrix del módulo dashboard/streamlit_app.py.
 
     English: Function build_latency_matrix defined in dashboard/streamlit_app.py.
     """
-    snapshots_df: pd.DataFrame, departments: list[str], report_time: dt.datetime
-) -> tuple[list[list[str]], list[dict[str, int | bool]]]:
     if report_time.tzinfo is None:
         report_time = report_time.replace(tzinfo=dt.timezone.utc)
     df = snapshots_df.copy()
@@ -828,10 +828,6 @@ def run_rules_engine(snapshot_df: pd.DataFrame, config: dict) -> dict:
 
 
 def create_pdf_charts(
-    """Español: Función create_pdf_charts del módulo dashboard/streamlit_app.py.
-
-    English: Function create_pdf_charts defined in dashboard/streamlit_app.py.
-    """
     benford_df: pd.DataFrame,
     votes_df: pd.DataFrame,
     heatmap_df: pd.DataFrame,
@@ -840,6 +836,10 @@ def create_pdf_charts(
     snapshots_df: pd.DataFrame,
     departments: list[str],
 ) -> dict:
+    """Español: Función create_pdf_charts del módulo dashboard/streamlit_app.py.
+
+    English: Function create_pdf_charts defined in dashboard/streamlit_app.py.
+    """
     if plt is None:
         return {}
 

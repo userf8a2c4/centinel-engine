@@ -278,10 +278,6 @@ def build_s3_client() -> tuple[Any | None, str | None]:
 
 
 def upload_to_bucket(
-    """Español: Función upload_to_bucket del módulo panic.py.
-
-    English: Function upload_to_bucket defined in panic.py.
-    """
     client: Any,
     bucket: str,
     prefix: str,
@@ -289,6 +285,10 @@ def upload_to_bucket(
     checkpoint_path: Path | None,
     panic_flag: dict[str, Any],
 ) -> dict[str, str]:
+    """Español: Función upload_to_bucket del módulo panic.py.
+
+    English: Function upload_to_bucket defined in panic.py.
+    """
     uploaded: dict[str, str] = {}
     report_key = f"{prefix}/{report_path.name}"
     client.put_object(

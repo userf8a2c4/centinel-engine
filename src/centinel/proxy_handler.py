@@ -49,16 +49,16 @@ class ProxyValidator:
     """Valida proxies al inicio con un timeout configurable."""
 
     def __init__(
-        """Español: Función __init__ del módulo src/centinel/proxy_handler.py.
-
-        English: Function __init__ defined in src/centinel/proxy_handler.py.
-        """
         self,
         *,
         test_url: str = DEFAULT_PROXY_TEST_URL,
         timeout_seconds: float = 10.0,
         logger: Optional[logging.Logger] = None,
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/proxy_handler.py.
+
+        English: Function __init__ defined in src/centinel/proxy_handler.py.
+        """
         self.test_url = test_url
         self.timeout_seconds = timeout_seconds
         self.logger = logger or logging.getLogger(__name__)
@@ -103,10 +103,6 @@ class ProxyRotator:
     """Rotador de proxies con soporte para lista fija o rotación."""
 
     def __init__(
-        """Español: Función __init__ del módulo src/centinel/proxy_handler.py.
-
-        English: Function __init__ defined in src/centinel/proxy_handler.py.
-        """
         self,
         *,
         mode: str,
@@ -116,6 +112,10 @@ class ProxyRotator:
         proxy_timeout_seconds: float = DEFAULT_PROXY_TIMEOUT_SECONDS,
         logger: Optional[logging.Logger] = None,
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/proxy_handler.py.
+
+        English: Function __init__ defined in src/centinel/proxy_handler.py.
+        """
         self.mode = mode
         self.rotation_strategy = rotation_strategy
         self.rotation_every_n = max(rotation_every_n, 1)

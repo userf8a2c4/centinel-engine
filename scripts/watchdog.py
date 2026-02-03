@@ -230,12 +230,12 @@ def _check_heartbeat(config: WatchdogConfig) -> tuple[bool, str]:
 
 
 def _record_failures(
+    failures: dict[str, str], state: dict[str, Any], logger: logging.Logger
+) -> dict[str, dict[str, Any]]:
     """Español: Función _record_failures del módulo scripts/watchdog.py.
 
     English: Function _record_failures defined in scripts/watchdog.py.
     """
-    failures: dict[str, str], state: dict[str, Any], logger: logging.Logger
-) -> dict[str, dict[str, Any]]:
     now_iso = _utcnow().isoformat()
     tracked = state.setdefault("failures", {})
     for name, reason in failures.items():

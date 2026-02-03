@@ -57,10 +57,6 @@ class CheckpointManager:
     }
 
     def __init__(
-        """Español: Función __init__ del módulo src/centinel/checkpointing.py.
-
-        English: Function __init__ defined in src/centinel/checkpointing.py.
-        """
         self,
         bucket_name: str,
         prefix: str,
@@ -68,6 +64,10 @@ class CheckpointManager:
         run_id: str,
         encryption_key_env: str = "CHECKPOINT_KEY",
     ) -> None:
+        """Español: Función __init__ del módulo src/centinel/checkpointing.py.
+
+        English: Function __init__ defined in src/centinel/checkpointing.py.
+        """
         self.bucket_name = bucket_name
         self.prefix = prefix.rstrip("/")
         self.version = version
