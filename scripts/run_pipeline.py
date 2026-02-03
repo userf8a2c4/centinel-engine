@@ -13,10 +13,8 @@ from typing import Any
 import random
 import requests
 import yaml
-from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.triggers.cron import CronTrigger
-
 from anchor.arbitrum_anchor import anchor_batch, anchor_root
+from scripts.circuit_breaker import CircuitBreaker
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
 from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
@@ -154,6 +152,38 @@ def load_resilience_settings(config: dict[str, Any]) -> dict[str, Any]:
     """/** Carga configuración de resiliencia desde el config principal. / Load resilience settings from main config. **/"""
     resilience = config.get("resilience", {}) if isinstance(config, dict) else {}
     return resilience if isinstance(resilience, dict) else {}
+
+
+def load_circuit_breaker_settings(config: dict[str, Any]) -> dict[str, Any]:
+    """/** Carga configuración de circuit breaker. / Load circuit breaker settings. **/"""
+    breaker = config.get("circuit_breaker", {}) if isinstance(config, dict) else {}
+    return breaker if isinstance(breaker, dict) else {}
+
+
+def load_low_profile_settings(config: dict[str, Any]) -> dict[str, Any]:
+    """/** Carga configuración low-profile. / Load low-profile settings. **/"""
+    low_profile = config.get("low_profile", {}) if isinstance(config, dict) else {}
+    return low_profile if isinstance(low_profile, dict) else {}
+
+
+def resolve_poll_interval_seconds(config: dict[str, Any]) -> float:
+    """/** Resuelve intervalo base de polling. / Resolve base polling interval. **/"""
+    low_profile = load_low_profile_settings(config)
+    if low_profile.get("enabled", False):
+        base_minutes = float(low_profile.get("base_interval_minutes", 60))
+    else:
+        base_minutes = float(config.get("poll_interval_minutes", 60))
+    return max(60.0, base_minutes * 60.0)
+
+
+def resolve_poll_jitter_factor(config: dict[str, Any], rng: random.Random) -> float:
+    """/** Resuelve jitter para polling. / Resolve polling jitter factor. **/"""
+    low_profile = load_low_profile_settings(config)
+    if not low_profile.get("enabled", False):
+        return 1.0
+    jitter_percent = float(low_profile.get("jitter_percent", 25))
+    jitter = max(0.0, min(jitter_percent / 100.0, 0.5))
+    return rng.uniform(1.0 - jitter, 1.0 + jitter)
 
 
 def resolve_alert_paths(config: dict[str, Any]) -> tuple[Path, Path]:
@@ -705,7 +735,7 @@ def run_pipeline(config: dict[str, Any]):
         raise
 
 
-def safe_run_pipeline(config: dict[str, Any]) -> None:
+def safe_run_pipeline(config: dict[str, Any]) -> bool:
     """/** Ejecuta pipeline con protección contra fallas de red. / Run pipeline with protection against network failures. **"""
     resilience_settings = load_resilience_settings(config)
     auto_resume = build_auto_resume_settings(resilience_settings)
@@ -713,7 +743,7 @@ def safe_run_pipeline(config: dict[str, Any]) -> None:
     while True:
         try:
             run_pipeline(config)
-            return
+            return True
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
@@ -736,7 +766,7 @@ def safe_run_pipeline(config: dict[str, Any]) -> None:
             retryable = retry_on in {"any", "network"}
             attempt += 1
             if not auto_resume["enabled"] or not retryable or attempt >= auto_resume["max_attempts"]:
-                return
+                return False
             delay = compute_backoff_delay(
                 attempt, auto_resume["backoff_base_seconds"], auto_resume["backoff_max_seconds"]
             )
@@ -764,9 +794,9 @@ def safe_run_pipeline(config: dict[str, Any]) -> None:
             save_resilience_checkpoint(run_id, stage, error=str(exc))
             attempt += 1
             if not auto_resume["enabled"] or auto_resume["retry_on"] != "any":
-                raise
+                return False
             if attempt >= auto_resume["max_attempts"]:
-                raise
+                return False
             delay = compute_backoff_delay(
                 attempt, auto_resume["backoff_base_seconds"], auto_resume["backoff_max_seconds"]
             )
@@ -779,6 +809,67 @@ def safe_run_pipeline(config: dict[str, Any]) -> None:
                 delay_seconds=delay,
             )
             time.sleep(delay)
+
+
+def run_polling_loop(config: dict[str, Any], *, run_once: bool, run_now: bool) -> None:
+    """/** Loop principal de polling con circuit breaker y low-profile. / Main polling loop with circuit breaker and low-profile. **/"""
+    breaker_settings = load_circuit_breaker_settings(config)
+    breaker = CircuitBreaker(
+        failure_threshold=int(breaker_settings.get("failure_threshold", 5)),
+        failure_window_seconds=int(
+            breaker_settings.get("failure_window_seconds", 600)
+        ),
+        open_timeout_seconds=int(breaker_settings.get("open_timeout_seconds", 1800)),
+        half_open_after_seconds=int(
+            breaker_settings.get("half_open_after_seconds", 600)
+        ),
+        success_threshold=int(breaker_settings.get("success_threshold", 2)),
+        open_log_interval_seconds=int(
+            breaker_settings.get("open_log_interval_seconds", 300)
+        ),
+    )
+
+    if run_once:
+        safe_run_pipeline(config)
+        return
+
+    if run_now:
+        safe_run_pipeline(config)
+
+    rng = random.Random()
+    while True:
+        now = utcnow()
+        if not breaker.allow_request(now):
+            if breaker.should_log_open_wait(now):
+                logger.warning("Circuit OPEN – waiting")
+            sleep_for = min(300.0, breaker.seconds_until_half_open(now))
+            time.sleep(max(5.0, sleep_for))
+            continue
+
+        success = safe_run_pipeline(config)
+        if success:
+            breaker.record_success(now)
+        else:
+            opened = breaker.record_failure(now)
+            if opened and breaker.consume_open_alert():
+                log_event(
+                    logger,
+                    logging.CRITICAL,
+                    "circuit_breaker_open",
+                    failure_threshold=breaker.failure_threshold,
+                    window_seconds=breaker.failure_window_seconds,
+                )
+
+        base_interval = resolve_poll_interval_seconds(config)
+        jitter_factor = resolve_poll_jitter_factor(config, rng)
+        delay = base_interval * jitter_factor
+        log_event(
+            logger,
+            logging.INFO,
+            "polling_wait",
+            delay_seconds=round(delay, 2),
+        )
+        time.sleep(delay)
 
 
 def _read_hashes_for_anchor(batch_size: int) -> list[str]:
@@ -968,17 +1059,7 @@ def main():
         print("[!] Ejecución detenida por switch maestro (OFF)")
         return
 
-    if args.once:
-        safe_run_pipeline(config)
-        return
-
-    if args.run_now:
-        safe_run_pipeline(config)
-
-    scheduler = BlockingScheduler(timezone="UTC")
-    scheduler.add_job(lambda: safe_run_pipeline(config), CronTrigger(minute=0))
-    print("[+] Scheduler activo: ejecución horaria en minuto 00 UTC")
-    scheduler.start()
+    run_polling_loop(config, run_once=args.once, run_now=args.run_now)
 
 
 if __name__ == "__main__":

@@ -23,6 +23,10 @@ Es un sistema técnico independiente y open-source para observar y auditar datos
 
 **AUDIT ACTIVE** | En desarrollo activo | Preparado para polling cada 5 minutos en período electoral | Snapshots con hashing SHA-256 encadenado.
 
+## Circuit Breaker & Stealth Mode
+
+El pipeline incluye un **circuit breaker** y un modo **low-profile** configurables en `command_center/config.yaml` para soportar bloqueos, rate-limits y respuestas hostiles. El breaker abre tras fallas acumuladas en ventana, pausa el polling cuando está OPEN, registra `"Circuit OPEN – waiting"` cada 5 minutos y solo emite una alerta CRITICAL al abrir. El modo low-profile incrementa el intervalo base, añade jitter y rota user-agents + headers mínimos variables (Accept-Language y Referer). Consulta `command_center/config.yaml.example` para valores recomendados y una lista sugerida de user-agents realistas. 【F:command_center/config.yaml.example†L23-L110】
+
 ## Quick Start
 
 ```bash

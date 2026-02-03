@@ -31,6 +31,7 @@ import hashlib
 import json
 import logging
 import os
+import random
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -160,6 +161,7 @@ def download_with_retries(
     url: str,
     *,
     timeout: float = 10.0,
+    headers: Optional[dict[str, str]] = None,
 ) -> requests.Response:
     """/** Descarga con reintentos explícitos y backoff. / Download with explicit retries and backoff. **"""
     rules_thresholds = load_rules_thresholds()
@@ -184,7 +186,7 @@ def download_with_retries(
         for attempt in range(1, retry_max + 1):
             logger.info("download_attempt=%s/%s url=%s", attempt, retry_max, url)
             try:
-                response = session.get(url, timeout=timeout)
+                response = session.get(url, timeout=timeout, headers=headers)
                 response.raise_for_status()
                 return response
             except requests.exceptions.RequestException as exc:
@@ -205,14 +207,15 @@ def fetch_with_retry(
     url: str,
     *,
     timeout: float = 10.0,
+    headers: Optional[dict[str, str]] = None,
     session: Optional[requests.Session] = None,
 ) -> requests.Response:
     """/** Realiza request con reintentos fijos y backoff. / Perform request with fixed retries and backoff. **"""
     if session is None:
-        return download_with_retries(url, timeout=timeout)
+        return download_with_retries(url, timeout=timeout, headers=headers)
 
     try:
-        response = session.get(url, timeout=timeout)
+        response = session.get(url, timeout=timeout, headers=headers)
         response.raise_for_status()
         return response
     except requests.exceptions.RequestException as exc:
@@ -262,6 +265,49 @@ def build_retry_session(retry_max: int, backoff_factor: float) -> requests.Sessi
     session.mount("https://", adapter)
     session.mount("http://", adapter)
     return session
+
+
+def resolve_low_profile_settings(config: dict[str, Any]) -> dict[str, Any]:
+    """/** Normaliza configuración low-profile. / Normalize low-profile settings. **/"""
+    low_profile = config.get("low_profile", {}) if isinstance(config, dict) else {}
+    return low_profile if isinstance(low_profile, dict) else {}
+
+
+def build_request_headers(
+    config: dict[str, Any],
+    low_profile: dict[str, Any],
+    rng: random.Random,
+) -> dict[str, str]:
+    """/** Construye headers por request (low-profile opcional). / Build per-request headers (low-profile optional). **/"""
+    if not low_profile.get("enabled", False):
+        headers = config.get("headers", {}) if isinstance(config.get("headers"), dict) else {}
+        if "Accept" not in headers:
+            headers = {"Accept": "application/json", **headers}
+        return headers
+
+    user_agents = low_profile.get("user_agents", []) or []
+    accept_languages = low_profile.get("accept_languages", []) or []
+    referers = low_profile.get("referers", []) or []
+
+    headers: dict[str, str] = {
+        "Accept": "application/json",
+    }
+    if user_agents:
+        headers["User-Agent"] = rng.choice(user_agents)
+    if accept_languages:
+        headers["Accept-Language"] = rng.choice(accept_languages)
+    if referers:
+        headers["Referer"] = rng.choice(referers)
+    return headers
+
+
+def resolve_timeout_seconds(config: dict[str, Any], low_profile: dict[str, Any]) -> float:
+    """/** Resuelve timeout efectivo. / Resolve effective timeout. **/"""
+    if low_profile.get("enabled", False):
+        timeout_value = low_profile.get("timeout_seconds")
+        if timeout_value is not None:
+            return float(timeout_value)
+    return float(config.get("timeout", 10))
 
 
 def create_mock_snapshot() -> Path:
@@ -398,6 +444,9 @@ def process_sources(
 
     health_state = get_health_state()
 
+    low_profile = resolve_low_profile_settings(config)
+    rng = random.Random()
+
     for source in sources[:max_sources]:
         endpoint = resolve_endpoint(source, endpoints)
         if not endpoint:
@@ -409,9 +458,12 @@ def process_sources(
             continue
 
         try:
+            headers = build_request_headers(config, low_profile, rng)
+            timeout_seconds = resolve_timeout_seconds(config, low_profile)
             response = download_with_retries(
                 endpoint,
-                timeout=float(config.get("timeout", 10)),
+                timeout=timeout_seconds,
+                headers=headers,
             )
             try:
                 payload = response.json()
