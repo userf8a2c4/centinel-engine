@@ -1,7 +1,7 @@
-# C.E.N.T.I.N.E.L. — auditoría cívica de datos electorales públicos
+# Proyecto C.E.N.T.I.N.E.L. 
 
 ## Descripción breve
-C.E.N.T.I.N.E.L. es un sistema técnico independiente y open-source para observar y auditar datos electorales **públicos** en Honduras. Genera evidencia verificable (hashes, diffs, snapshots, metadatos) sin interpretar resultados ni sustituir a ninguna autoridad. Opera de forma cívica, defensiva y no intrusiva.
+Es un sistema técnico independiente y open-source para observar y auditar datos electorales **públicos** en Honduras. Genera evidencia verificable (hashes, diffs, snapshots, metadatos) sin interpretar resultados ni sustituir a ninguna autoridad. Opera de forma cívica, defensiva y no intrusiva.
 
 ## Características principales
 - Evidencia técnica reproducible con hashes y snapshots encadenados.
@@ -11,9 +11,9 @@ C.E.N.T.I.N.E.L. es un sistema técnico independiente y open-source para observa
 - Configuración centralizada en [`command_center/`](command_center/).
 
 ## Estado actual del proyecto
-**DEV**.
+**En desarrollo**.
 
-## Quick Start (4–6 comandos)
+## Quick Start
 ```bash
 poetry install
 poetry run python scripts/bootstrap.py
@@ -34,13 +34,12 @@ make pipeline
 <details>
 <summary><strong>Detalles operativos / Operational details</strong></summary>
 
-- **Legalidad y límites**: acceso a datos públicos, sin datos personales, sin interferencia. / public data only, no personal data, no interference. Ver /docs/manual.md y /docs/operating_principles.md.
-- **Flujo operativo**: captura → hashing encadenado → normalización → reglas → reportes reproducibles. / capture → chained hashing → normalization → rules → reproducible reports. Ver /docs/methodology.md.
-- **Control centralizado**: toda configuración editable está en `command_center/` para evitar ambigüedad. / all editable configuration lives in `command_center/` to avoid ambiguity.
-- **Cadencia**: mantenimiento mensual, monitoreo 24–72h, elección activa 5–15 min. / monthly maintenance, 24–72h monitoring, 5–15 min active election. Ver /docs/manual.md.
-- **Arbitrum (opcional)**: anclaje L2 para sellar integridad de snapshots. / optional L2 anchoring for snapshot integrity. Ver /docs/ANCHOR_SETUP_GUIDE.md.
+- **Legalidad y límites**: acceso a datos públicos, sin datos personales, sin interferencia. Ver [manual](docs/manual.md) y [principios operativos](docs/operating_principles.md).
+- **Flujo operativo**: captura → hashing encadenado → normalización → reglas → reportes reproducibles. Ver Ver [metodología](docs/methodology.md) .
+- **Control centralizado**: toda configuración editable está en `command_center/` para evitar ambigüedad.
+- **Cadencia**: mantenimiento mensual, monitoreo 24–72h, elección activa 5–15 min. Ver [manual](docs/manual.md).
+- **Arbitrum (opcional)**: anclaje L2 para sellar integridad de snapshots. Ver [guía de anclaje](docs/ANCHOR_SETUP_GUIDE.md).
 </details>
 
 ## Disclaimer / Descargo
-Este repositorio procesa únicamente datos públicos publicados por el CNE y otras fuentes oficiales; documenta hechos técnicos verificables (hashes, diffs, metadatos) sin interpretación política ni partidaria.
-This repository processes only public data published by the CNE and other official sources; it documents verifiable technical facts (hashes, diffs, metadata) without political or partisan interpretation.
+- Este repositorio procesa únicamente datos públicos publicados por el CNE y otras fuentes oficiales; documenta hechos técnicos verificables (hashes, diffs, metadatos) sin interpretación política ni partidaria.
