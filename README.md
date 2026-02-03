@@ -23,10 +23,6 @@ Es un sistema técnico independiente y open-source para observar y auditar datos
 
 **AUDIT ACTIVE** | En desarrollo activo | Preparado para polling cada 5 minutos en período electoral | Snapshots con hashing SHA-256 encadenado.
 
-## Circuit Breaker & Stealth Mode
-
-El pipeline incluye un **circuit breaker** y un modo **low-profile** configurables en `command_center/config.yaml` para soportar bloqueos, rate-limits y respuestas hostiles. El breaker abre tras fallas acumuladas en ventana, pausa el polling cuando está OPEN, registra `"Circuit OPEN – waiting"` cada 5 minutos y solo emite una alerta CRITICAL al abrir. El modo low-profile incrementa el intervalo base, añade jitter y rota user-agents + headers mínimos variables (Accept-Language y Referer). Consulta `command_center/config.yaml.example` para valores recomendados y una lista sugerida de user-agents realistas. 【F:command_center/config.yaml.example†L23-L110】
-
 ## Quick Start
 
 ```bash
@@ -35,20 +31,6 @@ poetry run python scripts/bootstrap.py
 poetry run python scripts/run_pipeline.py --once
 make pipeline
 ```
-
-## Retry & Resilience Configuration
-
-El pipeline ahora usa un esquema de reintentos configurable vía `retry_config.yaml`, con políticas diferenciadas por status HTTP y tipo de excepción (429, 5xx, 4xx, timeouts, parsing). Esto permite backoff exponencial y jitter ajustables, límites de intentos por error y acciones de alerta cuando el servidor rechaza la solicitud. Además, se registra un historial de fallos definitivos en `failed_requests.jsonl` y se evita descargar snapshots duplicados si existe un archivo reciente para la misma fuente (idempotencia basada en timestamp).【F:retry_config.yaml†L1-L67】【F:scripts/download_and_hash.py†L134-L207】【F:src/centinel/downloader.py†L1-L351】
-
-**Ejemplo de uso en `run_pipeline.py`:**
-
-```bash
-# Ruta custom para el YAML de reintentos
-export RETRY_CONFIG_PATH=retry_config.yaml
-poetry run python scripts/run_pipeline.py --once
-```
-
-El `run_pipeline` pasa `RETRY_CONFIG_PATH` al subproceso de descarga para que `scripts/download_and_hash.py` aplique la configuración especificada.【F:scripts/run_pipeline.py†L362-L589】
 
 ## Enlaces importantes / Documentación
 
@@ -59,6 +41,7 @@ El `run_pipeline` pasa `RETRY_CONFIG_PATH` al subproceso de descarga para que `s
 | [Metodología](docs/methodology.md) | [Límites legales y operativos](docs/LEGAL-AND-OPERATIONAL-BOUNDARIES.md) |
 | [Principios operativos](docs/operating_principles.md) | [Seguridad](docs/security.md) |
 | [Reglas](docs/rules.md) | [Secretos y respaldos](docs/SECRETS_BACKUP.md) |
+| [Resiliencia y reintentos](docs/resilience.md) | [Circuit breaker y low-profile](docs/resilience.md#circuit-breaker-y-low-profile) |
 
 <details>
 <summary><strong>Detalles operativos</strong></summary>
