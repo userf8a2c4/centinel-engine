@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Streamlit Community Cloud
-        uses: streamlit/deploy-streamlit@v1
+        uses: streamlit/streamlit-deploy@v1
         with:
           app-path: "dashboard.py"
           branch: "${{ github.ref_name }}"
