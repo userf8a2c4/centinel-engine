@@ -168,6 +168,7 @@ def download_with_retries(
     url: str,
     *,
     timeout: float | None = None,
+    headers: dict[str, str] | None = None,
 ) -> requests.Response:
     """/** Descarga con reintentos configurables (tenacity). / Download with configurable retries (tenacity). **"""
     retry_config = load_retry_config(DEFAULT_RETRY_CONFIG_PATH)
@@ -180,6 +181,7 @@ def download_with_retries(
             url,
             retry_config=retry_config,
             timeout=timeout,
+            headers=headers,
             logger=structured_logger,
             context={"scope": "download_with_retries"},
             alert_hook=alert_hook,
@@ -192,6 +194,7 @@ def fetch_with_retry(
     url: str,
     *,
     timeout: float | None = None,
+    headers: dict[str, str] | None = None,
     session: Optional[requests.Session] = None,
 ) -> requests.Response:
     """/** Realiza request con reintentos fijos y backoff. / Perform request with fixed retries and backoff. **"""
@@ -207,6 +210,7 @@ def fetch_with_retry(
             url,
             retry_config=retry_config,
             timeout=timeout,
+            headers=headers,
             logger=structured_logger,
             context={"scope": "fetch_with_retry"},
             alert_hook=alert_hook,
