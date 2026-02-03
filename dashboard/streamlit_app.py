@@ -13,12 +13,20 @@ from pathlib import Path
 from typing import Any
 
 import altair as alt
-import boto3
+import importlib
+import importlib.util
 import pandas as pd
-import psutil
 from dateutil import parser as date_parser
 import streamlit as st
 import asyncio
+
+_BOTO3_SPEC = importlib.util.find_spec("boto3")
+BOTO3_AVAILABLE = _BOTO3_SPEC is not None
+boto3 = importlib.import_module("boto3") if BOTO3_AVAILABLE else None
+
+_PSUTIL_SPEC = importlib.util.find_spec("psutil")
+PSUTIL_AVAILABLE = _PSUTIL_SPEC is not None
+psutil = importlib.import_module("psutil") if PSUTIL_AVAILABLE else None
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
@@ -214,20 +222,38 @@ def render_admin_gate() -> bool:
     query_token = _get_query_param("admin")
 
     if token and query_token and query_token == token:
+        st.session_state.admin_authenticated = True
         return True
 
     if not expected_user or not expected_password:
-        st.error(
+        st.warning(
             "Autenticación no configurada. Define admin_user y admin_password en st.secrets."
         )
+        st.markdown(
+            "- Agrega las claves en `.streamlit/secrets.toml` o en las variables del entorno.\n"
+            "- Reinicia la app para aplicar los cambios.\n"
+            "- También puedes habilitar acceso rápido con `admin_token`."
+        )
+        st.code("https://<host>/?admin=TU_TOKEN", language="text")
         return False
 
     if st.session_state.get("admin_authenticated"):
+        st.success("Acceso administrativo activo.")
         return True
 
+    st.markdown("#### Acceso administrativo")
+    st.caption("Ingresa tus credenciales para habilitar el panel de mantenimiento.")
     with st.form("admin_login"):
-        user = st.text_input("Usuario")
-        password = st.text_input("Contraseña", type="password")
+        form_cols = st.columns(2)
+        with form_cols[0]:
+            user = st.text_input("Usuario", placeholder="admin")
+        with form_cols[1]:
+            show_password = st.checkbox("Mostrar contraseña", value=False)
+        password = st.text_input(
+            "Contraseña",
+            type="default" if show_password else "password",
+            placeholder="••••••••",
+        )
         submitted = st.form_submit_button("Ingresar")
         if submitted:
             if user == expected_user and password == expected_password:
@@ -318,6 +344,12 @@ def _check_bucket_connection() -> dict[str, Any]:
     bucket = os.getenv("CHECKPOINT_BUCKET", "").strip()
     if not bucket:
         return {"status": "No configurado", "latency_ms": None, "message": ""}
+    if not BOTO3_AVAILABLE:
+        return {
+            "status": "No disponible",
+            "latency_ms": None,
+            "message": "Instala boto3 para habilitar la verificación S3.",
+        }
     endpoint = os.getenv("STORAGE_ENDPOINT_URL")
     region = os.getenv("AWS_REGION", "us-east-1")
     start = time.perf_counter()
@@ -2100,7 +2132,9 @@ with tabs[5]:
     )
     access_granted = render_admin_gate()
     if not access_granted:
-        st.info("Acceso restringido: autentícate para ver el estado del sistema.")
+        st.info(
+            "Acceso restringido: autentícate para ver métricas internas y controles avanzados."
+        )
     else:
         refresh_cols = st.columns([0.4, 0.6])
         with refresh_cols[0]:
@@ -2234,15 +2268,24 @@ with tabs[5]:
 
         st.markdown("#### Recursos en tiempo real")
         resource_cols = st.columns(3)
-        cpu_percent = psutil.cpu_percent(interval=0.2)
-        memory_percent = psutil.virtual_memory().percent
-        disk_percent = psutil.disk_usage("/").percent
+        if PSUTIL_AVAILABLE:
+            cpu_percent = psutil.cpu_percent(interval=0.2)
+            memory_percent = psutil.virtual_memory().percent
+            disk_percent = psutil.disk_usage("/").percent
+        else:
+            cpu_percent = memory_percent = disk_percent = None
+            st.info("Instala psutil para habilitar métricas de recursos en tiempo real.")
         with resource_cols[0]:
-            st.metric("CPU", f"{cpu_percent:.1f}%")
+            cpu_label = f"{cpu_percent:.1f}%" if cpu_percent is not None else "N/D"
+            st.metric("CPU", cpu_label)
         with resource_cols[1]:
-            st.metric("Memoria", f"{memory_percent:.1f}%")
+            memory_label = (
+                f"{memory_percent:.1f}%" if memory_percent is not None else "N/D"
+            )
+            st.metric("Memoria", memory_label)
         with resource_cols[2]:
-            st.metric("Disco", f"{disk_percent:.1f}%")
+            disk_label = f"{disk_percent:.1f}%" if disk_percent is not None else "N/D"
+            st.metric("Disco", disk_label)
 
         connection_cols = st.columns(3)
         with connection_cols[0]:
