@@ -39,7 +39,7 @@ def test_process_sources_handles_connection_error(monkeypatch, tmp_path) -> None
     def _raise_error(*_args, **_kwargs):
         raise requests.ConnectionError("network down")
 
-    monkeypatch.setattr(download_and_hash, "fetch_with_retry", _raise_error)
+    monkeypatch.setattr(download_and_hash, "request_json_with_retry", _raise_error)
 
     sources = [{"source_id": "NACIONAL", "endpoint": "https://cne.hn/nacional"}]
     config = {"max_sources_per_cycle": 1}
@@ -77,8 +77,8 @@ def test_process_sources_saves_snapshot(monkeypatch, tmp_path) -> None:
 
     monkeypatch.setattr(
         download_and_hash,
-        "fetch_with_retry",
-        lambda *_args, **_kwargs: response,
+        "request_json_with_retry",
+        lambda *_args, **_kwargs: (response, response.json()),
     )
 
     sources = [{"source_id": "NACIONAL", "endpoint": "https://cne.hn/nacional"}]

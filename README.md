@@ -32,6 +32,20 @@ poetry run python scripts/run_pipeline.py --once
 make pipeline
 ```
 
+## Retry & Resilience Configuration
+
+El pipeline ahora usa un esquema de reintentos configurable vía `retry_config.yaml`, con políticas diferenciadas por status HTTP y tipo de excepción (429, 5xx, 4xx, timeouts, parsing). Esto permite backoff exponencial y jitter ajustables, límites de intentos por error y acciones de alerta cuando el servidor rechaza la solicitud. Además, se registra un historial de fallos definitivos en `failed_requests.jsonl` y se evita descargar snapshots duplicados si existe un archivo reciente para la misma fuente (idempotencia basada en timestamp).【F:retry_config.yaml†L1-L67】【F:scripts/download_and_hash.py†L134-L207】【F:src/centinel/downloader.py†L1-L351】
+
+**Ejemplo de uso en `run_pipeline.py`:**
+
+```bash
+# Ruta custom para el YAML de reintentos
+export RETRY_CONFIG_PATH=retry_config.yaml
+poetry run python scripts/run_pipeline.py --once
+```
+
+El `run_pipeline` pasa `RETRY_CONFIG_PATH` al subproceso de descarga para que `scripts/download_and_hash.py` aplique la configuración especificada.【F:scripts/run_pipeline.py†L362-L589】
+
 ## Enlaces importantes / Documentación
 
 | Documentación | Operación y seguridad |
