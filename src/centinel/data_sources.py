@@ -129,10 +129,18 @@ class DataSourceSettings(BaseSettings):
 
     @property
     def storage_path(self) -> Path:
+        """Español: Función storage_path del módulo src/centinel/data_sources.py.
+
+        English: Function storage_path defined in src/centinel/data_sources.py.
+        """
         return self.STORAGE_PATH
 
     @property
     def checkpoint_path(self) -> Path:
+        """Español: Función checkpoint_path del módulo src/centinel/data_sources.py.
+
+        English: Function checkpoint_path defined in src/centinel/data_sources.py.
+        """
         return self.STORAGE_PATH / "checkpoints" / self.CHECKPOINT_FILENAME
 
 
@@ -171,6 +179,10 @@ class DataSourceManager:
     """Administra la selección de fuentes con fallback automático."""
 
     def __init__(
+        """Español: Función __init__ del módulo src/centinel/data_sources.py.
+
+        English: Function __init__ defined in src/centinel/data_sources.py.
+        """
         self,
         settings: DataSourceSettings,
         *,
@@ -188,9 +200,17 @@ class DataSourceManager:
         self._last_successful_source_id = self._load_checkpoint()
 
     async def __aenter__(self) -> "DataSourceManager":
+        """Español: Función asíncrona __aenter__ del módulo src/centinel/data_sources.py.
+
+        English: Async function __aenter__ defined in src/centinel/data_sources.py.
+        """
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:  # noqa: ANN001
+        """Español: Función asíncrona __aexit__ del módulo src/centinel/data_sources.py.
+
+        English: Async function __aexit__ defined in src/centinel/data_sources.py.
+        """
         await self._client.aclose()
 
     async def get_next_batch(self) -> Optional[List[Acta]]:
@@ -230,6 +250,10 @@ class DataSourceManager:
         )
 
     def _starting_index(self) -> int:
+        """Español: Función _starting_index del módulo src/centinel/data_sources.py.
+
+        English: Function _starting_index defined in src/centinel/data_sources.py.
+        """
         if not self._last_successful_source_id:
             return 0
         for idx, source in enumerate(self.sources):
@@ -238,6 +262,10 @@ class DataSourceManager:
         return 0
 
     async def _fetch_with_retries(self, source: DataSourceDefinition) -> List[Acta]:
+        """Español: Función asíncrona _fetch_with_retries del módulo src/centinel/data_sources.py.
+
+        English: Async function _fetch_with_retries defined in src/centinel/data_sources.py.
+        """
         retries = source.retries or 3
         timeout_seconds = source.timeout_seconds or 10
         last_error: Optional[Exception] = None
@@ -265,6 +293,10 @@ class DataSourceManager:
         )
 
     async def _fetch_from_source(self, source: DataSourceDefinition) -> List[Acta]:
+        """Español: Función asíncrona _fetch_from_source del módulo src/centinel/data_sources.py.
+
+        English: Async function _fetch_from_source defined in src/centinel/data_sources.py.
+        """
         if source.kind in {
             DataSourceKind.CNE_API,
             DataSourceKind.MIRROR_BUCKET,
@@ -281,6 +313,10 @@ class DataSourceManager:
         raise DataSourceError(f"Unsupported source kind: {source.kind}")
 
     async def _fetch_http_json(self, source: DataSourceDefinition) -> List[Acta]:
+        """Español: Función asíncrona _fetch_http_json del módulo src/centinel/data_sources.py.
+
+        English: Async function _fetch_http_json defined in src/centinel/data_sources.py.
+        """
         if not source.base_url:
             raise DataSourceError(
                 f"Source {source.source_id} requires base_url for HTTP fetch."
@@ -303,6 +339,10 @@ class DataSourceManager:
         return self._extract_batch(payload, source)
 
     def _extract_batch(self, payload: Any, source: DataSourceDefinition) -> List[Acta]:
+        """Español: Función _extract_batch del módulo src/centinel/data_sources.py.
+
+        English: Function _extract_batch defined in src/centinel/data_sources.py.
+        """
         if isinstance(payload, list):
             return payload
         if isinstance(payload, dict):
@@ -326,6 +366,10 @@ class DataSourceManager:
         )
 
     def _load_checkpoint(self) -> Optional[str]:
+        """Español: Función _load_checkpoint del módulo src/centinel/data_sources.py.
+
+        English: Function _load_checkpoint defined in src/centinel/data_sources.py.
+        """
         path = self.settings.checkpoint_path
         if not path.exists():
             return None
@@ -339,6 +383,10 @@ class DataSourceManager:
         return data.get("last_successful_source_id")
 
     def _save_checkpoint(self, source_id: str) -> None:
+        """Español: Función _save_checkpoint del módulo src/centinel/data_sources.py.
+
+        English: Function _save_checkpoint defined in src/centinel/data_sources.py.
+        """
         payload = DataSourceCheckpoint(
             last_successful_source_id=source_id,
             updated_at=datetime.now(timezone.utc).isoformat(),

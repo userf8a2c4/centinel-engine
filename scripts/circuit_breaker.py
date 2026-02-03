@@ -29,14 +29,26 @@ class CircuitBreaker:
     _alert_sent: bool = False
 
     def _now(self) -> datetime:
+        """Español: Función _now del módulo scripts/circuit_breaker.py.
+
+        English: Function _now defined in scripts/circuit_breaker.py.
+        """
         return datetime.now(timezone.utc)
 
     def _trim_failures(self, now: datetime) -> None:
+        """Español: Función _trim_failures del módulo scripts/circuit_breaker.py.
+
+        English: Function _trim_failures defined in scripts/circuit_breaker.py.
+        """
         window = timedelta(seconds=self.failure_window_seconds)
         while self._failures and now - self._failures[0] > window:
             self._failures.popleft()
 
     def _open(self, now: datetime) -> bool:
+        """Español: Función _open del módulo scripts/circuit_breaker.py.
+
+        English: Function _open defined in scripts/circuit_breaker.py.
+        """
         if self.state == "OPEN":
             return False
         self.state = "OPEN"
@@ -47,12 +59,20 @@ class CircuitBreaker:
         return True
 
     def _half_open(self, now: datetime) -> None:
+        """Español: Función _half_open del módulo scripts/circuit_breaker.py.
+
+        English: Function _half_open defined in scripts/circuit_breaker.py.
+        """
         self.state = "HALF_OPEN"
         self._half_open_successes = 0
         self._opened_at = now
         self._next_log_at = None
 
     def _close(self) -> None:
+        """Español: Función _close del módulo scripts/circuit_breaker.py.
+
+        English: Function _close defined in scripts/circuit_breaker.py.
+        """
         self.state = "CLOSED"
         self._failures.clear()
         self._opened_at = None
@@ -61,12 +81,20 @@ class CircuitBreaker:
         self._alert_sent = False
 
     def _next_half_open_at(self) -> datetime | None:
+        """Español: Función _next_half_open_at del módulo scripts/circuit_breaker.py.
+
+        English: Function _next_half_open_at defined in scripts/circuit_breaker.py.
+        """
         if not self._opened_at:
             return None
         wait_seconds = min(self.half_open_after_seconds, self.open_timeout_seconds)
         return self._opened_at + timedelta(seconds=wait_seconds)
 
     def seconds_until_half_open(self, now: datetime | None = None) -> float:
+        """Español: Función seconds_until_half_open del módulo scripts/circuit_breaker.py.
+
+        English: Function seconds_until_half_open defined in scripts/circuit_breaker.py.
+        """
         now = now or self._now()
         target = self._next_half_open_at()
         if not target:
@@ -74,6 +102,10 @@ class CircuitBreaker:
         return max(0.0, (target - now).total_seconds())
 
     def allow_request(self, now: datetime | None = None) -> bool:
+        """Español: Función allow_request del módulo scripts/circuit_breaker.py.
+
+        English: Function allow_request defined in scripts/circuit_breaker.py.
+        """
         now = now or self._now()
         if self.state != "OPEN":
             return True
@@ -84,6 +116,10 @@ class CircuitBreaker:
         return False
 
     def record_failure(self, now: datetime | None = None) -> bool:
+        """Español: Función record_failure del módulo scripts/circuit_breaker.py.
+
+        English: Function record_failure defined in scripts/circuit_breaker.py.
+        """
         now = now or self._now()
         if self.state == "HALF_OPEN":
             return self._open(now)
@@ -94,6 +130,10 @@ class CircuitBreaker:
         return False
 
     def record_success(self, now: datetime | None = None) -> bool:
+        """Español: Función record_success del módulo scripts/circuit_breaker.py.
+
+        English: Function record_success defined in scripts/circuit_breaker.py.
+        """
         if self.state != "HALF_OPEN":
             return False
         self._half_open_successes += 1
@@ -103,6 +143,10 @@ class CircuitBreaker:
         return False
 
     def should_log_open_wait(self, now: datetime | None = None) -> bool:
+        """Español: Función should_log_open_wait del módulo scripts/circuit_breaker.py.
+
+        English: Function should_log_open_wait defined in scripts/circuit_breaker.py.
+        """
         if self.state != "OPEN":
             return False
         now = now or self._now()
@@ -112,6 +156,10 @@ class CircuitBreaker:
         return False
 
     def consume_open_alert(self) -> bool:
+        """Español: Función consume_open_alert del módulo scripts/circuit_breaker.py.
+
+        English: Function consume_open_alert defined in scripts/circuit_breaker.py.
+        """
         if self.state != "OPEN" or self._alert_sent:
             return False
         self._alert_sent = True

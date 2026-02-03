@@ -22,6 +22,10 @@ from sentinel.core.hashchain import compute_hash
 
 @dataclass
 class HashEntry:
+    """Español: Clase HashEntry del módulo scripts/validate_hashes.py.
+
+    English: HashEntry class defined in scripts/validate_hashes.py.
+    """
     name: str
     stored_hash: str
     stored_current_hash: str | None = None
@@ -29,6 +33,10 @@ class HashEntry:
 
 @dataclass
 class ValidationResult:
+    """Español: Clase ValidationResult del módulo scripts/validate_hashes.py.
+
+    English: ValidationResult class defined in scripts/validate_hashes.py.
+    """
     ok: bool
     error_snapshot: str | None = None
     root_hash: str | None = None
@@ -36,11 +44,19 @@ class ValidationResult:
 
 @dataclass
 class AnchorResult:
+    """Español: Clase AnchorResult del módulo scripts/validate_hashes.py.
+
+    English: AnchorResult class defined in scripts/validate_hashes.py.
+    """
     ok: bool
     message: str
 
 
 def _load_hash_entries(hashes_dir: Path) -> list[HashEntry]:
+    """Español: Función _load_hash_entries del módulo scripts/validate_hashes.py.
+
+    English: Function _load_hash_entries defined in scripts/validate_hashes.py.
+    """
     entries: list[HashEntry] = []
     for hash_file in sorted(hashes_dir.glob("snapshot_*.sha256")):
         raw = hash_file.read_text(encoding="utf-8").strip()
@@ -68,6 +84,10 @@ def _load_hash_entries(hashes_dir: Path) -> list[HashEntry]:
 
 
 def _canonical_json(snapshot_path: Path) -> str:
+    """Español: Función _canonical_json del módulo scripts/validate_hashes.py.
+
+    English: Function _canonical_json defined in scripts/validate_hashes.py.
+    """
     text = snapshot_path.read_text(encoding="utf-8")
     try:
         payload = json.loads(text)
@@ -77,6 +97,10 @@ def _canonical_json(snapshot_path: Path) -> str:
 
 
 def _validate_hash_dir(hashes_dir: Path, data_dir: Path) -> ValidationResult:
+    """Español: Función _validate_hash_dir del módulo scripts/validate_hashes.py.
+
+    English: Function _validate_hash_dir defined in scripts/validate_hashes.py.
+    """
     entries = _load_hash_entries(hashes_dir)
     if not entries:
         return ValidationResult(ok=False, error_snapshot="sin_hashes")
@@ -102,6 +126,10 @@ def _validate_hash_dir(hashes_dir: Path, data_dir: Path) -> ValidationResult:
 
 
 def _iter_sqlite_entries(connection: sqlite3.Connection) -> Iterable[dict]:
+    """Español: Función _iter_sqlite_entries del módulo scripts/validate_hashes.py.
+
+    English: Function _iter_sqlite_entries defined in scripts/validate_hashes.py.
+    """
     return connection.execute(
         """
         SELECT department_code, timestamp_utc, table_name, hash, previous_hash
@@ -112,6 +140,10 @@ def _iter_sqlite_entries(connection: sqlite3.Connection) -> Iterable[dict]:
 
 
 def _load_canonical_snapshot(connection: sqlite3.Connection, table_name: str, snapshot_hash: str) -> str | None:
+    """Español: Función _load_canonical_snapshot del módulo scripts/validate_hashes.py.
+
+    English: Function _load_canonical_snapshot defined in scripts/validate_hashes.py.
+    """
     row = connection.execute(
         f"""
         SELECT canonical_json
@@ -127,6 +159,10 @@ def _load_canonical_snapshot(connection: sqlite3.Connection, table_name: str, sn
 
 
 def _validate_sqlite(sqlite_path: Path) -> ValidationResult:
+    """Español: Función _validate_sqlite del módulo scripts/validate_hashes.py.
+
+    English: Function _validate_sqlite defined in scripts/validate_hashes.py.
+    """
     if not sqlite_path.exists():
         return ValidationResult(ok=False, error_snapshot="sqlite_missing")
 
@@ -167,6 +203,10 @@ def _validate_sqlite(sqlite_path: Path) -> ValidationResult:
 
 
 def _find_anchor_record(anchor_dir: Path) -> dict | None:
+    """Español: Función _find_anchor_record del módulo scripts/validate_hashes.py.
+
+    English: Function _find_anchor_record defined in scripts/validate_hashes.py.
+    """
     if not anchor_dir.exists():
         return None
     candidates = sorted(anchor_dir.glob("anchor_snapshot_*.json"), key=lambda p: p.stat().st_mtime)
@@ -180,6 +220,10 @@ def _find_anchor_record(anchor_dir: Path) -> dict | None:
 
 
 def _verify_anchor(root_hash: str | None, anchor_hash: str | None, anchor_dir: Path) -> AnchorResult:
+    """Español: Función _verify_anchor del módulo scripts/validate_hashes.py.
+
+    English: Function _verify_anchor defined in scripts/validate_hashes.py.
+    """
     if not root_hash:
         return AnchorResult(ok=False, message="Sin hash raíz para validar anclaje.")
 
@@ -205,6 +249,10 @@ def _verify_anchor(root_hash: str | None, anchor_hash: str | None, anchor_dir: P
 
 
 def main() -> None:
+    """Español: Función main del módulo scripts/validate_hashes.py.
+
+    English: Function main defined in scripts/validate_hashes.py.
+    """
     parser = argparse.ArgumentParser(
         description="Valida la cadena de hashes usando hashes/ o SQLite."
     )

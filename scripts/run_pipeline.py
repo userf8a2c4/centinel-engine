@@ -1,3 +1,8 @@
+"""Español: Módulo con utilidades y definiciones para scripts/run_pipeline.py.
+
+English: Module utilities and definitions for scripts/run_pipeline.py.
+"""
+
 import argparse
 import hashlib
 import json

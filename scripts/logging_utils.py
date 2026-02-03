@@ -123,10 +123,18 @@ class SensitiveDataFilter(logging.Filter):
     """/** Filtro seguro para redacción de secretos. / Secure filter to redact secrets. **/"""
 
     def __init__(self, sensitive_values: Iterable[str]) -> None:
+        """Español: Función __init__ del módulo scripts/logging_utils.py.
+
+        English: Function __init__ defined in scripts/logging_utils.py.
+        """
         super().__init__()
         self._sensitive_values = [value for value in sensitive_values if value]
 
     def filter(self, record: logging.LogRecord) -> bool:
+        """Español: Función filter del módulo scripts/logging_utils.py.
+
+        English: Function filter defined in scripts/logging_utils.py.
+        """
         message = str(record.getMessage())
         for value in self._sensitive_values:
             if value and value in message:
@@ -141,6 +149,10 @@ class SanitizingFilter(logging.Filter):
     """/** Filtro para scrub de números grandes y strings sospechosas. / Filter to scrub large numbers and suspicious strings. **/"""
 
     def filter(self, record: logging.LogRecord) -> bool:
+        """Español: Función filter del módulo scripts/logging_utils.py.
+
+        English: Function filter defined in scripts/logging_utils.py.
+        """
         message = str(record.getMessage())
         message = LARGE_NUMBER_PATTERN.sub("[REDACTED_NUM]", message)
         for pattern in SUSPICIOUS_STRING_PATTERNS:

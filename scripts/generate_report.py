@@ -43,6 +43,10 @@ from reportlab.platypus import (
 
 
 def load_snapshot_files(base_dir: Path) -> list[dict]:
+    """Español: Función load_snapshot_files del módulo scripts/generate_report.py.
+
+    English: Function load_snapshot_files defined in scripts/generate_report.py.
+    """
     snapshots = []
     for path in sorted(base_dir.glob("snapshot_*.json")):
         content = path.read_text(encoding="utf-8")
@@ -74,6 +78,10 @@ def load_snapshot_files(base_dir: Path) -> list[dict]:
 
 
 def build_snapshot_metrics(snapshot_files: list[dict]) -> pd.DataFrame:
+    """Español: Función build_snapshot_metrics del módulo scripts/generate_report.py.
+
+    English: Function build_snapshot_metrics defined in scripts/generate_report.py.
+    """
     if not snapshot_files:
         return pd.DataFrame(
             columns=[
@@ -155,6 +163,10 @@ def build_snapshot_metrics(snapshot_files: list[dict]) -> pd.DataFrame:
 
 
 def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
+    """Español: Función build_anomalies del módulo scripts/generate_report.py.
+
+    English: Function build_anomalies defined in scripts/generate_report.py.
+    """
     if df.empty:
         return pd.DataFrame(
             columns=[
@@ -200,6 +212,10 @@ def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_heatmap(anomalies: pd.DataFrame) -> pd.DataFrame:
+    """Español: Función build_heatmap del módulo scripts/generate_report.py.
+
+    English: Function build_heatmap defined in scripts/generate_report.py.
+    """
     if anomalies.empty:
         return pd.DataFrame()
     anomalies = anomalies.copy()
@@ -213,6 +229,10 @@ def build_heatmap(anomalies: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_benford_data() -> pd.DataFrame:
+    """Español: Función build_benford_data del módulo scripts/generate_report.py.
+
+    English: Function build_benford_data defined in scripts/generate_report.py.
+    """
     expected = [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6]
     observed = [29.3, 18.2, 12.1, 10.4, 7.2, 6.9, 5.5, 5.0, 5.4]
     digits = list(range(1, 10))
@@ -220,6 +240,10 @@ def build_benford_data() -> pd.DataFrame:
 
 
 def _register_pdf_fonts() -> tuple[str, str]:
+    """Español: Función _register_pdf_fonts del módulo scripts/generate_report.py.
+
+    English: Function _register_pdf_fonts defined in scripts/generate_report.py.
+    """
     font_candidates = [
         ("Arial", "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"),
         ("Arial", "/usr/share/fonts/truetype/msttcorefonts/arial.ttf"),
@@ -246,15 +270,31 @@ def _register_pdf_fonts() -> tuple[str, str]:
 
 
 class NumberedCanvas(reportlab_canvas.Canvas):
+    """Español: Clase NumberedCanvas del módulo scripts/generate_report.py.
+
+    English: NumberedCanvas class defined in scripts/generate_report.py.
+    """
     def __init__(self, *args, **kwargs) -> None:
+        """Español: Función __init__ del módulo scripts/generate_report.py.
+
+        English: Function __init__ defined in scripts/generate_report.py.
+        """
         super().__init__(*args, **kwargs)
         self._saved_page_states = []
 
     def showPage(self) -> None:
+        """Español: Función showPage del módulo scripts/generate_report.py.
+
+        English: Function showPage defined in scripts/generate_report.py.
+        """
         self._saved_page_states.append(dict(self.__dict__))
         self._startPage()
 
     def save(self) -> None:
+        """Español: Función save del módulo scripts/generate_report.py.
+
+        English: Function save defined in scripts/generate_report.py.
+        """
         total_pages = len(self._saved_page_states)
         for state in self._saved_page_states:
             self.__dict__.update(state)
@@ -263,6 +303,10 @@ class NumberedCanvas(reportlab_canvas.Canvas):
         super().save()
 
     def draw_page_number(self, total_pages: int) -> None:
+        """Español: Función draw_page_number del módulo scripts/generate_report.py.
+
+        English: Function draw_page_number defined in scripts/generate_report.py.
+        """
         self.setFont("Helvetica", 8)
         self.setFillColor(colors.grey)
         page = self.getPageNumber()
@@ -274,6 +318,10 @@ class NumberedCanvas(reportlab_canvas.Canvas):
 
 
 def create_pdf_charts(
+    """Español: Función create_pdf_charts del módulo scripts/generate_report.py.
+
+    English: Function create_pdf_charts defined in scripts/generate_report.py.
+    """
     benford_df: pd.DataFrame,
     votes_df: pd.DataFrame,
     heatmap_df: pd.DataFrame,
@@ -339,6 +387,10 @@ def create_pdf_charts(
 
 
 def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
+    """Español: Función build_pdf_report del módulo scripts/generate_report.py.
+
+    English: Function build_pdf_report defined in scripts/generate_report.py.
+    """
     regular_font, bold_font = _register_pdf_fonts()
     buffer = io.BytesIO()
     page_size = landscape(A4)
@@ -359,9 +411,17 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     styles.add(ParagraphStyle(name="TableHeader", fontName=bold_font, fontSize=9.5, leading=11, alignment=TA_CENTER, textColor=colors.white))
 
     def as_paragraph(value: object, style: ParagraphStyle) -> Paragraph:
+        """Español: Función as_paragraph del módulo scripts/generate_report.py.
+
+        English: Function as_paragraph defined in scripts/generate_report.py.
+        """
         return Paragraph(str(value), style)
 
     def build_table(rows: list[list[object]], col_widths: list[float]) -> Table:
+        """Español: Función build_table del módulo scripts/generate_report.py.
+
+        English: Function build_table defined in scripts/generate_report.py.
+        """
         header = [as_paragraph(cell, styles["TableHeader"]) for cell in rows[0]]
         body = [[as_paragraph(cell, styles["TableCell"]) for cell in row] for row in rows[1:]]
         table = Table([header] + body, colWidths=col_widths, repeatRows=1)
@@ -435,6 +495,10 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(Spacer(1, 6))
 
     def draw_footer(canvas, _doc):
+        """Español: Función draw_footer del módulo scripts/generate_report.py.
+
+        English: Function draw_footer defined in scripts/generate_report.py.
+        """
         canvas.saveState()
         canvas.setFont(regular_font, 8)
         canvas.setFillColor(colors.grey)
@@ -453,6 +517,10 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
 
 
 def main() -> None:
+    """Español: Función main del módulo scripts/generate_report.py.
+
+    English: Function main defined in scripts/generate_report.py.
+    """
     parser = argparse.ArgumentParser(description="Genera PDF premium C.E.N.T.I.N.E.L.")
     parser.add_argument("--source-dir", default="data", help="Directorio de snapshots.")
     parser.add_argument("--output", default="centinel_informe_nacional.pdf", help="Ruta PDF salida.")

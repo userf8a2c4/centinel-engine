@@ -34,6 +34,10 @@ TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
 
 @dataclass(frozen=True)
 class AlertConfig:
+    """Español: Clase AlertConfig del módulo src/monitoring/alerts.py.
+
+    English: AlertConfig class defined in src/monitoring/alerts.py.
+    """
     telegram_bot_token: str
     telegram_chat_id: str
     min_level: str = DEFAULT_MIN_LEVEL
@@ -45,6 +49,10 @@ class AlertConfig:
 
     @classmethod
     def from_env(cls) -> "AlertConfig":
+        """Español: Función from_env del módulo src/monitoring/alerts.py.
+
+        English: Function from_env defined in src/monitoring/alerts.py.
+        """
         return cls(
             telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", "").strip(),
             telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", "").strip(),
@@ -61,23 +69,43 @@ class AlertManager:
     """Gestor de alertas externas con soporte de Telegram."""
 
     def __init__(self, config: AlertConfig) -> None:
+        """Español: Función __init__ del módulo src/monitoring/alerts.py.
+
+        English: Function __init__ defined in src/monitoring/alerts.py.
+        """
         self._config = config
         self._lock = asyncio.Lock()
         self._last_sent_at = 0.0
 
     @property
     def config(self) -> AlertConfig:
+        """Español: Función config del módulo src/monitoring/alerts.py.
+
+        English: Function config defined in src/monitoring/alerts.py.
+        """
         return self._config
 
     def is_configured(self) -> bool:
+        """Español: Función is_configured del módulo src/monitoring/alerts.py.
+
+        English: Function is_configured defined in src/monitoring/alerts.py.
+        """
         return bool(self._config.telegram_bot_token and self._config.telegram_chat_id)
 
     def should_send(self, level: str) -> bool:
+        """Español: Función should_send del módulo src/monitoring/alerts.py.
+
+        English: Function should_send defined in src/monitoring/alerts.py.
+        """
         normalized = level.strip().upper()
         minimum = self._config.min_level or DEFAULT_MIN_LEVEL
         return ALERT_LEVELS.get(normalized, 0) >= ALERT_LEVELS.get(minimum, 20)
 
     async def send(self, level: str, message: str, context: dict | None = None) -> bool:
+        """Español: Función asíncrona send del módulo src/monitoring/alerts.py.
+
+        English: Async function send defined in src/monitoring/alerts.py.
+        """
         normalized = level.strip().upper()
         if normalized not in ALERT_LEVELS:
             logger.warning("alert_level_invalid level=%s", level)
@@ -131,6 +159,10 @@ class AlertManager:
         return False
 
     async def _rate_limit(self) -> None:
+        """Español: Función asíncrona _rate_limit del módulo src/monitoring/alerts.py.
+
+        English: Async function _rate_limit defined in src/monitoring/alerts.py.
+        """
         async with self._lock:
             now = time.monotonic()
             delta = now - self._last_sent_at
@@ -140,6 +172,10 @@ class AlertManager:
             self._last_sent_at = time.monotonic()
 
     def _build_payload(self, level: str, message: str, context: dict[str, Any]) -> str:
+        """Español: Función _build_payload del módulo src/monitoring/alerts.py.
+
+        English: Function _build_payload defined in src/monitoring/alerts.py.
+        """
         timestamp = datetime.now(timezone.utc).isoformat()
         dashboard = context.get("dashboard_url") or self._config.dashboard_url
         checkpoint_hash = context.get("checkpoint_hash") or resolve_latest_checkpoint_hash(
@@ -160,6 +196,10 @@ _DEFAULT_MANAGER: AlertManager | None = None
 
 
 def get_default_alert_manager() -> AlertManager:
+    """Español: Función get_default_alert_manager del módulo src/monitoring/alerts.py.
+
+    English: Function get_default_alert_manager defined in src/monitoring/alerts.py.
+    """
     global _DEFAULT_MANAGER
     if _DEFAULT_MANAGER is None:
         _DEFAULT_MANAGER = AlertManager(AlertConfig.from_env())
@@ -182,6 +222,10 @@ def dispatch_alert(level: str, message: str, context: dict | None = None) -> boo
 
 
 def resolve_latest_checkpoint_hash(hash_dir: str) -> str | None:
+    """Español: Función resolve_latest_checkpoint_hash del módulo src/monitoring/alerts.py.
+
+    English: Function resolve_latest_checkpoint_hash defined in src/monitoring/alerts.py.
+    """
     path = Path(hash_dir)
     if not path.exists():
         return None
@@ -205,6 +249,10 @@ def resolve_latest_checkpoint_hash(hash_dir: str) -> str | None:
 
 
 def _truncate_for_telegram(message: str, max_len: int = 4000) -> str:
+    """Español: Función _truncate_for_telegram del módulo src/monitoring/alerts.py.
+
+    English: Function _truncate_for_telegram defined in src/monitoring/alerts.py.
+    """
     if len(message) <= max_len:
         return message
     trimmed = message[: max_len - 20].rstrip()
@@ -212,6 +260,10 @@ def _truncate_for_telegram(message: str, max_len: int = 4000) -> str:
 
 
 def _parse_retry_after(response: httpx.Response) -> float:
+    """Español: Función _parse_retry_after del módulo src/monitoring/alerts.py.
+
+    English: Function _parse_retry_after defined in src/monitoring/alerts.py.
+    """
     try:
         payload = response.json()
     except (ValueError, json.JSONDecodeError):
@@ -226,6 +278,10 @@ def _parse_retry_after(response: httpx.Response) -> float:
 
 
 def _env_int(name: str, default: int) -> int:
+    """Español: Función _env_int del módulo src/monitoring/alerts.py.
+
+    English: Function _env_int defined in src/monitoring/alerts.py.
+    """
     raw = os.getenv(name, "").strip()
     if not raw:
         return default
@@ -237,6 +293,10 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _env_float(name: str, default: float) -> float:
+    """Español: Función _env_float del módulo src/monitoring/alerts.py.
+
+    English: Function _env_float defined in src/monitoring/alerts.py.
+    """
     raw = os.getenv(name, "").strip()
     if not raw:
         return default
@@ -248,4 +308,8 @@ def _env_float(name: str, default: float) -> float:
 
 
 async def _sleep_backoff(attempt: int, base: float = 1.0) -> None:
+    """Español: Función asíncrona _sleep_backoff del módulo src/monitoring/alerts.py.
+
+    English: Async function _sleep_backoff defined in src/monitoring/alerts.py.
+    """
     await asyncio.sleep(base * (2 ** (attempt - 1)))

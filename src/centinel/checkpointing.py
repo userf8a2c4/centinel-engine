@@ -57,6 +57,10 @@ class CheckpointManager:
     }
 
     def __init__(
+        """Español: Función __init__ del módulo src/centinel/checkpointing.py.
+
+        English: Function __init__ defined in src/centinel/checkpointing.py.
+        """
         self,
         bucket_name: str,
         prefix: str,
@@ -226,6 +230,10 @@ class CheckpointManager:
         return history[:10]
 
     async def _decrypt_envelope(self, blob: bytes) -> Dict[str, Any]:
+        """Español: Función asíncrona _decrypt_envelope del módulo src/centinel/checkpointing.py.
+
+        English: Async function _decrypt_envelope defined in src/centinel/checkpointing.py.
+        """
         try:
             envelope = json.loads(blob.decode("utf-8"))
         except json.JSONDecodeError as exc:
@@ -258,6 +266,10 @@ class CheckpointManager:
             raise CheckpointValidationError("checkpoint_payload_invalid_json") from exc
 
     async def _put_object_with_retry(self, key: str, data: bytes) -> None:
+        """Español: Función asíncrona _put_object_with_retry del módulo src/centinel/checkpointing.py.
+
+        English: Async function _put_object_with_retry defined in src/centinel/checkpointing.py.
+        """
         for attempt in range(1, 6):
             try:
                 await self._run_with_timeout(
@@ -284,6 +296,10 @@ class CheckpointManager:
                 await asyncio.sleep(2 ** (attempt - 1))
 
     def _alert_critical(self, code: str, payload: Dict[str, Any]) -> None:
+        """Español: Función _alert_critical del módulo src/centinel/checkpointing.py.
+
+        English: Function _alert_critical defined in src/centinel/checkpointing.py.
+        """
         if self.alert_callback:
             self.alert_callback(code, payload)
         else:
@@ -295,9 +311,17 @@ class CheckpointManager:
             )
 
     def _list_objects_raw(self, prefix: str) -> Dict[str, Any]:
+        """Español: Función _list_objects_raw del módulo src/centinel/checkpointing.py.
+
+        English: Function _list_objects_raw defined in src/centinel/checkpointing.py.
+        """
         return self._s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
 
     def _ensure_required_state(self, state_dict: CheckpointState) -> None:
+        """Español: Función _ensure_required_state del módulo src/centinel/checkpointing.py.
+
+        English: Function _ensure_required_state defined in src/centinel/checkpointing.py.
+        """
         missing = self.required_state_keys - set(state_dict.keys())
         if missing:
             raise CheckpointValidationError(
@@ -309,15 +333,31 @@ class CheckpointManager:
             raise CheckpointValidationError("checkpoint_missing_offset_or_batch")
 
     def _latest_key(self) -> str:
+        """Español: Función _latest_key del módulo src/centinel/checkpointing.py.
+
+        English: Function _latest_key defined in src/centinel/checkpointing.py.
+        """
         return f"{self._base_prefix()}/latest.json.enc"
 
     def _history_key(self, timestamp: str) -> str:
+        """Español: Función _history_key del módulo src/centinel/checkpointing.py.
+
+        English: Function _history_key defined in src/centinel/checkpointing.py.
+        """
         return f"{self._base_prefix()}/{timestamp}.json.enc"
 
     def _base_prefix(self) -> str:
+        """Español: Función _base_prefix del módulo src/centinel/checkpointing.py.
+
+        English: Function _base_prefix defined in src/centinel/checkpointing.py.
+        """
         return f"{self.prefix}/{self.version}/{self.run_id}"
 
     def _build_s3_client(self) -> Any:
+        """Español: Función _build_s3_client del módulo src/centinel/checkpointing.py.
+
+        English: Function _build_s3_client defined in src/centinel/checkpointing.py.
+        """
         endpoint = os.environ.get("CENTINEL_S3_ENDPOINT") or os.environ.get("S3_ENDPOINT_URL")
         region = os.environ.get("AWS_REGION") or os.environ.get("CENTINEL_S3_REGION")
         config = Config(connect_timeout=self._timeout_seconds, read_timeout=self._timeout_seconds)
@@ -329,6 +369,10 @@ class CheckpointManager:
         )
 
     def _load_base_key(self) -> bytes:
+        """Español: Función _load_base_key del módulo src/centinel/checkpointing.py.
+
+        English: Function _load_base_key defined in src/centinel/checkpointing.py.
+        """
         raw_key = os.environ.get(self.encryption_key_env, "")
         if not raw_key:
             raise CheckpointValidationError(
@@ -343,6 +387,10 @@ class CheckpointManager:
         return decoded
 
     def _derive_fernet(self, iv: bytes) -> Fernet:
+        """Español: Función _derive_fernet del módulo src/centinel/checkpointing.py.
+
+        English: Function _derive_fernet defined in src/centinel/checkpointing.py.
+        """
         hkdf = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
@@ -354,10 +402,18 @@ class CheckpointManager:
 
     @staticmethod
     def _utc_now() -> str:
+        """Español: Función _utc_now del módulo src/centinel/checkpointing.py.
+
+        English: Function _utc_now defined in src/centinel/checkpointing.py.
+        """
         return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     @staticmethod
     def _sha256_hex(data: bytes) -> str:
+        """Español: Función _sha256_hex del módulo src/centinel/checkpointing.py.
+
+        English: Function _sha256_hex defined in src/centinel/checkpointing.py.
+        """
         return hashlib.sha256(data).hexdigest()
 
 
@@ -382,6 +438,10 @@ if __name__ == "__main__":
     )
 
     async def demo_pipeline() -> None:
+        """Español: Función asíncrona demo_pipeline del módulo src/centinel/checkpointing.py.
+
+        English: Async function demo_pipeline defined in src/centinel/checkpointing.py.
+        """
         checkpoint = await manager.load_latest_checkpoint()
         if checkpoint:
             logging.info("Reanudando desde checkpoint: %s", checkpoint)

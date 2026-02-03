@@ -26,6 +26,10 @@ from scripts.logging_utils import configure_logging, log_event
 
 @dataclass
 class WatchdogConfig:
+    """Español: Clase WatchdogConfig del módulo scripts/watchdog.py.
+
+    English: WatchdogConfig class defined in scripts/watchdog.py.
+    """
     check_interval_minutes: int = 3
     max_inactivity_minutes: int = 30
     heartbeat_timeout: int = 10
@@ -61,10 +65,18 @@ class WatchdogConfig:
 
 
 def _utcnow() -> datetime:
+    """Español: Función _utcnow del módulo scripts/watchdog.py.
+
+    English: Function _utcnow defined in scripts/watchdog.py.
+    """
     return datetime.now(timezone.utc)
 
 
 def _load_config(path: Path) -> WatchdogConfig:
+    """Español: Función _load_config del módulo scripts/watchdog.py.
+
+    English: Function _load_config defined in scripts/watchdog.py.
+    """
     if not path.exists():
         return WatchdogConfig()
     try:
@@ -92,6 +104,10 @@ def _load_config(path: Path) -> WatchdogConfig:
 
 
 def _load_state(path: Path) -> dict[str, Any]:
+    """Español: Función _load_state del módulo scripts/watchdog.py.
+
+    English: Function _load_state defined in scripts/watchdog.py.
+    """
     if not path.exists():
         return {"failures": {}, "last_action": None, "log_state": {}}
     try:
@@ -107,11 +123,19 @@ def _load_state(path: Path) -> dict[str, Any]:
 
 
 def _save_state(path: Path, payload: dict[str, Any]) -> None:
+    """Español: Función _save_state del módulo scripts/watchdog.py.
+
+    English: Function _save_state defined in scripts/watchdog.py.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def _find_latest_snapshot(config: WatchdogConfig) -> tuple[Path | None, float | None]:
+    """Español: Función _find_latest_snapshot del módulo scripts/watchdog.py.
+
+    English: Function _find_latest_snapshot defined in scripts/watchdog.py.
+    """
     data_dir = Path(config.data_dir)
     if not data_dir.exists():
         return None, None
@@ -132,6 +156,10 @@ def _find_latest_snapshot(config: WatchdogConfig) -> tuple[Path | None, float | 
 
 
 def _check_snapshot(config: WatchdogConfig) -> tuple[bool, str]:
+    """Español: Función _check_snapshot del módulo scripts/watchdog.py.
+
+    English: Function _check_snapshot defined in scripts/watchdog.py.
+    """
     snapshot, mtime = _find_latest_snapshot(config)
     if not snapshot or not mtime:
         return False, "snapshot_missing"
@@ -142,6 +170,10 @@ def _check_snapshot(config: WatchdogConfig) -> tuple[bool, str]:
 
 
 def _check_log_growth(config: WatchdogConfig, state: dict[str, Any]) -> tuple[bool, str]:
+    """Español: Función _check_log_growth del módulo scripts/watchdog.py.
+
+    English: Function _check_log_growth defined in scripts/watchdog.py.
+    """
     log_path = Path(config.log_path)
     if not log_path.exists():
         return False, "log_missing"
@@ -163,6 +195,10 @@ def _check_log_growth(config: WatchdogConfig, state: dict[str, Any]) -> tuple[bo
 
 
 def _check_locks(config: WatchdogConfig) -> tuple[bool, str]:
+    """Español: Función _check_locks del módulo scripts/watchdog.py.
+
+    English: Function _check_locks defined in scripts/watchdog.py.
+    """
     stuck = []
     now = _utcnow()
     for lock_path_str in config.lock_files:
@@ -178,6 +214,10 @@ def _check_locks(config: WatchdogConfig) -> tuple[bool, str]:
 
 
 def _check_heartbeat(config: WatchdogConfig) -> tuple[bool, str]:
+    """Español: Función _check_heartbeat del módulo scripts/watchdog.py.
+
+    English: Function _check_heartbeat defined in scripts/watchdog.py.
+    """
     heartbeat_path = Path(config.heartbeat_path)
     if not heartbeat_path.exists():
         return False, "heartbeat_missing"
@@ -190,6 +230,10 @@ def _check_heartbeat(config: WatchdogConfig) -> tuple[bool, str]:
 
 
 def _record_failures(
+    """Español: Función _record_failures del módulo scripts/watchdog.py.
+
+    English: Function _record_failures defined in scripts/watchdog.py.
+    """
     failures: dict[str, str], state: dict[str, Any], logger: logging.Logger
 ) -> dict[str, dict[str, Any]]:
     now_iso = _utcnow().isoformat()
@@ -209,6 +253,10 @@ def _record_failures(
 
 
 def _should_act(state: dict[str, Any], config: WatchdogConfig) -> tuple[bool, list[str]]:
+    """Español: Función _should_act del módulo scripts/watchdog.py.
+
+    English: Function _should_act defined in scripts/watchdog.py.
+    """
     failures = state.get("failures", {})
     if not failures:
         return False, []
@@ -238,6 +286,10 @@ def _should_act(state: dict[str, Any], config: WatchdogConfig) -> tuple[bool, li
 
 
 def _send_alerts(config: WatchdogConfig, message: str, logger: logging.Logger) -> None:
+    """Español: Función _send_alerts del módulo scripts/watchdog.py.
+
+    English: Function _send_alerts defined in scripts/watchdog.py.
+    """
     print(f"[WATCHDOG ALERT] {message}")
     for url in config.alert_urls:
         try:
@@ -252,6 +304,10 @@ def _send_alerts(config: WatchdogConfig, message: str, logger: logging.Logger) -
 
 
 def _terminate_pipeline(config: WatchdogConfig, logger: logging.Logger) -> bool:
+    """Español: Función _terminate_pipeline del módulo scripts/watchdog.py.
+
+    English: Function _terminate_pipeline defined in scripts/watchdog.py.
+    """
     matched = []
     for proc in psutil.process_iter(["pid", "cmdline"]):
         cmdline = proc.info.get("cmdline") or []
@@ -279,6 +335,10 @@ def _terminate_pipeline(config: WatchdogConfig, logger: logging.Logger) -> bool:
 
 
 def _start_pipeline(config: WatchdogConfig, logger: logging.Logger) -> None:
+    """Español: Función _start_pipeline del módulo scripts/watchdog.py.
+
+    English: Function _start_pipeline defined in scripts/watchdog.py.
+    """
     try:
         subprocess.Popen(list(config.pipeline_command))  # noqa: S603,S607
         logger.info("watchdog_pipeline_started cmd=%s", config.pipeline_command)
@@ -287,6 +347,10 @@ def _start_pipeline(config: WatchdogConfig, logger: logging.Logger) -> None:
 
 
 def _docker_restart(config: WatchdogConfig, logger: logging.Logger) -> bool:
+    """Español: Función _docker_restart del módulo scripts/watchdog.py.
+
+    English: Function _docker_restart defined in scripts/watchdog.py.
+    """
     socket_path = config.docker_socket_path
     if not Path(socket_path).exists():
         logger.warning("watchdog_docker_socket_missing path=%s", socket_path)
@@ -312,6 +376,10 @@ def _docker_restart(config: WatchdogConfig, logger: logging.Logger) -> bool:
 
 
 def _force_restart_self(logger: logging.Logger) -> None:
+    """Español: Función _force_restart_self del módulo scripts/watchdog.py.
+
+    English: Function _force_restart_self defined in scripts/watchdog.py.
+    """
     logger.critical("watchdog_force_restart_self pid=1")
     try:
         os.kill(1, signal.SIGTERM)
@@ -322,6 +390,10 @@ def _force_restart_self(logger: logging.Logger) -> None:
 
 
 def _handle_failure(config: WatchdogConfig, reasons: list[str], logger: logging.Logger) -> None:
+    """Español: Función _handle_failure del módulo scripts/watchdog.py.
+
+    English: Function _handle_failure defined in scripts/watchdog.py.
+    """
     summary = "; ".join(reasons)
     log_event(logger, logging.CRITICAL, "watchdog_failure", reasons=summary)
     _send_alerts(config, summary, logger)
@@ -333,6 +405,10 @@ def _handle_failure(config: WatchdogConfig, reasons: list[str], logger: logging.
 
 
 def run_watchdog(config: WatchdogConfig, logger: logging.Logger) -> None:
+    """Español: Función run_watchdog del módulo scripts/watchdog.py.
+
+    English: Function run_watchdog defined in scripts/watchdog.py.
+    """
     state_path = Path(config.state_path)
     while True:
         state = _load_state(state_path)
@@ -363,6 +439,10 @@ def run_watchdog(config: WatchdogConfig, logger: logging.Logger) -> None:
 
 
 def main() -> None:
+    """Español: Función main del módulo scripts/watchdog.py.
+
+    English: Function main defined in scripts/watchdog.py.
+    """
     config_path = Path(os.getenv("WATCHDOG_CONFIG", "watchdog.yaml"))
     logger = configure_logging("centinel.watchdog", log_file="logs/watchdog.log")
     logger.info("watchdog_start config=%s", config_path)

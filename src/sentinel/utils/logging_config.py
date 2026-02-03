@@ -29,6 +29,10 @@ class SensitiveLogFilter(logging.Filter):
     """/** Filtro de logging para datos sensibles. / Logging filter for sensitive data. **/"""
 
     def filter(self, record: logging.LogRecord) -> bool:
+        """Español: Función filter del módulo src/sentinel/utils/logging_config.py.
+
+        English: Function filter defined in src/sentinel/utils/logging_config.py.
+        """
         if isinstance(record.args, dict):
             record.args = _redact_sensitive_fields(record.args)
         return True

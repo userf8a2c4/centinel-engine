@@ -59,6 +59,10 @@ _critical_log_tracker: "CriticalLogTracker | None" = None
 
 
 def _env_int(name: str, default: int, fallbacks: tuple[str, ...] = ()) -> int:
+    """Español: Función _env_int del módulo src/monitoring/strict_health.py.
+
+    English: Function _env_int defined in src/monitoring/strict_health.py.
+    """
     raw = os.getenv(name, "").strip()
     if not raw:
         for fallback in fallbacks:
@@ -75,6 +79,10 @@ def _env_int(name: str, default: int, fallbacks: tuple[str, ...] = ()) -> int:
 
 
 def _env_float(name: str, default: float, fallbacks: tuple[str, ...] = ()) -> float:
+    """Español: Función _env_float del módulo src/monitoring/strict_health.py.
+
+    English: Function _env_float defined in src/monitoring/strict_health.py.
+    """
     raw = os.getenv(name, "").strip()
     if not raw:
         for fallback in fallbacks:
@@ -91,10 +99,18 @@ def _env_float(name: str, default: float, fallbacks: tuple[str, ...] = ()) -> fl
 
 
 def _now_utc() -> datetime:
+    """Español: Función _now_utc del módulo src/monitoring/strict_health.py.
+
+    English: Function _now_utc defined in src/monitoring/strict_health.py.
+    """
     return datetime.now(timezone.utc)
 
 
 def _parse_timestamp(value: Any) -> datetime | None:
+    """Español: Función _parse_timestamp del módulo src/monitoring/strict_health.py.
+
+    English: Function _parse_timestamp defined in src/monitoring/strict_health.py.
+    """
     if value is None:
         return None
     if isinstance(value, datetime):
@@ -111,10 +127,18 @@ def _parse_timestamp(value: Any) -> datetime | None:
 
 
 def _build_s3_config() -> Config:
+    """Español: Función _build_s3_config del módulo src/monitoring/strict_health.py.
+
+    English: Function _build_s3_config defined in src/monitoring/strict_health.py.
+    """
     return Config(connect_timeout=DEFAULT_BUCKET_LATENCY_SECONDS, read_timeout=5, retries={"max_attempts": 2})
 
 
 def _build_s3_client():
+    """Español: Función _build_s3_client del módulo src/monitoring/strict_health.py.
+
+    English: Function _build_s3_client defined in src/monitoring/strict_health.py.
+    """
     endpoint_url = os.getenv("CENTINEL_S3_ENDPOINT") or os.getenv("STORAGE_ENDPOINT_URL")
     region = os.getenv("CENTINEL_S3_REGION") or os.getenv("AWS_REGION", "us-east-1")
     access_key = os.getenv("CENTINEL_S3_ACCESS_KEY") or os.getenv("AWS_ACCESS_KEY_ID")
@@ -131,6 +155,10 @@ def _build_s3_client():
 
 
 def _get_bucket_name() -> str:
+    """Español: Función _get_bucket_name del módulo src/monitoring/strict_health.py.
+
+    English: Function _get_bucket_name defined in src/monitoring/strict_health.py.
+    """
     return (
         os.getenv("CENTINEL_CHECKPOINT_BUCKET")
         or os.getenv("CHECKPOINT_BUCKET")
@@ -139,18 +167,34 @@ def _get_bucket_name() -> str:
 
 
 def _get_pipeline_version() -> str:
+    """Español: Función _get_pipeline_version del módulo src/monitoring/strict_health.py.
+
+    English: Function _get_pipeline_version defined in src/monitoring/strict_health.py.
+    """
     return (os.getenv("CENTINEL_PIPELINE_VERSION") or "").strip()
 
 
 def _get_run_id() -> str:
+    """Español: Función _get_run_id del módulo src/monitoring/strict_health.py.
+
+    English: Function _get_run_id defined in src/monitoring/strict_health.py.
+    """
     return (os.getenv("CENTINEL_RUN_ID") or "").strip()
 
 
 def _get_write_test_key() -> str:
+    """Español: Función _get_write_test_key del módulo src/monitoring/strict_health.py.
+
+    English: Function _get_write_test_key defined in src/monitoring/strict_health.py.
+    """
     return os.getenv("STORAGE_WRITE_TEST_KEY", "healthcheck/write-test.txt").strip()
 
 
 def _get_checkpoint_manager() -> Tuple[CheckpointManager | None, str | None]:
+    """Español: Función _get_checkpoint_manager del módulo src/monitoring/strict_health.py.
+
+    English: Function _get_checkpoint_manager defined in src/monitoring/strict_health.py.
+    """
     bucket = _get_bucket_name()
     pipeline_version = _get_pipeline_version()
     run_id = _get_run_id()
@@ -177,17 +221,33 @@ def _get_checkpoint_manager() -> Tuple[CheckpointManager | None, str | None]:
 
 @dataclass
 class ResourceSample:
+    """Español: Clase ResourceSample del módulo src/monitoring/strict_health.py.
+
+    English: ResourceSample class defined in src/monitoring/strict_health.py.
+    """
     timestamp: datetime
     cpu: float
     memory: float
 
 
 class ResourceSampler:
+    """Español: Clase ResourceSampler del módulo src/monitoring/strict_health.py.
+
+    English: ResourceSampler class defined in src/monitoring/strict_health.py.
+    """
     def __init__(self, window_seconds: int) -> None:
+        """Español: Función __init__ del módulo src/monitoring/strict_health.py.
+
+        English: Function __init__ defined in src/monitoring/strict_health.py.
+        """
         self._window_seconds = window_seconds
         self._samples: Deque[ResourceSample] = deque()
 
     def sample(self) -> Tuple[float, float]:
+        """Español: Función sample del módulo src/monitoring/strict_health.py.
+
+        English: Function sample defined in src/monitoring/strict_health.py.
+        """
         now = _now_utc()
         cpu_percent = psutil.cpu_percent(interval=0.1) / 100.0
         memory_percent = psutil.virtual_memory().percent / 100.0
@@ -196,11 +256,19 @@ class ResourceSampler:
         return self._average()
 
     def _trim(self, now: datetime) -> None:
+        """Español: Función _trim del módulo src/monitoring/strict_health.py.
+
+        English: Function _trim defined in src/monitoring/strict_health.py.
+        """
         window = self._window_seconds
         while self._samples and (now - self._samples[0].timestamp).total_seconds() > window:
             self._samples.popleft()
 
     def _average(self) -> Tuple[float, float]:
+        """Español: Función _average del módulo src/monitoring/strict_health.py.
+
+        English: Function _average defined in src/monitoring/strict_health.py.
+        """
         if not self._samples:
             return (0.0, 0.0)
         cpu = sum(sample.cpu for sample in self._samples) / len(self._samples)
@@ -209,14 +277,30 @@ class ResourceSampler:
 
 
 class CriticalLogTracker(logging.Handler):
+    """Español: Clase CriticalLogTracker del módulo src/monitoring/strict_health.py.
+
+    English: CriticalLogTracker class defined in src/monitoring/strict_health.py.
+    """
     def __init__(self, max_entries: int = 200) -> None:
+        """Español: Función __init__ del módulo src/monitoring/strict_health.py.
+
+        English: Function __init__ defined in src/monitoring/strict_health.py.
+        """
         super().__init__()
         self._entries: Deque[tuple[float, int]] = deque(maxlen=max_entries)
 
     def emit(self, record: logging.LogRecord) -> None:
+        """Español: Función emit del módulo src/monitoring/strict_health.py.
+
+        English: Function emit defined in src/monitoring/strict_health.py.
+        """
         self._entries.append((record.created, record.levelno))
 
     def max_consecutive_critical(self, window_seconds: int) -> int:
+        """Español: Función max_consecutive_critical del módulo src/monitoring/strict_health.py.
+
+        English: Function max_consecutive_critical defined in src/monitoring/strict_health.py.
+        """
         now = time.time()
         entries = [(ts, lvl) for ts, lvl in self._entries if now - ts <= window_seconds]
         max_consecutive = 0
@@ -234,6 +318,10 @@ _resource_sampler = ResourceSampler(_env_int("CPU_WINDOW_SECONDS", DEFAULT_CPU_W
 
 
 def _ensure_critical_tracker() -> CriticalLogTracker:
+    """Español: Función _ensure_critical_tracker del módulo src/monitoring/strict_health.py.
+
+    English: Function _ensure_critical_tracker defined in src/monitoring/strict_health.py.
+    """
     global _critical_log_tracker
     if _critical_log_tracker is None:
         _critical_log_tracker = CriticalLogTracker()
@@ -242,14 +330,26 @@ def _ensure_critical_tracker() -> CriticalLogTracker:
 
 
 def _record_diagnostic(payload: dict[str, Any]) -> None:
+    """Español: Función _record_diagnostic del módulo src/monitoring/strict_health.py.
+
+    English: Function _record_diagnostic defined in src/monitoring/strict_health.py.
+    """
     _diagnostics.append(payload)
 
 
 def get_recent_health_diagnostics() -> list[dict[str, Any]]:
+    """Español: Función get_recent_health_diagnostics del módulo src/monitoring/strict_health.py.
+
+    English: Function get_recent_health_diagnostics defined in src/monitoring/strict_health.py.
+    """
     return list(_diagnostics)
 
 
 def _check_bucket_latency(s3_client, bucket: str) -> dict[str, Any]:
+    """Español: Función _check_bucket_latency del módulo src/monitoring/strict_health.py.
+
+    English: Function _check_bucket_latency defined in src/monitoring/strict_health.py.
+    """
     start = time.monotonic()
     try:
         s3_client.head_bucket(Bucket=bucket)
@@ -274,6 +374,10 @@ def _check_bucket_latency(s3_client, bucket: str) -> dict[str, Any]:
 
 
 def _load_checkpoint_payload(manager: CheckpointManager) -> Tuple[dict[str, Any] | None, str]:
+    """Español: Función _load_checkpoint_payload del módulo src/monitoring/strict_health.py.
+
+    English: Function _load_checkpoint_payload defined in src/monitoring/strict_health.py.
+    """
     try:
         payload = manager.validate_checkpoint_integrity()
     except Exception as exc:  # noqa: BLE001
@@ -284,6 +388,10 @@ def _load_checkpoint_payload(manager: CheckpointManager) -> Tuple[dict[str, Any]
 
 
 def _extract_checkpoint_timestamp(payload: dict[str, Any]) -> datetime | None:
+    """Español: Función _extract_checkpoint_timestamp del módulo src/monitoring/strict_health.py.
+
+    English: Function _extract_checkpoint_timestamp defined in src/monitoring/strict_health.py.
+    """
     metadata = payload.get("metadata", {}) if isinstance(payload, dict) else {}
     state = payload.get("state", {}) if isinstance(payload, dict) else {}
     candidate = (
@@ -297,6 +405,10 @@ def _extract_checkpoint_timestamp(payload: dict[str, Any]) -> datetime | None:
 
 
 def _check_checkpoint_age(timestamp: datetime | None) -> dict[str, Any]:
+    """Español: Función _check_checkpoint_age del módulo src/monitoring/strict_health.py.
+
+    English: Function _check_checkpoint_age defined in src/monitoring/strict_health.py.
+    """
     if timestamp is None:
         return {"ok": False, "message": "checkpoint_timestamp_missing"}
     max_age = _env_int(
@@ -320,6 +432,10 @@ def _check_checkpoint_age(timestamp: datetime | None) -> dict[str, Any]:
 
 
 def _check_last_acta_timestamp(timestamp: datetime | None) -> dict[str, Any]:
+    """Español: Función _check_last_acta_timestamp del módulo src/monitoring/strict_health.py.
+
+    English: Function _check_last_acta_timestamp defined in src/monitoring/strict_health.py.
+    """
     if timestamp is None:
         return {"ok": False, "message": "last_acta_timestamp_missing"}
     max_age = _env_int("MAX_LAST_ACTA_AGE_SECONDS", DEFAULT_LAST_ACTA_MAX_AGE_SECONDS)
@@ -339,6 +455,10 @@ def _check_last_acta_timestamp(timestamp: datetime | None) -> dict[str, Any]:
 
 
 def _check_critical_errors() -> dict[str, Any]:
+    """Español: Función _check_critical_errors del módulo src/monitoring/strict_health.py.
+
+    English: Function _check_critical_errors defined in src/monitoring/strict_health.py.
+    """
     tracker = _ensure_critical_tracker()
     window_seconds = _env_int("CRITICAL_WINDOW_SECONDS", DEFAULT_CRITICAL_WINDOW_SECONDS)
     max_errors = _env_int("MAX_CRITICAL_ERRORS", DEFAULT_MAX_CRITICAL_ERRORS)
@@ -360,6 +480,10 @@ def _check_critical_errors() -> dict[str, Any]:
 
 
 def _check_resources() -> dict[str, Any]:
+    """Español: Función _check_resources del módulo src/monitoring/strict_health.py.
+
+    English: Function _check_resources defined in src/monitoring/strict_health.py.
+    """
     cpu_avg, memory_avg = _resource_sampler.sample()
     memory_threshold = _env_float("MEMORY_THRESHOLD", DEFAULT_MEMORY_THRESHOLD)
     cpu_threshold = _env_float("CPU_THRESHOLD", DEFAULT_CPU_THRESHOLD)
@@ -381,6 +505,10 @@ def _check_resources() -> dict[str, Any]:
 
 
 def _check_storage_write(s3_client, bucket: str) -> dict[str, Any]:
+    """Español: Función _check_storage_write del módulo src/monitoring/strict_health.py.
+
+    English: Function _check_storage_write defined in src/monitoring/strict_health.py.
+    """
     key = _get_write_test_key()
     payload = f"healthcheck {datetime.utcnow().isoformat()}".encode("utf-8")
     try:
@@ -391,6 +519,10 @@ def _check_storage_write(s3_client, bucket: str) -> dict[str, Any]:
 
 
 def _check_paused_flag() -> dict[str, Any]:
+    """Español: Función _check_paused_flag del módulo src/monitoring/strict_health.py.
+
+    English: Function _check_paused_flag defined in src/monitoring/strict_health.py.
+    """
     env_paused = os.getenv("CENTINEL_PAUSED") or os.getenv("PAUSED")
     if env_paused and env_paused.strip().lower() in {"1", "true", "yes", "on"}:
         return {"ok": False, "message": "paused_flag_active", "source": "env"}
@@ -503,6 +635,10 @@ async def is_healthy_strict() -> tuple[bool, dict[str, Any]]:
 
 
 async def _health_response() -> tuple[bool, dict[str, Any]]:
+    """Español: Función asíncrona _health_response del módulo src/monitoring/strict_health.py.
+
+    English: Async function _health_response defined in src/monitoring/strict_health.py.
+    """
     try:
         return await is_healthy_strict()
     except Exception as exc:  # noqa: BLE001
@@ -518,10 +654,18 @@ async def _health_response() -> tuple[bool, dict[str, Any]]:
 
 
 def register_strict_health_endpoints(app: FastAPI) -> None:
+    """Español: Función register_strict_health_endpoints del módulo src/monitoring/strict_health.py.
+
+    English: Function register_strict_health_endpoints defined in src/monitoring/strict_health.py.
+    """
     router = APIRouter()
 
     @router.get("/healthz")
     async def healthz() -> dict[str, Any]:
+        """Español: Función asíncrona healthz del módulo src/monitoring/strict_health.py.
+
+        English: Async function healthz defined in src/monitoring/strict_health.py.
+        """
         ok, diagnostics = await _health_response()
         if not ok:
             return JSONResponse(status_code=503, content=diagnostics)
@@ -529,6 +673,10 @@ def register_strict_health_endpoints(app: FastAPI) -> None:
 
     @router.get("/ready")
     async def ready() -> dict[str, Any]:
+        """Español: Función asíncrona ready del módulo src/monitoring/strict_health.py.
+
+        English: Async function ready defined in src/monitoring/strict_health.py.
+        """
         ok, diagnostics = await _health_response()
         if not ok:
             return JSONResponse(status_code=503, content=diagnostics)
@@ -536,6 +684,10 @@ def register_strict_health_endpoints(app: FastAPI) -> None:
 
     @router.get("/live")
     async def live() -> dict[str, str]:
+        """Español: Función asíncrona live del módulo src/monitoring/strict_health.py.
+
+        English: Async function live defined in src/monitoring/strict_health.py.
+        """
         return {"status": "alive"}
 
     app.include_router(router)

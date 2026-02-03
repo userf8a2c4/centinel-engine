@@ -12,6 +12,10 @@ from centinel.config import load_config
 
 
 def test_load_config_validates_and_loads(monkeypatch, tmp_path):
+    """Español: Función test_load_config_validates_and_loads del módulo tests/test_centinel_config.py.
+
+    English: Function test_load_config_validates_and_loads defined in tests/test_centinel_config.py.
+    """
     sources = [
         {
             "url": "https://example.com/data",
@@ -36,6 +40,10 @@ def test_load_config_validates_and_loads(monkeypatch, tmp_path):
 
 
 def test_load_config_rejects_short_interval(monkeypatch, tmp_path):
+    """Español: Función test_load_config_rejects_short_interval del módulo tests/test_centinel_config.py.
+
+    English: Function test_load_config_rejects_short_interval defined in tests/test_centinel_config.py.
+    """
     sources = [
         {
             "url": "https://example.com/data",
@@ -54,6 +62,10 @@ def test_load_config_rejects_short_interval(monkeypatch, tmp_path):
 
 
 def test_load_config_rejects_missing_storage_path(monkeypatch, tmp_path):
+    """Español: Función test_load_config_rejects_missing_storage_path del módulo tests/test_centinel_config.py.
+
+    English: Function test_load_config_rejects_missing_storage_path defined in tests/test_centinel_config.py.
+    """
     sources = [
         {
             "url": "https://example.com/data",
