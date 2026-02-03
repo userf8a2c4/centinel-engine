@@ -1,0 +1,8 @@
+mode: proxy_rotator
+rotation_strategy: round_robin
+rotation_every_n: 1
+proxy_timeout_seconds: 15
+test_url: https://httpbin.org/ip
+proxies:
+  - "http://user:pass@ip:port"
+  - "socks5://ip:port"
