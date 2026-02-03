@@ -12,9 +12,10 @@ services:
       dockerfile: Dockerfile
     image: centinel-engine:latest
     container_name: centinel-engine
+    command: ["python", "scripts/run_pipeline.py", "--run-now"]
 
     # Reinicio automático agresivo en caso de caída.
-    restart: unless-stopped
+    restart: always
 
     # Healthcheck estricto: requiere endpoint /healthz en el puerto 8000.
     healthcheck:
@@ -72,6 +73,7 @@ services:
     volumes:
       # Persistencia estricta solo para logs locales del contenedor.
       - ./logs:/app/logs
+      - ./data:/app/data
 
     # Exponer el puerto del servicio.
     ports:
@@ -106,6 +108,25 @@ services:
     # Dependencia opcional de Redis (descomenta si lo usas).
     # depends_on:
     #   - redis
+
+  centinel-watchdog:
+    image: centinel-engine:latest
+    container_name: centinel-watchdog
+    restart: always
+    command: ["python", "scripts/watchdog.py"]
+    environment:
+      WATCHDOG_CONFIG: "/app/watchdog.yaml"
+      LOG_LEVEL: "info"
+      TZ: "UTC"
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./watchdog.yaml:/app/watchdog.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - centinel-engine
+    networks:
+      - centinel-internal
 
   # Redis mínimo para cola/estado temporal (opcional, comentado).
   # redis:
