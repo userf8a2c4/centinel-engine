@@ -79,6 +79,16 @@ backoff_base_seconds: 1
 # Max wait between retries (seconds).
 backoff_max_seconds: 30
 
+# Rate limiting interno para polling/maintain.
+# Internal rate limiting for polling/maintain.
+polling_rate_limit:
+  # Cooldown mínimo entre solicitudes (segundos).
+  # Minimum cooldown between requests (seconds).
+  cooldown_seconds: 10
+  # Archivo de estado para última petición.
+  # State file for last request timestamp.
+  state_path: "data/temp/polling_rate_limit.json"
+
 # Encabezados HTTP enviados en cada solicitud.
 # HTTP headers sent with every request.
 headers:
