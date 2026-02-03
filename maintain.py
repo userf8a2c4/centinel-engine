@@ -258,6 +258,10 @@ def command_checkpoint_now(runtime: RuntimeConfig, logger: logging.Logger) -> No
 
 
 def _latest_checkpoint_key(runtime: RuntimeConfig) -> str:
+    """Español: Función _latest_checkpoint_key del módulo maintain.py.
+
+    English: Function _latest_checkpoint_key defined in maintain.py.
+    """
     return f"centinel/checkpoints/{runtime.pipeline_version}/{runtime.run_id}/latest.json"
 
 
@@ -273,6 +277,10 @@ def fetch_latest_checkpoint_metadata(
     key = _latest_checkpoint_key(runtime)
 
     def _get() -> dict[str, Any]:
+        """Español: Función _get del módulo maintain.py.
+
+        English: Function _get defined in maintain.py.
+        """
         response = s3.get_object(Bucket=bucket_config.bucket, Key=key)
         body = response.get("Body")
         raw = body.read() if body else b""
@@ -421,6 +429,10 @@ def command_clean_old_checkpoints(
 
     while True:
         def _list_page() -> dict[str, Any]:
+            """Español: Función _list_page del módulo maintain.py.
+
+            English: Function _list_page defined in maintain.py.
+            """
             params = {"Bucket": bucket_config.bucket, "Prefix": prefix}
             if continuation:
                 params["ContinuationToken"] = continuation
@@ -447,6 +459,10 @@ def command_clean_old_checkpoints(
         return
 
     def _delete_batch(batch: list[dict[str, str]]) -> Any:
+        """Español: Función _delete_batch del módulo maintain.py.
+
+        English: Function _delete_batch defined in maintain.py.
+        """
         return s3.delete_objects(Bucket=bucket_config.bucket, Delete={"Objects": batch})
 
     for idx in range(0, len(keys_to_delete), 1000):
@@ -461,6 +477,10 @@ def command_clean_old_checkpoints(
 
 
 def _build_backup_fernet(runtime: RuntimeConfig) -> Fernet:
+    """Español: Función _build_backup_fernet del módulo maintain.py.
+
+    English: Function _build_backup_fernet defined in maintain.py.
+    """
     secret = runtime.backup_secret or os.getenv("CENTINEL_CHECKPOINT_SECRET")
     if not secret:
         raise RuntimeError("CENTINEL_BACKUP_SECRET no configurado para backup.")

@@ -29,10 +29,18 @@ logger = configure_logging("centinel.reactivar", log_file="logs/centinel.log")
 
 
 def utc_now() -> datetime:
+    """Español: Función utc_now del módulo reactivar.py.
+
+    English: Function utc_now defined in reactivar.py.
+    """
     return datetime.now(timezone.utc)
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
+    """Español: Función load_yaml del módulo reactivar.py.
+
+    English: Function load_yaml defined in reactivar.py.
+    """
     try:
         return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except FileNotFoundError:
@@ -43,6 +51,10 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 
 def update_master_switch(status: str) -> list[Path]:
+    """Español: Función update_master_switch del módulo reactivar.py.
+
+    English: Function update_master_switch defined in reactivar.py.
+    """
     updated: list[Path] = []
     for path in CONFIG_PATHS:
         if not path.exists():
@@ -61,6 +73,10 @@ def update_master_switch(status: str) -> list[Path]:
 
 
 def clear_panic_flag(user: str, timestamp: str) -> dict[str, Any]:
+    """Español: Función clear_panic_flag del módulo reactivar.py.
+
+    English: Function clear_panic_flag defined in reactivar.py.
+    """
     payload = {
         "active": False,
         "user": user,
@@ -73,6 +89,10 @@ def clear_panic_flag(user: str, timestamp: str) -> dict[str, Any]:
 
 
 def build_s3_client() -> tuple[Any | None, str | None]:
+    """Español: Función build_s3_client del módulo reactivar.py.
+
+    English: Function build_s3_client defined in reactivar.py.
+    """
     bucket = os.getenv("CENTINEL_PANIC_BUCKET") or os.getenv("CENTINEL_CHECKPOINT_BUCKET")
     if not bucket:
         return None, None
@@ -88,6 +108,10 @@ def build_s3_client() -> tuple[Any | None, str | None]:
 
 
 def upload_clear_flag(client: Any, bucket: str, payload: dict[str, Any]) -> None:
+    """Español: Función upload_clear_flag del módulo reactivar.py.
+
+    English: Function upload_clear_flag defined in reactivar.py.
+    """
     key = "panic/active.json"
     client.put_object(
         Bucket=bucket,
@@ -98,6 +122,10 @@ def upload_clear_flag(client: Any, bucket: str, payload: dict[str, Any]) -> None
 
 
 def main() -> int:
+    """Español: Función main del módulo reactivar.py.
+
+    English: Function main defined in reactivar.py.
+    """
     parser = argparse.ArgumentParser(description="Reactiva el pipeline tras modo pánico.")
     parser.add_argument("--user", help="Usuario que reactivó el sistema.")
     args = parser.parse_args()

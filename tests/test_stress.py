@@ -29,18 +29,34 @@ def _install_apscheduler_stubs() -> None:
         """/** Scheduler dummy para pruebas. / Dummy scheduler for tests. **"""
 
         def __init__(self, *args, **kwargs):
+            """Español: Función __init__ del módulo tests/test_stress.py.
+
+            English: Function __init__ defined in tests/test_stress.py.
+            """
             self.jobs = []
 
         def add_job(self, *args, **kwargs):
+            """Español: Función add_job del módulo tests/test_stress.py.
+
+            English: Function add_job defined in tests/test_stress.py.
+            """
             self.jobs.append((args, kwargs))
 
         def start(self):
+            """Español: Función start del módulo tests/test_stress.py.
+
+            English: Function start defined in tests/test_stress.py.
+            """
             return None
 
     class DummyCronTrigger:
         """/** Cron trigger dummy. / Dummy cron trigger. **"""
 
         def __init__(self, *args, **kwargs):
+            """Español: Función __init__ del módulo tests/test_stress.py.
+
+            English: Function __init__ defined in tests/test_stress.py.
+            """
             self.args = args
             self.kwargs = kwargs
 
@@ -78,6 +94,10 @@ def test_download_with_retries_recovers_from_outages(monkeypatch):
     failing_urls = {f"https://cne.hn/data/{idx}" for idx in range(5)}
 
     def fake_get(self, url, timeout=10):
+        """Español: Función fake_get del módulo tests/test_stress.py.
+
+        English: Function fake_get defined in tests/test_stress.py.
+        """
         # Incrementa intentos por URL. / Increment attempts per URL.
         attempts[url] = attempts.get(url, 0) + 1
         if url in failing_urls and attempts[url] == 1:

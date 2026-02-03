@@ -109,6 +109,10 @@ class RetryableError(Exception):
     """
 
     def __init__(self, message: str, policy: RetryPolicy, *, context: dict[str, Any] | None = None):
+        """Español: Función __init__ del módulo src/centinel/downloader.py.
+
+        English: Function __init__ defined in src/centinel/downloader.py.
+        """
         super().__init__(message)
         self.policy = policy
         self.context = context or {}
@@ -118,6 +122,10 @@ class RetryableStatusError(RetryableError):
     """Retryable HTTP status error."""
 
     def __init__(
+        """Español: Función __init__ del módulo src/centinel/downloader.py.
+
+        English: Function __init__ defined in src/centinel/downloader.py.
+        """
         self,
         status_code: int,
         policy: RetryPolicy,
@@ -139,6 +147,10 @@ class RetryableParsingError(RetryableError):
     """Retryable JSON parsing error."""
 
     def __init__(
+        """Español: Función __init__ del módulo src/centinel/downloader.py.
+
+        English: Function __init__ defined in src/centinel/downloader.py.
+        """
         self,
         message: str,
         policy: RetryPolicy,
@@ -154,6 +166,10 @@ class NonRetryableStatusError(Exception):
     """Non-retryable HTTP status error."""
 
     def __init__(self, status_code: int, response_text: str | None = None) -> None:
+        """Español: Función __init__ del módulo src/centinel/downloader.py.
+
+        English: Function __init__ defined in src/centinel/downloader.py.
+        """
         super().__init__(f"non_retryable_status={status_code}")
         self.status_code = status_code
         self.response_text = response_text
@@ -163,6 +179,10 @@ class PolicyWait:
     """Dynamic wait strategy driven by policy attached to exceptions."""
 
     def __call__(self, retry_state) -> float:
+        """Español: Función __call__ del módulo src/centinel/downloader.py.
+
+        English: Function __call__ defined in src/centinel/downloader.py.
+        """
         outcome = retry_state.outcome
         if outcome is None or not outcome.failed:
             return 0.0
@@ -176,6 +196,10 @@ class PolicyStop:
     """Dynamic stop strategy based on per-error max_attempts."""
 
     def __call__(self, retry_state) -> bool:
+        """Español: Función __call__ del módulo src/centinel/downloader.py.
+
+        English: Function __call__ defined in src/centinel/downloader.py.
+        """
         outcome = retry_state.outcome
         if outcome is None:
             return False
@@ -191,6 +215,10 @@ class StructuredLogger:
     """Lightweight wrapper to support structlog or stdlib logging."""
 
     def __init__(self, name: str) -> None:
+        """Español: Función __init__ del módulo src/centinel/downloader.py.
+
+        English: Function __init__ defined in src/centinel/downloader.py.
+        """
         if structlog is not None:
             self._logger = structlog.get_logger(name)
             self._use_structlog = True
@@ -199,24 +227,40 @@ class StructuredLogger:
             self._use_structlog = False
 
     def info(self, event: str, **fields: Any) -> None:
+        """Español: Función info del módulo src/centinel/downloader.py.
+
+        English: Function info defined in src/centinel/downloader.py.
+        """
         if self._use_structlog:
             self._logger.info(event, **fields)
         else:
             self._logger.info("%s %s", event, fields)
 
     def warning(self, event: str, **fields: Any) -> None:
+        """Español: Función warning del módulo src/centinel/downloader.py.
+
+        English: Function warning defined in src/centinel/downloader.py.
+        """
         if self._use_structlog:
             self._logger.warning(event, **fields)
         else:
             self._logger.warning("%s %s", event, fields)
 
     def error(self, event: str, **fields: Any) -> None:
+        """Español: Función error del módulo src/centinel/downloader.py.
+
+        English: Function error defined in src/centinel/downloader.py.
+        """
         if self._use_structlog:
             self._logger.error(event, **fields)
         else:
             self._logger.error("%s %s", event, fields)
 
     def debug(self, event: str, **fields: Any) -> None:
+        """Español: Función debug del módulo src/centinel/downloader.py.
+
+        English: Function debug defined in src/centinel/downloader.py.
+        """
         if self._use_structlog:
             self._logger.debug(event, **fields)
         else:
@@ -599,6 +643,10 @@ def build_alert_hook(logger: StructuredLogger) -> Callable[[str, dict[str, Any]]
     """
 
     def _alert(event: str, payload: dict[str, Any]) -> None:
+        """Español: Función _alert del módulo src/centinel/downloader.py.
+
+        English: Function _alert defined in src/centinel/downloader.py.
+        """
         logger.warning(event, **payload)
 
     return _alert

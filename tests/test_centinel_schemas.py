@@ -11,6 +11,10 @@ from centinel.schemas import validate_and_normalize
 
 
 def test_validate_actas_normalizes():
+    """Español: Función test_validate_actas_normalizes del módulo tests/test_centinel_schemas.py.
+
+    English: Function test_validate_actas_normalizes defined in tests/test_centinel_schemas.py.
+    """
     payload = {
         "acta_id": "A1",
         "junta_receptora": "JR",
@@ -28,6 +32,10 @@ def test_validate_actas_normalizes():
 
 
 def test_validate_actas_migrates_fields():
+    """Español: Función test_validate_actas_migrates_fields del módulo tests/test_centinel_schemas.py.
+
+    English: Function test_validate_actas_migrates_fields defined in tests/test_centinel_schemas.py.
+    """
     payload = {
         "id_acta": "A2",
         "jr": "JR2",
@@ -45,6 +53,10 @@ def test_validate_actas_migrates_fields():
 
 
 def test_validate_resultados_rejects_invalid_counts():
+    """Español: Función test_validate_resultados_rejects_invalid_counts del módulo tests/test_centinel_schemas.py.
+
+    English: Function test_validate_resultados_rejects_invalid_counts defined in tests/test_centinel_schemas.py.
+    """
     payload = {
         "acta_id": "A3",
         "partido": "Partido",
@@ -59,5 +71,9 @@ def test_validate_resultados_rejects_invalid_counts():
 
 
 def test_validate_rejects_invalid_json_bytes():
+    """Español: Función test_validate_rejects_invalid_json_bytes del módulo tests/test_centinel_schemas.py.
+
+    English: Function test_validate_rejects_invalid_json_bytes defined in tests/test_centinel_schemas.py.
+    """
     with pytest.raises(ValueError):
         validate_and_normalize(b"not-json", "actas")

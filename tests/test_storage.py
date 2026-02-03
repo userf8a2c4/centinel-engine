@@ -12,6 +12,10 @@ from sentinel.core.storage import LocalSnapshotStore
 
 
 def test_store_snapshot_creates_index(tmp_path):
+    """Español: Función test_store_snapshot_creates_index del módulo tests/test_storage.py.
+
+    English: Function test_store_snapshot_creates_index defined in tests/test_storage.py.
+    """
     db_path = tmp_path / "snapshots.db"
     store = LocalSnapshotStore(str(db_path))
 
@@ -51,6 +55,10 @@ def test_store_snapshot_creates_index(tmp_path):
 
 
 def test_exports_for_external_review(tmp_path):
+    """Español: Función test_exports_for_external_review del módulo tests/test_storage.py.
+
+    English: Function test_exports_for_external_review defined in tests/test_storage.py.
+    """
     db_path = tmp_path / "snapshots.db"
     store = LocalSnapshotStore(str(db_path))
 
