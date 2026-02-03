@@ -32,6 +32,48 @@ poetry run python scripts/run_pipeline.py --once
 make pipeline
 ```
 
+## Proxy Rotation & IP Rotation
+
+Centinel puede operar en tres modos configurables para reducir bloqueos por IP:
+
+- **direct**: sin proxy.
+- **proxy_list**: usa una lista fija de proxies en orden.
+- **proxy_rotator**: rota proxies en round-robin o random.
+
+### Configuración vía `proxies.yaml`
+
+El archivo `proxies.yaml` (incluido como ejemplo en el repo) soporta:
+
+```yaml
+mode: proxy_rotator
+rotation_strategy: round_robin
+rotation_every_n: 1
+proxy_timeout_seconds: 15
+test_url: https://httpbin.org/ip
+proxies:
+  - "http://user:pass@ip:port"
+  - "socks5://ip:port"
+```
+
+### Configuración vía `.env`
+
+También puedes configurar proxies en `.env`:
+
+```bash
+PROXY_MODE=proxy_rotator
+PROXY_ROTATION_STRATEGY=round_robin
+PROXY_ROTATION_EVERY_N=1
+PROXY_TIMEOUT_SECONDS=15
+PROXY_TEST_URL=https://httpbin.org/ip
+PROXY_LIST=http://user:pass@ip:port,socks5://ip:port
+```
+
+### Buenas prácticas para no exponer credenciales
+
+- **No guardes credenciales reales en el repositorio**: usa `.env` o un archivo local (por ejemplo, `proxies.local.yaml`) y configura `PROXY_CONFIG_PATH`.
+- Agrega tus archivos locales a `.gitignore` (ej.: `proxies.local.yaml`) para evitar filtraciones.
+- Usa cuentas/credenciales rotativas cuando sea posible y revoca las expuestas.
+
 ## Enlaces importantes / Documentación
 
 | Documentación | Operación y seguridad |

@@ -6,8 +6,10 @@ Resilient download and chained hashing for Centinel.
 from __future__ import annotations
 
 import hashlib
+import logging
 import shutil
 import tempfile
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -19,6 +21,9 @@ from tenacity import (
     wait_exponential,
 )
 
+from .proxy_handler import ProxyRotator, get_proxy_rotator
+
+logger = logging.getLogger(__name__)
 
 class DownloadError(Exception):
     """Error controlado de descarga.
@@ -38,6 +43,7 @@ async def fetch_content(
     url: str,
     if_none_match: Optional[str] = None,
     if_modified_since: Optional[str] = None,
+    proxy_rotator: Optional[ProxyRotator] = None,
 ) -> httpx.Response:
     """Descarga contenido con cabeceras condicionales.
 
@@ -51,7 +57,51 @@ async def fetch_content(
     if if_modified_since:
         headers["If-Modified-Since"] = if_modified_since
 
-    response = await client.get(url, headers=headers)
+    proxy_url = proxy_rotator.get_proxy_for_request() if proxy_rotator else None
+    request_kwargs = {}
+    if proxy_url:
+        request_kwargs["proxies"] = proxy_url
+        request_kwargs["timeout"] = httpx.Timeout(proxy_rotator.proxy_timeout_seconds)
+
+    start = time.monotonic()
+    try:
+        response = await client.get(url, headers=headers, **request_kwargs)
+    except httpx.RequestError as exc:
+        elapsed = time.monotonic() - start
+        if proxy_rotator and proxy_url:
+            proxy_rotator.mark_failure(proxy_url, str(exc))
+        logger.warning(
+            "proxy_request_error",
+            proxy=proxy_url or "direct",
+            elapsed_seconds=round(elapsed, 3),
+            error=str(exc),
+        )
+        raise
+
+    elapsed = time.monotonic() - start
+    if proxy_rotator and proxy_url:
+        if response.status_code >= 400:
+            proxy_rotator.mark_failure(proxy_url, f"status {response.status_code}")
+            logger.warning(
+                "proxy_response_error",
+                proxy=proxy_url,
+                status_code=response.status_code,
+                elapsed_seconds=round(elapsed, 3),
+            )
+        else:
+            proxy_rotator.mark_success(proxy_url)
+            logger.info(
+                "proxy_response_ok",
+                proxy=proxy_url,
+                status_code=response.status_code,
+                elapsed_seconds=round(elapsed, 3),
+            )
+    else:
+        logger.info(
+            "direct_response",
+            status_code=response.status_code,
+            elapsed_seconds=round(elapsed, 3),
+        )
 
     if response.status_code in {429, 503}:
         raise httpx.HTTPStatusError(
@@ -108,6 +158,7 @@ async def download_and_hash(
 
     English: Download, persist, and return the chained hash.
     """
+    proxy_rotator = get_proxy_rotator(logger)
     async with build_client() as client:
         try:
             response = await fetch_content(
@@ -115,6 +166,7 @@ async def download_and_hash(
                 url,
                 if_none_match=if_none_match,
                 if_modified_since=if_modified_since,
+                proxy_rotator=proxy_rotator,
             )
         except httpx.RequestError as exc:
             raise DownloadError(f"Request failed for {url}: {exc}") from exc
