@@ -1,6 +1,6 @@
 # [ES] Reordenamiento de documentación de resiliencia – Circuit breaker y reintentos 2026
 
-  /dev: Notas del parche: Versión: v0.0.43 (commit por definir)
+  /dev: Notas del parche: Versión: v0.0.43 (commit-hash-to-be-filled)
 
 
 
