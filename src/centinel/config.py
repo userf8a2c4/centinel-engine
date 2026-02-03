@@ -5,12 +5,28 @@ Secure and validated Centinel configuration.
 
 from __future__ import annotations
 
+from importlib.util import find_spec
+import json
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from dotenv import load_dotenv
-from pydantic import AnyUrl, BaseModel, Field, ValidationError
-from pydantic_settings import BaseSettings, SettingsConfigDict
+if find_spec("dotenv"):
+    from dotenv import load_dotenv
+else:
+    def load_dotenv(*_args, **_kwargs) -> bool:
+        return False
+from pydantic import AnyUrl, BaseModel, Field, TypeAdapter, ValidationError, field_validator
+if find_spec("pydantic_settings"):
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+    _HAS_PYDANTIC_SETTINGS = True
+else:
+    BaseSettings = BaseModel
+
+    class SettingsConfigDict(dict):
+        """Fallback placeholder when pydantic_settings is unavailable."""
+
+    _HAS_PYDANTIC_SETTINGS = False
 
 _ENV_PATH = Path(".env")
 _ENV_LOCAL_PATH = Path(".env.local")
@@ -25,10 +41,17 @@ class SourceConfig(BaseModel):
     English: Configurable ingestion source.
     """
 
-    url: AnyUrl
+    url: str
     type: str
     interval_seconds: int = Field(ge=60)
     auth_headers: Optional[Dict[str, str]] = None
+
+    @field_validator("url")
+    @classmethod
+    def _validate_url(cls, value: str) -> str:
+        """Validate URLs without changing the stored type."""
+        TypeAdapter(AnyUrl).validate_python(value)
+        return value
 
 
 class CentinelSettings(BaseSettings):
@@ -61,7 +84,22 @@ class CentinelSettings(BaseSettings):
 def load_config() -> CentinelSettings:
     """/** Carga y valida configuración, fallando con detalle. / Load and validate configuration, failing with details. **/"""
     try:
-        settings = CentinelSettings()
+        if _HAS_PYDANTIC_SETTINGS:
+            settings = CentinelSettings()
+        else:
+            raw_sources = os.getenv("SOURCES")
+            sources = json.loads(raw_sources) if raw_sources else None
+            storage_path = os.getenv("STORAGE_PATH")
+            arbitrum_url = os.getenv("ARBITRUM_RPC_URL")
+            ipfs_url = os.getenv("IPFS_GATEWAY_URL")
+            settings = CentinelSettings(
+                SOURCES=sources,
+                STORAGE_PATH=Path(storage_path) if storage_path else None,
+                LOG_LEVEL=os.getenv("LOG_LEVEL", "INFO"),
+                BOT_TOKEN_DISCORD=os.getenv("BOT_TOKEN_DISCORD"),
+                ARBITRUM_RPC_URL=arbitrum_url,
+                IPFS_GATEWAY_URL=ipfs_url,
+            )
         settings.validate_paths()
         return settings
     except ValidationError as exc:

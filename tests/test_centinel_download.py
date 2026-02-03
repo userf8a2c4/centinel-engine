@@ -11,6 +11,8 @@ import pytest
 
 from centinel.download import download_and_hash, fetch_content
 
+pytest.importorskip("pytest_httpx")
+
 
 def test_download_and_hash_success(httpx_mock, tmp_path):
     """Español: Función test_download_and_hash_success del módulo tests/test_centinel_download.py.

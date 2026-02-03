@@ -19,7 +19,7 @@ import json
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import yaml
 
@@ -30,6 +30,24 @@ from sentinel.utils.config_loader import CONFIG_PATH, load_config
 
 ANALYSIS_DIR = Path("analysis")
 ANALYSIS_DIR.mkdir(exist_ok=True)
+
+RuleFn = Callable[[dict, Optional[dict], dict], list[dict]]
+RULES: list[tuple[str, RuleFn]] = []
+
+
+def run_all_rules(current: dict, previous: Optional[dict], config: dict) -> list[dict]:
+    """Run configured rules respecting enablement flags."""
+    rules_config = config.get("rules", {}) if config else {}
+    if not rules_config.get("global_enabled", True):
+        return []
+
+    alerts: list[dict] = []
+    for name, rule in RULES:
+        rule_config = rules_config.get(name, {})
+        if rule_config.get("enabled", True) is False:
+            continue
+        alerts.extend(rule(current, previous, config))
+    return alerts
 
 PRESIDENTIAL_LEVELS = {
     "PRES",

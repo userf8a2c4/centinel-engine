@@ -28,15 +28,33 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any, Deque, Tuple
 
-import boto3
-import psutil
-from botocore.config import Config
+if find_spec("boto3"):
+    import boto3
+else:
+    boto3 = None
+
+if find_spec("botocore"):
+    from botocore.config import Config
+else:
+    Config = None
+
+if find_spec("psutil"):
+    import psutil
+else:
+    psutil = None
+
+if find_spec("fastapi"):
+    from fastapi import APIRouter, FastAPI
+    from fastapi.responses import JSONResponse
+else:
+    APIRouter = None
+    FastAPI = None
+    JSONResponse = None
 from dateutil import parser as date_parser
-from fastapi import APIRouter, FastAPI
-from fastapi.responses import JSONResponse
 
 from centinel.checkpointing import CheckpointConfig, CheckpointManager
 
@@ -131,6 +149,8 @@ def _build_s3_config() -> Config:
 
     English: Function _build_s3_config defined in src/monitoring/strict_health.py.
     """
+    if Config is None:
+        raise RuntimeError("botocore is required to configure the S3 client")
     return Config(connect_timeout=DEFAULT_BUCKET_LATENCY_SECONDS, read_timeout=5, retries={"max_attempts": 2})
 
 
@@ -139,6 +159,8 @@ def _build_s3_client():
 
     English: Function _build_s3_client defined in src/monitoring/strict_health.py.
     """
+    if boto3 is None:
+        raise RuntimeError("boto3 is required to build the S3 client")
     endpoint_url = os.getenv("CENTINEL_S3_ENDPOINT") or os.getenv("STORAGE_ENDPOINT_URL")
     region = os.getenv("CENTINEL_S3_REGION") or os.getenv("AWS_REGION", "us-east-1")
     access_key = os.getenv("CENTINEL_S3_ACCESS_KEY") or os.getenv("AWS_ACCESS_KEY_ID")
@@ -314,7 +336,11 @@ class CriticalLogTracker(logging.Handler):
         return max_consecutive
 
 
-_resource_sampler = ResourceSampler(_env_int("CPU_WINDOW_SECONDS", DEFAULT_CPU_WINDOW_SECONDS))
+_resource_sampler = (
+    ResourceSampler(_env_int("CPU_WINDOW_SECONDS", DEFAULT_CPU_WINDOW_SECONDS))
+    if psutil is not None
+    else None
+)
 
 
 def _ensure_critical_tracker() -> CriticalLogTracker:
@@ -484,6 +510,11 @@ def _check_resources() -> dict[str, Any]:
 
     English: Function _check_resources defined in src/monitoring/strict_health.py.
     """
+    if psutil is None or _resource_sampler is None:
+        return {
+            "ok": False,
+            "message": "resources_sampler_unavailable",
+        }
     cpu_avg, memory_avg = _resource_sampler.sample()
     memory_threshold = _env_float("MEMORY_THRESHOLD", DEFAULT_MEMORY_THRESHOLD)
     cpu_threshold = _env_float("CPU_THRESHOLD", DEFAULT_CPU_THRESHOLD)
@@ -658,6 +689,8 @@ def register_strict_health_endpoints(app: FastAPI) -> None:
 
     English: Function register_strict_health_endpoints defined in src/monitoring/strict_health.py.
     """
+    if FastAPI is None or APIRouter is None or JSONResponse is None:
+        raise RuntimeError("fastapi is required to register strict health endpoints")
     router = APIRouter()
 
     @router.get("/healthz")

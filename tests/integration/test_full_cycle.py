@@ -11,7 +11,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
-import responses
+import pytest
+
+responses = pytest.importorskip("responses")
 
 from anchor.arbitrum_anchor import anchor_batch
 from monitoring.health import get_health_state, reset_health_state
