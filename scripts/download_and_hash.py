@@ -31,6 +31,7 @@ import hashlib
 import json
 import logging
 import os
+import random
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -195,7 +196,7 @@ def fetch_with_retry(
 ) -> requests.Response:
     """/** Realiza request con reintentos fijos y backoff. / Perform request with fixed retries and backoff. **"""
     if session is None:
-        return download_with_retries(url, timeout=timeout)
+        return download_with_retries(url, timeout=timeout, headers=headers)
 
     try:
         retry_config = load_retry_config(DEFAULT_RETRY_CONFIG_PATH)
@@ -221,6 +222,49 @@ def resolve_retry_policy(config: dict[str, Any]) -> dict[str, Any]:
     retry_path = retry_path or DEFAULT_RETRY_CONFIG_PATH
     retry_config = load_retry_config(retry_path)
     return {"retry_config": retry_config, "retry_path": retry_path}
+
+
+def resolve_low_profile_settings(config: dict[str, Any]) -> dict[str, Any]:
+    """/** Normaliza configuración low-profile. / Normalize low-profile settings. **/"""
+    low_profile = config.get("low_profile", {}) if isinstance(config, dict) else {}
+    return low_profile if isinstance(low_profile, dict) else {}
+
+
+def build_request_headers(
+    config: dict[str, Any],
+    low_profile: dict[str, Any],
+    rng: random.Random,
+) -> dict[str, str]:
+    """/** Construye headers por request (low-profile opcional). / Build per-request headers (low-profile optional). **/"""
+    if not low_profile.get("enabled", False):
+        headers = config.get("headers", {}) if isinstance(config.get("headers"), dict) else {}
+        if "Accept" not in headers:
+            headers = {"Accept": "application/json", **headers}
+        return headers
+
+    user_agents = low_profile.get("user_agents", []) or []
+    accept_languages = low_profile.get("accept_languages", []) or []
+    referers = low_profile.get("referers", []) or []
+
+    headers: dict[str, str] = {
+        "Accept": "application/json",
+    }
+    if user_agents:
+        headers["User-Agent"] = rng.choice(user_agents)
+    if accept_languages:
+        headers["Accept-Language"] = rng.choice(accept_languages)
+    if referers:
+        headers["Referer"] = rng.choice(referers)
+    return headers
+
+
+def resolve_timeout_seconds(config: dict[str, Any], low_profile: dict[str, Any]) -> float:
+    """/** Resuelve timeout efectivo. / Resolve effective timeout. **/"""
+    if low_profile.get("enabled", False):
+        timeout_value = low_profile.get("timeout_seconds")
+        if timeout_value is not None:
+            return float(timeout_value)
+    return float(config.get("timeout", 10))
 
 
 def create_mock_snapshot() -> Path:
