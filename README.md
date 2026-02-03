@@ -22,6 +22,13 @@ Referencias normativas principales:
 - **Art. 3 y 4:** Reconocen el derecho ciudadano a acceder a información pública.
 - **Art. 5:** Establece la obligación de facilitar el acceso por medios electrónicos.
 
+Referencias constitucionales y legales adicionales (Honduras):
+- **Constitución de la República de Honduras**
+  - **Art. 72–74:** Libertad de emisión del pensamiento, difusión por cualquier medio y prohibición de censura previa (con responsabilidad ulterior).
+  - **Art. 80:** Derecho de petición ante las autoridades.
+  - **Art. 59–60:** Dignidad humana e igualdad ante la ley como base de acceso no discriminatorio a información pública.
+- **Ley de Libre Emisión del Pensamiento** (Decreto 6-1958): garantías para publicar y difundir información sin censura previa, con responsabilidad ulterior.
+
 Alcance operativo:
 - C.E.N.T.I.N.E.L. opera con finalidad de auditoría técnica y evidencia reproducible.
 - No interfiere con sistemas oficiales ni sustituye a autoridades electorales.
@@ -144,6 +151,13 @@ Primary legal references:
 - **Law on Transparency and Access to Public Information** (Decree 170-2006, amended by Decree 60-2022).
 - **Arts. 3 & 4:** Recognize the citizen right to access public information.
 - **Art. 5:** Establishes the obligation to facilitate access through electronic means.
+
+Additional constitutional and legal references (Honduras):
+- **Constitution of the Republic of Honduras**
+  - **Arts. 72–74:** Freedom of expression, dissemination by any means, and prohibition of prior censorship (with subsequent liability).
+  - **Art. 80:** Right of petition before authorities.
+  - **Arts. 59–60:** Human dignity and equality before the law as the basis for non-discriminatory access to public information.
+- **Law on Freedom of Thought and Expression** (Decree 6-1958): guarantees to publish and disseminate information without prior censorship, with subsequent liability.
 
 Operational scope:
 - C.E.N.T.I.N.E.L. operates for technical auditing and reproducible evidence.
