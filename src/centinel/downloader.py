@@ -435,10 +435,13 @@ def _perform_request(
 ) -> requests.Response:
     """Perform a single HTTP request and map failures to retryable errors."""
     try:
+        request_kwargs = {"timeout": timeout}
+        if headers:
+            request_kwargs["headers"] = headers
         if method.upper() == "GET":
-            response = session.get(url, headers=headers, timeout=timeout)
+            response = session.get(url, **request_kwargs)
         else:
-            response = session.request(method, url, headers=headers, timeout=timeout)
+            response = session.request(method, url, **request_kwargs)
     except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout, requests.exceptions.SSLError) as exc:
         policy = retry_config.policy_for_exception(exc)
         raise RetryableExceptionError(str(exc), policy, context=context) from exc

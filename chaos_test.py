@@ -135,6 +135,7 @@ class FakePipelineRunner:
         English: Function _assert_operational defined in chaos_test.py.
         """
         if not self.network_available:
+            self._alert("critical_network_unavailable")
             raise SimulatedNetworkError("network_blocked_ports_80_443")
 
     def _save_checkpoint(self) -> None:
@@ -143,6 +144,7 @@ class FakePipelineRunner:
         English: Function _save_checkpoint defined in chaos_test.py.
         """
         if self.disk_full:
+            self._alert("critical_disk_full")
             raise SimulatedDiskFullError("disk_full")
         payload = {"processed": self.state.processed, "hashes": self.state.hashes}
         self.checkpoint_path.write_text(

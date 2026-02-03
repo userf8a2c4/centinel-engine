@@ -12,20 +12,60 @@ import json
 import logging
 import os
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from importlib.util import find_spec
 from typing import Any, Dict, List, Optional, Tuple
 
-import boto3
-from botocore.config import Config
-from botocore.exceptions import ClientError, EndpointConnectionError
-from cryptography.fernet import Fernet, InvalidToken
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+if find_spec("boto3"):
+    import boto3
+else:
+    boto3 = None
+
+if find_spec("botocore"):
+    from botocore.config import Config
+    from botocore.exceptions import ClientError, EndpointConnectionError
+else:
+    Config = None
+
+    class ClientError(Exception):
+        """Fallback error when botocore is unavailable."""
+
+    class EndpointConnectionError(Exception):
+        """Fallback error when botocore is unavailable."""
+if find_spec("cryptography"):
+    from cryptography.fernet import Fernet, InvalidToken
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+else:
+    Fernet = None
+
+    class InvalidToken(Exception):
+        """Fallback error when cryptography is unavailable."""
+
+    hashes = None
+    HKDF = None
 
 from monitoring.alerts import dispatch_alert
 
 
 CheckpointState = Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class CheckpointConfig:
+    """Configuración necesaria para operar el checkpointing."""
+
+    bucket: str
+    pipeline_version: str
+    run_id: str
+    prefix: str = "centinel/checkpoints"
+    encryption_key_env: str = "CHECKPOINT_KEY"
+    checkpoint_interval: int = 50
+    s3_endpoint_url: Optional[str] = None
+    s3_region: Optional[str] = None
+    s3_access_key: Optional[str] = None
+    s3_secret_key: Optional[str] = None
 
 
 class CheckpointError(Exception):
@@ -58,25 +98,46 @@ class CheckpointManager:
 
     def __init__(
         self,
-        bucket_name: str,
-        prefix: str,
-        version: str,
-        run_id: str,
+        config: CheckpointConfig | str | None = None,
+        *,
+        bucket_name: str | None = None,
+        prefix: str = "centinel/checkpoints",
+        version: str | None = None,
+        run_id: str | None = None,
         encryption_key_env: str = "CHECKPOINT_KEY",
+        s3_client: Any | None = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         """Español: Función __init__ del módulo src/centinel/checkpointing.py.
 
         English: Function __init__ defined in src/centinel/checkpointing.py.
         """
-        self.bucket_name = bucket_name
-        self.prefix = prefix.rstrip("/")
-        self.version = version
-        self.run_id = run_id
-        self.encryption_key_env = encryption_key_env
-        self.logger = logging.getLogger(__name__)
+        if isinstance(config, CheckpointConfig):
+            resolved = config
+        else:
+            if config is not None and bucket_name is None:
+                bucket_name = config if isinstance(config, str) else None
+            if not bucket_name or not version or not run_id:
+                raise CheckpointValidationError("checkpoint_config_missing_fields")
+            resolved = CheckpointConfig(
+                bucket=bucket_name,
+                pipeline_version=version,
+                run_id=run_id,
+                prefix=prefix,
+                encryption_key_env=encryption_key_env,
+            )
+
+        self.config = resolved
+        self.bucket_name = resolved.bucket
+        self.prefix = resolved.prefix.rstrip("/")
+        self.version = resolved.pipeline_version
+        self.run_id = resolved.run_id
+        self.encryption_key_env = resolved.encryption_key_env
+        self.checkpoint_interval = resolved.checkpoint_interval
+        self.logger = logger or logging.getLogger(__name__)
         self._timeout_seconds = 15
         self._base_key = self._load_base_key()
-        self._s3_client = self._build_s3_client()
+        self._s3_client = s3_client or self._build_s3_client()
 
     async def save_checkpoint(self, state_dict: CheckpointState) -> str:
         """Guarda un checkpoint cifrado y devuelve su hash.
@@ -358,13 +419,17 @@ class CheckpointManager:
 
         English: Function _build_s3_client defined in src/centinel/checkpointing.py.
         """
-        endpoint = os.environ.get("CENTINEL_S3_ENDPOINT") or os.environ.get("S3_ENDPOINT_URL")
-        region = os.environ.get("AWS_REGION") or os.environ.get("CENTINEL_S3_REGION")
+        if boto3 is None or Config is None:
+            raise CheckpointStorageError("boto3 and botocore are required for checkpoint storage")
+        endpoint = self.config.s3_endpoint_url or os.environ.get("CENTINEL_S3_ENDPOINT") or os.environ.get("S3_ENDPOINT_URL")
+        region = self.config.s3_region or os.environ.get("AWS_REGION") or os.environ.get("CENTINEL_S3_REGION")
         config = Config(connect_timeout=self._timeout_seconds, read_timeout=self._timeout_seconds)
         return boto3.client(
             "s3",
             endpoint_url=endpoint,
             region_name=region,
+            aws_access_key_id=self.config.s3_access_key,
+            aws_secret_access_key=self.config.s3_secret_key,
             config=config,
         )
 
@@ -391,6 +456,8 @@ class CheckpointManager:
 
         English: Function _derive_fernet defined in src/centinel/checkpointing.py.
         """
+        if Fernet is None or HKDF is None or hashes is None:
+            raise CheckpointStorageError("cryptography is required for checkpoint encryption")
         hkdf = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
@@ -419,6 +486,8 @@ class CheckpointManager:
 
 def generate_checkpoint_key() -> str:
     """Genera una clave Fernet válida (32 bytes base64)."""
+    if Fernet is None:
+        raise CheckpointStorageError("cryptography is required to generate checkpoint keys")
     return Fernet.generate_key().decode("utf-8")
 
 
