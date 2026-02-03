@@ -536,9 +536,9 @@ def main() -> None:
     logger.info("Modo real activado - procediendo con fetch al CNE")
     sources = config.get("sources", [])
     if not sources:
-        logger.error("No se encontraron fuentes en config/config.yaml")
+        logger.error("No se encontraron fuentes en command_center/config.yaml")
         health_state.record_failure(critical=True)
-        raise ValueError("No sources defined in config/config.yaml")
+        raise ValueError("No sources defined in command_center/config.yaml")
 
     endpoints = config.get("endpoints", {})
     process_sources(sources, endpoints, config)

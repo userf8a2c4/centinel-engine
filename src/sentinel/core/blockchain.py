@@ -26,13 +26,13 @@ DEFAULT_NETWORKS = {
 
 
 def load_blockchain_config() -> Dict[str, Any]:
-    """Carga configuración blockchain desde config/config.yaml.
+    """Carga configuración blockchain desde command_center/config.yaml.
 
     Returns:
         Dict[str, Any]: Configuración blockchain encontrada.
 
     English:
-        Loads blockchain configuration from config/config.yaml.
+        Loads blockchain configuration from command_center/config.yaml.
 
     Returns:
         Dict[str, Any]: Loaded blockchain configuration.
