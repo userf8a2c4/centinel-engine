@@ -36,45 +36,19 @@ poetry run python scripts/run_pipeline.py --once
 make pipeline
 ```
 
-## Watchdog & Self-Healing
+## Retry & Resilience Configuration
 
-El watchdog agrega auto-curación básica cuando el pipeline se atasca, deja de generar snapshots o el heartbeat no se actualiza. Corre en un proceso separado (contenedor `centinel-watchdog`) y revisa cada 3–5 minutos:
+El pipeline ahora usa un esquema de reintentos configurable vía `retry_config.yaml`, con políticas diferenciadas por status HTTP y tipo de excepción (429, 5xx, 4xx, timeouts, parsing). Esto permite backoff exponencial y jitter ajustables, límites de intentos por error y acciones de alerta cuando el servidor rechaza la solicitud. Además, se registra un historial de fallos definitivos en `failed_requests.jsonl` y se evita descargar snapshots duplicados si existe un archivo reciente para la misma fuente (idempotencia basada en timestamp).【F:retry_config.yaml†L1-L67】【F:scripts/download_and_hash.py†L134-L207】【F:src/centinel/downloader.py†L1-L351】
 
-- Último snapshot JSON válido en `data/`.
-- Crecimiento de logs (`logs/centinel.log`).
-- Locks “atascados” en `data/temp/`.
-- Heartbeat actualizado cada minuto (`data/heartbeat.json`, generado por `scripts/run_pipeline.py`).
+**Ejemplo de uso en `run_pipeline.py`:**
 
-### Configuración
+```bash
+# Ruta custom para el YAML de reintentos
+export RETRY_CONFIG_PATH=retry_config.yaml
+poetry run python scripts/run_pipeline.py --once
+```
 
-Edita `watchdog.yaml` según tu entorno:
-
-- `max_inactivity_minutes`: minutos máximos sin snapshots nuevos.
-- `heartbeat_timeout`: tolerancia máxima del heartbeat.
-- `aggressive_restart`: `false` (modo simple) o `true` (reinicio automático).
-- `alert_urls`: lista de webhooks (Telegram/Slack/email relay).
-
-El modo agresivo requiere `restart: always` en `docker-compose.yml` y el socket de Docker montado.
-
-### Cómo probar el watchdog (simular atasco)
-
-1. **Simular lock atascado**:
-   ```bash
-   touch data/temp/pipeline.lock
-   # esperar > lock_timeout_minutes para disparar alerta
-   ```
-2. **Simular heartbeat detenido**:
-   ```bash
-   mv data/heartbeat.json data/heartbeat.json.bak
-   # esperar > heartbeat_timeout minutos
-   ```
-3. **Simular falta de snapshots**:
-   ```bash
-   mv data/*.json data/temp/  # mueve snapshots a un temp
-   # esperar > max_inactivity_minutes
-   ```
-
-Cuando el watchdog detecta la condición por más de `failure_grace_minutes`, registra un evento crítico, envía alerta y, si está en modo agresivo, intenta reiniciar el contenedor automáticamente.
+El `run_pipeline` pasa `RETRY_CONFIG_PATH` al subproceso de descarga para que `scripts/download_and_hash.py` aplique la configuración especificada.【F:scripts/run_pipeline.py†L362-L589】
 
 ## Enlaces importantes / Documentación
 

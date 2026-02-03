@@ -412,10 +412,10 @@ def should_run_stage(current_stage: str, start_stage: str) -> bool:
         return True
 
 
-def run_command(command, description):
+def run_command(command, description, env: dict[str, str] | None = None):
     """/** Ejecuta un comando del sistema. / Execute a system command. **"""
     print(f"[+] {description}: {' '.join(command)}")
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, env=env)
 
 
 def latest_file(directory, pattern):
@@ -627,7 +627,12 @@ def run_pipeline(config: dict[str, Any]):
                 )
                 save_resilience_checkpoint(run_id, "download")
                 maybe_inject_chaos_failure("download", resilience_settings, chaos_rng)
-                run_command(download_cmd, "descarga + hash")
+                retry_config_path = config.get("retry_config_path") or os.getenv(
+                    "RETRY_CONFIG_PATH", "retry_config.yaml"
+                )
+                download_env = os.environ.copy()
+                download_env["RETRY_CONFIG_PATH"] = retry_config_path
+                run_command(download_cmd, "descarga + hash", env=download_env)
 
         max_json = resolve_max_json_limit(config)
         snapshots = build_snapshot_queue(max_json)

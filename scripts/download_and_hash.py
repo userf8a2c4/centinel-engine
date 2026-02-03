@@ -39,8 +39,14 @@ from typing import Any, Optional
 import requests
 import yaml
 from dateutil import parser as date_parser
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+from centinel.downloader import (
+    StructuredLogger,
+    build_alert_hook,
+    load_retry_config,
+    request_json_with_retry,
+    request_with_retry,
+    should_skip_snapshot,
+)
 
 from monitoring.health import get_health_state
 from scripts.logging_utils import configure_logging, log_event
@@ -49,12 +55,10 @@ logger = configure_logging("centinel.download", log_file="logs/centinel.log")
 
 DEFAULT_CONFIG_PATH = "config.yaml"
 COMMAND_CENTER_PATH = Path("command_center") / "config.yaml"
-RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
 config_path = DEFAULT_CONFIG_PATH
 TEMP_DIR = Path("data") / "temp"
 CHECKPOINT_PATH = TEMP_DIR / "download_checkpoint.json"
-DEFAULT_RETRY_MAX = 5
-DEFAULT_BACKOFF_FACTOR = 2.0
+DEFAULT_RETRY_CONFIG_PATH = "retry_config.yaml"
 
 
 def resolve_config_path(config_path_override: str | None = None) -> str:
@@ -77,6 +81,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     env_candidate_count = os.getenv("CANDIDATE_COUNT")
     env_required_keys = os.getenv("REQUIRED_KEYS")
     env_master_switch = os.getenv("MASTER_SWITCH")
+    env_retry_config = os.getenv("RETRY_CONFIG_PATH")
 
     if env_base_url:
         config["base_url"] = env_base_url
@@ -104,6 +109,8 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         ]
     if env_master_switch:
         config["master_switch"] = env_master_switch
+    if env_retry_config:
+        config["retry_config_path"] = env_retry_config
 
     return config
 
@@ -160,45 +167,23 @@ def chain_hash(previous_hash: str, current_data: bytes) -> str:
 def download_with_retries(
     url: str,
     *,
-    timeout: float = 10.0,
-    headers: Optional[dict[str, str]] = None,
+    timeout: float | None = None,
 ) -> requests.Response:
-    """/** Descarga con reintentos explícitos y backoff. / Download with explicit retries and backoff. **"""
-    rules_thresholds = load_rules_thresholds()
-    retry_max = int(rules_thresholds.get("retry_max", DEFAULT_RETRY_MAX))
-    backoff_factor = float(
-        rules_thresholds.get("backoff_factor", DEFAULT_BACKOFF_FACTOR)
-    )
-    retry_strategy = Retry(
-        total=retry_max,
-        connect=retry_max,
-        read=retry_max,
-        backoff_factor=backoff_factor,
-        status_forcelist=[500, 502, 503, 504],
-        allowed_methods=["HEAD", "GET", "OPTIONS"],
-    )
-    adapter = HTTPAdapter(max_retries=retry_strategy)
+    """/** Descarga con reintentos configurables (tenacity). / Download with configurable retries (tenacity). **"""
+    retry_config = load_retry_config(DEFAULT_RETRY_CONFIG_PATH)
     session = requests.Session()
-    session.mount("https://", adapter)
-    session.mount("http://", adapter)
-
+    structured_logger = StructuredLogger("centinel.download")
+    alert_hook = build_alert_hook(structured_logger)
     try:
-        for attempt in range(1, retry_max + 1):
-            logger.info("download_attempt=%s/%s url=%s", attempt, retry_max, url)
-            try:
-                response = session.get(url, timeout=timeout, headers=headers)
-                response.raise_for_status()
-                return response
-            except requests.exceptions.RequestException as exc:
-                logger.warning(
-                    "download_attempt_failed attempt=%s url=%s error=%s",
-                    attempt,
-                    url,
-                    exc,
-                )
-                if attempt == retry_max:
-                    logger.error("download_retries_exhausted url=%s", url)
-                    raise
+        return request_with_retry(
+            session,
+            url,
+            retry_config=retry_config,
+            timeout=timeout,
+            logger=structured_logger,
+            context={"scope": "download_with_retries"},
+            alert_hook=alert_hook,
+        )
     finally:
         session.close()
 
@@ -206,8 +191,7 @@ def download_with_retries(
 def fetch_with_retry(
     url: str,
     *,
-    timeout: float = 10.0,
-    headers: Optional[dict[str, str]] = None,
+    timeout: float | None = None,
     session: Optional[requests.Session] = None,
 ) -> requests.Response:
     """/** Realiza request con reintentos fijos y backoff. / Perform request with fixed retries and backoff. **"""
@@ -215,56 +199,29 @@ def fetch_with_retry(
         return download_with_retries(url, timeout=timeout, headers=headers)
 
     try:
-        response = session.get(url, timeout=timeout, headers=headers)
-        response.raise_for_status()
-        return response
+        retry_config = load_retry_config(DEFAULT_RETRY_CONFIG_PATH)
+        structured_logger = StructuredLogger("centinel.download")
+        alert_hook = build_alert_hook(structured_logger)
+        return request_with_retry(
+            session,
+            url,
+            retry_config=retry_config,
+            timeout=timeout,
+            logger=structured_logger,
+            context={"scope": "fetch_with_retry"},
+            alert_hook=alert_hook,
+        )
     except requests.exceptions.RequestException as exc:
         logger.warning("Error en fetch: %s", exc)
         raise
 
 
-def load_rules_thresholds() -> dict[str, Any]:
-    """/** Carga umbrales desde command_center/rules.yaml. / Load thresholds from command_center/rules.yaml. **"""
-    if not RULES_CONFIG_PATH.exists():
-        return {}
-    try:
-        payload = yaml.safe_load(RULES_CONFIG_PATH.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError as exc:
-        logger.warning("rules_yaml_invalid error=%s", exc)
-        return {}
-    return payload if isinstance(payload, dict) else {}
-
-
-def resolve_retry_policy(config: dict[str, Any]) -> tuple[int, float]:
+def resolve_retry_policy(config: dict[str, Any]) -> dict[str, Any]:
     """/** Resuelve política de reintentos. / Resolve retry policy. **"""
-    rules_thresholds = load_rules_thresholds()
-    retry_max = int(
-        rules_thresholds.get("retry_max", config.get("retries", DEFAULT_RETRY_MAX))
-    )
-    backoff_factor = float(
-        rules_thresholds.get(
-            "backoff_factor",
-            config.get("backoff_base_seconds", DEFAULT_BACKOFF_FACTOR),
-        )
-    )
-    return retry_max, backoff_factor
-
-
-def build_retry_session(retry_max: int, backoff_factor: float) -> requests.Session:
-    """/** Crea sesión HTTP con reintentos y backoff. / Build HTTP session with retries and backoff. **"""
-    retry_strategy = Retry(
-        total=retry_max,
-        connect=retry_max,
-        read=retry_max,
-        backoff_factor=backoff_factor,
-        status_forcelist=[500, 502, 503, 504],
-        allowed_methods=["HEAD", "GET", "OPTIONS"],
-    )
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-    session = requests.Session()
-    session.mount("https://", adapter)
-    session.mount("http://", adapter)
-    return session
+    retry_path = config.get("retry_config_path") or os.getenv("RETRY_CONFIG_PATH")
+    retry_path = retry_path or DEFAULT_RETRY_CONFIG_PATH
+    retry_config = load_retry_config(retry_path)
+    return {"retry_config": retry_config, "retry_path": retry_path}
 
 
 def resolve_low_profile_settings(config: dict[str, Any]) -> dict[str, Any]:
@@ -443,35 +400,42 @@ def process_sources(
     hash_dir.mkdir(exist_ok=True)
 
     health_state = get_health_state()
+    retry_payload = resolve_retry_policy(config)
+    retry_config = retry_payload["retry_config"]
+    structured_logger = StructuredLogger("centinel.download")
+    alert_hook = build_alert_hook(structured_logger)
+    session = requests.Session()
 
-    low_profile = resolve_low_profile_settings(config)
-    rng = random.Random()
+    try:
+        for source in sources[:max_sources]:
+            endpoint = resolve_endpoint(source, endpoints)
+            if not endpoint:
+                logger.error("Fuente sin endpoint definido: %s", source)
+                continue
+            source_label = source.get("source_id") or source.get("name", "unknown")
+            if source_label in processed_sources:
+                logger.info("Fuente ya procesada en checkpoint: %s", source_label)
+                continue
+            if should_skip_snapshot(data_dir, source_label, retry_config=retry_config):
+                logger.info("Snapshot reciente detectado, se omite descarga: %s", source_label)
+                continue
 
-    for source in sources[:max_sources]:
-        endpoint = resolve_endpoint(source, endpoints)
-        if not endpoint:
-            logger.error("Fuente sin endpoint definido: %s", source)
-            continue
-        source_label = source.get("source_id") or source.get("name", "unknown")
-        if source_label in processed_sources:
-            logger.info("Fuente ya procesada en checkpoint: %s", source_label)
-            continue
-
-        try:
-            headers = build_request_headers(config, low_profile, rng)
-            timeout_seconds = resolve_timeout_seconds(config, low_profile)
-            response = download_with_retries(
-                endpoint,
-                timeout=timeout_seconds,
-                headers=headers,
-            )
             try:
-                payload = response.json()
-            except ValueError:
-                payload = {
-                    "raw": response.text,
-                    "note": "Respuesta no JSON convertida a texto.",
-                }
+                response, payload = request_json_with_retry(
+                    session,
+                    endpoint,
+                    retry_config=retry_config,
+                    timeout=float(
+                        config.get("timeout", retry_config.timeout_seconds)
+                    ),
+                    logger=structured_logger,
+                    context={"source": source_label},
+                    alert_hook=alert_hook,
+                )
+            except Exception as e:
+                logger.error("Fallo al descargar %s: %s", endpoint, e)
+                health_state.record_failure()
+                continue
 
             if not _validate_real_payload(payload, response.url, config):
                 logger.error("Payload inválido (no CNE/fecha real) en %s", endpoint)
@@ -517,9 +481,8 @@ def process_sources(
                 chained_hash,
                 source_label,
             )
-        except Exception as e:
-            logger.error("Fallo al descargar %s: %s", endpoint, e)
-            health_state.record_failure()
+    finally:
+        session.close()
     _clear_checkpoint()
 
 
