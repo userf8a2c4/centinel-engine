@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-01-07T09:05:00Z",
+  "source": "MOCK-CNE",
+  "actas_escrutadas": 1475,
+  "actas_total": 1600,
+  "total_votos": 1069100,
+  "candidatos": {
+    "Candidato A": 402100,
+    "Candidato B": 416900,
+    "Candidato C": 160300,
+    "Candidato D": 89900
+  },
+  "departamentos": [
+    {
+      "nombre": "Cortés",
+      "actas_escrutadas": 182,
+      "actas_total": 200,
+      "total_votos": 148200,
+      "candidatos": {
+        "Candidato A": 54800,
+        "Candidato B": 60200,
+        "Candidato C": 21400,
+        "Candidato D": 11800
+      }
+    },
+    {
+      "nombre": "Francisco Morazán",
+      "actas_escrutadas": 212,
+      "actas_total": 230,
+      "total_votos": 166900,
+      "candidatos": {
+        "Candidato A": 52400,
+        "Candidato B": 84200,
+        "Candidato C": 21000,
+        "Candidato D": 9300
+      },
+      "alerta": "Delta anormal >15% en Candidato B (Abnormal delta >15% for Candidate B)."
+    },
+    {
+      "nombre": "Olancho",
+      "actas_escrutadas": 141,
+      "actas_total": 160,
+      "total_votos": 101900,
+      "candidatos": {
+        "Candidato A": 35400,
+        "Candidato B": 32100,
+        "Candidato C": 18200,
+        "Candidato D": 16200
+      }
+    },
+    {
+      "nombre": "Santa Bárbara",
+      "actas_escrutadas": 96,
+      "actas_total": 110,
+      "total_votos": 66200,
+      "candidatos": {
+        "Candidato A": 20800,
+        "Candidato B": 19000,
+        "Candidato C": -3200,
+        "Candidato D": 17900
+      },
+      "rollback": "Se removieron actas duplicadas; votos negativos simulados (Rollback simulated with negative votes)."
+    }
+  ],
+  "observaciones": [
+    "Salto súbito de 16.8% para Candidato B a nivel nacional (16.8% spike for Candidate B).",
+    "Rollback detectado en Santa Bárbara (Rollback detected in Santa Bárbara)."
+  ]
+}

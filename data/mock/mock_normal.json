@@ -1,0 +1,64 @@
+{
+  "timestamp": "2026-01-07T08:30:00Z",
+  "source": "MOCK-CNE",
+  "actas_escrutadas": 1450,
+  "actas_total": 1600,
+  "total_votos": 1054320,
+  "candidatos": {
+    "Candidato A": 412300,
+    "Candidato B": 356450,
+    "Candidato C": 181220,
+    "Candidato D": 104350
+  },
+  "departamentos": [
+    {
+      "nombre": "Cortés",
+      "actas_escrutadas": 180,
+      "actas_total": 200,
+      "total_votos": 145000,
+      "candidatos": {
+        "Candidato A": 61200,
+        "Candidato B": 48250,
+        "Candidato C": 21000,
+        "Candidato D": 14550
+      }
+    },
+    {
+      "nombre": "Francisco Morazán",
+      "actas_escrutadas": 210,
+      "actas_total": 230,
+      "total_votos": 162500,
+      "candidatos": {
+        "Candidato A": 59200,
+        "Candidato B": 62000,
+        "Candidato C": 27500,
+        "Candidato D": 13800
+      }
+    },
+    {
+      "nombre": "Olancho",
+      "actas_escrutadas": 140,
+      "actas_total": 160,
+      "total_votos": 103400,
+      "candidatos": {
+        "Candidato A": 39200,
+        "Candidato B": 33600,
+        "Candidato C": 19200,
+        "Candidato D": 11400
+      }
+    },
+    {
+      "nombre": "Santa Bárbara",
+      "actas_escrutadas": 95,
+      "actas_total": 110,
+      "total_votos": 68500,
+      "candidatos": {
+        "Candidato A": 22500,
+        "Candidato B": 19650,
+        "Candidato C": 15600,
+        "Candidato D": 10750
+      }
+    }
+  ],
+  "notas": "Mock normal con progresión estable y sin anomalías críticas (Normal mock with stable progression)."
+}
