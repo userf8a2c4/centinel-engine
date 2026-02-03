@@ -1,3 +1,22 @@
+# Dev Diary - 202601 - CoreRefactor - 01
+
+**Fecha aproximada / Approximate date:** 18-ene-2026 / January 18, 2026  
+**Fase / Phase:** Refactor estructural y consolidación / Structural refactor & consolidation  
+**Versión interna / Internal version:** v0.0.40  
+**Rama / Branch:** main (dev-6)  
+**Autor / Author:** userf8a2c4
+
+**Resumen de avances / Summary of progress:**
+- Integración completa de `dev-v4` en `main` con refactor masivo a estructura `src/`.  
+  Full `dev-v4` merge into `main` with a major refactor to `src/` layout.
+- Evolución del Command Center y modularización de reglas de anomalías.  
+  Command Center maturation and modular anomaly rules.
+- Limpiezas, mejoras en scraping, generación de PDFs y flujos principales.  
+  Cleanup plus improvements to scraping, PDF generation, and core flows.
+- Actualización de licencia y preparación para integración con frontend.  
+  License update and preparation for frontend integration.
+
+---
 # Integración Mayor dev-v4 → main – Consolidación y Refactor 2026
 
 /dev: Notas del parche: Versión: v0.0.40 (integración dev-v4)

@@ -1,3 +1,22 @@
+# Dev Diary - 202602 - BrandingDocsPackaging - 01
+
+**Fecha aproximada / Approximate date:** Febrero 2026 (estimada) / February 2026 (estimated)  
+**Fase / Phase:** Rebranding y documentación base / Rebranding & base documentation  
+**Versión interna / Internal version:** v0.1.00  
+**Rama / Branch:** main (dev-6)  
+**Autor / Author:** userf8a2c4
+
+**Resumen de avances / Summary of progress:**
+- Rebranding consistente a **C.E.N.T.I.N.E.L.** en documentación y configuración.  
+  Consistent **C.E.N.T.I.N.E.L.** rebranding across docs and configuration.
+- README principal reorganizado con flujo operativo y enlaces clave.  
+  Main README reorganized with operational flow and key links.
+- Configuración base simplificada con comentarios bilingües.  
+  Base configuration simplified with bilingual comments.
+- Metadatos de empaquetado en `pyproject.toml` pulidos.  
+  Packaging metadata polished in `pyproject.toml`.
+
+---
 # Diario de desarrollo v0.1.00 — C.E.N.T.I.N.E.L.
 
 **Usuario responsable / Responsible user:** userf8a2c4

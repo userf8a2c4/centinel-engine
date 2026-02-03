@@ -1,3 +1,22 @@
+# Dev Diary - 202602 - ResiliencePdfReport - 01
+
+**Fecha aproximada / Approximate date:** 01-feb-2026 / February 1, 2026  
+**Fase / Phase:** Resiliencia operativa y reporte forense / Operational resilience & forensic reporting  
+**Versión interna / Internal version:** v0.0.42  
+**Rama / Branch:** main (dev-6)  
+**Autor / Author:** userf8a2c4
+
+**Resumen de avances / Summary of progress:**
+- Nuevo reporte PDF forense con clase dedicada y mejoras visuales.  
+  New forensic PDF report class with visual refinements.
+- Heatmap geoespacial y secciones a ancho completo para el PDF.  
+  Geospatial heatmap and full-width sections in the PDF.
+- Pipeline endurecido con healthchecks, reintentos y checkpoints.  
+  Hardened pipeline with healthchecks, retries, and checkpoints.
+- Pruebas de resiliencia para fallos de red y snapshots.  
+  Resilience tests for network and snapshot failures.
+
+---
 # [ES] Consolidación dev-v5 – Reporte PDF forense y resiliencia del pipeline 2026
 
   /dev: Notas del parche: Versión: v0.0.41 (commit a5d511a)
