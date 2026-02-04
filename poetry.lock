@@ -217,9 +217,49 @@ optional = false
 python-versions = "*"
 files = []
 
+[[package]]
+name = "boto3"
+version = "1.34.0"
+description = ""
+optional = false
+python-versions = "*"
+files = []
+
+[[package]]
+name = "cryptography"
+version = "42.0.0"
+description = ""
+optional = false
+python-versions = "*"
+files = []
+
+[[package]]
+name = "flake8"
+version = "7.0.0"
+description = ""
+optional = false
+python-versions = "*"
+files = []
+
+[[package]]
+name = "jsonschema"
+version = "4.22.0"
+description = ""
+optional = false
+python-versions = "*"
+files = []
+
+[[package]]
+name = "slowapi"
+version = "0.1.9"
+description = ""
+optional = false
+python-versions = "*"
+files = []
+
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "5d0a9e8491fa530b8e43455b8f1d30eb5209841da1f59aabaf0fbace40567ec0"
+content-hash = "b92a5f75d9c442fbf424e4750885353b3d236e0b3172f19c8ac296ab077d0907"
 
 # Updated lock file to match pyproject.toml - 2026-01-28

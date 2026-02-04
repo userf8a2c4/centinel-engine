@@ -1,84 +1,85 @@
-# CI/CD / Integración y entrega continua
+# CI/CD (Bilingüe / Bilingual)
 
-## Resumen / Overview
+## Objetivo / Objective
+Este documento describe el CI para C.E.N.T.I.N.E.L., con foco en reproducibilidad, trazabilidad y confiabilidad frente a auditorías externas (matemáticos, ingenieros, OEA, Carter Center). Cada workflow separa responsabilidades y reporta resultados claros. 
+This document describes the CI for C.E.N.T.I.N.E.L., focused on reproducibility, traceability, and reliability for external audits (mathematicians, engineers, OEA, Carter Center). Each workflow separates responsibilities and reports clear results.
 
-**ES:** Este documento describe los workflows de GitHub Actions que validan calidad, seguridad y resiliencia del proyecto **centinel-engine**. El objetivo es mantener un pipeline confiable, rápido y reproducible para un proyecto open‑source de alta credibilidad.  
-**EN:** This document describes the GitHub Actions workflows that validate quality, security, and resilience for **centinel-engine**. The goal is a reliable, fast, and reproducible pipeline for a high‑credibility open‑source project.
+## Resumen de workflows / Workflow summary
+- **Lint (push)**: `flake8` + `black --check`. Rápido y determinista. 
+  **Lint (push)**: `flake8` + `black --check`. Fast and deterministic.
+- **Test (pull_request)**: `pytest` con `pytest-cov` y matriz Python 3.10–3.12. Se excluyen `tests/chaos` y `tests/integration` del job estándar y se publica `coverage.xml` como artefacto y se reporta a Codecov. 
+  **Test (pull_request)**: `pytest` with `pytest-cov` and Python 3.10–3.12 matrix. `tests/chaos` and `tests/integration` are excluded from the standard job, and `coverage.xml` is published as an artifact and reported to Codecov.
+- **Security (push/pull_request)**: `bandit` con exclusiones razonables para reducir falsos positivos. 
+  **Security (push/pull_request)**: `bandit` with reasonable exclusions to reduce false positives.
+- **Chaos (pull_request, opcional)**: ejecuta `scripts/chaos_test.py` en modo ligero. 
+  **Chaos (pull_request, optional)**: runs `scripts/chaos_test.py` in light mode.
 
-## Workflows activos / Active workflows
+## Reproducibilidad y credibilidad / Reproducibility and credibility
+- Se fija la matriz de versiones de Python y se usa Poetry con `--no-root --no-interaction --no-ansi`. 
+  Python versions are pinned in a matrix and Poetry uses `--no-root --no-interaction --no-ansi`.
+- Se cachea `.venv` y `~/.cache/pypoetry` para mejorar velocidad y estabilidad. 
+  `.venv` and `~/.cache/pypoetry` are cached to improve speed and stability.
+- `pytest` usa `--import-mode=importlib` y `PYTHONPATH=src` para evitar fallas de discovery. 
+  `pytest` uses `--import-mode=importlib` and `PYTHONPATH=src` to avoid discovery failures.
 
-### `ci.yml` — Pipeline principal / Main pipeline
+## Configuración clave / Key configuration
+- **Coverage**: `.coveragerc` excluye `tests/` y `chaos_test.py`. 
+  **Coverage**: `.coveragerc` excludes `tests/` and `chaos_test.py`.
+- **Pytest**: `pyproject.toml` define `testpaths`, `pythonpath`, `--import-mode=importlib`, y exclusiones para `tests/chaos` y `tests/integration`. 
+  **Pytest**: `pyproject.toml` defines `testpaths`, `pythonpath`, `--import-mode=importlib`, plus exclusions for `tests/chaos` and `tests/integration`.
+- **Bandit**: `pyproject.toml` excluye `tests/` y `chaos_test.py`, y evita falsos positivos comunes (`B101`). 
+  **Bandit**: `pyproject.toml` excludes `tests/` and `chaos_test.py`, and avoids common false positives (`B101`).
 
-**ES:** Se ejecuta en `push` a `main` y `dev-v6`, y en `pull_request`. Incluye matriz de Python 3.10–3.12 y valida estilo, pruebas, cobertura y seguridad.  
-**EN:** Runs on `push` to `main` and `dev-v6`, and on `pull_request`. Includes a Python 3.10–3.12 matrix and validates lint, tests, coverage, and security.
+## Cómo ejecutar localmente / How to run locally
+Requiere Python 3.10+ y Poetry. 
+Requires Python 3.10+ and Poetry.
 
-**Pasos principales / Core steps:**
-- **Checkout / Checkout**: obtiene el código.  
-- **Setup Python / Setup Python**: configura versión de Python y cache de Poetry.  
-- **Poetry install / Poetry install**: `poetry install --no-root --with dev`.  
-- **Lint / Lint**: `flake8` y `black --check`.  
-- **Tests / Tests**: `pytest` con `pytest-cov`.  
-- **Security / Security**: `bandit` con exclusiones razonables para `tests`, `docs`, `.venv`, `build`, `dist`.
+```bash
+poetry install --with dev
+```
 
-### `lint.yml` — Lint en push / Lint on push
+### Lint / Lint
+```bash
+make lint
+```
 
-**ES:** Ejecuta el análisis de estilo en cada `push` a `main` y `dev-v6`, con Poetry y cache.  
-**EN:** Runs linting on every `push` to `main` and `dev-v6`, using Poetry and caching.
+### Tests + Coverage / Pruebas + Cobertura
+```bash
+make test
+poetry run pytest --cov=centinel --cov-report=xml --cov-report=term-missing
+```
 
-### `test.yml` — Tests en PR / Tests on PR
+### Bandit / Bandit
+```bash
+poetry run bandit -r src -c pyproject.toml
+```
 
-**ES:** Ejecuta pruebas con cobertura en cada `pull_request`.  
-**EN:** Runs tests with coverage on every `pull_request`.
+### Chaos (ligero) / Chaos (light)
+```bash
+poetry run python scripts/chaos_test.py --config chaos_config.yaml.example --level low --duration-minutes 0.1
+```
 
-### `chaos-test.yml` — Chaos tests (low) en PR
+## Troubleshooting / Resolución de problemas
+### Poetry lock / poetry.lock
+Si el CI falla por dependencias, actualiza el lockfile con: 
+If CI fails due to dependencies, update the lockfile with:
 
-**ES:** Ejecuta pruebas de caos en modo **low** para PRs (duración reducida), como validación de resiliencia sin sobrecargar el CI.  
-**EN:** Runs chaos tests in **low** mode for PRs (short duration) to validate resilience without overloading CI.
+```bash
+poetry lock
+```
 
-## Cómo contribuir sin romper CI / Contributing without breaking CI
+### Pytest discovery / Descubrimiento de pytest
+Si `pytest` no encuentra módulos, verifica que `PYTHONPATH=src` y `--import-mode=importlib` estén activos. 
+If `pytest` does not find modules, ensure `PYTHONPATH=src` and `--import-mode=importlib` are active.
 
-**ES:** Recomendaciones para mantener el CI estable:
-1. **Instala dependencias con Poetry**:  
-   ```bash
-   poetry install --no-root --with dev
-   ```
-2. **Ejecuta lint antes de subir cambios**:  
-   ```bash
-   poetry run flake8 .
-   poetry run black --check .
-   ```
-3. **Ejecuta pruebas con cobertura**:  
-   ```bash
-   poetry run pytest --cov=centinel --cov-report=term-missing
-   ```
-4. **Evita tests largos en PRs**: las pruebas de caos en PR están en modo bajo; para pruebas más intensas, coordina con mantenedores.
+### Bandit falsos positivos / Bandit false positives
+Bandit puede reportar `B101` (asserts) en tests o utilidades. Esto se excluye para evitar ruido, pero se recomienda revisar cualquier reporte nuevo. 
+Bandit may report `B101` (asserts) in tests or utilities. This is excluded to avoid noise, but any new report should be reviewed.
 
-**EN:** Recommendations to keep CI stable:
-1. **Install dependencies with Poetry**:  
-   ```bash
-   poetry install --no-root --with dev
-   ```
-2. **Run lint before pushing**:  
-   ```bash
-   poetry run flake8 .
-   poetry run black --check .
-   ```
-3. **Run tests with coverage**:  
-   ```bash
-   poetry run pytest --cov=centinel --cov-report=term-missing
-   ```
-4. **Avoid long-running tests in PRs**: chaos tests run at low level in PRs; coordinate with maintainers for heavier runs.
-
-## Troubleshooting / Solución de problemas
-
-**ES:**
-- **Falla en lint (black/flake8)**: ejecuta los comandos localmente y corrige el estilo antes de volver a hacer `push`.  
-- **Falla en tests**: revisa el log de pytest; si es un test flakey, proporciona evidencia reproducible.  
-- **Bandit reporta falsos positivos**: documenta la justificación en el PR y, si corresponde, agrega `# nosec` con explicación.  
-- **Cache inconsistente**: limpia el cache re‑ejecutando el workflow o incrementando el hash de dependencias.
-
-**EN:**
-- **Lint failure (black/flake8)**: run commands locally and fix style issues before pushing again.  
-- **Test failure**: inspect pytest logs; if it is flaky, provide a reproducible case.  
-- **Bandit false positives**: document the rationale in the PR and add `# nosec` with explanation when appropriate.  
-- **Inconsistent cache**: clear cache by re‑running workflows or updating dependency hashes.
+## Políticas de contribución CI / CI contribution policy
+- Mantener tests deterministas y reproducibles. 
+  Keep tests deterministic and reproducible.
+- Evitar dependencias de red en pruebas unitarias. 
+  Avoid network dependencies in unit tests.
+- Agregar cobertura cuando se añade lógica nueva. 
+  Add coverage when new logic is introduced.

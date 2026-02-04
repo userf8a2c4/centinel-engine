@@ -1,4 +1,4 @@
-.PHONY: init snapshot analyze summary pipeline test-stress security-scan
+.PHONY: init snapshot analyze summary pipeline test-stress security-scan test lint
 
 PYTHON_COMMAND ?= python
 
@@ -19,6 +19,13 @@ pipeline:
 
 test-stress:
 	$(PYTHON_COMMAND) -m pytest tests/test_stress.py
+
+test:
+	$(PYTHON_COMMAND) -m pytest --import-mode=importlib
+
+lint:
+	$(PYTHON_COMMAND) -m flake8 .
+	$(PYTHON_COMMAND) -m black --check .
 
 security-scan:
 	$(PYTHON_COMMAND) -m bandit -r .
