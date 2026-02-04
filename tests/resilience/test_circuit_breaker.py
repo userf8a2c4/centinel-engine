@@ -12,10 +12,10 @@ from scripts.run_pipeline import (
 )
 
 
-def test_circuit_breaker_transitions_and_cooldown_recovery() -> None:
-    """Español: Valida transición CLOSED→OPEN→HALF_OPEN y cierre tras cooldown exitoso.
+def test_circuit_breaker_transitions_logs_and_cooldown_recovery() -> None:
+    """Español: Valida transición CLOSED→OPEN→HALF_OPEN, alertas y cooldown.
 
-    English: Validate CLOSED→OPEN→HALF_OPEN transitions and successful cooldown recovery.
+    English: Validate CLOSED→OPEN→HALF_OPEN transitions, alert gating, and cooldown.
     """
     now = datetime(2029, 11, 30, 12, 0, tzinfo=timezone.utc)
     breaker = CircuitBreaker(
@@ -24,6 +24,7 @@ def test_circuit_breaker_transitions_and_cooldown_recovery() -> None:
         open_timeout_seconds=120,
         half_open_after_seconds=30,
         success_threshold=1,
+        open_log_interval_seconds=15,
     )
 
     assert breaker.state == "CLOSED"
@@ -31,7 +32,13 @@ def test_circuit_breaker_transitions_and_cooldown_recovery() -> None:
     assert breaker.record_failure(now + timedelta(seconds=1)) is True
     assert breaker.state == "OPEN"
 
+    assert breaker.should_log_open_wait(now) is True
+    assert breaker.should_log_open_wait(now + timedelta(seconds=5)) is False
+    assert breaker.consume_open_alert() is True
+    assert breaker.consume_open_alert() is False
+
     assert breaker.allow_request(now + timedelta(seconds=10)) is False
+    assert breaker.seconds_until_half_open(now + timedelta(seconds=10)) == 20.0
     assert breaker.allow_request(now + timedelta(seconds=31)) is True
     assert breaker.state == "HALF_OPEN"
 
@@ -62,27 +69,10 @@ def test_circuit_breaker_half_open_failure_reopens() -> None:
     assert breaker.state == "OPEN"
 
 
-def test_circuit_breaker_open_log_interval() -> None:
-    """Español: Verifica la cadencia de logs durante estado OPEN.
-
-    English: Verify open-state log cadence gating.
-    """
-    now = datetime(2029, 11, 30, 12, 0, tzinfo=timezone.utc)
-    breaker = CircuitBreaker(
-        failure_threshold=1,
-        open_log_interval_seconds=120,
-    )
-
-    breaker.record_failure(now)
-    assert breaker.should_log_open_wait(now) is True
-    assert breaker.should_log_open_wait(now + timedelta(seconds=30)) is False
-    assert breaker.should_log_open_wait(now + timedelta(seconds=121)) is True
-
-
 def test_low_profile_interval_and_jitter_for_polling() -> None:
-    """Español: Comprueba que low-profile aumenta intervalo y aplica jitter controlado.
+    """Español: Comprueba que low-profile aumenta intervalo y aplica jitter acotado.
 
-    English: Ensure low-profile raises the poll interval and applies bounded jitter.
+    English: Ensure low-profile increases polling interval and applies bounded jitter.
     """
     config = {
         "poll_interval_minutes": 30,

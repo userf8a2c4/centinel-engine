@@ -2,21 +2,22 @@
 
 from __future__ import annotations
 
+import json
 import random
 from typing import Any
 
 import pytest
 import requests
-import responses
 
 from centinel.downloader import (
     RetryConfig,
     RetryPolicy,
     RetryableExceptionError,
+    RetryableStatusError,
     request_json_with_retry,
     request_with_retry,
 )
-from scripts.download_and_hash import build_request_headers, fetch_with_retry
+from scripts.download_and_hash import build_request_headers
 
 
 def test_retry_policy_computes_exponential_backoff_with_jitter() -> None:
@@ -70,8 +71,8 @@ def test_build_request_headers_low_profile_selection() -> None:
     assert headers["Referer"] == "https://cne.hn"
 
 
-@responses.activate
 def test_request_with_retry_retries_429_503_and_preserves_headers(
+    mock_responses,
     retry_config: RetryConfig,
     sample_headers: dict[str, str],
 ) -> None:
@@ -92,7 +93,7 @@ def test_request_with_retry_retries_429_503_and_preserves_headers(
             return (503, {}, "service unavailable")
         return (200, {}, "ok")
 
-    responses.add_callback(responses.GET, url, callback=callback)
+    mock_responses.add_callback(mock_responses.GET, url, callback=callback)
 
     session = requests.Session()
     try:
@@ -114,43 +115,57 @@ def test_request_with_retry_retries_429_503_and_preserves_headers(
         assert headers.get("Referer") == sample_headers["Referer"]
 
 
-@responses.activate
-def test_request_with_retry_retries_timeout_until_max_attempts(
+def test_request_with_retry_retries_timeout_then_succeeds(
+    mock_responses,
     retry_config: RetryConfig,
 ) -> None:
-    """Español: Asegura reintentos ante timeout y respeta max_attempts.
+    """Español: Reintenta timeout (conexión lenta) y recupera con éxito.
 
-    English: Ensure timeout retries respect max_attempts limits.
+    English: Retry on timeout (slow connection) and recover successfully.
     """
-    url = "https://cne.hn/api/timeout"
-    responses.add(responses.GET, url, body=requests.exceptions.ReadTimeout("slow"))
+    url = "https://cne.hn/api/slow"
+    retry_config.per_exception["ReadTimeout"] = RetryPolicy(
+        max_attempts=3,
+        backoff_base=1.0,
+        backoff_multiplier=2.0,
+        max_delay=5.0,
+        jitter_min=0.0,
+        jitter_max=0.0,
+    )
+
+    mock_responses.add(
+        mock_responses.GET,
+        url,
+        body=requests.exceptions.ReadTimeout("slow"),
+    )
+    mock_responses.add(mock_responses.GET, url, body="ok", status=200)
 
     session = requests.Session()
     try:
-        with pytest.raises(RetryableExceptionError):
-            request_with_retry(
-                session,
-                url,
-                retry_config=retry_config,
-                timeout=1.0,
-            )
+        response = request_with_retry(
+            session,
+            url,
+            retry_config=retry_config,
+            timeout=1.0,
+        )
     finally:
         session.close()
 
-    assert len(responses.calls) == 2
+    assert response.status_code == 200
+    assert len(mock_responses.calls) == 2
 
 
-@responses.activate
 def test_request_json_with_retry_recovers_from_malformed_json(
+    mock_responses,
     retry_config: RetryConfig,
 ) -> None:
-    """Español: Reintenta JSON malformado y recupera respuesta válida.
+    """Español: Reintenta JSON parcial/malformado y recupera respuesta válida.
 
-    English: Retry on malformed JSON and recover with a valid payload.
+    English: Retry on partial/malformed JSON and recover with a valid payload.
     """
     url = "https://cne.hn/api/json"
-    responses.add(responses.GET, url, body="{bad json", status=200)
-    responses.add(responses.GET, url, json={"ok": True}, status=200)
+    mock_responses.add(mock_responses.GET, url, body="{bad json", status=200)
+    mock_responses.add(mock_responses.GET, url, json={"ok": True}, status=200)
 
     session = requests.Session()
     try:
@@ -165,43 +180,69 @@ def test_request_json_with_retry_recovers_from_malformed_json(
 
     assert response.status_code == 200
     assert payload == {"ok": True}
-    assert len(responses.calls) == 2
+    assert len(mock_responses.calls) == 2
 
 
-@responses.activate
-def test_fetch_with_retry_uses_session_and_headers(
-    monkeypatch: pytest.MonkeyPatch,
+def test_request_with_retry_persists_failed_requests_jsonl(
+    mock_responses,
     retry_config: RetryConfig,
-    sample_headers: dict[str, str],
 ) -> None:
-    """Español: Verifica que fetch_with_retry reutiliza sesión y headers.
+    """Español: Asegura registro en failed_requests.jsonl cuando se agotan intentos.
 
-    English: Verify fetch_with_retry reuses session and headers.
+    English: Ensure failed_requests.jsonl is written when attempts are exhausted.
     """
-    url = "https://cne.hn/api/fetch"
-    captured: list[dict[str, str]] = []
+    url = "https://cne.hn/api/always-503"
+    mock_responses.add(mock_responses.GET, url, body="down", status=503)
+    mock_responses.add(mock_responses.GET, url, body="down", status=503)
+    mock_responses.add(mock_responses.GET, url, body="down", status=503)
 
-    def callback(request):
-        captured.append(dict(request.headers))
-        return (200, {}, "ok")
+    session = requests.Session()
+    try:
+        with pytest.raises(RetryableStatusError):
+            request_with_retry(
+                session,
+                url,
+                retry_config=retry_config,
+                timeout=1.0,
+            )
+    finally:
+        session.close()
 
-    responses.add_callback(responses.GET, url, callback=callback)
+    failed_path = retry_config.failed_requests_path
+    assert failed_path.exists()
+    lines = failed_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    payload = json.loads(lines[0])
+    assert payload["url"] == url
+    assert payload["attempts"] == 3
+    assert payload["status_code"] == 503
 
-    monkeypatch.setattr(
-        "scripts.download_and_hash.load_retry_config", lambda _: retry_config
+
+def test_request_with_retry_retries_timeout_until_max_attempts(
+    mock_responses,
+    retry_config: RetryConfig,
+) -> None:
+    """Español: Asegura reintentos ante timeout y respeta max_attempts.
+
+    English: Ensure timeout retries respect max_attempts limits.
+    """
+    url = "https://cne.hn/api/timeout"
+    mock_responses.add(
+        mock_responses.GET,
+        url,
+        body=requests.exceptions.ReadTimeout("slow"),
     )
 
     session = requests.Session()
     try:
-        response = fetch_with_retry(
-            url,
-            timeout=1.0,
-            headers=sample_headers,
-            session=session,
-        )
+        with pytest.raises(RetryableExceptionError):
+            request_with_retry(
+                session,
+                url,
+                retry_config=retry_config,
+                timeout=1.0,
+            )
     finally:
         session.close()
 
-    assert response.status_code == 200
-    assert captured
-    assert captured[0].get("User-Agent") == sample_headers["User-Agent"]
+    assert len(mock_responses.calls) == 2

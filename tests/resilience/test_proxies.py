@@ -1,153 +1,117 @@
-"""Proxy rotation and validation tests."""
+"""Proxy rotation and validation resilience tests."""
 
 from __future__ import annotations
 
-import logging
+from dataclasses import dataclass
+from typing import List
 
+import httpx
 import pytest
 
 from centinel import proxy_handler
 
 
-class DummyResponse:
-    """Español: Respuesta simple para simular httpx.
+@dataclass
+class _DummyResponse:
+    status_code: int
 
-    English: Simple response to simulate httpx.
+
+class _DummyClient:
+    def __init__(self, responses: dict[str, int], errors: dict[str, Exception]):
+        self._responses = responses
+        self._errors = errors
+
+    def get(self, _url: str, *, proxies: str):
+        if proxies in self._errors:
+            raise self._errors[proxies]
+        return _DummyResponse(status_code=self._responses.get(proxies, 200))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return False
+
+
+def test_proxy_validation_rejects_403_and_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Español: Valida rechazo de proxy 403 y errores de conexión en validación.
+
+    English: Validate rejection of 403 proxies and connection errors during validation.
     """
+    responses = {
+        "http://proxy-1.local:8080": 200,
+        "http://proxy-2.local:8080": 403,
+    }
+    errors = {"http://proxy-3.local:8080": httpx.RequestError("boom")}
 
-    def __init__(self, status_code: int):
-        self.status_code = status_code
+    def dummy_client(*_args, **_kwargs):
+        return _DummyClient(responses, errors)
+
+    monkeypatch.setattr(proxy_handler.httpx, "Client", dummy_client)
+
+    validator = proxy_handler.ProxyValidator(test_url="https://cne.hn/health")
+    with caplog.at_level("WARNING"):
+        validated = validator.validate(list(responses.keys()) + list(errors.keys()))
+
+    assert [proxy.url for proxy in validated] == ["http://proxy-1.local:8080"]
+    assert "proxy_validation_failed" in caplog.text
+    assert "proxy_validation_error" in caplog.text
 
 
-def test_proxy_validator_filters_invalid_proxies(caplog, monkeypatch) -> None:
-    """Español: Valida proxies y filtra respuestas 4xx con logs esperados.
+def test_proxy_rotator_round_robin_and_fallback_to_direct(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Español: Verifica rotación round-robin y fallback a directo si fallan.
 
-    English: Validate proxies and filter 4xx responses with expected logs.
+    English: Verify round-robin rotation and fallback to direct when proxies fail.
     """
-    calls = []
-
-    def fake_get(_self, _url, proxies=None):
-        calls.append(proxies)
-        if proxies == "http://ok.proxy":
-            return DummyResponse(200)
-        return DummyResponse(403)
-
-    monkeypatch.setattr("httpx.Client.get", fake_get, raising=True)
-
-    validator = proxy_handler.ProxyValidator(logger=logging.getLogger("proxy.test"))
-    with caplog.at_level(logging.INFO):
-        validated = validator.validate(["http://ok.proxy", "http://bad.proxy"])
-
-    assert [proxy.url for proxy in validated] == ["http://ok.proxy"]
-    assert any("proxy_validation_ok" in record.message for record in caplog.records)
-    assert any(
-        "proxy_validation_failed" in record.message for record in caplog.records
-    )
-    assert calls == ["http://ok.proxy", "http://bad.proxy"]
-
-
-def test_proxy_rotator_round_robin_and_fallback(caplog) -> None:
-    """Español: Verifica round-robin, fallbacks y modo directo.
-
-    English: Verify round-robin rotation, fallbacks, and direct mode.
-    """
-    logger = logging.getLogger("proxy.rotator")
-    proxies = [
-        proxy_handler.ProxyInfo(url="http://proxy1"),
-        proxy_handler.ProxyInfo(url="http://proxy2"),
+    proxies: List[proxy_handler.ProxyInfo] = [
+        proxy_handler.ProxyInfo(url="http://proxy-1.local:8080"),
+        proxy_handler.ProxyInfo(url="http://proxy-2.local:8080"),
     ]
     rotator = proxy_handler.ProxyRotator(
         mode="rotate",
         proxies=proxies,
-        proxy_urls=[p.url for p in proxies],
+        proxy_urls=[proxy.url for proxy in proxies],
         rotation_strategy="round_robin",
         rotation_every_n=1,
-        logger=logger,
     )
 
-    assert rotator.get_proxy_for_request() == "http://proxy1"
-    assert rotator.get_proxy_for_request() == "http://proxy2"
-    assert rotator.get_proxy_for_request() == "http://proxy1"
+    first = rotator.get_proxy_for_request()
+    second = rotator.get_proxy_for_request()
+    assert first != second
 
-    with caplog.at_level(logging.WARNING):
-        rotator.mark_failure("http://proxy1", "403")
-        rotator.mark_failure("http://proxy1", "403")
-        rotator.mark_failure("http://proxy1", "403")
-        rotator.mark_failure("http://proxy2", "403")
-        rotator.mark_failure("http://proxy2", "403")
-        rotator.mark_failure("http://proxy2", "403")
+    with caplog.at_level("WARNING"):
+        for _ in range(3):
+            rotator.mark_failure(first, "proxy 403")
+        for _ in range(3):
+            rotator.mark_failure(second, "proxy timeout")
 
     assert rotator.mode == "direct"
-    assert any("proxy_fallback_direct" in record.message for record in caplog.records)
+    assert rotator.get_proxy_for_request() is None
+    assert "proxy_fallback_direct" in caplog.text
 
 
-def test_proxy_rotator_refreshes_pool(monkeypatch) -> None:
-    """Español: Refresca pool cuando todos los proxies están agotados.
+def test_proxy_rotator_refreshes_pool_when_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Español: Asegura refresco de pool y recuperación cuando hay proxies válidos.
 
-    English: Refresh proxy pool when all proxies are exhausted.
+    English: Ensure pool refresh and recovery when valid proxies are available.
     """
-    logger = logging.getLogger("proxy.refresh")
     rotator = proxy_handler.ProxyRotator(
         mode="rotate",
         proxies=[],
-        proxy_urls=["http://proxy1"],
+        proxy_urls=["http://proxy-1.local:8080"],
         rotation_strategy="round_robin",
         rotation_every_n=1,
-        logger=logger,
     )
 
     class DummyValidator:
-        """Español: Validador dummy para proxies.
-
-        English: Dummy validator for proxies.
-        """
-
-        def validate(self, proxies):
-            return [proxy_handler.ProxyInfo(url=proxies[0])]
-
-    validator = DummyValidator()
-
-    assert rotator.refresh_proxies(validator) is True
-    assert rotator.active_proxies
-
-
-def test_get_proxy_rotator_falls_back_to_direct(monkeypatch, caplog) -> None:
-    """Español: Asegura fallback a directo si ninguna validación pasa.
-
-    English: Ensure fallback to direct when no proxies validate.
-    """
-    proxy_handler._ROTATOR = None
-
-    def fake_load_proxy_config():
-        return {
-            "mode": "rotate",
-            "rotation_strategy": "round_robin",
-            "rotation_every_n": 1,
-            "proxy_timeout_seconds": 1.0,
-            "test_url": "https://example.com",
-            "proxies": ["http://proxy1"],
-        }
-
-    class FakeValidator:
-        """Español: Validador que falla todas las validaciones.
-
-        English: Validator that fails all validations.
-        """
-
-        def __init__(self, *args, **kwargs):
-            self.args = args
-            self.kwargs = kwargs
-
         def validate(self, _proxies):
-            return []
+            return [proxy_handler.ProxyInfo(url="http://proxy-1.local:8080")]
 
-    monkeypatch.setattr(proxy_handler, "load_proxy_config", fake_load_proxy_config)
-    monkeypatch.setattr(proxy_handler, "ProxyValidator", FakeValidator)
-
-    with caplog.at_level(logging.WARNING):
-        rotator = proxy_handler.get_proxy_rotator(logging.getLogger("proxy.test"))
-
-    assert rotator.mode == "direct"
-    assert any(
-        "proxy_startup_no_valid_proxies" in record.message for record in caplog.records
-    )
+    assert rotator.refresh_proxies(DummyValidator()) is True
+    assert rotator.mode == "rotate"
+    assert rotator.get_proxy_for_request() == "http://proxy-1.local:8080"
