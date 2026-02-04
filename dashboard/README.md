@@ -9,6 +9,14 @@ pip install -r dashboard/requirements.txt
 streamlit run dashboard/streamlit_app.py
 ```
 
+## Dependencias PDF
+
+Para habilitar el reporte PDF profesional instala ReportLab:
+
+```bash
+pip install reportlab
+```
+
 ## Contenido principal
 - Pilar principal: inmutabilidad criptográfica + anclaje en L2.
 - Detección automática y reproducible de cambios.

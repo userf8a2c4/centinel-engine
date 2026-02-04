@@ -18,7 +18,12 @@ from pathlib import Path
 from typing import Any
 
 import altair as alt
-import boto3
+try:
+    import boto3
+    BOTO3_AVAILABLE = True
+except ImportError:  # pragma: no cover - optional dependency for S3 checks
+    boto3 = None
+    BOTO3_AVAILABLE = False
 import pandas as pd
 import psutil
 from dateutil import parser as date_parser
@@ -443,6 +448,12 @@ def _check_bucket_connection() -> dict[str, Any]:
 
     English: Function _check_bucket_connection defined in dashboard/streamlit_app.py.
     """
+    if not BOTO3_AVAILABLE:
+        return {
+            "status": "No disponible",
+            "latency_ms": None,
+            "message": "Dependencia boto3 no instalada.",
+        }
     bucket = os.getenv("CHECKPOINT_BUCKET", "").strip()
     if not bucket:
         return {"status": "No configurado", "latency_ms": None, "message": ""}
@@ -1557,6 +1568,285 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     return buffer.getvalue()
 
 
+def generate_pdf_report(
+    data_nacional: dict[str, Any],
+    data_departamentos: list[dict[str, Any]],
+    hash_snapshot: str,
+    diffs: dict[str, Any],
+) -> bytes:
+    """Español: Genera un PDF formal bilingüe con resumen nacional y por departamento.
+
+    English: Generate a bilingual formal PDF with national and departmental summaries.
+    """
+    if not REPORTLAB_AVAILABLE:
+        raise RuntimeError("reportlab is required to build the PDF report.")
+
+    regular_font, bold_font = _register_pdf_fonts()
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=2.2 * cm,
+        rightMargin=2.2 * cm,
+        topMargin=2.4 * cm,
+        bottomMargin=2.2 * cm,
+    )
+
+    styles = getSampleStyleSheet()
+    styles.add(
+        ParagraphStyle(
+            name="CoverTitle",
+            fontName=bold_font,
+            fontSize=20,
+            leading=24,
+            alignment=TA_CENTER,
+            spaceAfter=18,
+            textColor=colors.HexColor("#1F2937"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="SectionTitle",
+            fontName=bold_font,
+            fontSize=13,
+            leading=16,
+            spaceBefore=8,
+            spaceAfter=6,
+            textColor=colors.HexColor("#1F77B4"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="Body",
+            fontName=regular_font,
+            fontSize=10.5,
+            leading=14,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="TableHeader",
+            fontName=bold_font,
+            fontSize=9.5,
+            leading=12,
+            alignment=TA_CENTER,
+            textColor=colors.white,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="TableCell",
+            fontName=regular_font,
+            fontSize=9.5,
+            leading=12,
+            alignment=TA_LEFT,
+        )
+    )
+
+    def as_paragraph(value: object, style: ParagraphStyle) -> Paragraph:
+        """Español: Convierte un valor en párrafo seguro para tablas.
+
+        English: Cast a value into a safe paragraph for tables.
+        """
+        return Paragraph(str(value), style)
+
+    def build_table(rows: list[list[object]], col_widths: list[float]) -> Table:
+        """Español: Construye una tabla con encabezado resaltado.
+
+        English: Build a table with a highlighted header row.
+        """
+        header = [as_paragraph(cell, styles["TableHeader"]) for cell in rows[0]]
+        body = [
+            [as_paragraph(cell, styles["TableCell"]) for cell in row]
+            for row in rows[1:]
+        ]
+        table = Table([header] + body, colWidths=col_widths, repeatRows=1)
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F77B4")),
+                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#D1D5DB")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
+        return table
+
+    report_date = dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    version = "v1.0"
+    repo_url = "https://github.com/userf8a2c4/centinel-engine"
+
+    def draw_footer(canvas: reportlab_canvas.Canvas, doc_instance: SimpleDocTemplate) -> None:
+        """Español: Dibuja el pie de página con enlace y timestamp.
+
+        English: Draw footer with repository link and timestamp.
+        """
+        canvas.saveState()
+        canvas.setFont(regular_font, 8)
+        canvas.setFillColor(colors.HexColor("#6B7280"))
+        canvas.drawString(doc_instance.leftMargin, 1.2 * cm, f"Repositorio: {repo_url}")
+        canvas.drawRightString(
+            doc_instance.pagesize[0] - doc_instance.rightMargin,
+            1.2 * cm,
+            f"Generado: {report_date}",
+        )
+        canvas.restoreState()
+
+    elements: list = []
+    elements.append(Paragraph("Reporte de Auditoría Centinel", styles["CoverTitle"]))
+    elements.append(
+        Paragraph(
+            f"Fecha de generación: {report_date}<br/>"
+            f"Versión: {version}<br/>"
+            f"Hash del snapshot: {hash_snapshot}",
+            styles["Body"],
+        )
+    )
+    elements.append(Spacer(1, 16))
+
+    elements.append(Paragraph("Resumen Nacional", styles["SectionTitle"]))
+    national_rows = [
+        ["Indicador", "Valor"],
+        ["Total nacional (JSON)", data_nacional.get("total_nacional", "N/D")],
+        ["Suma departamentos (18)", data_nacional.get("suma_departamentos", "N/D")],
+        ["Delta agregación", data_nacional.get("delta_aggregacion", "N/D")],
+        ["Snapshots procesados", data_nacional.get("snapshots", "N/D")],
+    ]
+    elements.append(build_table(national_rows, [doc.width * 0.6, doc.width * 0.4]))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("Resumen por Departamento", styles["SectionTitle"]))
+    dept_rows = [["Departamento", "Total", "Diff vs anterior"]]
+    for row in data_departamentos:
+        dept = row.get("departamento", "N/D")
+        total = row.get("total", "N/D")
+        diff_value = diffs.get(dept, row.get("diff", "N/D"))
+        dept_rows.append([dept, total, diff_value])
+    elements.append(build_table(dept_rows, [doc.width * 0.45, doc.width * 0.25, doc.width * 0.3]))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("Metodología (ES/EN)", styles["SectionTitle"]))
+    metodologia = (
+        "<b>ES:</b> Este reporte resume únicamente datos públicos agregados del CNE "
+        "a nivel nacional y departamental. En futuras versiones se incorporarán pruebas "
+        "estadísticas (Benford, chi-cuadrado) para evaluar distribución de dígitos y "
+        "consistencia temporal. El hashing encadenado asegura que cada snapshot se "
+        "vincula criptográficamente con el anterior, permitiendo detectar alteraciones. "
+        "Las diferencias (diffs) reflejan cambios entre el snapshot más reciente y el "
+        "inmediatamente anterior.<br/><br/>"
+        "<b>EN:</b> This report summarizes only public, aggregated CNE data at national "
+        "and departmental levels. Future versions will include statistical tests "
+        "(Benford, chi-square) to assess digit distribution and temporal consistency. "
+        "Chained hashing links each snapshot to the previous one, enabling tamper detection. "
+        "Diffs represent changes between the latest snapshot and the immediately prior one."
+    )
+    elements.append(Paragraph(metodologia, styles["Body"]))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("Declaración de Neutralidad (ES/EN)", styles["SectionTitle"]))
+    disclaimer = (
+        "<b>ES:</b> Este documento utiliza únicamente datos públicos del CNE. "
+        "No contiene interpretación política ni conclusiones electorales. "
+        "Su propósito es documentar integridad técnica y trazabilidad.<br/><br/>"
+        "<b>EN:</b> This document relies solely on public CNE data. It contains "
+        "no political interpretation or electoral conclusions. Its purpose is to "
+        "document technical integrity and traceability."
+    )
+    elements.append(Paragraph(disclaimer, styles["Body"]))
+
+    doc.build(elements, onFirstPage=draw_footer, onLaterPages=draw_footer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def build_pdf_export_payload(
+    snapshots_df: pd.DataFrame, departments: list[str]
+) -> tuple[dict[str, Any], list[dict[str, Any]], str, dict[str, Any]]:
+    """Español: Arma el payload de resumen nacional, departamentos, hash y diffs.
+
+    English: Build payload with national summary, departments, hash, and diffs.
+    """
+    if snapshots_df.empty:
+        return (
+            {
+                "total_nacional": "N/D",
+                "suma_departamentos": "N/D",
+                "delta_aggregacion": "N/D",
+                "snapshots": 0,
+            },
+            [],
+            "N/D",
+            {},
+        )
+
+    df = snapshots_df.copy()
+    df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
+    df = df.dropna(subset=["timestamp_dt"])
+    if df.empty:
+        return (
+            {
+                "total_nacional": "N/D",
+                "suma_departamentos": "N/D",
+                "delta_aggregacion": "N/D",
+                "snapshots": len(snapshots_df),
+            },
+            [],
+            "N/D",
+            {},
+        )
+
+    latest_ts = df["timestamp_dt"].max()
+    latest_df = df[df["timestamp_dt"] == latest_ts]
+    prev_df = df[df["timestamp_dt"] < latest_ts]
+    prev_latest = (
+        prev_df.sort_values("timestamp_dt")
+        .groupby("department", as_index=False)
+        .tail(1)
+    )
+
+    dept_latest = (
+        latest_df[latest_df["department"].isin(departments)]
+        .sort_values("department")
+        .groupby("department", as_index=False)
+        .tail(1)
+    )
+
+    national_latest = latest_df[~latest_df["department"].isin(departments)]
+    total_nacional = int(national_latest["votes"].sum()) if not national_latest.empty else 0
+    suma_departamentos = int(dept_latest["votes"].sum()) if not dept_latest.empty else 0
+    delta_aggregacion = suma_departamentos - total_nacional
+
+    diffs: dict[str, Any] = {}
+    data_departamentos: list[dict[str, Any]] = []
+    for _, row in dept_latest.iterrows():
+        dept = row["department"]
+        total = int(row["votes"])
+        prev_row = prev_latest[prev_latest["department"] == dept]
+        if not prev_row.empty:
+            prev_total = int(prev_row.iloc[0]["votes"])
+            diff_value = total - prev_total
+            diffs[dept] = f"{diff_value:+,}"
+        else:
+            diffs[dept] = "N/D"
+        data_departamentos.append(
+            {"departamento": dept, "total": f"{total:,}", "diff": diffs[dept]}
+        )
+
+    payload = latest_df[
+        ["timestamp", "department", "votes", "delta", "changes", "hash"]
+    ].fillna("").to_dict(orient="records")
+    hash_snapshot = compute_report_hash(json.dumps(payload, sort_keys=True))
+
+    data_nacional = {
+        "total_nacional": f"{total_nacional:,}",
+        "suma_departamentos": f"{suma_departamentos:,}",
+        "delta_aggregacion": f"{delta_aggregacion:+,}",
+        "snapshots": len(snapshots_df),
+    }
+
+    return data_nacional, data_departamentos, hash_snapshot, diffs
+
+
 st.set_page_config(
     page_title="C.E.N.T.I.N.E.L. | Vigilancia Electoral",
     page_icon="🛰️",
@@ -2361,6 +2651,18 @@ with tabs[4]:
     }
 
     if REPORTLAB_AVAILABLE:
+        data_nacional, data_departamentos, hash_snapshot, diffs = build_pdf_export_payload(
+            snapshots_df, departments
+        )
+        export_pdf_bytes = generate_pdf_report(
+            data_nacional, data_departamentos, hash_snapshot, diffs
+        )
+        st.download_button(
+            "Exportar Reporte PDF",
+            data=export_pdf_bytes,
+            file_name="centinel_reporte_auditoria.pdf",
+            mime="application/pdf",
+        )
         use_enhanced_pdf = plt is not None and qrcode is not None
         if use_enhanced_pdf:
             from centinel_pdf_report import CentinelPDFReport
