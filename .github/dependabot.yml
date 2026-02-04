@@ -1,5 +1,6 @@
 version: 2
 updates:
+  # Python dependencies / Dependencias de Python
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
@@ -9,3 +10,14 @@ updates:
     labels:
       - "dependencies"
       - "security"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions / Acciones de GitHub
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "ci"
+    open-pull-requests-limit: 5

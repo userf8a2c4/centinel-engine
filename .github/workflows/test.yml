@@ -1,13 +1,11 @@
-name: CI
+name: Test
 
 on:
-  push:
-    branches: ["main", "dev-v6"]
   pull_request:
 
 jobs:
-  ci:
-    name: CI (Python ${{ matrix.python-version }})
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -52,12 +50,6 @@ jobs:
           poetry config virtualenvs.in-project true
           poetry install --no-root --with dev
 
-      # Lint / Revisar estilo
-      - name: Lint (flake8 + black) / Lint (flake8 + black)
-        run: |
-          poetry run flake8 .
-          poetry run black --check .
-
       # Test + coverage / Pruebas + cobertura
       - name: Test with coverage / Pruebas con cobertura
         run: |
@@ -69,12 +61,3 @@ jobs:
         with:
           files: coverage.xml
           fail_ci_if_error: false
-
-      # Security scan / Escaneo de seguridad
-      - name: Install Bandit / Instalar Bandit
-        run: |
-          poetry run pip install bandit
-
-      - name: Bandit security scan / Escaneo Bandit
-        run: |
-          poetry run bandit -r src -x tests,docs,.venv,build,dist
