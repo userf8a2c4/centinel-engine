@@ -37,7 +37,7 @@ Incluye: / Includes:
 - **Falla de flake8**: revisa estilo y líneas largas; usa exclusiones solo si están justificadas. / **flake8 failure**: check style and long lines; use exclusions only with justification.
 - **Bandit reporta falsos positivos**: revisa el contexto y agrega exclusiones específicas con criterio. / **Bandit false positives**: review context and add targeted exclusions with care.
 - **Cobertura no sube**: revisa que se haya generado `coverage.xml`. / **Coverage not uploaded**: ensure `coverage.xml` is generated.
-- **Cache inválido**: elimina la cache o incrementa el lockfile. / **Invalid cache**: clear cache or update lockfile.
+- **Cache inválido**: elimina la cache o actualiza el lockfile ejecutando `poetry lock`. / **Invalid cache**: clear cache or update the lockfile by running `poetry lock`.
 
 ## Referencias / References
 - GitHub Actions: https://docs.github.com/en/actions
