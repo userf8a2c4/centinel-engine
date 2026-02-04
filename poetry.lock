@@ -220,6 +220,6 @@ files = []
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "5d0a9e8491fa530b8e43455b8f1d30eb5209841da1f59aabaf0fbace40567ec0"
+content-hash = "9132913ffa4fa2285d2e7a67ccd9c65c48028c14451a885fed54e98a376d7e57"
 
 # Updated lock file to match pyproject.toml - 2026-01-28
