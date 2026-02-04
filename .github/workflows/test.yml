@@ -40,11 +40,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-poetry-${{ matrix.python-version }}-
 
-      # Install dependencies / Instalar dependencias
-      - name: Lock dependencies / Bloquear dependencias
-        run: |
-          poetry lock
-
       - name: Install dependencies / Instalar dependencias
         run: |
           poetry config virtualenvs.in-project true
