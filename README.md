@@ -5,7 +5,9 @@
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue)](https://www.python.org/)
 [![Último commit](https://img.shields.io/github/last-commit/userf8a2c4/centinel-engine/dev-v6)](https://github.com/userf8a2c4/centinel-engine/commits/dev-v6)
-[![CI](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml)
+[![Lint](https://github.com/userf8a2c4/centinel-engine/actions/workflows/lint.yml/badge.svg?branch=dev-v6)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/lint.yml)
+[![Tests](https://github.com/userf8a2c4/centinel-engine/actions/workflows/test.yml/badge.svg?branch=dev-v6)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/test.yml)
+[![Security](https://github.com/userf8a2c4/centinel-engine/actions/workflows/security.yml/badge.svg?branch=dev-v6)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/security.yml)
 [![Coverage](https://codecov.io/gh/userf8a2c4/centinel-engine/branch/dev-v6/graph/badge.svg)](https://codecov.io/gh/userf8a2c4/centinel-engine)
 
 ## Descripción breve

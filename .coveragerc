@@ -1,0 +1,13 @@
+[run]
+branch = True
+source = src
+
+[report]
+omit =
+    tests/*
+    chaos_test.py
+    scripts/chaos_test.py
+
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:

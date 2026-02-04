@@ -1,14 +1,14 @@
-name: Chaos Tests
+name: Security
 
 on:
+  push:
+    branches: ["dev-v6", "main"]
   pull_request:
 
 jobs:
-  chaos-tests:
+  bandit:
+    name: Bandit
     runs-on: ubuntu-latest
-    env:
-      CHAOS_LEVEL: low
-      CHAOS_DURATION_MINUTES: "0.1"
 
     steps:
       # Checkout / Clonar repositorio
@@ -44,12 +44,9 @@ jobs:
       - name: Install dependencies / Instalar dependencias
         run: |
           poetry config virtualenvs.in-project true
-          poetry install --no-root --with dev
+          poetry install --no-root --with dev --no-interaction --no-ansi
 
-      # Run chaos tests / Ejecutar pruebas de caos
-      - name: Run chaos tests (low level) / Ejecutar pruebas de caos (nivel bajo)
+      # Bandit scan / Escaneo con Bandit
+      - name: Bandit scan / Escaneo con Bandit
         run: |
-          python scripts/chaos_test.py \
-            --config chaos_config.yaml.example \
-            --level "${CHAOS_LEVEL}" \
-            --duration-minutes "${CHAOS_DURATION_MINUTES}"
+          poetry run bandit -r src -c pyproject.toml

@@ -1,12 +1,14 @@
-name: Lint
+name: Chaos (Light)
 
 on:
-  push:
-    branches: ["dev-v6", "main"]
+  pull_request:
 
 jobs:
-  lint:
+  chaos-tests:
     runs-on: ubuntu-latest
+    env:
+      CHAOS_LEVEL: low
+      CHAOS_DURATION_MINUTES: "0.1"
 
     steps:
       # Checkout / Clonar repositorio
@@ -44,8 +46,10 @@ jobs:
           poetry config virtualenvs.in-project true
           poetry install --no-root --with dev --no-interaction --no-ansi
 
-      # Lint / Revisar estilo
-      - name: Lint (flake8 + black) / Lint (flake8 + black)
+      # Run chaos tests / Ejecutar pruebas de caos
+      - name: Run chaos tests (light) / Ejecutar pruebas de caos (ligero)
         run: |
-          poetry run flake8 .
-          poetry run black --check .
+          poetry run python scripts/chaos_test.py \
+            --config chaos_config.yaml.example \
+            --level "${CHAOS_LEVEL}" \
+            --duration-minutes "${CHAOS_DURATION_MINUTES}"
