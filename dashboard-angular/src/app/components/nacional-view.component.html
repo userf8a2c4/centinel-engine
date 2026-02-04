@@ -1,0 +1,24 @@
+<section class="nacional">
+  <h2>Resumen nacional</h2>
+  <div class="nacional__metrics">
+    <div>
+      <span>Total agregado</span>
+      <strong>{{ nacional().total | number }}</strong>
+    </div>
+    <div>
+      <span>Diff vs snapshot previo</span>
+      <strong>{{ nacional().diff | number }}</strong>
+    </div>
+    <div>
+      <span>Hash encadenado</span>
+      <strong>{{ nacional().hash }}</strong>
+    </div>
+  </div>
+
+  <canvas
+    baseChart
+    [data]="chartConfig.data"
+    [type]="chartConfig.type"
+    class="nacional__chart"
+  ></canvas>
+</section>

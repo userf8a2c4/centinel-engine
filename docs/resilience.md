@@ -257,4 +257,28 @@ resiliencia:
 
 **ES:** Estas configuraciones documentadas favorecen la **reproducibilidad**, porque cualquier auditor externo puede recrear condiciones de captura (cadencias, umbrales, backoff) y validar que el sistema operó de forma neutral y defensiva. Al publicar parámetros y ejemplos comentados, CENTINEL facilita el escrutinio técnico de organizaciones como la **OEA** o el **Carter Center** y refuerza la neutralidad del pipeline.
 
-**EN:** These documented configurations improve **reproducibility**, since any external auditor can recreate capture conditions (cadences, thresholds, backoff) and validate that the system operated neutrally and defensively. By publishing parameters and commented examples, CENTINEL enables technical scrutiny from organizations such as the **OAS** or **Carter Center** and reinforces pipeline neutrality.
+- **ES:** El pipeline incluye un circuito breaker y un modo low-profile configurables en `command_center/config.yaml`, con transiciones OPEN/HALF-OPEN/CLOSED y logs periódicos en estado OPEN.
+- **EN:** The pipeline includes a circuit breaker and a low-profile mode in `command_center/config.yaml`, with OPEN/HALF-OPEN/CLOSED transitions and periodic logs while OPEN.
+- **ES:** El modo low-profile aumenta el intervalo base, añade jitter y rota user-agents con headers mínimos (por ejemplo, Accept-Language y Referer).
+- **EN:** Low-profile mode increases the base interval, adds jitter, and rotates user-agents with minimal headers (e.g., Accept-Language and Referer).
+
+## 3) Chaos Testing
+
+**Qué hace / What it does**
+- **ES:** Ejecuta experimentos de chaos engineering con fallos específicos del CNE (rate-limit 429, timeouts 503, JSON malformado, hashes alterados, fallos de proxy y watchdog). Estos escenarios refuerzan la credibilidad de la auditoría digital en Centroamérica al demostrar recuperación controlada en endpoints agregados.
+- **EN:** Runs chaos engineering experiments with CNE-specific failures (429 rate limits, 503 timeouts, malformed JSON, altered hashes, proxy failures, and watchdog triggers). These scenarios strengthen the credibility of the digital audit in Central America by demonstrating controlled recovery on aggregated endpoints.
+
+**Componentes / Components**
+- **scripts/chaos_test.py:** Script principal con mocks usando `responses`, métricas de recuperación y reportes JSON.
+- **chaos_config.yaml.example:** Niveles de caos (low/mid/high) con duración, probabilidad de fallos y parámetros de reintento.
+- **tests/chaos/**: Pruebas unitarias que validan recuperación ante rate-limits.
+- **.github/workflows/chaos-test.yml:** Ejecución automática en PRs y pushes.
+
+**Ejecución manual / Manual run**
+```bash
+python scripts/chaos_test.py --config chaos_config.yaml.example --level low --report chaos_report.json
+```
+
+**Notas de credibilidad / Credibility notes**
+- **ES:** Los reportes incluyen tiempo de recuperación, banderas de anomalía y placeholders de p-values para análisis estadístico futuro.
+- **EN:** Reports include recovery time, anomaly flags, and p-value placeholders for future statistical analysis.
