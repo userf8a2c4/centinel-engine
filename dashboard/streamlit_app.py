@@ -25,7 +25,12 @@ except ImportError:  # pragma: no cover - optional dependency for S3 checks
     boto3 = None
     BOTO3_AVAILABLE = False
 import pandas as pd
-import psutil
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:  # pragma: no cover - optional dependency for system metrics
+    psutil = None
+    PSUTIL_AVAILABLE = False
 from dateutil import parser as date_parser
 import streamlit as st
 import asyncio
@@ -236,6 +241,84 @@ def load_configs() -> dict[str, dict]:
     return {
         "command_center": load_yaml_config(command_center_config),
     }
+
+
+def load_rules_config(path: Path) -> dict:
+    """Español: Carga reglas de auditoría desde rules.yaml.
+
+    English: Load audit rules from rules.yaml.
+    """
+    return load_yaml_config(path)
+
+
+def resolve_polling_status(
+    rate_limit_failures: int,
+    failed_retries: int,
+    time_since_last: dt.timedelta | None,
+    refresh_interval: int,
+) -> dict[str, str]:
+    """Español: Determina el estado de polling para el dashboard.
+
+    English: Determine polling status for the dashboard.
+    """
+    status = {
+        "label": "✅ Polling estable",
+        "class": "status-pill",
+        "detail": "Sin interrupciones recientes.",
+    }
+    if rate_limit_failures > 0:
+        status = {
+            "label": "⛔ Polling limitado",
+            "class": "status-pill status-pill--danger",
+            "detail": f"{rate_limit_failures} bloqueos por rate-limit.",
+        }
+    elif failed_retries > 0:
+        status = {
+            "label": "⚠️ Polling inestable",
+            "class": "status-pill status-pill--warning",
+            "detail": f"{failed_retries} reintentos en {refresh_interval}s.",
+        }
+    if time_since_last and time_since_last > dt.timedelta(minutes=45):
+        status = {
+            "label": "⚠️ Polling retrasado",
+            "class": "status-pill status-pill--warning",
+            "detail": f"Última actualización hace {_format_timedelta(time_since_last)}.",
+        }
+    return status
+
+
+def resolve_snapshot_context(
+    snapshots_df: pd.DataFrame,
+    selected_timestamp: dt.datetime | None,
+) -> tuple[dt.datetime | None, dt.datetime | None]:
+    """Español: Calcula snapshot actual y previo para el contexto histórico.
+
+    English: Compute current and previous snapshot timestamps for historical context.
+    """
+    if snapshots_df.empty:
+        return None, None
+    df = snapshots_df.copy()
+    df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
+    df = df.dropna(subset=["timestamp_dt"]).sort_values("timestamp_dt")
+    if df.empty:
+        return None, None
+    if selected_timestamp is not None:
+        df = df[df["timestamp_dt"] <= selected_timestamp]
+    if df.empty:
+        return None, None
+    current_ts = df["timestamp_dt"].max()
+    previous_df = df[df["timestamp_dt"] < current_ts]
+    previous_ts = previous_df["timestamp_dt"].max() if not previous_df.empty else None
+    return current_ts, previous_ts
+
+
+def emit_toast(message: str, icon: str = "⚠️") -> None:
+    """Español: Emite una notificación tipo snackbar si está disponible.
+
+    English: Emit a snackbar-style notification when available.
+    """
+    if hasattr(st, "toast"):
+        st.toast(message, icon=icon)
 
 
 def _get_query_param(name: str) -> str | None:
@@ -598,8 +681,6 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
                 "changes",
                 "department",
                 "level",
-                "candidate",
-                "impact",
                 "status",
                 "is_real",
                 "timestamp_dt",
@@ -647,8 +728,6 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
                 "changes": abs(delta) // 50,
                 "department": _pick_from_seed(seed, departments),
                 "level": "Presidencial",
-                "candidate": None,
-                "impact": None,
                 "status": status,
                 "is_real": snapshot.get("is_real", False),
             }
@@ -657,20 +736,6 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
     if not df.empty:
         df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
         df["hour"] = df["timestamp_dt"].dt.strftime("%H:%M")
-        df["candidate"] = (
-            df["department"]
-            .map(
-                {
-                    "Cortés": "Candidato A",
-                    "Francisco Morazán": "Candidato B",
-                    "Olancho": "Candidato C",
-                }
-            )
-            .fillna("Candidato D")
-        )
-        df["impact"] = df["delta"].apply(
-            lambda value: "Favorece" if value > 0 else "Afecta"
-        )
     return df
 
 
@@ -683,7 +748,6 @@ def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(
             columns=[
                 "department",
-                "candidate",
                 "delta",
                 "delta_pct",
                 "votes",
@@ -694,17 +758,6 @@ def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
             ]
         )
     anomalies = df.loc[df["status"].isin(["ALERTA", "REVISAR"])].copy()
-    anomalies["candidate"] = (
-        anomalies["department"]
-        .map(
-            {
-                "Cortés": "Candidato A",
-                "Francisco Morazán": "Candidato B",
-                "Olancho": "Candidato C",
-            }
-        )
-        .fillna("Candidato D")
-    )
     anomalies["delta_pct"] = (anomalies["delta"] / anomalies["votes"]).round(4) * 100
     anomalies["type"] = anomalies["delta"].apply(
         lambda value: "Delta negativo" if value < 0 else "Outlier de crecimiento"
@@ -715,7 +768,6 @@ def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     return anomalies[
         [
             "department",
-            "candidate",
             "delta",
             "delta_pct",
             "votes",
@@ -905,15 +957,6 @@ def build_rules_engine_payload(snapshot_row: pd.Series) -> dict:
             "null_votes": int(snapshot_row["votes"] * 0.05),
             "blank_votes": int(snapshot_row["votes"] * 0.03),
         },
-        "resultados": {
-            "Candidato A": int(snapshot_row["votes"] * 0.38),
-            "Candidato B": int(snapshot_row["votes"] * 0.34),
-            "Candidato C": int(snapshot_row["votes"] * 0.18),
-            "Candidato D": int(snapshot_row["votes"] * 0.10),
-        },
-        "actas": {"total": 1250, "procesadas": 1120},
-        "mesas": {"total": 5400, "procesadas": 4920},
-        "participacion": {"porcentaje": 63.4},
     }
 
 
@@ -1135,7 +1178,7 @@ def create_pdf_charts(
             pivot = pivot.reindex(columns=list(range(24)), fill_value=0)
             fig, ax = plt.subplots(figsize=(6.8, 3.2))
             ax.imshow(pivot.values, aspect="auto", cmap="Blues")
-            ax.set_title("Matriz de carga (actas por hora)")
+            ax.set_title("Matriz de carga (snapshots por hora)")
             ax.set_yticks(range(len(pivot.index)))
             ax.set_yticklabels(pivot.index, fontsize=6)
             ax.set_xticks(range(len(pivot.columns)))
@@ -1516,12 +1559,11 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     anomaly_rows = data["anomaly_rows"]
     anomaly_col_widths = [
         doc.width * 0.14,
-        doc.width * 0.18,
-        doc.width * 0.1,
-        doc.width * 0.1,
-        doc.width * 0.12,
         doc.width * 0.14,
-        doc.width * 0.22,
+        doc.width * 0.12,
+        doc.width * 0.12,
+        doc.width * 0.18,
+        doc.width * 0.3,
     ]
     anomaly_table = build_table(anomaly_rows, anomaly_col_widths)
     table_style = [
@@ -1533,16 +1575,16 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         ),
     ]
     for row_idx, row in enumerate(anomaly_rows[1:], start=1):
-        delta_pct = str(row[3]).replace("%", "").strip()
+        delta_pct = str(row[2]).replace("%", "").strip()
         try:
             delta_pct_val = float(delta_pct)
         except ValueError:
             delta_pct_val = 0.0
-        if "ROLLBACK / ELIMINACIÓN DE DATOS" in str(row[6]):
+        if "ROLLBACK / ELIMINACIÓN DE DATOS" in str(row[5]):
             table_style.append(
                 ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#FADBD8"))
             )
-        elif "OUTLIER" in str(row[6]).upper():
+        elif "OUTLIER" in str(row[5]).upper():
             table_style.append(
                 ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#FCF3CF"))
             )
@@ -1551,11 +1593,11 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
                 ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#fdecea"))
             )
             table_style.append(
-                ("TEXTCOLOR", (2, row_idx), (3, row_idx), colors.HexColor("#D62728"))
+                ("TEXTCOLOR", (1, row_idx), (2, row_idx), colors.HexColor("#D62728"))
             )
-    table_style.append(("FONTNAME", (5, 1), (5, -1), "Courier"))
-    table_style.append(("FONTSIZE", (5, 1), (5, -1), 7))
-    table_style.append(("LEADING", (5, 1), (5, -1), 8))
+    table_style.append(("FONTNAME", (4, 1), (4, -1), "Courier"))
+    table_style.append(("FONTSIZE", (4, 1), (4, -1), 7))
+    table_style.append(("LEADING", (4, 1), (4, -1), 8))
     anomaly_table.setStyle(TableStyle(table_style))
     elements.append(anomaly_table)
     elements.append(Spacer(1, 8))
@@ -1587,11 +1629,10 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     )
     snapshot_rows = data["snapshot_rows"]
     snapshot_col_widths = [
+        doc.width * 0.24,
         doc.width * 0.18,
-        doc.width * 0.12,
-        doc.width * 0.16,
-        doc.width * 0.12,
-        doc.width * 0.12,
+        doc.width * 0.14,
+        doc.width * 0.14,
         doc.width * 0.3,
     ]
     snapshot_table = build_table(snapshot_rows, snapshot_col_widths)
@@ -1664,7 +1705,8 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
 def generate_pdf_report(
     data_nacional: dict[str, Any],
     data_departamentos: list[dict[str, Any]],
-    hash_snapshot: str,
+    current_hash: str,
+    previous_hash: str,
     diffs: dict[str, Any],
 ) -> bytes:
     """Español: Genera un PDF formal bilingüe con resumen nacional y por departamento.
@@ -1791,7 +1833,8 @@ def generate_pdf_report(
         Paragraph(
             f"Fecha de generación: {report_date}<br/>"
             f"Versión: {version}<br/>"
-            f"Hash del snapshot: {hash_snapshot}",
+            f"Hash del snapshot actual: {current_hash}<br/>"
+            f"Hash del snapshot previo: {previous_hash}",
             styles["Body"],
         )
     )
@@ -1826,12 +1869,13 @@ def generate_pdf_report(
         "consistencia temporal. El hashing encadenado asegura que cada snapshot se "
         "vincula criptográficamente con el anterior, permitiendo detectar alteraciones. "
         "Las diferencias (diffs) reflejan cambios entre el snapshot más reciente y el "
-        "inmediatamente anterior.<br/><br/>"
+        "inmediatamente anterior. [Placeholder metodológico bilingüe].<br/><br/>"
         "<b>EN:</b> This report summarizes only public, aggregated CNE data at national "
         "and departmental levels. Future versions will include statistical tests "
         "(Benford, chi-square) to assess digit distribution and temporal consistency. "
         "Chained hashing links each snapshot to the previous one, enabling tamper detection. "
-        "Diffs represent changes between the latest snapshot and the immediately prior one."
+        "Diffs represent changes between the latest snapshot and the immediately prior one. "
+        "[Bilingual methodology placeholder]."
     )
     elements.append(Paragraph(metodologia, styles["Body"]))
     elements.append(Spacer(1, 12))
@@ -1840,10 +1884,13 @@ def generate_pdf_report(
     disclaimer = (
         "<b>ES:</b> Este documento utiliza únicamente datos públicos del CNE. "
         "No contiene interpretación política ni conclusiones electorales. "
-        "Su propósito es documentar integridad técnica y trazabilidad.<br/><br/>"
+        "No sustituye ni pretende reemplazar procesos oficiales del CNE. "
+        "Su propósito es documentar integridad técnica, trazabilidad y transparencia "
+        "para observadores internacionales. <br/><br/>"
         "<b>EN:</b> This document relies solely on public CNE data. It contains "
-        "no political interpretation or electoral conclusions. Its purpose is to "
-        "document technical integrity and traceability."
+        "no political interpretation or electoral conclusions. It does not replace "
+        "official CNE processes. Its purpose is to document technical integrity, "
+        "traceability, and transparency for international observers."
     )
     elements.append(Paragraph(disclaimer, styles["Body"]))
 
@@ -1853,8 +1900,10 @@ def generate_pdf_report(
 
 
 def build_pdf_export_payload(
-    snapshots_df: pd.DataFrame, departments: list[str]
-) -> tuple[dict[str, Any], list[dict[str, Any]], str, dict[str, Any]]:
+    snapshots_df: pd.DataFrame,
+    departments: list[str],
+    selected_timestamp: dt.datetime | None = None,
+) -> tuple[dict[str, Any], list[dict[str, Any]], str, str, dict[str, Any]]:
     """Español: Arma el payload de resumen nacional, departamentos, hash y diffs.
 
     English: Build payload with national summary, departments, hash, and diffs.
@@ -1869,12 +1918,15 @@ def build_pdf_export_payload(
             },
             [],
             "N/D",
+            "N/D",
             {},
         )
 
     df = snapshots_df.copy()
     df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
     df = df.dropna(subset=["timestamp_dt"])
+    if selected_timestamp is not None:
+        df = df[df["timestamp_dt"] <= selected_timestamp]
     if df.empty:
         return (
             {
@@ -1884,6 +1936,7 @@ def build_pdf_export_payload(
                 "snapshots": len(snapshots_df),
             },
             [],
+            "N/D",
             "N/D",
             {},
         )
@@ -1925,10 +1978,25 @@ def build_pdf_export_payload(
             {"departamento": dept, "total": f"{total:,}", "diff": diffs[dept]}
         )
 
-    payload = latest_df[
-        ["timestamp", "department", "votes", "delta", "changes", "hash"]
-    ].fillna("").to_dict(orient="records")
+    def _snapshot_payload(snapshot_df: pd.DataFrame) -> list[dict[str, Any]]:
+        """Español: Construye payload serializable para hash de snapshot.
+
+        English: Build a serializable payload for snapshot hashing.
+        """
+        return snapshot_df[
+            ["timestamp", "department", "votes", "delta", "changes", "hash"]
+        ].fillna("").to_dict(orient="records")
+
+    payload = _snapshot_payload(latest_df)
     hash_snapshot = compute_report_hash(json.dumps(payload, sort_keys=True))
+    previous_hash = "N/D"
+    if not prev_df.empty:
+        previous_ts = prev_df["timestamp_dt"].max()
+        previous_df = prev_df[prev_df["timestamp_dt"] == previous_ts]
+        previous_payload = _snapshot_payload(previous_df)
+        previous_hash = compute_report_hash(
+            json.dumps(previous_payload, sort_keys=True)
+        )
 
     data_nacional = {
         "total_nacional": f"{total_nacional:,}",
@@ -1937,7 +2005,7 @@ def build_pdf_export_payload(
         "snapshots": len(snapshots_df),
     }
 
-    return data_nacional, data_departamentos, hash_snapshot, diffs
+    return data_nacional, data_departamentos, hash_snapshot, previous_hash, diffs
 
 
 st.set_page_config(
@@ -1949,6 +2017,8 @@ st.set_page_config(
 
 configs = load_configs()
 command_center_cfg = configs.get("command_center", {})
+rules_cfg = load_rules_config(Path("rules.yaml"))
+resilience_cfg = rules_cfg.get("resiliencia", {}) if rules_cfg else {}
 
 anchor = load_blockchain_anchor()
 
@@ -1997,6 +2067,30 @@ for step in range(1, 5):
     progress.progress(step * 25, text=f"Sincronizando evidencia {step}/4")
 progress.empty()
 
+snapshot_selector_options = ["Último snapshot (Latest)"]
+snapshot_lookup: dict[str, dict[str, Any]] = {}
+for snapshot in sorted(
+    snapshot_files,
+    key=lambda item: _parse_timestamp(item.get("timestamp"))
+    or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
+    reverse=True,
+):
+    timestamp_label = snapshot.get("timestamp", "N/D")
+    hash_label = snapshot.get("hash", "")[:8]
+    label = f"{timestamp_label} · {hash_label}…"
+    snapshot_lookup[label] = snapshot
+    snapshot_selector_options.append(label)
+
+selected_snapshot_label = st.sidebar.selectbox(
+    "Snapshot histórico (Historical snapshot)",
+    snapshot_selector_options,
+    index=0,
+)
+selected_snapshot = snapshot_lookup.get(selected_snapshot_label)
+selected_snapshot_timestamp = (
+    _parse_timestamp(selected_snapshot.get("timestamp")) if selected_snapshot else None
+)
+
 latest_snapshot = {}
 latest_timestamp = None
 last_batch_label = "N/D"
@@ -2040,6 +2134,12 @@ time_since_last = (
     dt.datetime.now(dt.timezone.utc) - latest_timestamp if latest_timestamp else None
 )
 refresh_interval = st.session_state.get("refresh_interval_system", 45)
+polling_status = resolve_polling_status(
+    rate_limit_failures,
+    failed_retries,
+    time_since_last,
+    refresh_interval,
+)
 
 alerts_container = st.container()
 with alerts_container:
@@ -2121,6 +2221,16 @@ css = """
         color: var(--success);
         font-size: 0.78rem;
         border: 1px solid rgba(34, 197, 94, 0.32);
+    }
+    .status-pill--warning {
+        background: rgba(245, 158, 11, 0.18);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, 0.32);
+    }
+    .status-pill--danger {
+        background: rgba(239, 68, 68, 0.18);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.32);
     }
     .hero-meta {
         display: flex;
@@ -2213,6 +2323,29 @@ if show_only_alerts:
 filtered_anomalies = build_anomalies(filtered_snapshots)
 
 critical_count = len(filtered_anomalies[filtered_anomalies["type"] == "Delta negativo"])
+(
+    data_nacional,
+    data_departamentos,
+    current_snapshot_hash,
+    previous_snapshot_hash,
+    snapshot_diffs,
+) = build_pdf_export_payload(snapshots_df, departments, selected_snapshot_timestamp)
+current_snapshot_ts, previous_snapshot_ts = resolve_snapshot_context(
+    snapshots_df, selected_snapshot_timestamp
+)
+expected_streams = int(resilience_cfg.get("max_json_presidenciales", 19) or 19)
+min_samples = int(resilience_cfg.get("benford_min_samples", 10) or 10)
+observed_streams = 0
+if current_snapshot_ts is not None and not snapshots_df.empty:
+    snapshots_df["timestamp_dt"] = pd.to_datetime(
+        snapshots_df["timestamp"], errors="coerce", utc=True
+    )
+    latest_rows = snapshots_df[snapshots_df["timestamp_dt"] == current_snapshot_ts]
+    observed_streams = int(latest_rows["department"].nunique())
+
+negative_diffs = [
+    dept for dept, diff in snapshot_diffs.items() if str(diff).startswith("-")
+]
 latest_timestamp = None
 if not snapshots_df.empty:
     latest_timestamp = (
@@ -2222,6 +2355,14 @@ if not snapshots_df.empty:
     )
 latest_label = (
     latest_timestamp.strftime("%Y-%m-%d %H:%M UTC") if latest_timestamp else "Sin datos"
+)
+selected_snapshot_display = (
+    selected_snapshot_label
+    if selected_snapshot_label != "Último snapshot (Latest)"
+    else latest_label
+)
+snapshot_hash_display = (
+    current_snapshot_hash[:12] + "…" if current_snapshot_hash != "N/D" else "N/D"
 )
 
 hero_cols = st.columns([0.74, 0.26])
@@ -2236,26 +2377,75 @@ with hero_cols[0]:
     <div class="hero-meta">
       <span>🔎 Modo auditoría: Activo</span>
       <span>🛰️ Última actualización: {latest_label}</span>
+      <span>🧾 Snapshot seleccionado: {snapshot_label}</span>
       <span>🔐 Hash raíz: {root_hash}</span>
+      <span>🧬 Hash snapshot: {snapshot_hash}</span>
     </div>
   </div>
 </div>
         """.format(
-            latest_label=latest_label, root_hash=anchor.root_hash[:12] + "…"
+            latest_label=latest_label,
+            root_hash=anchor.root_hash[:12] + "…",
+            snapshot_label=selected_snapshot_display,
+            snapshot_hash=snapshot_hash_display,
         ),
         unsafe_allow_html=True,
     )
 with hero_cols[1]:
     st.markdown("<div class='glass status-card'>", unsafe_allow_html=True)
-    st.markdown("<div class='status-pill'>✅ Verificable</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='{polling_status['class']}'>{polling_status['label']}</div>",
+        unsafe_allow_html=True,
+    )
     st.markdown(
         f"<p class='section-subtitle'>Cobertura activa</p>"
         f"<h3>{selected_department}</h3>"
         f"<p class='section-subtitle'>Snapshots observados: {len(snapshot_files)}</p>"
-        f"<p class='section-subtitle'>Último lote: {latest_label}</p>",
+        f"<p class='section-subtitle'>Último lote: {latest_label}</p>"
+        f"<p class='section-subtitle'>Estado: {polling_status['detail']}</p>",
         unsafe_allow_html=True,
     )
     st.markdown("</div>", unsafe_allow_html=True)
+
+alert_focus_container = st.container()
+with alert_focus_container:
+    if observed_streams and observed_streams < expected_streams:
+        st.error(
+            "Cobertura incompleta según rules.yaml: "
+            f"{observed_streams}/{expected_streams} streams observados."
+        )
+        emit_toast(
+            f"Cobertura incompleta: {observed_streams}/{expected_streams} streams.",
+            icon="🚨",
+        )
+    if len(snapshots_df) < min_samples:
+        st.warning(
+            "Muestras insuficientes según rules.yaml: "
+            f"{len(snapshots_df)}/{min_samples} snapshots disponibles."
+        )
+    if negative_diffs:
+        diff_label = ", ".join(negative_diffs[:5])
+        message = (
+            "Deltas negativos detectados en departamentos: "
+            f"{diff_label}{'…' if len(negative_diffs) > 5 else ''}."
+        )
+        if len(negative_diffs) >= 3:
+            st.error(message)
+            emit_toast(message, icon="🚨")
+        else:
+            st.warning(message)
+            emit_toast(message, icon="⚠️")
+    if rules_engine_output.get("critical"):
+        st.error(
+            "Alertas críticas del motor de reglas: "
+            f"{len(rules_engine_output['critical'])} eventos."
+        )
+        emit_toast("Alertas críticas del motor de reglas activas.", icon="🚨")
+    if rules_engine_output.get("alerts"):
+        st.warning(
+            "Alertas de reglas en revisión: "
+            f"{len(rules_engine_output['alerts'])} eventos."
+        )
 
 if not filtered_anomalies.empty:
     st.markdown("<div class='alert-bar'>", unsafe_allow_html=True)
@@ -2324,7 +2514,8 @@ st.markdown("---")
 
 tabs = st.tabs(
     [
-        "Resumen",
+        "Nacional",
+        "Por Departamento",
         "Anomalías",
         "Snapshots y Reglas",
         "Verificación",
@@ -2334,7 +2525,7 @@ tabs = st.tabs(
 )
 
 with tabs[0]:
-    st.markdown("### Panorama Ejecutivo")
+    st.markdown("### Panorama Nacional")
     summary_cols = st.columns([1.1, 0.9])
     with summary_cols[0]:
         st.markdown(
@@ -2342,7 +2533,7 @@ with tabs[0]:
 <div class="glass">
   <h3>Estado Global</h3>
   <p class="fade-in">🛰️ Integridad verificable · Sin anomalías críticas a nivel nacional.</p>
-  <p>Auditorías prioritarias: deltas negativos por hora/mesa, consistencia de actas y distribución Benford.</p>
+  <p>Auditorías prioritarias: deltas negativos por hora/departamento, consistencia de agregación y distribución Benford.</p>
 </div>
             """,
             unsafe_allow_html=True,
@@ -2486,6 +2677,44 @@ with tabs[0]:
         st.altair_chart(votes_chart, use_container_width=True)
 
 with tabs[1]:
+    st.markdown("### Vista por Departamento")
+    if selected_department == "Todos":
+        st.info("Selecciona un departamento para ver métricas detalladas.")
+        if data_departamentos:
+            st.dataframe(
+                pd.DataFrame(data_departamentos),
+                use_container_width=True,
+                hide_index=True,
+            )
+    else:
+        dept_summary = next(
+            (
+                row
+                for row in data_departamentos
+                if row.get("departamento") == selected_department
+            ),
+            {},
+        )
+        metric_cols = st.columns(3)
+        metric_cols[0].metric("Departamento", selected_department)
+        metric_cols[1].metric("Total agregado", dept_summary.get("total", "N/D"))
+        metric_cols[2].metric("Diff vs anterior", dept_summary.get("diff", "N/D"))
+        if not filtered_snapshots.empty:
+            st.line_chart(
+                filtered_snapshots.set_index("hour")["votes"],
+                height=220,
+            )
+        if not filtered_anomalies.empty:
+            st.markdown("#### Anomalías recientes")
+            st.dataframe(
+                filtered_anomalies,
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.success("Sin anomalías registradas para este departamento.")
+
+with tabs[2]:
     st.markdown("### Anomalías Detectadas")
     if filtered_anomalies.empty:
         st.success("Sin anomalías críticas en el filtro actual.")
@@ -2510,7 +2739,7 @@ with tabs[1]:
 
     with st.expander("Logs técnicos de reglas"):
         log_lines = [
-            "Regla: Delta negativo por hora/mesa · threshold=-200",
+            "Regla: Delta negativo por hora/departamento · threshold=-200",
             "Regla: Benford 1er dígito · p-value=0.023 (Cortés)",
             "Regla: Outlier de crecimiento · z-score=2.4 (Francisco Morazán)",
         ]
@@ -2521,15 +2750,13 @@ with tabs[1]:
                 )
         st.code("\n".join(log_lines), language="yaml")
 
-with tabs[2]:
+with tabs[3]:
     st.markdown("### Snapshots Recientes")
     st.dataframe(
         filtered_snapshots[
             [
                 "timestamp",
                 "department",
-                "candidate",
-                "impact",
                 "delta",
                 "status",
                 "hash",
@@ -2542,7 +2769,7 @@ with tabs[2]:
         st.dataframe(rules_df, use_container_width=True, hide_index=True)
         st.caption("Reglas y umbrales cargados desde command_center/config.yaml.")
 
-with tabs[3]:
+with tabs[4]:
     st.markdown("### Verificación Criptográfica")
     verify_col, qr_col = st.columns([1.2, 0.8])
     with verify_col:
@@ -2566,8 +2793,13 @@ with tabs[3]:
         else:
             st.image(qr_bytes, caption="Escanear hash de verificación")
 
-with tabs[4]:
+with tabs[5]:
     st.markdown("### Reportes y Exportación")
+    st.caption(
+        "Reporte generado desde JSON público del CNE (18 departamentos + nacional). "
+        f"Snapshot seleccionado: {selected_snapshot_display} · "
+        f"Hash actual: {snapshot_hash_display}."
+    )
     report_time_dt = dt.datetime.now(dt.timezone.utc)
     report_time = report_time_dt.strftime("%Y-%m-%d %H:%M")
     report_payload = f"{anchor.root_hash}|{anchor.tx_url}|{report_time}"
@@ -2577,9 +2809,9 @@ with tabs[4]:
     if "is_real" in snapshots_real.columns:
         snapshots_real = snapshots_real[snapshots_real["is_real"]]
     snapshot_rows = [
-        ["Timestamp", "Dept", "Candidato", "Impacto", "Estado", "Hash"],
+        ["Timestamp", "Dept", "Δ", "Estado", "Hash"],
     ] + snapshots_real[
-        ["timestamp", "department", "candidate", "impact", "status", "hash"]
+        ["timestamp", "department", "delta", "status", "hash"]
     ].head(
         10
     ).values.tolist()
@@ -2595,7 +2827,7 @@ with tabs[4]:
                 .sort_values("delta_abs", ascending=False)
                 .head(12)
             )
-    anomaly_rows = [["Dept", "Candidato", "Δ abs", "Δ %", "Hora", "Hash", "Tipo"]]
+    anomaly_rows = [["Dept", "Δ abs", "Δ %", "Hora", "Hash", "Tipo"]]
     prev_hash = ""
     for _, row in anomalies_sorted.head(12).iterrows():
         current_hash = str(row.get("hash") or "")
@@ -2612,7 +2844,6 @@ with tabs[4]:
         anomaly_rows.append(
             [
                 row.get("department"),
-                row.get("candidate"),
                 f"{row.get('delta', 0):.0f}",
                 f"{row.get('delta_pct', 0):.2f}%",
                 row.get("hour") or "",
@@ -2777,11 +3008,12 @@ with tabs[4]:
     }
 
     if REPORTLAB_AVAILABLE:
-        data_nacional, data_departamentos, hash_snapshot, diffs = build_pdf_export_payload(
-            snapshots_df, departments
-        )
         export_pdf_bytes = generate_pdf_report(
-            data_nacional, data_departamentos, hash_snapshot, diffs
+            data_nacional,
+            data_departamentos,
+            current_snapshot_hash,
+            previous_snapshot_hash,
+            snapshot_diffs,
         )
         st.download_button(
             "Exportar Reporte PDF",
@@ -2856,7 +3088,7 @@ with tabs[4]:
         file_name="centinel_snapshots.json",
     )
 
-with tabs[5]:
+with tabs[6]:
     st.markdown("### Estado del Sistema")
     st.caption(
         "Panel reservado para mantenimiento y salud operativa. "
@@ -2952,10 +3184,10 @@ with tabs[5]:
         with header_cols[1]:
             st.metric("Último checkpoint", latest_checkpoint_label)
             st.caption(
-                f"Acta/Lote: {last_batch_label} · Hash: {_format_short_hash(hash_accumulator)}"
+                f"Lote: {last_batch_label} · Hash: {_format_short_hash(hash_accumulator)}"
             )
         with header_cols[2]:
-            st.metric("Tiempo desde última acta", time_since_label)
+            st.metric("Tiempo desde último lote", time_since_label)
 
         health_cols = st.columns([1.1, 0.9])
         with health_cols[0]:
@@ -2971,15 +3203,24 @@ with tabs[5]:
 
         st.markdown("#### Recursos en tiempo real")
         resource_cols = st.columns(3)
-        cpu_percent = psutil.cpu_percent(interval=0.2)
-        memory_percent = psutil.virtual_memory().percent
-        disk_percent = psutil.disk_usage("/").percent
-        with resource_cols[0]:
-            st.metric("CPU", f"{cpu_percent:.1f}%")
-        with resource_cols[1]:
-            st.metric("Memoria", f"{memory_percent:.1f}%")
-        with resource_cols[2]:
-            st.metric("Disco", f"{disk_percent:.1f}%")
+        if PSUTIL_AVAILABLE:
+            cpu_percent = psutil.cpu_percent(interval=0.2)
+            memory_percent = psutil.virtual_memory().percent
+            disk_percent = psutil.disk_usage("/").percent
+            with resource_cols[0]:
+                st.metric("CPU", f"{cpu_percent:.1f}%")
+            with resource_cols[1]:
+                st.metric("Memoria", f"{memory_percent:.1f}%")
+            with resource_cols[2]:
+                st.metric("Disco", f"{disk_percent:.1f}%")
+        else:
+            with resource_cols[0]:
+                st.metric("CPU", "N/D")
+            with resource_cols[1]:
+                st.metric("Memoria", "N/D")
+            with resource_cols[2]:
+                st.metric("Disco", "N/D")
+            st.info("Métricas de sistema no disponibles: instala psutil.")
 
         connection_cols = st.columns(3)
         with connection_cols[0]:
