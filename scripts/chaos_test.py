@@ -22,7 +22,7 @@ SCENARIOS = (
 
 
 def select_scenario(rng: random.Random, level: str) -> str:
-    """Select a chaos scenario for the given scope."""
+    """Select a chaos scenario for the given level."""
     _ = level
     return rng.choice(SCENARIOS)
 
