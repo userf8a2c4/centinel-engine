@@ -6,11 +6,14 @@ Historical snapshot storage and hash chain.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
 from .download import chained_hash, write_atomic
+
+logger = logging.getLogger(__name__)
 
 
 def _snapshot_directory(base_path: Path, timestamp: datetime) -> Path:
@@ -34,10 +37,14 @@ def _append_hash(chain_path: Path, entry: Dict[str, Any]) -> None:
     Append entry to the hash chain (append-only).
     """
     chain_path.parent.mkdir(parents=True, exist_ok=True)
-    if chain_path.exists():
-        data = json.loads(chain_path.read_text(encoding="utf-8"))
-    else:
-        data = []
+    try:
+        if chain_path.exists():
+            data = json.loads(chain_path.read_text(encoding="utf-8"))
+        else:
+            data = []
+    except json.JSONDecodeError as exc:
+        logger.error("hashchain_corrupt_chain_file path=%s error=%s", chain_path, exc)
+        raise
     data.append(entry)
     write_atomic(
         chain_path,
@@ -57,6 +64,7 @@ def save_snapshot(
     """
     base = base_path or Path("data")
     timestamp = datetime.utcnow()
+    timestamp_iso = timestamp.isoformat() + "Z"
     snapshot_dir = _snapshot_directory(base, timestamp)
     snapshot_dir.mkdir(parents=True, exist_ok=True)
 
@@ -64,7 +72,15 @@ def save_snapshot(
     metadata_path = snapshot_dir / "snapshot.metadata.json"
     hash_path = snapshot_dir / "hash.txt"
 
-    new_hash = chained_hash(content, previous_hash)
+    metadata_bytes = json.dumps(metadata, ensure_ascii=False, sort_keys=True).encode(
+        "utf-8"
+    )
+    new_hash = chained_hash(
+        content,
+        previous_hash,
+        metadata=metadata_bytes,
+        timestamp=timestamp_iso,
+    )
 
     write_atomic(raw_path, content)
     write_atomic(
@@ -74,12 +90,18 @@ def save_snapshot(
     write_atomic(hash_path, f"{new_hash}\n".encode("utf-8"))
 
     chain_entry = {
-        "timestamp": timestamp.isoformat() + "Z",
+        "timestamp": timestamp_iso,
         "hash": new_hash,
         "previous_hash": previous_hash,
         "snapshot_path": str(snapshot_dir),
     }
     chain_path = base / "hashes" / "chain.json"
     _append_hash(chain_path, chain_entry)
+    logger.info(
+        "hashchain_snapshot_saved hash=%s previous_hash=%s path=%s",
+        new_hash,
+        previous_hash,
+        snapshot_dir,
+    )
 
     return new_hash

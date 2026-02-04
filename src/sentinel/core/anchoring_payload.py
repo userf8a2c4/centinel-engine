@@ -19,6 +19,24 @@ def hash_bytes(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _build_root_payload(
+    raw_bytes: bytes, diff_bytes: bytes, rules_bytes: bytes
+) -> bytes:
+    parts = [
+        b"sentinel-anchor-v1",
+        b"raw",
+        str(len(raw_bytes)).encode("utf-8"),
+        raw_bytes,
+        b"diff",
+        str(len(diff_bytes)).encode("utf-8"),
+        diff_bytes,
+        b"rules",
+        str(len(rules_bytes)).encode("utf-8"),
+        rules_bytes,
+    ]
+    return b"|".join(parts)
+
+
 def summarize_value(value: Any) -> dict[str, Any]:
     """Resumen estable de valores complejos para diffs."""
     if isinstance(value, dict):
@@ -80,7 +98,7 @@ def compute_anchor_root(
     raw_bytes = canonical_json_bytes(snapshot_payload)
     diff_bytes = canonical_json_bytes(diff_summary)
     rules_bytes = canonical_json_bytes(rules_payload)
-    root_hash = hash_bytes(raw_bytes + b"|" + diff_bytes + b"|" + rules_bytes)
+    root_hash = hash_bytes(_build_root_payload(raw_bytes, diff_bytes, rules_bytes))
     return {
         "root_hash": root_hash,
         "raw_hash": hash_bytes(raw_bytes),

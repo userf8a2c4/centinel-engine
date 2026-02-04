@@ -5,7 +5,39 @@ English:
 """
 
 import hashlib
+import logging
+import string
 from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+
+def _is_valid_hex_hash(value: str) -> bool:
+    if len(value) != 64:
+        return False
+    hex_chars = set(string.hexdigits.lower())
+    return all(char in hex_chars for char in value)
+
+
+def _build_hash_payload(canonical_json: str, previous_hash: Optional[str]) -> bytes:
+    previous_hash_bytes = b""
+    if previous_hash:
+        normalized = previous_hash.strip().lower()
+        previous_hash_bytes = normalized.encode("utf-8")
+        if not _is_valid_hex_hash(normalized):
+            logger.warning("hashchain_previous_hash_invalid value=%s", normalized)
+
+    canonical_bytes = canonical_json.encode("utf-8")
+    parts = [
+        b"sentinel-hashchain-v1",
+        b"prev",
+        str(len(previous_hash_bytes)).encode("utf-8"),
+        previous_hash_bytes,
+        b"payload",
+        str(len(canonical_bytes)).encode("utf-8"),
+        canonical_bytes,
+    ]
+    return b"|".join(parts)
 
 
 def compute_hash(canonical_json: str, previous_hash: Optional[str] = None) -> str:
@@ -34,9 +66,5 @@ def compute_hash(canonical_json: str, previous_hash: Optional[str] = None) -> st
     """
 
     hasher = hashlib.sha256()
-
-    if previous_hash:
-        hasher.update(previous_hash.encode("utf-8"))
-
-    hasher.update(canonical_json.encode("utf-8"))
+    hasher.update(_build_hash_payload(canonical_json, previous_hash))
     return hasher.hexdigest()

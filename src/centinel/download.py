@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import string
 import shutil
 import tempfile
 import time
@@ -129,15 +130,63 @@ def write_atomic(path: Path, content: bytes) -> None:
     shutil.move(temp_name, path)
 
 
-def chained_hash(content: bytes, previous_hash: Optional[str]) -> str:
-    """Calcula hash encadenado: sha256(content + previous_hash).
+def chained_hash(
+    content: bytes,
+    previous_hash: Optional[str],
+    *,
+    metadata: Optional[bytes] = None,
+    timestamp: Optional[str] = None,
+) -> str:
+    """Calcula hash encadenado con separación de dominio.
 
-    English: Compute chained hash: sha256(content + previous_hash).
+    English: Compute chained hash with domain separation.
     """
-    base = content
+    return hashlib.sha256(
+        _build_chain_payload(
+            content,
+            previous_hash=previous_hash,
+            metadata=metadata,
+            timestamp=timestamp,
+        )
+    ).hexdigest()
+
+
+def _build_chain_payload(
+    content: bytes,
+    *,
+    previous_hash: Optional[str],
+    metadata: Optional[bytes] = None,
+    timestamp: Optional[str] = None,
+) -> bytes:
+    """Construye payload con separación de dominio y longitudes."""
+    previous_hash_bytes = b""
     if previous_hash:
-        base = content + previous_hash.encode()
-    return hashlib.sha256(base).hexdigest()
+        normalized = previous_hash.strip().lower()
+        previous_hash_bytes = normalized.encode("utf-8")
+        if not _is_valid_hex_hash(normalized):
+            logger.warning("hashchain_previous_hash_invalid value=%s", normalized)
+
+    parts = [
+        b"centinel-chain-v1",
+        b"prev",
+        str(len(previous_hash_bytes)).encode("utf-8"),
+        previous_hash_bytes,
+    ]
+    if timestamp:
+        timestamp_bytes = timestamp.encode("utf-8")
+        parts.extend([b"ts", str(len(timestamp_bytes)).encode("utf-8"), timestamp_bytes])
+    if metadata:
+        parts.extend([b"meta", str(len(metadata)).encode("utf-8"), metadata])
+
+    parts.extend([b"content", str(len(content)).encode("utf-8"), content])
+    return b"|".join(parts)
+
+
+def _is_valid_hex_hash(value: str) -> bool:
+    if len(value) != 64:
+        return False
+    hex_chars = set(string.hexdigits.lower())
+    return all(char in hex_chars for char in value)
 
 
 def build_client() -> httpx.AsyncClient:
