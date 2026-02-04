@@ -42,6 +42,11 @@ jobs:
         run: |
           pytest --cov=centinel --cov-report=xml --cov-report=term-missing --ignore=tests/chaos --ignore=tests/integration
 
+      # Resilience tests / Pruebas de resiliencia
+      - name: Resilience tests / Pruebas de resiliencia
+        run: |
+          pytest tests/resilience/ -v --cov=scripts
+
       # Upload coverage / Subir cobertura
       - name: Upload coverage to Codecov / Subir cobertura a Codecov
         uses: codecov/codecov-action@v4
