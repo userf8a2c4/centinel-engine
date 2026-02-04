@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Python dependencies / Dependencias de Python
+  # Python dependencies (Poetry) / Dependencias de Python (Poetry)
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
