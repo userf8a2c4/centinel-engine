@@ -411,6 +411,7 @@ def process_sources(
     structured_logger = StructuredLogger("centinel.download")
     alert_hook = build_alert_hook(structured_logger)
     session = requests.Session()
+    had_errors = False
 
     try:
         for source in sources[:max_sources]:
@@ -441,11 +442,13 @@ def process_sources(
             except Exception as e:
                 logger.error("Fallo al descargar %s: %s", endpoint, e)
                 health_state.record_failure()
+                had_errors = True
                 continue
 
             if not _validate_real_payload(payload, response.url, config):
                 logger.error("Payload inválido (no CNE/fecha real) en %s", endpoint)
                 health_state.record_failure()
+                had_errors = True
                 continue
 
             normalized_payload = payload if isinstance(payload, list) else [payload]
@@ -489,7 +492,8 @@ def process_sources(
             )
     finally:
         session.close()
-    _clear_checkpoint()
+    if not had_errors:
+        _clear_checkpoint()
 
 
 def _load_checkpoint() -> dict[str, Any]:
