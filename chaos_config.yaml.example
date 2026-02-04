@@ -1,77 +1,13 @@
-# Chaos testing configuration for CENTINEL Engine.
-# Configuración de chaos testing para CENTINEL Engine.
+# Chaos testing configuration for CNE polling simulations.
 
 chaos:
-  # Nivel por defecto si no se pasa --level.
-  # Default level if --level is not provided.
-  default_level: low
-  levels:
-    low:
-      # Duración corta para CI y smoke tests.
-      # Short duration for CI and smoke tests.
-      duration_seconds: 20
-      request_interval_seconds: 0.05
-      failure_probability: 0.2
-      timeout_seconds: 1.0
-      max_attempts: 3
-      backoff_seconds: 0.1
-      watchdog_inactivity_seconds: 3
-      scenarios:
-        rate_limit_429:
-          probability: 0.35
-        timeout_503:
-          probability: 0.2
-        malformed_json:
-          probability: 0.1
-        hash_altered:
-          probability: 0.1
-        proxy_fail:
-          probability: 0.1
-        watchdog_trigger:
-          probability: 0.15
-    mid:
-      # Nivel balanceado para entornos staging.
-      # Balanced level for staging environments.
-      duration_seconds: 60
-      request_interval_seconds: 0.1
-      failure_probability: 0.35
-      timeout_seconds: 2.0
-      max_attempts: 4
-      backoff_seconds: 0.2
-      watchdog_inactivity_seconds: 5
-      scenarios:
-        rate_limit_429:
-          probability: 0.3
-        timeout_503:
-          probability: 0.25
-        malformed_json:
-          probability: 0.15
-        hash_altered:
-          probability: 0.1
-        proxy_fail:
-          probability: 0.1
-        watchdog_trigger:
-          probability: 0.1
-    high:
-      # Nivel agresivo para auditorías intensivas.
-      # Aggressive level for intensive audits.
-      duration_seconds: 120
-      request_interval_seconds: 0.15
-      failure_probability: 0.55
-      timeout_seconds: 3.0
-      max_attempts: 5
-      backoff_seconds: 0.3
-      watchdog_inactivity_seconds: 8
-      scenarios:
-        rate_limit_429:
-          probability: 0.25
-        timeout_503:
-          probability: 0.25
-        malformed_json:
-          probability: 0.2
-        hash_altered:
-          probability: 0.15
-        proxy_fail:
-          probability: 0.1
-        watchdog_trigger:
-          probability: 0.05
+  enabled: true
+  level: "PRES"
+  scope: "NATIONAL"
+  scenarios:
+    - "rate_limit_429"
+    - "timeout_503"
+    - "malformed_json"
+    - "hash_altered"
+    - "proxy_fail"
+    - "server_error_503"
