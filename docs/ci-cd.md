@@ -37,7 +37,8 @@ Incluye: / Includes:
 - **Falla de flake8**: revisa estilo y líneas largas; usa exclusiones solo si están justificadas. / **flake8 failure**: check style and long lines; use exclusions only with justification.
 - **Bandit reporta falsos positivos**: revisa el contexto y agrega exclusiones específicas con criterio. / **Bandit false positives**: review context and add targeted exclusions with care.
 - **Cobertura no sube**: revisa que se haya generado `coverage.xml`. / **Coverage not uploaded**: ensure `coverage.xml` is generated.
-- **Cache inválido**: elimina la cache o actualiza el lockfile. / **Invalid cache**: clear cache or update lockfile.
+- **Cache inválido**: elimina la cache o incrementa el lockfile. / **Invalid cache**: clear cache or update lockfile.
+- **Error de lockfile en Poetry**: ejecuta `poetry lock` para sincronizar `pyproject.toml` y `poetry.lock`. / **Poetry lockfile error**: run `poetry lock` to sync `pyproject.toml` and `poetry.lock`.
 
 ## Referencias / References
 - GitHub Actions: https://docs.github.com/en/actions

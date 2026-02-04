@@ -36,6 +36,10 @@ jobs:
             ${{ runner.os }}-poetry-3.11-
 
       # Install dependencies / Instalar dependencias
+      - name: Lock dependencies / Bloquear dependencias
+        run: |
+          poetry lock
+
       - name: Install dependencies / Instalar dependencias
         run: |
           poetry config virtualenvs.in-project true
