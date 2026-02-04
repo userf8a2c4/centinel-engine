@@ -9,7 +9,7 @@ import importlib.util
 import json
 import logging
 import os
-import random
+import secrets
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -30,6 +30,7 @@ if importlib.util.find_spec("structlog"):
 DEFAULT_RETRY_CONFIG_PATH = Path("retry_config.yaml")
 DEFAULT_FAILED_REQUESTS_PATH = Path("failed_requests.jsonl")
 DEFAULT_TIMEOUT_SECONDS = 30.0
+_secure_random = secrets.SystemRandom()
 
 
 @dataclass(frozen=True)
@@ -58,8 +59,10 @@ class RetryPolicy:
         capped = min(exponential, self.max_delay)
         if self.jitter_max <= 0:
             return capped
-        jitter_fraction = random.uniform(self.jitter_min, self.jitter_max)
-        jitter_multiplier = random.uniform(1.0 - jitter_fraction, 1.0 + jitter_fraction)
+        jitter_fraction = _secure_random.uniform(self.jitter_min, self.jitter_max)
+        jitter_multiplier = _secure_random.uniform(
+            1.0 - jitter_fraction, 1.0 + jitter_fraction
+        )
         return max(0.0, capped * jitter_multiplier)
 
 

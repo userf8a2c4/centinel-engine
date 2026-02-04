@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-import random
+import secrets
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -171,7 +171,7 @@ class ProxyRotator:
             self._fallback_to_direct()
             return None
         if self.rotation_strategy == "random":
-            return random.choice(active)
+            return secrets.choice(active)
         if self._current_index >= len(active):
             self._current_index = 0
         proxy = active[self._current_index]
