@@ -2017,7 +2017,10 @@ st.set_page_config(
 
 configs = load_configs()
 command_center_cfg = configs.get("command_center", {})
-rules_cfg = load_rules_config(Path("rules.yaml"))
+rules_path = Path("command_center") / "rules.yaml"
+if not rules_path.exists():
+    rules_path = Path("rules.yaml")
+rules_cfg = load_rules_config(rules_path)
 resilience_cfg = rules_cfg.get("resiliencia", {}) if rules_cfg else {}
 
 anchor = load_blockchain_anchor()

@@ -28,6 +28,13 @@ from sentinel.core.rules import (  # noqa: F401
 )
 from sentinel.core.rules.registry import RuleDefinition, list_rules
 
+RULE_CONFIG_ALIASES = {
+    "null_blank_votes": "null_blank",
+    "participation_vote_correlation": "correlation_participation_vote",
+    "large_numbers_convergence": "large_numbers",
+    "benford_first_digit": "benford_law",
+}
+
 
 @dataclass(frozen=True)
 class RulesEngineResult:
@@ -69,7 +76,13 @@ class RulesEngine:
         rules_config = self.config.get("rules", {})
         if not rules_config.get("global_enabled", True):
             return False
-        rule_config = rules_config.get(rule.config_key, {})
+        rule_config = rules_config.get(rule.config_key)
+        if rule_config is None:
+            alias = RULE_CONFIG_ALIASES.get(rule.config_key)
+            if alias:
+                rule_config = rules_config.get(alias)
+        if rule_config is None:
+            rule_config = {}
         return rule_config.get("enabled", True)
 
     def run(
@@ -102,7 +115,14 @@ class RulesEngine:
                 )
                 continue
 
-            rule_config = self.config.get("rules", {}).get(rule.config_key, {})
+            rules_config = self.config.get("rules", {})
+            rule_config = rules_config.get(rule.config_key)
+            if rule_config is None:
+                alias = RULE_CONFIG_ALIASES.get(rule.config_key)
+                if alias:
+                    rule_config = rules_config.get(alias)
+            if rule_config is None:
+                rule_config = {}
             try:
                 rule_alerts = rule.func(current_data, previous_data, rule_config) or []
             except Exception as exc:  # noqa: BLE001
