@@ -35,36 +35,39 @@ class Scheduler {
   async runCycle() {
     this.isRunning = true;
     logger.info({ msg: "Scrape cycle started" });
-
-    const { results, consecutiveErrors } = await scrapeCycle();
-    batcher.addEntries(results);
-
-    if (results.every((entry) => entry.status === "ERROR" || entry.status >= 400)) {
-      this.failedCycles += 1;
-    } else {
-      this.failedCycles = 0;
-    }
-
-    if (this.failedCycles > config.maxFailedCyclesBeforeWarn) {
-      logger.warn({ msg: "Multiple failed cycles detected", failedCycles: this.failedCycles });
-    }
-
     let nextInterval = config.cycleIntervalMs;
-    if (consecutiveErrors > config.maxErrorsBeforeDegrade) {
-      nextInterval = randomBetween(...config.degradedIntervalRangeMs);
-      logger.warn({
-        msg: "Degraded interval activated",
-        consecutiveErrors,
-        nextInterval
-      });
-    }
+    try {
+      const { results, consecutiveErrors } = await scrapeCycle();
+      batcher.addEntries(results);
 
-    logger.info({ msg: "Scrape cycle completed", nextInterval });
-    setTimeout(() => {
-      this.runCycle().catch((error) => {
-        logger.error({ msg: "Cycle failed", error: error.message });
-      });
-    }, nextInterval);
+      if (results.every((entry) => entry.status === "ERROR" || entry.status >= 400)) {
+        this.failedCycles += 1;
+      } else {
+        this.failedCycles = 0;
+      }
+
+      if (this.failedCycles > config.maxFailedCyclesBeforeWarn) {
+        logger.warn({ msg: "Multiple failed cycles detected", failedCycles: this.failedCycles });
+      }
+
+      if (consecutiveErrors > config.maxErrorsBeforeDegrade) {
+        nextInterval = randomBetween(...config.degradedIntervalRangeMs);
+        logger.warn({
+          msg: "Degraded interval activated",
+          consecutiveErrors,
+          nextInterval
+        });
+      }
+    } catch (error) {
+      logger.error({ msg: "Scrape cycle failed", error: error.message });
+    } finally {
+      logger.info({ msg: "Scrape cycle completed", nextInterval });
+      setTimeout(() => {
+        this.runCycle().catch((innerError) => {
+          logger.error({ msg: "Cycle failed", error: innerError.message });
+        });
+      }, nextInterval);
+    }
   }
 
   /**

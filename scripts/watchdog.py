@@ -113,7 +113,10 @@ def _load_state(path: Path) -> dict[str, Any]:
         return {"failures": {}, "last_action": None, "log_state": {}}
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
+        logging.getLogger("centinel.watchdog").warning(
+            "watchdog_state_invalid path=%s error=%s", path, exc
+        )
         return {"failures": {}, "last_action": None, "log_state": {}}
     if not isinstance(payload, dict):
         return {"failures": {}, "last_action": None, "log_state": {}}

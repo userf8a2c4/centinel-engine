@@ -369,8 +369,11 @@ def _write_failed_request(config: RetryConfig, payload: dict[str, Any]) -> None:
         with config.failed_requests_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, ensure_ascii=False))
             handle.write("\n")
-    except Exception:
-        return
+    except Exception as exc:
+        logging.getLogger("centinel.downloader").warning(
+            "failed_requests_write_failed",
+            extra={"path": str(config.failed_requests_path), "error": str(exc)},
+        )
 
 
 def _build_failed_payload(

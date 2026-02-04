@@ -331,13 +331,19 @@ class DataSourceManager:
             url,
             headers=source.headers,
             params=source.params,
+            timeout=httpx.Timeout(source.timeout_seconds or 10),
         )
         if response.status_code >= 400:
             raise DataSourceError(
                 f"HTTP {response.status_code} from {source.source_id} ({url})"
             )
 
-        payload = response.json()
+        try:
+            payload = response.json()
+        except (ValueError, json.JSONDecodeError) as exc:
+            raise DataSourceError(
+                f"Invalid JSON from {source.source_id} ({url}): {exc}"
+            ) from exc
         return self._extract_batch(payload, source)
 
     def _extract_batch(self, payload: Any, source: DataSourceDefinition) -> List[Acta]:
