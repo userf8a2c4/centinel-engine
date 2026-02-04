@@ -1,0 +1,33 @@
+name: Security
+
+on:
+  push:
+    branches: ["dev-v6", "main"]
+  pull_request:
+
+jobs:
+  bandit:
+    name: Bandit
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout / Clonar repositorio
+      - name: Checkout repository / Clonar repositorio
+        uses: actions/checkout@v4
+
+      # Setup Python / Configurar Python
+      - name: Set up Python / Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Install Bandit / Instalar Bandit
+      - name: Install Bandit / Instalar Bandit
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit
+
+      # Bandit scan / Escaneo con Bandit
+      - name: Bandit scan / Escaneo con Bandit
+        run: |
+          bandit -r src -c pyproject.toml

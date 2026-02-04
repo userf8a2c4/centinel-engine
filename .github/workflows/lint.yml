@@ -2,7 +2,7 @@ name: Lint
 
 on:
   push:
-    branches: ["main", "dev-v6"]
+    branches: ["dev-v6", "main"]
 
 jobs:
   lint:
@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies / Instalar dependencias
         run: |
           poetry config virtualenvs.in-project true
-          poetry install --no-root --with dev
+          poetry install --no-root --with dev --no-interaction --no-ansi
 
       # Lint / Revisar estilo
       - name: Lint (flake8 + black) / Lint (flake8 + black)

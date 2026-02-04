@@ -1,4 +1,4 @@
-name: Chaos Tests
+name: Chaos (Light)
 
 on:
   pull_request:
@@ -44,12 +44,12 @@ jobs:
       - name: Install dependencies / Instalar dependencias
         run: |
           poetry config virtualenvs.in-project true
-          poetry install --no-root --with dev
+          poetry install --no-root --with dev --no-interaction --no-ansi
 
       # Run chaos tests / Ejecutar pruebas de caos
-      - name: Run chaos tests (low level) / Ejecutar pruebas de caos (nivel bajo)
+      - name: Run chaos tests (light) / Ejecutar pruebas de caos (ligero)
         run: |
-          python scripts/chaos_test.py \
+          poetry run python scripts/chaos_test.py \
             --config chaos_config.yaml.example \
             --level "${CHAOS_LEVEL}" \
             --duration-minutes "${CHAOS_DURATION_MINUTES}"
