@@ -274,7 +274,7 @@ def get_proxy_rotator(logger: Optional[logging.Logger] = None) -> ProxyRotator:
     config = load_proxy_config()
     validator = ProxyValidator(
         test_url=config["test_url"],
-        timeout_seconds=10.0,
+        timeout_seconds=config["proxy_timeout_seconds"],
         logger=logger,
     )
     validated = validator.validate(config["proxies"])
