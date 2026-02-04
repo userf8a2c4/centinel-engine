@@ -31,7 +31,10 @@ from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
 from src.centinel.checkpointing import CheckpointConfig, CheckpointManager
-from src.monitoring.strict_health import get_recent_health_diagnostics, is_healthy_strict
+from src.monitoring.strict_health import (
+    get_recent_health_diagnostics,
+    is_healthy_strict,
+)
 
 if importlib.util.find_spec("rich"):
     from rich.console import Console
@@ -151,7 +154,9 @@ def resolve_rate_limit_settings(logger: logging.Logger) -> tuple[int, Path]:
         logger.warning("Config YAML inválido para rate limiting: %s", exc)
         return cooldown_seconds, state_path
 
-    rate_limit_cfg = config.get("polling_rate_limit", {}) if isinstance(config, dict) else {}
+    rate_limit_cfg = (
+        config.get("polling_rate_limit", {}) if isinstance(config, dict) else {}
+    )
     if isinstance(rate_limit_cfg, dict):
         cooldown_seconds = int(
             rate_limit_cfg.get("cooldown_seconds", DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS)
@@ -192,7 +197,9 @@ def _read_rate_limit_state(state_path: Path, logger: logging.Logger) -> float | 
         return None
 
 
-def _write_rate_limit_state(state_path: Path, timestamp: float, logger: logging.Logger) -> None:
+def _write_rate_limit_state(
+    state_path: Path, timestamp: float, logger: logging.Logger
+) -> None:
     """Español:
         Escribe el timestamp del último request en el archivo de estado.
 
@@ -214,7 +221,9 @@ def _write_rate_limit_state(state_path: Path, timestamp: float, logger: logging.
         logger.warning("No se pudo actualizar el estado de rate limit: %s", exc)
 
 
-def is_rate_limited(state_path: Path, cooldown_seconds: int, logger: logging.Logger) -> bool:
+def is_rate_limited(
+    state_path: Path, cooldown_seconds: int, logger: logging.Logger
+) -> bool:
     """Español:
         Determina si debe saltarse una petición por cooldown activo.
 
@@ -349,7 +358,9 @@ def retry_operation(
     raise RuntimeError(f"Operación falló definitivamente: {description}") from last_exc
 
 
-def build_checkpoint_manager(runtime: RuntimeConfig, logger: logging.Logger) -> CheckpointManager:
+def build_checkpoint_manager(
+    runtime: RuntimeConfig, logger: logging.Logger
+) -> CheckpointManager:
     """Create a checkpoint manager using environment configuration."""
 
     bucket_config = build_bucket_config()
@@ -383,7 +394,9 @@ def command_checkpoint_now(runtime: RuntimeConfig, logger: logging.Logger) -> No
 
     manager = build_checkpoint_manager(runtime, logger)
     state = load_state_from_file(runtime.checkpoint_state_path)
-    logger.info("Guardando checkpoint inmediato desde %s", runtime.checkpoint_state_path)
+    logger.info(
+        "Guardando checkpoint inmediato desde %s", runtime.checkpoint_state_path
+    )
     manager.save_checkpoint(state)
     logger.info("Checkpoint guardado correctamente en el bucket.")
 
@@ -393,7 +406,9 @@ def _latest_checkpoint_key(runtime: RuntimeConfig) -> str:
 
     English: Function _latest_checkpoint_key defined in maintain.py.
     """
-    return f"centinel/checkpoints/{runtime.pipeline_version}/{runtime.run_id}/latest.json"
+    return (
+        f"centinel/checkpoints/{runtime.pipeline_version}/{runtime.run_id}/latest.json"
+    )
 
 
 def fetch_latest_checkpoint_metadata(
@@ -509,7 +524,9 @@ def command_status(runtime: RuntimeConfig, logger: logging.Logger) -> None:
 def _update_env_file(path: Path, updates: dict[str, str]) -> None:
     """Update .env file with new key values while keeping other lines."""
 
-    existing_lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    existing_lines = (
+        path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    )
     updated_lines: list[str] = []
     remaining = updates.copy()
 
@@ -538,7 +555,9 @@ def command_rotate_keys(runtime: RuntimeConfig, logger: logging.Logger) -> None:
         runtime.assume_yes,
     )
     env_path = Path(os.getenv("CENTINEL_ENV_PATH", ".env"))
-    backup_path = env_path.with_suffix(f".bak-{datetime.now().strftime('%Y%m%d%H%M%S')}")
+    backup_path = env_path.with_suffix(
+        f".bak-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    )
     if env_path.exists():
         backup_path.write_text(env_path.read_text(encoding="utf-8"), encoding="utf-8")
 
@@ -577,6 +596,7 @@ def command_clean_old_checkpoints(
     continuation: Optional[str] = None
 
     while True:
+
         def _list_page() -> dict[str, Any]:
             """Español: Función _list_page del módulo maintain.py.
 
@@ -587,9 +607,7 @@ def command_clean_old_checkpoints(
                 params["ContinuationToken"] = continuation
             return s3.list_objects_v2(**params)
 
-        page = retry_operation(
-            _list_page, logger=logger, description="checkpoint_list"
-        )
+        page = retry_operation(_list_page, logger=logger, description="checkpoint_list")
 
         for obj in page.get("Contents", []):
             key = obj.get("Key", "")

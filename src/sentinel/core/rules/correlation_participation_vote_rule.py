@@ -6,8 +6,6 @@ Participation-vote correlation rule.
 from __future__ import annotations
 
 from typing import List, Optional
-
-import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
 

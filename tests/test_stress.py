@@ -6,7 +6,6 @@ Stress tests for resilience and statistical rules.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
 import json
 import sys
 import types
@@ -133,7 +132,9 @@ def test_pipeline_checkpoint_resume(tmp_path, monkeypatch):
     for idx in range(19):
         snapshot_path = data_dir / f"snapshot_{idx}.json"
         snapshot_path.write_text(
-            json.dumps({"timestamp": datetime.now(timezone.utc).isoformat(), "id": idx}),
+            json.dumps(
+                {"timestamp": datetime.now(timezone.utc).isoformat(), "id": idx}
+            ),
             encoding="utf-8",
         )
         snapshots.append(snapshot_path)
@@ -147,10 +148,12 @@ def test_pipeline_checkpoint_resume(tmp_path, monkeypatch):
     checkpoint_path.write_text(json.dumps(checkpoint_payload), encoding="utf-8")
 
     checkpoint = run_pipeline.load_resilience_checkpoint()
-    processed_hashes, start_index, latest_snapshot = run_pipeline.process_snapshot_queue(
-        snapshots,
-        checkpoint,
-        run_id="test",
+    processed_hashes, start_index, latest_snapshot = (
+        run_pipeline.process_snapshot_queue(
+            snapshots,
+            checkpoint,
+            run_id="test",
+        )
     )
 
     updated_payload = json.loads(checkpoint_path.read_text(encoding="utf-8"))

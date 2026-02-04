@@ -15,6 +15,7 @@ def _make_rule(tag: str, bucket: List[str]):
 
     English: Function _make_rule defined in tests/test_rules_orchestrator.py.
     """
+
     def _rule(current: dict, previous: Optional[dict], config: dict) -> List[dict]:
         """Español: Función _rule del módulo tests/test_rules_orchestrator.py.
 

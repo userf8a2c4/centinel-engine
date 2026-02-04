@@ -53,19 +53,25 @@ class HashEntry:
 def _copy_if_missing(source_path: Path, destination_path: Path) -> bool:
     """/** Copia un template si falta. / Copy a template if missing. **/"""
     if destination_path.exists():
-        log_event(logger, logging.INFO, "bootstrap_file_exists", path=str(destination_path))
+        log_event(
+            logger, logging.INFO, "bootstrap_file_exists", path=str(destination_path)
+        )
         return False
     if not source_path.exists():
         raise FileNotFoundError(f"Missing template: {source_path}")
     shutil.copyfile(source_path, destination_path)
-    log_event(logger, logging.INFO, "bootstrap_file_created", path=str(destination_path))
+    log_event(
+        logger, logging.INFO, "bootstrap_file_created", path=str(destination_path)
+    )
     return True
 
 
 def _load_config(config_path: Path) -> dict[str, Any]:
     """/** Carga YAML de configuración. / Load YAML configuration. **/"""
     if not config_path.exists():
-        log_event(logger, logging.WARNING, "bootstrap_config_missing", path=str(config_path))
+        log_event(
+            logger, logging.WARNING, "bootstrap_config_missing", path=str(config_path)
+        )
         return {}
     return yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
 
@@ -144,7 +150,9 @@ def _canonical_json(snapshot_path: Path) -> str:
         payload = json.loads(text)
     except json.JSONDecodeError:
         return text
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
 
 
 def _validate_hash_dir(hashes_dir: Path, data_dir: Path) -> tuple[bool, str]:
@@ -313,7 +321,9 @@ def bootstrap_config(force: bool = False) -> int:
     config = _load_config(CONFIG_PATH)
     missing_keys = _validate_config(config)
     if missing_keys:
-        log_event(logger, logging.WARNING, "bootstrap_missing_keys", missing_keys=missing_keys)
+        log_event(
+            logger, logging.WARNING, "bootstrap_missing_keys", missing_keys=missing_keys
+        )
         return 2
 
     sqlite_path_value = (

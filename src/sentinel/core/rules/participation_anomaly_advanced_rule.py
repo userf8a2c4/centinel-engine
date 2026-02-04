@@ -82,9 +82,7 @@ def apply(
     max_turnout = float(config.get("max_turnout_pct", 90)) / 100
 
     if turnout < min_turnout or turnout > max_turnout:
-        message = (
-            "Participación fuera del rango esperado para Honduras 2025."
-        )
+        message = "Participación fuera del rango esperado para Honduras 2025."
         alerts.append(
             {
                 "type": "Participación Fuera de Rango",
@@ -109,7 +107,9 @@ def apply(
         return alerts
 
     historical = config.get("historical_by_department", {})
-    dept_reference = historical.get(department) if isinstance(historical, dict) else None
+    dept_reference = (
+        historical.get(department) if isinstance(historical, dict) else None
+    )
     mean_value = None
     std_value = None
     if isinstance(dept_reference, dict):

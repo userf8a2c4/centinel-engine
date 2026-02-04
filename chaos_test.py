@@ -9,7 +9,7 @@ import time
 from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
 import pytest
 
@@ -37,6 +37,7 @@ class PipelineState:
 
     English: PipelineState class defined in chaos_test.py.
     """
+
     processed: int = 0
     hashes: List[str] = field(default_factory=list)
     last_checkpoint: int = 0
@@ -48,6 +49,7 @@ class FakeBucket:
 
     English: FakeBucket class defined in chaos_test.py.
     """
+
     base_dir: Path
     force_write_error: bool = False
 
@@ -78,6 +80,7 @@ class FakePipelineRunner:
 
     English: FakePipelineRunner class defined in chaos_test.py.
     """
+
     temp_dir: Path
     actas_target: int = 120
     checkpoint_interval: int = 5
@@ -147,9 +150,7 @@ class FakePipelineRunner:
             self._alert("critical_disk_full")
             raise SimulatedDiskFullError("disk_full")
         payload = {"processed": self.state.processed, "hashes": self.state.hashes}
-        self.checkpoint_path.write_text(
-            json.dumps(payload, indent=2), encoding="utf-8"
-        )
+        self.checkpoint_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         self.checkpoint_backup_path.write_text(
             json.dumps(payload, indent=2), encoding="utf-8"
         )
@@ -281,6 +282,7 @@ class ChaosScenario:
 
     English: ChaosScenario class defined in chaos_test.py.
     """
+
     name: str
     failure: Callable[[FakePipelineRunner], None]
     expect_alert: bool

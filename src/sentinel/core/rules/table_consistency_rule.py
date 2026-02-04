@@ -78,7 +78,11 @@ def apply(
         candidate_votes = extract_mesa_candidate_votes(mesa)
         mesa_code = extract_mesa_code(mesa) or "SIN_CODIGO"
 
-        components = [value for value in (valid_votes, null_votes, blank_votes) if value is not None]
+        components = [
+            value
+            for value in (valid_votes, null_votes, blank_votes)
+            if value is not None
+        ]
         if total_votes is not None and components:
             if abs(total_votes - sum(components)) > tolerance:
                 total_mismatch.append(mesa_code)

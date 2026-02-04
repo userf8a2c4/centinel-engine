@@ -14,11 +14,23 @@ from typing import Dict, List, Optional
 if find_spec("dotenv"):
     from dotenv import load_dotenv
 else:
+
     def load_dotenv(*_args, **_kwargs) -> bool:
         return False
-from pydantic import AnyUrl, BaseModel, Field, TypeAdapter, ValidationError, field_validator
+
+
+from pydantic import (
+    AnyUrl,
+    BaseModel,
+    Field,
+    TypeAdapter,
+    ValidationError,
+    field_validator,
+)
+
 if find_spec("pydantic_settings"):
     from pydantic_settings import BaseSettings, SettingsConfigDict
+
     _HAS_PYDANTIC_SETTINGS = True
 else:
     BaseSettings = BaseModel

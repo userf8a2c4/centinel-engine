@@ -27,7 +27,9 @@ class ActaSchema(BaseModel):
     timestamp: datetime
     votos_totales: int = Field(ge=0)
 
-    @field_validator("acta_id", "junta_receptora", "departamento", "municipio", "centro_votacion")
+    @field_validator(
+        "acta_id", "junta_receptora", "departamento", "municipio", "centro_votacion"
+    )
     @classmethod
     def strip_text(cls, value: str) -> str:
         """Normaliza texto eliminando espacios y valida no vacío.

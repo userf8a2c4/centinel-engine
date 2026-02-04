@@ -270,9 +270,7 @@ class RecoveryManager:
             and checkpoint.source_format
             and checkpoint.source_format != self.expected_source_format
         ):
-            message = (
-                "Source format changed; pausing to avoid unsafe recovery."
-            )
+            message = "Source format changed; pausing to avoid unsafe recovery."
             self.logger.error(
                 "recovery_source_format_mismatch",
                 expected=self.expected_source_format,
@@ -406,10 +404,7 @@ class RecoveryManager:
                 "checkpoint": checkpoint.acta_id,
                 "state": state.last_acta_id,
             }
-        if (
-            state.last_offset is not None
-            and state.last_offset != checkpoint.offset
-        ):
+        if state.last_offset is not None and state.last_offset != checkpoint.offset:
             differences["offset"] = {
                 "checkpoint": checkpoint.offset,
                 "state": state.last_offset,
@@ -491,9 +486,7 @@ def _load_checkpoint(path: Path) -> tuple[CheckpointData, list[str]]:
         payload = {key: value for key, value in data.items() if key != "checksum"}
         expected = _checksum_payload(payload)
         if expected != checkpoint.checksum:
-            raise CheckpointCorruptError(
-                "Checkpoint checksum mismatch.", partial=True
-            )
+            raise CheckpointCorruptError("Checkpoint checksum mismatch.", partial=True)
     else:
         warnings.append("Checkpoint without checksum; integrity not fully verified.")
 

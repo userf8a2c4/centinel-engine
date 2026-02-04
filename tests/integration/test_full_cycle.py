@@ -13,11 +13,11 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-responses = pytest.importorskip("responses")
-
 from anchor.arbitrum_anchor import anchor_batch
 from monitoring.health import get_health_state, reset_health_state
 from scripts.download_and_hash import process_sources
+
+responses = pytest.importorskip("responses")
 
 
 def _setup_fake_web3(mocker):
@@ -25,11 +25,13 @@ def _setup_fake_web3(mocker):
 
     English: Function _setup_fake_web3 defined in tests/integration/test_full_cycle.py.
     """
+
     class FakeAnchorFn:
         """Español: Clase FakeAnchorFn del módulo tests/integration/test_full_cycle.py.
 
         English: FakeAnchorFn class defined in tests/integration/test_full_cycle.py.
         """
+
         def build_transaction(self, params):
             """Español: Función build_transaction del módulo tests/integration/test_full_cycle.py.
 
@@ -49,6 +51,7 @@ def _setup_fake_web3(mocker):
 
         English: FakeContract class defined in tests/integration/test_full_cycle.py.
         """
+
         def __init__(self):
             """Español: Función __init__ del módulo tests/integration/test_full_cycle.py.
 
@@ -61,6 +64,7 @@ def _setup_fake_web3(mocker):
 
         English: FakeEth class defined in tests/integration/test_full_cycle.py.
         """
+
         chain_id = 1
         gas_price = 1
 
@@ -90,6 +94,7 @@ def _setup_fake_web3(mocker):
 
         English: FakeWeb3 class defined in tests/integration/test_full_cycle.py.
         """
+
         eth = FakeEth()
 
         def is_connected(self):
@@ -197,8 +202,7 @@ def test_full_cycle(tmp_path, monkeypatch, mocker):
         process_sources(sources, {"nacional": fail_endpoint})
 
     assert any(
-        req.method == "POST" and req.url.path.endswith("/fail")
-        for req in fail_requests
+        req.method == "POST" and req.url.path.endswith("/fail") for req in fail_requests
     )
 
     shutil.rmtree("data")

@@ -127,9 +127,7 @@ def _log_critical_alerts(critical_p_alerts: list[dict]) -> None:
     _configure_logging()
     now = datetime.now(timezone.utc).isoformat()
     for entry in critical_p_alerts:
-        explanation = (
-            "p_value < umbral crítico; chi-cuadrado evalúa Σ((O - E)^2 / E)."
-        )
+        explanation = "p_value < umbral crítico; chi-cuadrado evalúa Σ((O - E)^2 / E)."
         logger.critical(
             "ALERTA CRITICA p<umbral timestamp=%s rule=%s p_value=%.4f hash=%s detalle=%s explicacion=%s",
             now,

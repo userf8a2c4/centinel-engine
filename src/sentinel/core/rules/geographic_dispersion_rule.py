@@ -31,7 +31,8 @@ def _extract_department_candidate_shares(entry: dict) -> Dict[str, float]:
     if total_votes <= 0:
         return {}
     return {
-        candidate.get("name") or candidate_id: (candidate.get("votes") or 0) / total_votes
+        candidate.get("name")
+        or candidate_id: (candidate.get("votes") or 0) / total_votes
         for candidate_id, candidate in candidates.items()
     }
 
@@ -109,7 +110,9 @@ def apply(
             "type": "Dispersión Geográfica",
             "severity": "CRITICAL",
             "message": message,
-            "value": {"candidates": [{"name": name, "cv": cv} for name, cv in triggered]},
+            "value": {
+                "candidates": [{"name": name, "cv": cv} for name, cv in triggered]
+            },
             "threshold": {"critical_cv": threshold},
             "result": (
                 "CRITICAL",

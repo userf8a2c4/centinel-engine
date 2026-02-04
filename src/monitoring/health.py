@@ -166,9 +166,7 @@ def start_healthchecks_scheduler() -> None:
     )
     scheduler.start()
     _scheduler = scheduler
-    logger.info(
-        "healthchecks_scheduler_started interval=%sm", interval_minutes
-    )
+    logger.info("healthchecks_scheduler_started interval=%sm", interval_minutes)
 
 
 def register_healthchecks(app) -> None:

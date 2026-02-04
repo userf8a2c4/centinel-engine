@@ -40,7 +40,9 @@ def test_is_healthy_strict_failure_logs_reason(
 
     English: Function test_is_healthy_strict_failure_logs_reason defined in tests/monitoring/test_strict_health.py.
     """
-    monkeypatch.setattr(strict_health, "_get_checkpoint_manager", lambda: (object(), None))
+    monkeypatch.setattr(
+        strict_health, "_get_checkpoint_manager", lambda: (object(), None)
+    )
     monkeypatch.setattr(strict_health, "_build_s3_client", lambda: object())
     monkeypatch.setattr(
         strict_health,
@@ -50,7 +52,10 @@ def test_is_healthy_strict_failure_logs_reason(
     monkeypatch.setattr(
         strict_health,
         "_load_checkpoint_payload",
-        lambda *_: (_make_payload(datetime.now(timezone.utc)), "checkpoint_integrity_ok"),
+        lambda *_: (
+            _make_payload(datetime.now(timezone.utc)),
+            "checkpoint_integrity_ok",
+        ),
     )
     monkeypatch.setattr(
         strict_health,
@@ -78,7 +83,9 @@ def test_is_healthy_strict_failure_logs_reason(
 
     assert ok is False
     assert "resources_threshold_exceeded" in diagnostics["failures"]
-    assert any("strict_healthcheck_failed" in record.message for record in caplog.records)
+    assert any(
+        "strict_healthcheck_failed" in record.message for record in caplog.records
+    )
 
 
 def test_is_healthy_strict_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -86,7 +93,9 @@ def test_is_healthy_strict_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     English: Function test_is_healthy_strict_success defined in tests/monitoring/test_strict_health.py.
     """
-    monkeypatch.setattr(strict_health, "_get_checkpoint_manager", lambda: (object(), None))
+    monkeypatch.setattr(
+        strict_health, "_get_checkpoint_manager", lambda: (object(), None)
+    )
     monkeypatch.setattr(strict_health, "_build_s3_client", lambda: object())
     monkeypatch.setattr(
         strict_health,
@@ -96,7 +105,10 @@ def test_is_healthy_strict_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         strict_health,
         "_load_checkpoint_payload",
-        lambda *_: (_make_payload(datetime.now(timezone.utc)), "checkpoint_integrity_ok"),
+        lambda *_: (
+            _make_payload(datetime.now(timezone.utc)),
+            "checkpoint_integrity_ok",
+        ),
     )
     monkeypatch.setattr(
         strict_health,

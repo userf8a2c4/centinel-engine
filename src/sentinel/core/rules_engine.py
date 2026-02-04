@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from sentinel.core.rules import (
+from sentinel.core.rules import (  # noqa: F401
     benford_first_digit_rule,
     correlation_participation_vote_rule,
     geographic_dispersion_rule,

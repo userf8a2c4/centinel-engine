@@ -8,8 +8,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-
-import pytest
 import requests
 
 from scripts import download_and_hash
@@ -21,6 +19,7 @@ class _DummyResponse:
 
     English: _DummyResponse class defined in tests/test_failure_resilience.py.
     """
+
     def __init__(self, url: str, payload: dict) -> None:
         """Español: Función __init__ del módulo tests/test_failure_resilience.py.
 
@@ -77,6 +76,7 @@ def test_healthcheck_returns_false_on_failures(monkeypatch) -> None:
 
     English: Function test_healthcheck_returns_false_on_failures defined in tests/test_failure_resilience.py.
     """
+
     def _fail(*_args, **_kwargs):
         """Español: Función _fail del módulo tests/test_failure_resilience.py.
 

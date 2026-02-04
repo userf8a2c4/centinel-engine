@@ -40,6 +40,7 @@ except Exception:
 
 try:
     from centinel.checkpointing import CheckpointConfig, CheckpointManager
+
     CHECKPOINTING_AVAILABLE = True
     CHECKPOINTING_ERROR = ""
 except Exception as exc:  # noqa: BLE001
@@ -49,6 +50,7 @@ except Exception as exc:  # noqa: BLE001
     CHECKPOINTING_ERROR = str(exc)
 try:
     from monitoring.strict_health import is_healthy_strict
+
     STRICT_HEALTH_AVAILABLE = True
     STRICT_HEALTH_ERROR = ""
 except Exception as exc:  # noqa: BLE001
@@ -69,7 +71,15 @@ try:
     from reportlab.lib.units import cm
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
-    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, PageBreak
+    from reportlab.platypus import (
+        Image,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+        PageBreak,
+    )
     from reportlab.pdfgen import canvas as reportlab_canvas
 
     REPORTLAB_AVAILABLE = True
@@ -109,6 +119,7 @@ class BlockchainAnchor:
 
     English: BlockchainAnchor class defined in dashboard/streamlit_app.py.
     """
+
     root_hash: str
     network: str
     tx_url: str
@@ -253,7 +264,9 @@ def render_admin_gate() -> bool:
 
     English: Function render_admin_gate defined in dashboard/streamlit_app.py.
     """
-    expected_user = _get_secret_value("admin_user") or _get_secret_value("admin_username")
+    expected_user = _get_secret_value("admin_user") or _get_secret_value(
+        "admin_username"
+    )
     expected_password = _get_secret_value("admin_password")
     token = _get_secret_value("admin_token")
     query_token = _get_query_param("admin")
@@ -430,7 +443,11 @@ def _count_rate_limit_retries(log_path: Path) -> int:
         lowered = line.lower()
         if "rate" not in lowered and "429" not in lowered:
             continue
-        if "limit" not in lowered and "too many requests" not in lowered and "429" not in lowered:
+        if (
+            "limit" not in lowered
+            and "too many requests" not in lowered
+            and "429" not in lowered
+        ):
             continue
         timestamp = _parse_timestamp(line.split(" ", 1)[0])
         if timestamp is None or timestamp >= cutoff:
@@ -629,13 +646,17 @@ def build_snapshot_metrics(snapshot_files: list[dict[str, Any]]) -> pd.DataFrame
     if not df.empty:
         df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
         df["hour"] = df["timestamp_dt"].dt.strftime("%H:%M")
-        df["candidate"] = df["department"].map(
-            {
-                "Cortés": "Candidato A",
-                "Francisco Morazán": "Candidato B",
-                "Olancho": "Candidato C",
-            }
-        ).fillna("Candidato D")
+        df["candidate"] = (
+            df["department"]
+            .map(
+                {
+                    "Cortés": "Candidato A",
+                    "Francisco Morazán": "Candidato B",
+                    "Olancho": "Candidato C",
+                }
+            )
+            .fillna("Candidato D")
+        )
         df["impact"] = df["delta"].apply(
             lambda value: "Favorece" if value > 0 else "Afecta"
         )
@@ -662,13 +683,17 @@ def build_anomalies(df: pd.DataFrame) -> pd.DataFrame:
             ]
         )
     anomalies = df.loc[df["status"].isin(["ALERTA", "REVISAR"])].copy()
-    anomalies["candidate"] = anomalies["department"].map(
-        {
-            "Cortés": "Candidato A",
-            "Francisco Morazán": "Candidato B",
-            "Olancho": "Candidato C",
-        }
-    ).fillna("Candidato D")
+    anomalies["candidate"] = (
+        anomalies["department"]
+        .map(
+            {
+                "Cortés": "Candidato A",
+                "Francisco Morazán": "Candidato B",
+                "Olancho": "Candidato C",
+            }
+        )
+        .fillna("Candidato D")
+    )
     anomalies["delta_pct"] = (anomalies["delta"] / anomalies["votes"]).round(4) * 100
     anomalies["type"] = anomalies["delta"].apply(
         lambda value: "Delta negativo" if value < 0 else "Outlier de crecimiento"
@@ -699,7 +724,9 @@ def build_heatmap(anomalies: pd.DataFrame) -> pd.DataFrame:
     if anomalies.empty:
         return pd.DataFrame()
     anomalies = anomalies.copy()
-    anomalies["hour"] = pd.to_datetime(anomalies["timestamp"], errors="coerce", utc=True).dt.hour
+    anomalies["hour"] = pd.to_datetime(
+        anomalies["timestamp"], errors="coerce", utc=True
+    ).dt.hour
     heatmap = (
         anomalies.groupby(["department", "hour"], dropna=False)
         .size()
@@ -729,7 +756,9 @@ def compute_topology_integrity(
     df = df.sort_values("timestamp_dt")
     dept_df = df[df["department"].isin(departments)]
     latest_per_dept = (
-        dept_df.sort_values("timestamp_dt").groupby("department", as_index=False).tail(1)
+        dept_df.sort_values("timestamp_dt")
+        .groupby("department", as_index=False)
+        .tail(1)
     )
     department_total = int(latest_per_dept["votes"].sum())
     breakdown = [
@@ -787,10 +816,7 @@ def build_latency_matrix(
     for row_start in range(0, len(cells), per_row):
         row_cells = cells[row_start : row_start + per_row]
         rows.append(
-            [
-                f"{cell['department']}\n{cell['last_update']}"
-                for cell in row_cells
-            ]
+            [f"{cell['department']}\n{cell['last_update']}" for cell in row_cells]
         )
     return rows, cell_styles
 
@@ -889,8 +915,14 @@ def run_rules_engine(snapshot_df: pd.DataFrame, config: dict) -> dict:
         return {"alerts": [], "critical": []}
     engine = RulesEngine(config=config)
     current = build_rules_engine_payload(snapshot_df.iloc[-1])
-    previous = build_rules_engine_payload(snapshot_df.iloc[-2]) if len(snapshot_df) > 1 else None
-    result = engine.run(current, previous, snapshot_id=snapshot_df.iloc[-1]["timestamp"])
+    previous = (
+        build_rules_engine_payload(snapshot_df.iloc[-2])
+        if len(snapshot_df) > 1
+        else None
+    )
+    result = engine.run(
+        current, previous, snapshot_id=snapshot_df.iloc[-1]["timestamp"]
+    )
     return {"alerts": result.alerts, "critical": result.critical_alerts}
 
 
@@ -965,7 +997,13 @@ def create_pdf_charts(
 
     if not votes_df.empty:
         fig, ax = plt.subplots(figsize=(6.8, 2.6))
-        ax.plot(votes_df["hour"], votes_df["votes"], marker="o", color="#1F77B4", linewidth=2)
+        ax.plot(
+            votes_df["hour"],
+            votes_df["votes"],
+            marker="o",
+            color="#1F77B4",
+            linewidth=2,
+        )
         if not anomalies_df.empty:
             ax.scatter(
                 anomalies_df["hour"],
@@ -990,14 +1028,18 @@ def create_pdf_charts(
         chart_buffers["timeline"] = buf
 
     if not heatmap_df.empty:
-        heatmap_pivot = heatmap_df.pivot(index="department", columns="hour", values="anomaly_count").fillna(0)
+        heatmap_pivot = heatmap_df.pivot(
+            index="department", columns="hour", values="anomaly_count"
+        ).fillna(0)
         fig, ax = plt.subplots(figsize=(13.0, 3.4))
         ax.imshow(heatmap_pivot.values, aspect="auto", cmap="Reds")
         ax.set_title("Mapa de anomalías por departamento/hora")
         ax.set_yticks(range(len(heatmap_pivot.index)))
         ax.set_yticklabels(heatmap_pivot.index, fontsize=6)
         ax.set_xticks(range(len(heatmap_pivot.columns)))
-        ax.set_xticklabels([str(x) for x in heatmap_pivot.columns], fontsize=6, rotation=45)
+        ax.set_xticklabels(
+            [str(x) for x in heatmap_pivot.columns], fontsize=6, rotation=45
+        )
         buf = io.BytesIO()
         fig.tight_layout()
         fig.savefig(buf, format="png", dpi=300)
@@ -1039,7 +1081,15 @@ def create_pdf_charts(
             label = str(value)[:8]
             x = idx * 1.4
             ax.add_patch(plt.Rectangle((x, 0.4), 1.1, 0.6, color="#1F2937", alpha=0.9))
-            ax.text(x + 0.55, 0.7, label, color="white", ha="center", va="center", fontsize=8)
+            ax.text(
+                x + 0.55,
+                0.7,
+                label,
+                color="white",
+                ha="center",
+                va="center",
+                fontsize=8,
+            )
             if idx < len(recent_hashes) - 1:
                 ax.annotate(
                     "",
@@ -1122,11 +1172,13 @@ def _register_pdf_fonts() -> tuple[str, str]:
 
 
 if REPORTLAB_AVAILABLE:
+
     class NumberedCanvas(reportlab_canvas.Canvas):
         """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
 
         English: NumberedCanvas class defined in dashboard/streamlit_app.py.
         """
+
         def __init__(self, *args, root_hash: str = "", **kwargs) -> None:
             """Español: Función __init__ del módulo dashboard/streamlit_app.py.
 
@@ -1188,12 +1240,15 @@ if REPORTLAB_AVAILABLE:
                 0.3 * cm,
                 "Auditoría Independiente - Proyecto Centinel",
             )
+
 else:
+
     class NumberedCanvas:  # pragma: no cover - placeholder when reportlab is absent
         """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
 
         English: NumberedCanvas class defined in dashboard/streamlit_app.py.
         """
+
         pass
 
 
@@ -1311,7 +1366,9 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     qr_cell = Spacer(1, 1)
     if data.get("qr"):
         qr_cell = Image(data["qr"], width=2.2 * cm, height=2.2 * cm)
-    header_table = Table([[header_title, qr_cell]], colWidths=[doc.width * 0.75, doc.width * 0.25])
+    header_table = Table(
+        [[header_title, qr_cell]], colWidths=[doc.width * 0.75, doc.width * 0.25]
+    )
     header_table.setStyle(
         TableStyle(
             [
@@ -1334,7 +1391,9 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     badge_info = data.get("status_badge", {})
     if badge_info:
         badge_color = colors.HexColor(badge_info.get("color", "#008000"))
-        badge_table = Table([[badge_info.get("label", "")]], colWidths=[doc.width * 0.4])
+        badge_table = Table(
+            [[badge_info.get("label", "")]], colWidths=[doc.width * 0.4]
+        )
         badge_table.setStyle(
             TableStyle(
                 [
@@ -1369,7 +1428,10 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
 
     elements.append(PageBreak())
     elements.append(
-        Paragraph("Sección 1.1 · Integridad de Topología (Cross-Check)", styles["HeadingSecondary"])
+        Paragraph(
+            "Sección 1.1 · Integridad de Topología (Cross-Check)",
+            styles["HeadingSecondary"],
+        )
     )
     topology_style = "Body" if data["topology"]["is_match"] else "AlertText"
     elements.append(Paragraph(data["topology_summary"], styles[topology_style]))
@@ -1377,13 +1439,18 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(topology_table)
     if "waterfall" in chart_buffers:
         elements.append(Spacer(1, 4))
-        elements.append(Image(chart_buffers["waterfall"], width=doc.width * 0.6, height=4.2 * cm))
+        elements.append(
+            Image(chart_buffers["waterfall"], width=doc.width * 0.6, height=4.2 * cm)
+        )
         if data.get("topology_alert"):
             elements.append(Paragraph(data["topology_alert"], styles["AlertText"]))
     elements.append(Spacer(1, 8))
 
     elements.append(
-        Paragraph("Sección 1.2 · Latencia de Nodos (Último Update)", styles["HeadingSecondary"])
+        Paragraph(
+            "Sección 1.2 · Latencia de Nodos (Último Update)",
+            styles["HeadingSecondary"],
+        )
     )
     latency_rows = data.get("latency_rows", [])
     if latency_rows:
@@ -1425,12 +1492,16 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         elements.append(latency_table)
         if "load_heatmap" in chart_buffers:
             elements.append(Spacer(1, 4))
-            elements.append(Image(chart_buffers["load_heatmap"], width=doc.width, height=4.6 * cm))
+            elements.append(
+                Image(chart_buffers["load_heatmap"], width=doc.width, height=4.6 * cm)
+            )
     else:
         elements.append(Paragraph("Sin datos de latencia disponibles.", styles["Body"]))
     elements.append(Spacer(1, 8))
 
-    elements.append(Paragraph("Sección 2 · Anomalías Detectadas", styles["HeadingSecondary"]))
+    elements.append(
+        Paragraph("Sección 2 · Anomalías Detectadas", styles["HeadingSecondary"])
+    )
     anomaly_rows = data["anomaly_rows"]
     anomaly_col_widths = [
         doc.width * 0.14,
@@ -1443,7 +1514,12 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     ]
     anomaly_table = build_table(anomaly_rows, anomaly_col_widths)
     table_style = [
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.HexColor("#f8fafc")]),
+        (
+            "ROWBACKGROUNDS",
+            (0, 1),
+            (-1, -1),
+            [colors.whitesmoke, colors.HexColor("#f8fafc")],
+        ),
     ]
     for row_idx, row in enumerate(anomaly_rows[1:], start=1):
         delta_pct = str(row[3]).replace("%", "").strip()
@@ -1473,7 +1549,9 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(anomaly_table)
     elements.append(Spacer(1, 8))
 
-    elements.append(Paragraph("Sección 3 · Gráficos Avanzados", styles["HeadingSecondary"]))
+    elements.append(
+        Paragraph("Sección 3 · Gráficos Avanzados", styles["HeadingSecondary"])
+    )
     for key, caption in data["chart_captions"].items():
         buf = chart_buffers.get(key)
         if buf:
@@ -1484,14 +1562,18 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             elements.append(Paragraph(caption, styles["Body"]))
             elements.append(Spacer(1, 4))
     elements.append(PageBreak())
-    elements.append(Paragraph("Cadena de Bloques (Snapshots)", styles["HeadingSecondary"]))
+    elements.append(
+        Paragraph("Cadena de Bloques (Snapshots)", styles["HeadingSecondary"])
+    )
     chain_buf = chart_buffers.get("chain")
     if chain_buf:
         elements.append(Image(chain_buf, width=doc.width * 0.7, height=3.5 * cm))
         elements.append(Paragraph("Cadena de snapshots recientes.", styles["Body"]))
         elements.append(Spacer(1, 4))
 
-    elements.append(Paragraph("Sección 4 · Snapshots Recientes", styles["HeadingSecondary"]))
+    elements.append(
+        Paragraph("Sección 4 · Snapshots Recientes", styles["HeadingSecondary"])
+    )
     snapshot_rows = data["snapshot_rows"]
     snapshot_col_widths = [
         doc.width * 0.18,
@@ -1505,7 +1587,12 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     snapshot_table.setStyle(
         TableStyle(
             [
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.HexColor("#f8fafc")]),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.whitesmoke, colors.HexColor("#f8fafc")],
+                ),
             ]
         )
     )
@@ -1517,13 +1604,19 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         elements.append(Paragraph(f"• {rule}", styles["Body"]))
     elements.append(Spacer(1, 6))
 
-    elements.append(Paragraph("Sección 6 · Verificación Criptográfica", styles["HeadingSecondary"]))
+    elements.append(
+        Paragraph("Sección 6 · Verificación Criptográfica", styles["HeadingSecondary"])
+    )
     elements.append(Paragraph(data["crypto_text"], styles["Body"]))
     if data.get("qr"):
         elements.append(Image(data["qr"], width=3.2 * cm, height=3.2 * cm))
     elements.append(Spacer(1, 8))
 
-    elements.append(Paragraph("Sección 7 · Mapa de Riesgos y Gobernanza", styles["HeadingSecondary"]))
+    elements.append(
+        Paragraph(
+            "Sección 7 · Mapa de Riesgos y Gobernanza", styles["HeadingSecondary"]
+        )
+    )
     elements.append(Paragraph(data["risk_text"], styles["Body"]))
     elements.append(Paragraph(data["governance_text"], styles["Body"]))
     elements.append(Spacer(1, 6))
@@ -1674,9 +1767,7 @@ with alerts_container:
     if latest_timestamp is None or (
         time_since_last and time_since_last > dt.timedelta(minutes=45)
     ):
-        st.warning(
-            "No se encontraron snapshots recientes (No recent snapshots found)."
-        )
+        st.warning("No se encontraron snapshots recientes (No recent snapshots found).")
 
 if snapshots_df.empty:
     st.warning(
@@ -1815,12 +1906,16 @@ departments = [
     "Yoro",
 ]
 
-selected_department = st.sidebar.selectbox("Departamento", ["Todos"] + departments, index=0)
+selected_department = st.sidebar.selectbox(
+    "Departamento", ["Todos"] + departments, index=0
+)
 show_only_alerts = st.sidebar.toggle("Mostrar solo anomalías", value=False)
 
 filtered_snapshots = snapshots_df.copy()
 if selected_department != "Todos":
-    filtered_snapshots = filtered_snapshots[filtered_snapshots["department"] == selected_department]
+    filtered_snapshots = filtered_snapshots[
+        filtered_snapshots["department"] == selected_department
+    ]
 
 if show_only_alerts:
     filtered_snapshots = filtered_snapshots[filtered_snapshots["status"] != "OK"]
@@ -1835,7 +1930,9 @@ if not snapshots_df.empty:
         .dropna()
         .max()
     )
-latest_label = latest_timestamp.strftime("%Y-%m-%d %H:%M UTC") if latest_timestamp else "Sin datos"
+latest_label = (
+    latest_timestamp.strftime("%Y-%m-%d %H:%M UTC") if latest_timestamp else "Sin datos"
+)
 
 hero_cols = st.columns([0.74, 0.26])
 with hero_cols[0]:
@@ -1853,7 +1950,9 @@ with hero_cols[0]:
     </div>
   </div>
 </div>
-        """.format(latest_label=latest_label, root_hash=anchor.root_hash[:12] + "…"),
+        """.format(
+            latest_label=latest_label, root_hash=anchor.root_hash[:12] + "…"
+        ),
         unsafe_allow_html=True,
     )
 with hero_cols[1]:
@@ -1877,7 +1976,9 @@ if not filtered_anomalies.empty:
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("<div class='section-title'>Resumen Ejecutivo</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='section-title'>Resumen Ejecutivo</div>", unsafe_allow_html=True
+)
 st.markdown(
     "<div class='section-subtitle'>Indicadores clave de integridad, velocidad y cobertura operacional.</div>",
     unsafe_allow_html=True,
@@ -1923,7 +2024,9 @@ st.markdown(
     <p>Arbitrum · activo</p>
   </div>
 </div>
-    """.format(alerts=len(filtered_anomalies)),
+    """.format(
+        alerts=len(filtered_anomalies)
+    ),
     unsafe_allow_html=True,
 )
 
@@ -2040,9 +2143,7 @@ with tabs[0]:
                 f"**Tiempo actual:** {timeline_df.iloc[st.session_state.timeline_index]['timeline_label']}"
             )
 
-        timeline_view = timeline_df.iloc[
-            range_indices[0] : range_indices[1] + 1
-        ]
+        timeline_view = timeline_df.iloc[range_indices[0] : range_indices[1] + 1]
 
         timeline_chart = (
             alt.Chart(timeline_view)
@@ -2067,7 +2168,9 @@ with tabs[0]:
                 y=alt.Y("value:Q", title="%"),
                 color=alt.Color(
                     "type:N",
-                    scale=alt.Scale(domain=["expected", "observed"], range=["#1F77B4", "#2CA02C"]),
+                    scale=alt.Scale(
+                        domain=["expected", "observed"], range=["#1F77B4", "#2CA02C"]
+                    ),
                     legend=alt.Legend(title="Serie"),
                 ),
                 tooltip=[
@@ -2109,7 +2212,9 @@ with tabs[1]:
                 color=alt.Color("anomaly_count:Q", scale=alt.Scale(scheme="redblue")),
                 tooltip=["department", "hour", "anomaly_count"],
             )
-            .properties(height=360, title="Mapa de riesgos (anomalías por departamento/hora)")
+            .properties(
+                height=360, title="Mapa de riesgos (anomalías por departamento/hora)"
+            )
         )
         st.altair_chart(heatmap_chart, use_container_width=True)
 
@@ -2130,7 +2235,15 @@ with tabs[2]:
     st.markdown("### Snapshots Recientes")
     st.dataframe(
         filtered_snapshots[
-            ["timestamp", "department", "candidate", "impact", "delta", "status", "hash"]
+            [
+                "timestamp",
+                "department",
+                "candidate",
+                "impact",
+                "delta",
+                "status",
+                "hash",
+            ]
         ],
         use_container_width=True,
         hide_index=True,
@@ -2177,7 +2290,9 @@ with tabs[4]:
         ["Timestamp", "Dept", "Candidato", "Impacto", "Estado", "Hash"],
     ] + snapshots_real[
         ["timestamp", "department", "candidate", "impact", "status", "hash"]
-    ].head(10).values.tolist()
+    ].head(
+        10
+    ).values.tolist()
 
     anomalies_sorted = filtered_anomalies.copy()
     if not anomalies_sorted.empty:
@@ -2196,7 +2311,9 @@ with tabs[4]:
         current_hash = str(row.get("hash") or "")
         chain_hash = ""
         if current_hash:
-            chain_hash = hashlib.sha256(f"{prev_hash}|{current_hash}".encode("utf-8")).hexdigest()
+            chain_hash = hashlib.sha256(
+                f"{prev_hash}|{current_hash}".encode("utf-8")
+            ).hexdigest()
         hash_cell = current_hash[:6] if current_hash else ""
         if current_hash:
             prev_short = prev_hash[:6] if prev_hash else "------"
@@ -2210,9 +2327,11 @@ with tabs[4]:
                 f"{row.get('delta_pct', 0):.2f}%",
                 row.get("hour") or "",
                 hash_cell,
-                "ROLLBACK / ELIMINACIÓN DE DATOS"
-                if row.get("type") == "Delta negativo"
-                else row.get("type"),
+                (
+                    "ROLLBACK / ELIMINACIÓN DE DATOS"
+                    if row.get("type") == "Delta negativo"
+                    else row.get("type")
+                ),
             ]
         )
         prev_hash = chain_hash or current_hash
@@ -2234,7 +2353,9 @@ with tabs[4]:
     )
 
     rules_list = (
-        rules_df.assign(summary=rules_df["rule"] + " (" + rules_df["thresholds"].fillna("-") + ")")
+        rules_df.assign(
+            summary=rules_df["rule"] + " (" + rules_df["thresholds"].fillna("-") + ")"
+        )
         .head(8)
         .get("summary", pd.Series(dtype=str))
         .tolist()
@@ -2268,9 +2389,7 @@ with tabs[4]:
         ],
     ]
     if topology["is_match"]:
-        topology_summary = (
-            "Consistencia confirmada: la suma de departamentos coincide con el total nacional."
-        )
+        topology_summary = "Consistencia confirmada: la suma de departamentos coincide con el total nacional."
     else:
         topology_summary = (
             "DISCREPANCIA DE AGREGACIÓN: La suma de departamentos difiere "
@@ -2292,8 +2411,15 @@ with tabs[4]:
 
     integrity_pct = 100.0
     if len(filtered_snapshots) > 0:
-        integrity_pct = max(0.0, 100.0 - (abs(topology["delta"]) / max(1, topology["national_total"])) * 100)
-    deviation_std = float(filtered_snapshots["delta"].std()) if not filtered_snapshots.empty else 0.0
+        integrity_pct = max(
+            0.0,
+            100.0 - (abs(topology["delta"]) / max(1, topology["national_total"])) * 100,
+        )
+    deviation_std = (
+        float(filtered_snapshots["delta"].std())
+        if not filtered_snapshots.empty
+        else 0.0
+    )
     forensic_summary = (
         f"Se han auditado {len(snapshot_files)} flujos de datos. "
         f"La integridad se ha mantenido en un {integrity_pct:0.2f}% "
@@ -2369,9 +2495,11 @@ with tabs[4]:
                 **pdf_data,
                 "timestamp_utc": report_time_dt,
                 "root_hash": anchor.root_hash,
-                "status": "COMPROMETIDO"
-                if (not topology["is_match"] or critical_count > 0)
-                else "INTEGRAL",
+                "status": (
+                    "COMPROMETIDO"
+                    if (not topology["is_match"] or critical_count > 0)
+                    else "INTEGRAL"
+                ),
                 "source": pdf_data.get("input_source", "Endpoint JSON CNE"),
                 "topology_check": {
                     "total_national": topology["national_total"],
@@ -2403,7 +2531,9 @@ with tabs[4]:
             pdf_bytes = buffer.getvalue()
         else:
             pdf_bytes = build_pdf_report(pdf_data, chart_buffers)
-        dept_label = selected_department if selected_department != "Todos" else "nacional"
+        dept_label = (
+            selected_department if selected_department != "Todos" else "nacional"
+        )
         st.download_button(
             f"Descargar Informe PDF ({dept_label})",
             data=pdf_bytes,
@@ -2471,9 +2601,7 @@ with tabs[5]:
                 else:
                     failures = diagnostics.get("failures", [])
                     health_message = (
-                        "; ".join(failures)
-                        if failures
-                        else "healthcheck_strict_failed"
+                        "; ".join(failures) if failures else "healthcheck_strict_failed"
                     )
             except Exception as exc:  # noqa: BLE001
                 health_ok = False
@@ -2487,12 +2615,16 @@ with tabs[5]:
 
         critical_alerts = filtered_anomalies.copy()
         if not critical_alerts.empty:
-            critical_alerts = critical_alerts[critical_alerts["type"] == "Delta negativo"]
+            critical_alerts = critical_alerts[
+                critical_alerts["type"] == "Delta negativo"
+            ]
         if not critical_alerts.empty:
             critical_alerts["timestamp_dt"] = pd.to_datetime(
                 critical_alerts["timestamp"], errors="coerce", utc=True
             )
-            critical_alerts = critical_alerts.sort_values("timestamp_dt", ascending=False)
+            critical_alerts = critical_alerts.sort_values(
+                "timestamp_dt", ascending=False
+            )
         critical_alerts = critical_alerts.head(5)
 
         pipeline_status = "Activo"
@@ -2603,10 +2735,13 @@ with tabs[5]:
                 st.error(f"No se pudo guardar el checkpoint: {exc}")
 
         if auto_refresh:
-            st.caption(f"Auto-refresco activo · próxima actualización en {refresh_interval}s.")
+            st.caption(
+                f"Auto-refresco activo · próxima actualización en {refresh_interval}s."
+            )
             time.sleep(refresh_interval)
             rerun_app()
 
 st.markdown("---")
 st.markdown(
-    "✅ **Sugerencia UX:** añade un botón de refresco en la barra lateral para recalcular deltas en tiempo real.")
+    "✅ **Sugerencia UX:** añade un botón de refresco en la barra lateral para recalcular deltas en tiempo real."
+)

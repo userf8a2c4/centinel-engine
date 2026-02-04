@@ -18,7 +18,14 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas as reportlab_canvas
-from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    Image,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 
 class ReportCanvas(reportlab_canvas.Canvas):
@@ -26,7 +33,10 @@ class ReportCanvas(reportlab_canvas.Canvas):
 
     English: ReportCanvas class defined in dashboard/centinel_pdf_report.py.
     """
-    def __init__(self, *args, footer_data: dict[str, str] | None = None, **kwargs) -> None:
+
+    def __init__(
+        self, *args, footer_data: dict[str, str] | None = None, **kwargs
+    ) -> None:
         """Español: Función __init__ del módulo dashboard/centinel_pdf_report.py.
 
         English: Function __init__ defined in dashboard/centinel_pdf_report.py.
@@ -81,6 +91,7 @@ class CentinelPDFReport:
 
     English: CentinelPDFReport class defined in dashboard/centinel_pdf_report.py.
     """
+
     def __init__(self) -> None:
         """Español: Función __init__ del módulo dashboard/centinel_pdf_report.py.
 
@@ -104,8 +115,12 @@ class CentinelPDFReport:
         report_time = self._parse_timestamp(data.get("timestamp_utc"))
         root_hash = str(data.get("root_hash", "N/A"))
         status = str(data.get("status", "INTEGRAL")).upper()
-        status_color = self.palette["emerald"] if status == "INTEGRAL" else self.palette["alert"]
-        status_label = "STATUS: INTEGRAL" if status == "INTEGRAL" else "STATUS: COMPROMETIDO"
+        status_color = (
+            self.palette["emerald"] if status == "INTEGRAL" else self.palette["alert"]
+        )
+        status_label = (
+            "STATUS: INTEGRAL" if status == "INTEGRAL" else "STATUS: COMPROMETIDO"
+        )
 
         doc = SimpleDocTemplate(
             target,
@@ -141,9 +156,13 @@ class CentinelPDFReport:
         heatmap = self._render_heatmap(data.get("anomalies", []))
         if heatmap is not None:
             elements.append(Image(heatmap, width=doc.width, height=7 * cm))
-            elements.append(Paragraph("Anomalías por departamento y hora.", styles["Body"]))
+            elements.append(
+                Paragraph("Anomalías por departamento y hora.", styles["Body"])
+            )
         else:
-            elements.append(Paragraph("No hay datos suficientes para el heatmap.", styles["Body"]))
+            elements.append(
+                Paragraph("No hay datos suficientes para el heatmap.", styles["Body"])
+            )
 
         elements.append(Spacer(1, 12))
         elements.append(Paragraph("Análisis de Benford", styles["Heading"]))
@@ -157,7 +176,9 @@ class CentinelPDFReport:
                 )
             )
         else:
-            elements.append(Paragraph("Sin datos suficientes para Benford.", styles["Body"]))
+            elements.append(
+                Paragraph("Sin datos suficientes para Benford.", styles["Body"])
+            )
 
         elements.append(Spacer(1, 12))
         elements.append(Paragraph("Cadena de Bloques (Snapshots)", styles["Heading"]))
@@ -183,7 +204,9 @@ class CentinelPDFReport:
         qr_img = self._render_qr(qr_payload)
         if qr_img is not None:
             elements.append(Image(qr_img, width=3.2 * cm, height=3.2 * cm))
-            elements.append(Paragraph("Escanee para validar el hash raíz.", styles["Body"]))
+            elements.append(
+                Paragraph("Escanee para validar el hash raíz.", styles["Body"])
+            )
 
         footer_data = {"root_hash": root_hash}
         doc.build(
@@ -322,7 +345,9 @@ class CentinelPDFReport:
 
         English: Function _build_topology_section defined in dashboard/centinel_pdf_report.py.
         """
-        national_total = float(topology.get("total_national", topology.get("national_total", 0)))
+        national_total = float(
+            topology.get("total_national", topology.get("national_total", 0))
+        )
         dept_total = float(topology.get("department_total", 0))
         delta = national_total - dept_total
         is_match = topology.get("is_match", national_total == dept_total)
@@ -360,12 +385,16 @@ class CentinelPDFReport:
         if kpi_rows:
             elements.append(Spacer(1, 6))
             elements.append(Paragraph("Indicadores Clave", styles["Heading"]))
-            elements.append(self._build_table(styles, kpi_rows, row_background="#F1F5F9"))
+            elements.append(
+                self._build_table(styles, kpi_rows, row_background="#F1F5F9")
+            )
         anomaly_rows = data.get("anomaly_rows")
         if anomaly_rows:
             elements.append(Spacer(1, 8))
             elements.append(Paragraph("Anomalías Detectadas", styles["Heading"]))
-            elements.append(self._build_table(styles, anomaly_rows, row_background="#FEF2F2"))
+            elements.append(
+                self._build_table(styles, anomaly_rows, row_background="#FEF2F2")
+            )
         return elements
 
     def _build_snapshot_section(
@@ -464,7 +493,9 @@ class CentinelPDFReport:
         )
         return table
 
-    def _render_waterfall(self, dept_total: float, national_total: float) -> io.BytesIO | None:
+    def _render_waterfall(
+        self, dept_total: float, national_total: float
+    ) -> io.BytesIO | None:
         """Español: Función _render_waterfall del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _render_waterfall defined in dashboard/centinel_pdf_report.py.
@@ -549,7 +580,9 @@ class CentinelPDFReport:
         fig, ax = plt.subplots(figsize=(7, 3))
         bars = ax.bar(digits, observed, color="#1F77B4", alpha=0.85)
         ax.plot(digits, expected, color="#10B981", marker="o", label="Esperado")
-        ax.fill_between(digits, lower, upper, color="#94A3B8", alpha=0.3, label="95% CI")
+        ax.fill_between(
+            digits, lower, upper, color="#94A3B8", alpha=0.3, label="95% CI"
+        )
         for idx, bar in enumerate(bars):
             if observed[idx] < lower[idx] or observed[idx] > upper[idx]:
                 bar.set_color("#D62728")
@@ -578,7 +611,15 @@ class CentinelPDFReport:
         for idx, label in enumerate(labels):
             x = idx * 1.4
             ax.add_patch(plt.Rectangle((x, 0.4), 1.1, 0.6, color="#1F2937", alpha=0.9))
-            ax.text(x + 0.55, 0.7, label, color="white", ha="center", va="center", fontsize=8)
+            ax.text(
+                x + 0.55,
+                0.7,
+                label,
+                color="white",
+                ha="center",
+                va="center",
+                fontsize=8,
+            )
             if idx < len(labels) - 1:
                 ax.annotate(
                     "",

@@ -46,6 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 def _env_int(name: str, default: int) -> int:
     """Lee una variable de entorno como entero con fallback seguro.
 
