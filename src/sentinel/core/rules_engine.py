@@ -72,7 +72,13 @@ class RulesEngine:
         rules_config = self.config.get("rules", {})
         if not rules_config.get("global_enabled", True):
             return False
-        rule_config = rules_config.get(rule.config_key, {})
+        rule_config = rules_config.get(rule.config_key)
+        if rule_config is None:
+            alias = RULE_CONFIG_ALIASES.get(rule.config_key)
+            if alias:
+                rule_config = rules_config.get(alias)
+        if rule_config is None:
+            rule_config = {}
         return rule_config.get("enabled", True)
 
     def run(
@@ -111,7 +117,14 @@ class RulesEngine:
                 )
                 continue
 
-            rule_config = self.config.get("rules", {}).get(rule.config_key, {})
+            rules_config = self.config.get("rules", {})
+            rule_config = rules_config.get(rule.config_key)
+            if rule_config is None:
+                alias = RULE_CONFIG_ALIASES.get(rule.config_key)
+                if alias:
+                    rule_config = rules_config.get(alias)
+            if rule_config is None:
+                rule_config = {}
             try:
                 rule_alerts = rule.func(current_data, previous_data, rule_config) or []
             except Exception as exc:  # noqa: BLE001

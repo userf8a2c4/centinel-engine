@@ -35,7 +35,9 @@ class DownloadError(Exception):
 
 
 @retry(
-    retry=retry_if_exception_type((httpx.RequestError, httpx.TimeoutException)),
+    retry=retry_if_exception_type(
+        (httpx.RequestError, httpx.TimeoutException, httpx.HTTPStatusError)
+    ),
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=1, min=4, max=60),
     reraise=True,

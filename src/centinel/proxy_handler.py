@@ -107,6 +107,7 @@ class ProxyRotator:
         *,
         mode: str,
         proxies: List[ProxyInfo],
+        proxy_urls: List[str],
         rotation_strategy: str = "round_robin",
         rotation_every_n: int = 1,
         proxy_timeout_seconds: float = DEFAULT_PROXY_TIMEOUT_SECONDS,
@@ -122,6 +123,7 @@ class ProxyRotator:
         self.proxy_timeout_seconds = proxy_timeout_seconds
         self.logger = logger or logging.getLogger(__name__)
         self._proxies = proxies
+        self._proxy_urls = proxy_urls
         self._current_index = 0
         self._requests_since_rotation = 0
         self._current_proxy: Optional[ProxyInfo] = None
@@ -143,6 +145,21 @@ class ProxyRotator:
             self.logger.warning("proxy_fallback_direct", reason="no_active_proxies")
         self.mode = "direct"
         self._current_proxy = None
+
+    def refresh_proxies(self, validator: ProxyValidator) -> bool:
+        """Revalida proxies cuando el pool está agotado."""
+        if not self._proxy_urls:
+            return False
+        validated = validator.validate(self._proxy_urls)
+        self._proxies = validated
+        self._current_index = 0
+        self._requests_since_rotation = 0
+        self._current_proxy = None
+        if validated:
+            self.mode = "rotate"
+            self.logger.info("proxy_pool_refreshed", count=len(validated))
+            return True
+        return False
 
     def _select_next_proxy(self) -> Optional[ProxyInfo]:
         """Español: Función _select_next_proxy del módulo src/centinel/proxy_handler.py.
@@ -291,19 +308,30 @@ def get_proxy_rotator(logger: Optional[logging.Logger] = None) -> ProxyRotator:
     """Inicializa y devuelve el rotador de proxies."""
     global _ROTATOR
     if _ROTATOR is not None:
+        if _ROTATOR.mode != "direct" and not _ROTATOR.active_proxies:
+            config = load_proxy_config()
+            validator = ProxyValidator(
+                test_url=config["test_url"],
+                timeout_seconds=10.0,
+                logger=logger or logging.getLogger(__name__),
+            )
+            refreshed = _ROTATOR.refresh_proxies(validator)
+            if not refreshed:
+                _ROTATOR._fallback_to_direct()
         return _ROTATOR
 
     logger = logger or logging.getLogger(__name__)
     config = load_proxy_config()
     validator = ProxyValidator(
         test_url=config["test_url"],
-        timeout_seconds=10.0,
+        timeout_seconds=config["proxy_timeout_seconds"],
         logger=logger,
     )
     validated = validator.validate(config["proxies"])
     _ROTATOR = ProxyRotator(
         mode=config["mode"],
         proxies=validated,
+        proxy_urls=config["proxies"],
         rotation_strategy=config["rotation_strategy"],
         rotation_every_n=config["rotation_every_n"],
         proxy_timeout_seconds=config["proxy_timeout_seconds"],

@@ -143,19 +143,23 @@ export const scrapeCycle = async () => {
 
     try {
       const response = await fetchWithRetry(url);
-      const payload = typeof response.data === "string" ? response.data : JSON.stringify(response.data);
-      const hash = crypto.createHash("sha256").update(payload).digest("hex");
-
-      results.push({
-        hash: `0x${hash}`,
-        url,
-        timestampISO: new Date().toISOString(),
-        status: response.status
-      });
-
       if (response.status >= 400) {
         consecutiveErrors += 1;
+        results.push({
+          hash: "0x",
+          url,
+          timestampISO: new Date().toISOString(),
+          status: response.status
+        });
       } else {
+        const payload = typeof response.data === "string" ? response.data : JSON.stringify(response.data);
+        const hash = crypto.createHash("sha256").update(payload).digest("hex");
+        results.push({
+          hash: `0x${hash}`,
+          url,
+          timestampISO: new Date().toISOString(),
+          status: response.status
+        });
         consecutiveErrors = 0;
       }
     } catch (error) {

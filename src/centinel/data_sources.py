@@ -339,6 +339,7 @@ class DataSourceManager:
             url,
             headers=source.headers,
             params=source.params,
+            timeout=httpx.Timeout(source.timeout_seconds or 10),
         )
         elapsed = time.monotonic() - start
         self.logger.info(
