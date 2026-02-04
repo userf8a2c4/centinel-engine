@@ -1,46 +1,84 @@
-# CI/CD para C.E.N.T.I.N.E.L. / CI/CD for C.E.N.T.I.N.E.L.
+# CI/CD / Integración y entrega continua
 
-## Resumen / Summary
-Este repositorio utiliza GitHub Actions para validar calidad, pruebas, seguridad y salud operativa en cada cambio. Los flujos están divididos para mantener claridad y tiempos de ejecución razonables. / This repository uses GitHub Actions to validate quality, tests, security, and operational health on every change. Workflows are split to keep clarity and reasonable runtimes.
+## Resumen / Overview
 
-## Workflows principales / Main workflows
+**ES:** Este documento describe los workflows de GitHub Actions que validan calidad, seguridad y resiliencia del proyecto **centinel-engine**. El objetivo es mantener un pipeline confiable, rápido y reproducible para un proyecto open‑source de alta credibilidad.  
+**EN:** This document describes the GitHub Actions workflows that validate quality, security, and resilience for **centinel-engine**. The goal is a reliable, fast, and reproducible pipeline for a high‑credibility open‑source project.
 
-### 1) `ci.yml` (workflow principal / main workflow)
-**Objetivo:** ejecución completa de calidad + pruebas + seguridad en branches principales y PRs. / **Goal:** full quality + tests + security on main branches and PRs.
+## Workflows activos / Active workflows
 
-Incluye: / Includes:
-- Matriz Python 3.10–3.12. / Python 3.10–3.12 matrix.
-- Instalación con Poetry (`poetry install --no-root --with dev`). / Poetry install (`poetry install --no-root --with dev`).
-- Lint: `flake8` + `black --check`. / Lint: `flake8` + `black --check`.
-- Pruebas con cobertura (`pytest --cov`). / Tests with coverage (`pytest --cov`).
-- Seguridad con Bandit. / Security scan with Bandit.
-- Cache de Poetry + entorno virtual. / Poetry + virtualenv cache.
+### `ci.yml` — Pipeline principal / Main pipeline
 
-### 2) `lint.yml` (push)
-**Objetivo:** feedback rápido en pushes de estilo y formato. / **Goal:** quick feedback on push for style and formatting.
+**ES:** Se ejecuta en `push` a `main` y `dev-v6`, y en `pull_request`. Incluye matriz de Python 3.10–3.12 y valida estilo, pruebas, cobertura y seguridad.  
+**EN:** Runs on `push` to `main` and `dev-v6`, and on `pull_request`. Includes a Python 3.10–3.12 matrix and validates lint, tests, coverage, and security.
 
-### 3) `test.yml` (pull_request)
-**Objetivo:** pruebas en PRs con matriz de Python. / **Goal:** run tests on PRs with Python matrix.
+**Pasos principales / Core steps:**
+- **Checkout / Checkout**: obtiene el código.  
+- **Setup Python / Setup Python**: configura versión de Python y cache de Poetry.  
+- **Poetry install / Poetry install**: `poetry install --no-root --with dev`.  
+- **Lint / Lint**: `flake8` y `black --check`.  
+- **Tests / Tests**: `pytest` con `pytest-cov`.  
+- **Security / Security**: `bandit` con exclusiones razonables para `tests`, `docs`, `.venv`, `build`, `dist`.
 
-### 4) `chaos-test.yml` (low level, PRs)
-**Objetivo:** ejecutar pruebas de caos a bajo nivel en PRs. / **Goal:** run low-level chaos tests on PRs.
+### `lint.yml` — Lint en push / Lint on push
 
-## Cómo contribuir sin romper CI / How to contribute without breaking CI
-- **Instalar dependencias con Poetry**: `poetry install --with dev`. / **Install dependencies with Poetry**: `poetry install --with dev`.
-- **Ejecutar lint local**: `poetry run flake8 .` y `poetry run black --check .`. / **Run lint locally**: `poetry run flake8 .` and `poetry run black --check .`.
-- **Ejecutar pruebas**: `poetry run pytest --cov=centinel --cov-report=term-missing`. / **Run tests**: `poetry run pytest --cov=centinel --cov-report=term-missing`.
-- **Chaos tests (si aplica)**: `poetry run pytest tests/chaos -q`. / **Chaos tests (if applicable)**: `poetry run pytest tests/chaos -q`.
-- **Actualizar Poetry lock** cuando se agreguen dependencias. / **Update Poetry lock** when adding dependencies.
+**ES:** Ejecuta el análisis de estilo en cada `push` a `main` y `dev-v6`, con Poetry y cache.  
+**EN:** Runs linting on every `push` to `main` and `dev-v6`, using Poetry and caching.
+
+### `test.yml` — Tests en PR / Tests on PR
+
+**ES:** Ejecuta pruebas con cobertura en cada `pull_request`.  
+**EN:** Runs tests with coverage on every `pull_request`.
+
+### `chaos-test.yml` — Chaos tests (low) en PR
+
+**ES:** Ejecuta pruebas de caos en modo **low** para PRs (duración reducida), como validación de resiliencia sin sobrecargar el CI.  
+**EN:** Runs chaos tests in **low** mode for PRs (short duration) to validate resilience without overloading CI.
+
+## Cómo contribuir sin romper CI / Contributing without breaking CI
+
+**ES:** Recomendaciones para mantener el CI estable:
+1. **Instala dependencias con Poetry**:  
+   ```bash
+   poetry install --no-root --with dev
+   ```
+2. **Ejecuta lint antes de subir cambios**:  
+   ```bash
+   poetry run flake8 .
+   poetry run black --check .
+   ```
+3. **Ejecuta pruebas con cobertura**:  
+   ```bash
+   poetry run pytest --cov=centinel --cov-report=term-missing
+   ```
+4. **Evita tests largos en PRs**: las pruebas de caos en PR están en modo bajo; para pruebas más intensas, coordina con mantenedores.
+
+**EN:** Recommendations to keep CI stable:
+1. **Install dependencies with Poetry**:  
+   ```bash
+   poetry install --no-root --with dev
+   ```
+2. **Run lint before pushing**:  
+   ```bash
+   poetry run flake8 .
+   poetry run black --check .
+   ```
+3. **Run tests with coverage**:  
+   ```bash
+   poetry run pytest --cov=centinel --cov-report=term-missing
+   ```
+4. **Avoid long-running tests in PRs**: chaos tests run at low level in PRs; coordinate with maintainers for heavier runs.
 
 ## Troubleshooting / Solución de problemas
-- **Falla de lint por Black**: asegúrate de ejecutar `poetry run black .` antes del PR. / **Black lint failure**: run `poetry run black .` before PR.
-- **Falla de flake8**: revisa estilo y líneas largas; usa exclusiones solo si están justificadas. / **flake8 failure**: check style and long lines; use exclusions only with justification.
-- **Bandit reporta falsos positivos**: revisa el contexto y agrega exclusiones específicas con criterio. / **Bandit false positives**: review context and add targeted exclusions with care.
-- **Cobertura no sube**: revisa que se haya generado `coverage.xml`. / **Coverage not uploaded**: ensure `coverage.xml` is generated.
-- **Cache inválido**: elimina la cache o incrementa el lockfile. / **Invalid cache**: clear cache or update lockfile.
-- **Error de lockfile en Poetry**: ejecuta `poetry lock` para sincronizar `pyproject.toml` y `poetry.lock`. / **Poetry lockfile error**: run `poetry lock` to sync `pyproject.toml` and `poetry.lock`.
 
-## Referencias / References
-- GitHub Actions: https://docs.github.com/en/actions
-- Poetry: https://python-poetry.org/docs/
-- Codecov: https://docs.codecov.com/
+**ES:**
+- **Falla en lint (black/flake8)**: ejecuta los comandos localmente y corrige el estilo antes de volver a hacer `push`.  
+- **Falla en tests**: revisa el log de pytest; si es un test flakey, proporciona evidencia reproducible.  
+- **Bandit reporta falsos positivos**: documenta la justificación en el PR y, si corresponde, agrega `# nosec` con explicación.  
+- **Cache inconsistente**: limpia el cache re‑ejecutando el workflow o incrementando el hash de dependencias.
+
+**EN:**
+- **Lint failure (black/flake8)**: run commands locally and fix style issues before pushing again.  
+- **Test failure**: inspect pytest logs; if it is flaky, provide a reproducible case.  
+- **Bandit false positives**: document the rationale in the PR and add `# nosec` with explanation when appropriate.  
+- **Inconsistent cache**: clear cache by re‑running workflows or updating dependency hashes.

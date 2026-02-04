@@ -9,15 +9,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout / Revisar código
+      # Checkout / Clonar repositorio
       - name: Checkout repository / Clonar repositorio
         uses: actions/checkout@v4
 
-      # Setup Python / Preparar Python
+      # Setup Python / Configurar Python
       - name: Set up Python / Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: poetry
+          cache-dependency-path: poetry.lock
 
       # Install Poetry / Instalar Poetry
       - name: Install Poetry / Instalar Poetry
@@ -26,7 +28,7 @@ jobs:
           pip install poetry
 
       # Cache Poetry + venv / Cache de Poetry + entorno virtual
-      - name: Cache Poetry and virtualenv / Cache de Poetry y virtualenv
+      - name: Cache Poetry and virtualenv / Cache de Poetry y entorno virtual
         uses: actions/cache@v4
         with:
           path: |
@@ -36,6 +38,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-poetry-3.11-
 
+      # Install dependencies / Instalar dependencias
       - name: Install dependencies / Instalar dependencias
         run: |
           poetry config virtualenvs.in-project true
