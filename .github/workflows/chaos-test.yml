@@ -29,7 +29,7 @@ jobs:
       # Run chaos tests / Ejecutar pruebas de caos
       - name: Run chaos tests / Ejecutar pruebas de caos
         run: |
-          poetry run python scripts/chaos_test.py \
+          python scripts/chaos_test.py \
             --config chaos_config.yaml.example \
             --level "${CHAOS_LEVEL}" \
             --duration-minutes "${CHAOS_DURATION_MINUTES}"

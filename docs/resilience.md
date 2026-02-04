@@ -329,6 +329,13 @@ resiliencia:
 - **chaos_config.yaml.example:** Configuración de nivel, duración, probabilidad de fallas y escenarios habilitados.
 - **.github/workflows/chaos-test.yml:** Ejecución automática en PRs (modo low por defecto) y en pushes.
 
+**Configuración clave / Key configuration**
+- `chaos.level`: severidad (`low`, `medium`, `high`) con límites conservadores.
+- `chaos.duration_minutes`: duración total del ejercicio.
+- `chaos.failure_probability`: probabilidad de fallo por request (0–1).
+- `chaos.scenarios_enabled`: escenarios CNE habilitados (429, 503, JSON inválido, hash alterado, proxy fail, watchdog, respuesta lenta).
+- `chaos.max_recovery_seconds`: umbral máximo de recuperación para validar continuidad.
+
 **Ejecución manual / Manual run**
 ```bash
 python scripts/chaos_test.py --config chaos_config.yaml.example --level low

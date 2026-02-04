@@ -40,7 +40,7 @@ class ChaosConfig:
     level: str
     duration_minutes: float
     failure_probability: float
-    specific_scenarios_enabled: List[str]
+    scenarios_enabled: List[str]
     scope: str = "NATIONAL"
     base_url: str = "https://cne.hn/api/snapshot"
     request_timeout_seconds: float = 2.0
@@ -139,11 +139,14 @@ def _load_config(config_path: Path) -> ChaosConfig:
     """
     payload = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     chaos = payload.get("chaos", {})
+    scenarios = chaos.get(
+        "scenarios_enabled", chaos.get("specific_scenarios_enabled", SCENARIOS)
+    )
     return ChaosConfig(
         level=str(chaos.get("level", "low")).lower(),
         duration_minutes=float(chaos.get("duration_minutes", 1)),
         failure_probability=float(chaos.get("failure_probability", 0.2)),
-        specific_scenarios_enabled=list(chaos.get("specific_scenarios_enabled", SCENARIOS)),
+        scenarios_enabled=list(scenarios),
         scope=str(chaos.get("scope", "NATIONAL")),
         base_url=str(chaos.get("base_url", "https://cne.hn/api/snapshot")),
         request_timeout_seconds=float(chaos.get("request_timeout_seconds", 2.0)),
@@ -164,12 +167,14 @@ def _apply_level_defaults(config: ChaosConfig) -> None:
     if level == "low":
         config.failure_probability = min(config.failure_probability, 0.3)
         config.slow_response_seconds = min(config.slow_response_seconds, 0.2)
+        config.polling_interval_seconds = max(config.polling_interval_seconds, 0.2)
     elif level == "medium":
         config.failure_probability = max(config.failure_probability, 0.35)
         config.slow_response_seconds = max(config.slow_response_seconds, 0.3)
     elif level == "high":
         config.failure_probability = max(config.failure_probability, 0.55)
         config.slow_response_seconds = max(config.slow_response_seconds, 0.5)
+        config.polling_interval_seconds = max(config.polling_interval_seconds, 0.1)
 
 
 def _select_scenario(
@@ -212,6 +217,7 @@ def _write_report(
         if metrics.recovery_times
         else 0.0
     )
+    max_recovery = max(metrics.recovery_times) if metrics.recovery_times else 0.0
     lines = [
         "# Chaos Testing Report — CNE Honduras",
         "",
@@ -223,6 +229,7 @@ def _write_report(
         f"- Successful requests: {metrics.successful_requests}",
         f"- Failed requests: {metrics.failed_requests}",
         f"- Average recovery time (s): {avg_recovery:.2f}",
+        f"- Max recovery time (s): {max_recovery:.2f}",
         "",
         "## Scenario counts",
     ]
@@ -261,9 +268,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
     last_failure_time: Optional[float] = None
 
     def _callback(request: requests.PreparedRequest) -> responses.CallbackResponse:
-        scenario = _select_scenario(
-            rng, config.specific_scenarios_enabled, config.failure_probability
-        )
+        scenario = _select_scenario(rng, config.scenarios_enabled, config.failure_probability)
         scenario_context.name = scenario
         scenario_context.skip_heartbeat = scenario == "watchdog_heartbeat_miss"
         scenario_context.slow_response = scenario == "slow_response"
@@ -305,13 +310,17 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
                 if response.status_code == 429:
                     raise RuntimeError("rate_limit_429")
                 if response.status_code == 503:
-                    raise RuntimeError("server_timeout_503")
+                    raise requests.Timeout("timeout_503")
                 payload = response.json()
                 expected_hash = _hash_payload(config.scope, int(payload["sequence"]))
                 if payload.get("hash") != expected_hash:
                     raise ValueError("hash_mismatch")
                 metrics.successful_requests += 1
-                logger.info("poll_ok sequence=%s", payload.get("sequence"))
+                logger.info(
+                    "poll_ok sequence=%s scenario=%s",
+                    payload.get("sequence"),
+                    scenario_context.name,
+                )
                 if not scenario_context.skip_heartbeat:
                     watchdog.heartbeat()
                 else:
@@ -320,6 +329,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
                 if last_failure_time is not None:
                     recovery_time = time.monotonic() - last_failure_time
                     metrics.recovery_times.append(recovery_time)
+                    logger.info("recovery_time=%.2fs", recovery_time)
                     last_failure_time = None
             except (
                 requests.Timeout,
@@ -330,7 +340,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
                 KeyError,
             ) as exc:
                 metrics.failed_requests += 1
-                logger.warning("poll_fail error=%s", exc)
+                logger.warning("poll_fail error=%s scenario=%s", exc, scenario_context.name)
                 if last_failure_time is None:
                     last_failure_time = time.monotonic()
             if watchdog.check():
@@ -349,6 +359,15 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
             recovery <= config.max_recovery_seconds for recovery in metrics.recovery_times
         ), "Recovery time exceeded configured maximum."
         assert last_failure_time is None, "Unrecovered failure detected at end of run."
+
+    logger.info(
+        "summary success=%s failed=%s avg_recovery=%.2fs",
+        metrics.successful_requests,
+        metrics.failed_requests,
+        sum(metrics.recovery_times) / len(metrics.recovery_times)
+        if metrics.recovery_times
+        else 0.0,
+    )
 
     return {
         "successful_requests": metrics.successful_requests,
@@ -403,8 +422,7 @@ def main() -> None:
     args = _parse_args()
     config = _load_config(Path(args.config))
     _apply_overrides(config, args)
-    report = _run_chaos_test(config)
-    _ = report
+    _ = _run_chaos_test(config)
 
 
 if __name__ == "__main__":
