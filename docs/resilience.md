@@ -1,21 +1,33 @@
-# Resiliencia y Configuraciones de Tolerancia a Fallos / Resilience and Fault-Tolerance Configurations
+# Resiliencia operativa y tolerancia a fallos / Operational Resilience and Fault Tolerance
 
-Este documento explica los tres archivos YAML principales que controlan la resiliencia del sistema CENTINEL frente a fallos de red, límites de tasa y bloqueos del CNE.
+## Introducción bilingüe / Bilingual Introduction
 
-## 1) retry_config.yaml
+**ES:** La resiliencia operativa en auditoría electoral consiste en mantener la continuidad, integridad y verificabilidad del monitoreo aun cuando la fuente pública experimente **rate-limits, timeouts, bloqueos temporales o degradación**. En el caso de Honduras 2029, el pipeline de CENTINEL consulta JSON públicos del CNE con una cadencia típica de **cada 5 minutos** durante elección activa. Esto exige **reintentos controlados, backoff con jitter, rotación de proxies y watchdogs** que reduzcan presión sobre la fuente sin sacrificar trazabilidad. El objetivo es defensivo: evitar sobrecarga, documentar fallos y preservar evidencia reproducible para observadores técnicos (OEA, Carter Center, academia).
 
-**Qué hace / What it does**
-- **ES:** Define el mecanismo de reintentos con backoff exponencial y jitter, con reglas por estado HTTP y por excepción para ajustar tolerancia y alertas.
-- **EN:** Defines the retry mechanism with exponential backoff and jitter, with per-HTTP-status and per-exception rules to tune tolerance and alerts.
+**EN:** Operational resilience in electoral audits means keeping monitoring **continuous, verifiable, and auditable** even when public sources face **rate limits, timeouts, temporary blocks, or service degradation**. For Honduras 2029, CENTINEL polls public CNE JSON at a **~5-minute cadence** during active elections. This requires **controlled retries, backoff with jitter, proxy rotation, and watchdog thresholds** that reduce pressure on the source while preserving traceability. The intent is defensive: minimize load, document failures, and preserve reproducible evidence for technical observers (OAS, Carter Center, academia).
 
-**Contenido actual comentado / Commented current content**
+---
+
+## 1) `retry_config.yaml` — Reintentos, backoff y jitter / Retries, backoff, and jitter
+
+### Parámetros clave / Key parameters
+
+| Parámetro | Descripción (ES) | Description (EN) | Recomendado / Recommended |
+| --- | --- | --- | --- |
+| `default.max_attempts` | Límite general de reintentos. | Global retry cap. | `5` |
+| `default.backoff_multiplier` | Factor de crecimiento exponencial. | Exponential growth factor. | `2` |
+| `default.jitter` | Aleatoriza espera para evitar sincronización. | Randomizes delay to avoid sync. | `0.25` |
+| `per_status."429"` | Rate-limit: más intentos y backoff lento. | Rate-limit: more attempts & slower backoff. | `max_attempts: 20`, `backoff_base: 8` |
+| `per_exception.ReadTimeout` | Timeouts: reintentos moderados. | Timeouts: moderate retries. | `max_attempts: 6` |
+| `timeout_seconds` | Timeout por request. | Per-request timeout. | `30` |
+| `recent_snapshot_seconds` | Idempotencia: evita duplicados. | Idempotency: avoid duplicates. | `300` |
+
+### Ejemplo comentado / Commented example
 
 ```yaml
 # Configuración de reintentos y resiliencia para descargas C.E.N.T.I.N.E.L.
 # Retry & resilience configuration for downloads.
 
-# Valores por defecto para cualquier request.
-# Default values for any request.
 default:
   # Intentos máximos por solicitud.
   # Maximum attempts per request.
@@ -33,8 +45,6 @@ default:
   # Fixed jitter (0-1) or min/max range.
   jitter: 0.25
 
-# Reglas específicas por status HTTP.
-# Specific rules by HTTP status.
 per_status:
   "429":
     # Rate limit: más intentos y backoff más lento.
@@ -43,8 +53,6 @@ per_status:
     backoff_base: 8
     backoff_multiplier: 2
     max_delay: 900
-    # Jitter como rango.
-    # Jitter as a range.
     jitter:
       min: 0.1
       max: 0.3
@@ -57,49 +65,12 @@ per_status:
     max_delay: 300
     jitter: 0.2
   "403":
-    # Bloqueo/forbidden: alertar sin insistir.
+    # Bloqueo: alertar sin insistir.
     # Forbidden/block: alert without heavy retry.
     max_attempts: 2
     action: "alert_only"
-  "401":
-    # No autorizado: alertar y detener.
-    # Unauthorized: alert and stop.
-    max_attempts: 2
-    action: "alert_only"
-  "400":
-    # Bad request: pocos intentos y alerta.
-    # Bad request: few attempts and alert.
-    max_attempts: 3
-    action: "alert_only"
-  "404":
-    # Recurso no encontrado: pocos reintentos.
-    # Not found: minimal retries.
-    max_attempts: 2
-    backoff_base: 2
-    max_delay: 60
-    jitter: 0.2
 
-# Otros códigos no listados arriba.
-# Other status codes not listed above.
-other_status:
-  # Reintentos conservadores por defecto.
-  # Conservative default retries.
-  max_attempts: 3
-  backoff_base: 2
-  max_delay: 120
-  jitter: 0.2
-
-# Reglas específicas por excepción.
-# Specific rules by exception.
 per_exception:
-  ConnectionError:
-    # Fallo de conexión: backoff moderado.
-    # Connection failure: moderate backoff.
-    max_attempts: 6
-    backoff_base: 2
-    backoff_multiplier: 2
-    max_delay: 120
-    jitter: 0.2
   ReadTimeout:
     # Timeout de lectura: reintentos moderados.
     # Read timeout: moderate retries.
@@ -108,76 +79,29 @@ per_exception:
     backoff_multiplier: 2
     max_delay: 120
     jitter: 0.2
-  SSLError:
-    # Error SSL: reintentos limitados.
-    # SSL error: limited retries.
-    max_attempts: 5
-    backoff_base: 2
-    backoff_multiplier: 2
-    max_delay: 120
-    jitter: 0.2
-  JSONDecodeError:
-    # Parsing fallido: pocos reintentos.
-    # Parsing failure: few retries.
-    max_attempts: 3
-    backoff_base: 2
-    backoff_multiplier: 2
-    max_delay: 60
-    jitter: 0.15
 
-# Timeout por request (segundos).
-# Request timeout (seconds).
 timeout_seconds: 30
-
-# Archivo donde se registran fallos definitivos.
-# File where definitive failures are recorded.
 failed_requests_path: failed_requests.jsonl
-
-# Idempotencia: evita descargas duplicadas si existe snapshot reciente.
-# Idempotency: avoid duplicate downloads if a recent snapshot exists.
 recent_snapshot_seconds: 300
-# Modo de idempotencia basado en timestamp.
-# Timestamp-based idempotency mode.
 idempotency_mode: "timestamp"
-
-# Tamaño máximo del payload en logs para errores de parsing.
-# Max payload size in logs for parsing errors.
-log_payload_bytes: 2000
 ```
 
-**Ejemplo 1: configuración conservadora / Conservative configuration**
+---
 
-```yaml
-# Conservador: backoff lento, máximo 5 intentos.
-# Conservative: slow backoff, max 5 attempts.
-default:
-  max_attempts: 5
-  backoff_base: 3
-  backoff_multiplier: 2
-  max_delay: 600
-  jitter: 0.1
-```
+## 2) `watchdog.yaml` — Umbrales de actividad y reinicios / Activity thresholds and restarts
 
-**Ejemplo 2: configuración agresiva / Aggressive configuration**
+### Parámetros clave / Key parameters
 
-```yaml
-# Agresivo: backoff rápido, máximo 10 intentos, jitter alto.
-# Aggressive: fast backoff, max 10 attempts, high jitter.
-default:
-  max_attempts: 10
-  backoff_base: 1
-  backoff_multiplier: 2
-  max_delay: 120
-  jitter: 0.5
-```
+| Parámetro | Descripción (ES) | Description (EN) | Recomendado / Recommended |
+| --- | --- | --- | --- |
+| `check_interval_minutes` | Frecuencia de chequeo. | Watchdog check interval. | `3` |
+| `max_inactivity_minutes` | Máxima inactividad permitida. | Maximum allowed inactivity. | `30` |
+| `failure_grace_minutes` | Ventana de gracia antes de actuar. | Grace period before action. | `6` |
+| `action_cooldown_minutes` | Cooldown entre acciones. | Cooldown between actions. | `10` |
+| `max_log_growth_mb_per_min` | Umbral de crecimiento de logs. | Log growth threshold. | `30` |
+| `lock_timeout_minutes` | Locks considerados “stuck”. | When locks are considered stuck. | `30` |
 
-## 2) watchdog.yaml
-
-**Qué hace / What it does**
-- **ES:** Supervisa la actividad del pipeline, detecta inactividad prolongada, monitorea crecimiento de logs y decide acciones ante fallos críticos (como reinicios).
-- **EN:** Monitors pipeline activity, detects prolonged inactivity, watches log growth, and decides actions on critical failures (such as restarts).
-
-**Contenido actual comentado / Commented current content**
+### Ejemplo comentado / Commented example
 
 ```yaml
 # Intervalo de chequeo del watchdog (min).
@@ -201,30 +125,6 @@ aggressive_restart: false
 # Webhooks de alerta.
 # Alert webhooks.
 alert_urls: []
-# Directorio de datos base.
-# Base data directory.
-data_dir: "data"
-# Patrón de snapshots.
-# Snapshot pattern.
-snapshot_glob: "*.json"
-# Archivos excluidos de snapshots.
-# Snapshot exclusions.
-snapshot_exclude:
-  - "pipeline_state.json"
-  - "heartbeat.json"
-  - "alerts.json"
-  - "snapshot_index.json"
-  - "pipeline_checkpoint.json"
-  - "checkpoint.json"
-# Ruta del log principal.
-# Main log path.
-log_path: "logs/centinel.log"
-# Tamaño máximo del log (MB).
-# Max log size (MB).
-max_log_size_mb: 200
-# Crecimiento máximo por minuto (MB/min).
-# Max growth per minute (MB/min).
-max_log_growth_mb_per_min: 30
 # Locks a monitorear.
 # Locks to monitor.
 lock_files:
@@ -233,61 +133,23 @@ lock_files:
 # Timeout de locks (min).
 # Lock timeout (min).
 lock_timeout_minutes: 30
-# Ruta del heartbeat.
-# Heartbeat file path.
-heartbeat_path: "data/heartbeat.json"
-# Procesos del pipeline a reconocer.
-# Pipeline process signatures.
-pipeline_process_match:
-  - "scripts/run_pipeline.py"
-# Comando para reiniciar el pipeline.
-# Command to restart the pipeline.
-pipeline_command:
-  - "python"
-  - "scripts/run_pipeline.py"
-# Timeout del reinicio (s).
-# Restart timeout (s).
-restart_timeout_seconds: 30
-# Socket de Docker (si aplica).
-# Docker socket (if used).
-docker_socket_path: "/var/run/docker.sock"
-# Nombre del contenedor Docker.
-# Docker container name.
-docker_container_name: "centinel-engine"
-# Estado persistente del watchdog.
-# Watchdog persistent state path.
-state_path: "data/watchdog_state.json"
 ```
 
-**Ejemplo 1: timeout corto para pruebas / Short timeout for testing**
+---
 
-```yaml
-# Pruebas: detección rápida de inactividad.
-# Testing: quick inactivity detection.
-check_interval_minutes: 1
-max_inactivity_minutes: 5
-heartbeat_timeout: 5
-```
+## 3) `proxies.yaml` — Rotación de proxies y validación / Proxy rotation and validation
 
-**Ejemplo 2: timeout largo + reinicio automático / Long timeout + auto restart**
+### Parámetros clave / Key parameters
 
-```yaml
-# Producción: tolerancia alta con reinicio automático.
-# Production: high tolerance with auto restart.
-max_inactivity_minutes: 90
-aggressive_restart: true
-pipeline_command:
-  - "python"
-  - "scripts/run_pipeline.py"
-```
+| Parámetro | Descripción (ES) | Description (EN) | Recomendado / Recommended |
+| --- | --- | --- | --- |
+| `rotation_strategy` | Estrategia de rotación. | Rotation strategy. | `round_robin` |
+| `rotation_every_n` | Rotar cada N requests. | Rotate every N requests. | `1` |
+| `proxy_timeout_seconds` | Timeout de prueba. | Proxy test timeout. | `15` |
+| `test_url` | Endpoint de validación. | Validation endpoint. | `https://httpbin.org/ip` |
+| `proxies[]` | Lista con esquema y credenciales opcionales. | List with scheme and optional credentials. | `http://user:pass@ip:port` |
 
-## 3) proxies.yaml
-
-**Qué hace / What it does**
-- **ES:** Define cómo agregar y rotar proxies (http/https/socks5), incluyendo estrategia de rotación y timeout de prueba.
-- **EN:** Defines how to add and rotate proxies (http/https/socks5), including rotation strategy and test timeout.
-
-**Contenido actual comentado / Commented current content**
+### Ejemplo comentado / Commented example
 
 ```yaml
 # Modo del rotador de proxies.
@@ -314,46 +176,86 @@ proxies:
   - "socks5://ip:port"
 ```
 
-**Ejemplo 1: 3 proxies públicos + round-robin / 3 public proxies + round-robin**
+---
+
+## 4) `rules.yaml` — Reglas básicas de anomalías / Baseline anomaly rules
+
+### Parámetros clave / Key parameters
+
+| Parámetro | Descripción (ES) | Description (EN) | Recomendado / Recommended |
+| --- | --- | --- | --- |
+| `reglas_auditoria[].nombre` | Regla auditora activada. | Enabled audit rule. | `apply_benford_law`, `check_distribution_chi2` |
+| `resiliencia.retry_max` | Reintentos sugeridos en reglas. | Suggested retry cap in rules. | `5` |
+| `resiliencia.backoff_factor` | Backoff sugerido en reglas. | Suggested backoff factor in rules. | `2` |
+| `resiliencia.chi2_p_critical` | Umbral crítico chi-cuadrado. | Chi-square critical threshold. | `0.01` |
+| `resiliencia.benford_min_samples` | Mínimo de muestras para Benford. | Minimum samples for Benford. | `10` |
+
+### Ejemplo comentado / Commented example
 
 ```yaml
-mode: proxy_rotator
-rotation_strategy: round_robin
-rotation_every_n: 1
-proxy_timeout_seconds: 10
-test_url: https://httpbin.org/ip
-proxies:
-  # Lista de proxies públicos (ejemplo).
-  # Public proxy list (example).
-  - "http://203.0.113.10:8080"
-  - "http://203.0.113.11:8080"
-  - "socks5://203.0.113.12:1080"
+reglas_auditoria:
+  - nombre: "apply_benford_law"
+    # Evalúa primer dígito con Ley de Benford y prueba chi-cuadrado.
+    # Evaluates first digit with Benford's Law and chi-square test.
+    descripcion: "Evalúa primer dígito con Ley de Benford y prueba chi-cuadrado."
+  - nombre: "check_distribution_chi2"
+    # Compara distribución partido/departamento contra esperados proporcionales.
+    # Compares party/department distribution against proportional expectations.
+    descripcion: "Compara distribución partido/departamento contra esperados proporcionales."
+
+resiliencia:
+  # Parámetros sugeridos de resiliencia (documentación).
+  # Suggested resilience parameters (documentation).
+  retry_max: 5
+  backoff_factor: 2
+  max_json_presidenciales: 19
+  chi2_p_critical: 0.01
+  benford_min_samples: 10
 ```
 
-**Ejemplo 2: proxies con autenticación básica / Proxies with basic auth**
+---
 
-```yaml
-mode: proxy_rotator
-rotation_strategy: round_robin
-rotation_every_n: 1
-proxy_timeout_seconds: 15
-test_url: https://httpbin.org/ip
-proxies:
-  # Formato con credenciales: user:pass@ip:port
-  # Credential format: user:pass@ip:port
-  - "http://user1:pass1@198.51.100.20:8080"
-  - "https://user2:pass2@198.51.100.21:8443"
-```
+## Circuit breaker y low-profile
 
-## Recomendaciones generales / General Recommendations
+**ES:** El circuito breaker y el modo low-profile reducen riesgos de bloqueo cuando la fuente pública muestra degradación. El breaker cambia a **OPEN** tras fallos continuos, baja la cadencia y evita insistencia; en **HALF-OPEN** prueba recuperación con pocas solicitudes antes de volver a **CLOSED**. El modo low-profile incrementa intervalos base, añade jitter y reduce headers para minimizar huella.
 
-- **ES:** Ajusta el `max_attempts` según el SLA y el impacto en el rate limit; **EN:** Tune `max_attempts` based on SLA and rate-limit impact.
-- **ES:** Mantén `proxy_timeout_seconds` bajo en entornos inestables; **EN:** Keep `proxy_timeout_seconds` low in unstable environments.
-- **ES:** Usa `alert_urls` para notificar bloqueos repetidos; **EN:** Use `alert_urls` to notify repeated blocks.
-- **ES:** Registra los fallos definitivos en `failed_requests_path` y revísalos periódicamente; **EN:** Log definitive failures in `failed_requests_path` and review them regularly.
-- **ES:** En producción, combina tiempos de watchdog altos con reinicio automático; **EN:** In production, combine longer watchdog timeouts with auto restart.
+**EN:** The circuit breaker and low-profile mode reduce blocking risk when the public source degrades. The breaker switches to **OPEN** after repeated failures, lowers cadence, and avoids repeated hits; in **HALF-OPEN** it probes recovery with a few requests before returning to **CLOSED**. Low-profile mode increases base intervals, adds jitter, and reduces headers to minimize footprint.
 
-## Contexto adicional del pipeline / Additional pipeline context
+---
+
+## Mejores prácticas / Best practices
+
+### Modo low-profile (elección activa) / Low-profile mode (active election)
+
+**ES:**
+- Prioriza **backoff más lento** (`backoff_base: 3–8`) y `jitter` moderado para evitar picos concurrentes.
+- Reduce la **agresividad de reintentos** en `403/401` y activa alertas tempranas.
+- Usa **rotación de proxies** y valida la salida antes de iniciar polling continuo.
+- Mantén `watchdog` con **intervalos cortos** para detectar inactividad sin reinicios frecuentes.
+
+**EN:**
+- Prefer **slower backoff** (`backoff_base: 3–8`) and moderate `jitter` to avoid concurrency spikes.
+- Reduce **retry aggressiveness** on `403/401` and trigger early alerts.
+- Use **proxy rotation** and validate egress before continuous polling.
+- Keep `watchdog` on **shorter intervals** to detect inactivity without frequent restarts.
+
+### Modo mantenimiento (mensual) / Maintenance mode (monthly)
+
+**ES:**
+- Incrementa `max_inactivity_minutes` y `action_cooldown_minutes` para minimizar reinicios.
+- Mantén `timeout_seconds` bajos para liberar recursos de forma limpia.
+- Desactiva proxies si no hay necesidad operativa y reduce `rotation_every_n`.
+
+**EN:**
+- Increase `max_inactivity_minutes` and `action_cooldown_minutes` to minimize restarts.
+- Keep `timeout_seconds` low to release resources cleanly.
+- Disable proxies when not operationally required and reduce `rotation_every_n`.
+
+---
+
+## Referencias y credibilidad / References and credibility
+
+**ES:** Estas configuraciones documentadas favorecen la **reproducibilidad**, porque cualquier auditor externo puede recrear condiciones de captura (cadencias, umbrales, backoff) y validar que el sistema operó de forma neutral y defensiva. Al publicar parámetros y ejemplos comentados, CENTINEL facilita el escrutinio técnico de organizaciones como la **OEA** o el **Carter Center** y refuerza la neutralidad del pipeline.
 
 - **ES:** El pipeline incluye un circuito breaker y un modo low-profile configurables en `command_center/config.yaml`, con transiciones OPEN/HALF-OPEN/CLOSED y logs periódicos en estado OPEN.
 - **EN:** The pipeline includes a circuit breaker and a low-profile mode in `command_center/config.yaml`, with OPEN/HALF-OPEN/CLOSED transitions and periodic logs while OPEN.

@@ -42,7 +42,7 @@ make pipeline
 | [Metodología](docs/methodology.md) | [Límites legales y operativos](docs/LEGAL-AND-OPERATIONAL-BOUNDARIES.md) |
 | [Principios operativos](docs/operating_principles.md) | [Seguridad](docs/security.md) |
 | [Reglas](docs/rules.md) | [Secretos y respaldos](docs/SECRETS_BACKUP.md) |
-| [Resiliencia y reintentos](docs/resilience.md) | [Circuit breaker y low-profile](docs/resilience.md#circuit-breaker-y-low-profile) |
+| [Resiliencia operativa](docs/resilience.md) | [Circuit breaker y low-profile](docs/resilience.md#circuit-breaker-y-low-profile) |
 
 <details>
 <summary><strong>Detalles operativos</strong></summary>
