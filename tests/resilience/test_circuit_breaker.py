@@ -1,0 +1,101 @@
+"""Circuit breaker and low-profile polling resilience tests."""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+import random
+
+from scripts.circuit_breaker import CircuitBreaker
+from scripts.run_pipeline import (
+    resolve_poll_interval_seconds,
+    resolve_poll_jitter_factor,
+)
+
+
+def test_circuit_breaker_transitions_and_cooldown_recovery() -> None:
+    """Español: Valida transición CLOSED→OPEN→HALF_OPEN y cierre tras cooldown exitoso.
+
+    English: Validate CLOSED→OPEN→HALF_OPEN transitions and successful cooldown recovery.
+    """
+    now = datetime(2029, 11, 30, 12, 0, tzinfo=timezone.utc)
+    breaker = CircuitBreaker(
+        failure_threshold=2,
+        failure_window_seconds=60,
+        open_timeout_seconds=120,
+        half_open_after_seconds=30,
+        success_threshold=1,
+    )
+
+    assert breaker.state == "CLOSED"
+    assert breaker.record_failure(now) is False
+    assert breaker.record_failure(now + timedelta(seconds=1)) is True
+    assert breaker.state == "OPEN"
+
+    assert breaker.allow_request(now + timedelta(seconds=10)) is False
+    assert breaker.allow_request(now + timedelta(seconds=31)) is True
+    assert breaker.state == "HALF_OPEN"
+
+    assert breaker.record_success(now + timedelta(seconds=32)) is True
+    assert breaker.state == "CLOSED"
+
+
+def test_circuit_breaker_half_open_failure_reopens() -> None:
+    """Español: Asegura que una falla en HALF_OPEN regresa a OPEN.
+
+    English: Ensure a HALF_OPEN failure returns the breaker to OPEN.
+    """
+    now = datetime(2029, 11, 30, 12, 0, tzinfo=timezone.utc)
+    breaker = CircuitBreaker(
+        failure_threshold=1,
+        failure_window_seconds=60,
+        open_timeout_seconds=120,
+        half_open_after_seconds=30,
+        success_threshold=2,
+    )
+
+    breaker.record_failure(now)
+    assert breaker.state == "OPEN"
+    assert breaker.allow_request(now + timedelta(seconds=31)) is True
+    assert breaker.state == "HALF_OPEN"
+
+    assert breaker.record_failure(now + timedelta(seconds=32)) is True
+    assert breaker.state == "OPEN"
+
+
+def test_circuit_breaker_open_log_interval() -> None:
+    """Español: Verifica la cadencia de logs durante estado OPEN.
+
+    English: Verify open-state log cadence gating.
+    """
+    now = datetime(2029, 11, 30, 12, 0, tzinfo=timezone.utc)
+    breaker = CircuitBreaker(
+        failure_threshold=1,
+        open_log_interval_seconds=120,
+    )
+
+    breaker.record_failure(now)
+    assert breaker.should_log_open_wait(now) is True
+    assert breaker.should_log_open_wait(now + timedelta(seconds=30)) is False
+    assert breaker.should_log_open_wait(now + timedelta(seconds=121)) is True
+
+
+def test_low_profile_interval_and_jitter_for_polling() -> None:
+    """Español: Comprueba que low-profile aumenta intervalo y aplica jitter controlado.
+
+    English: Ensure low-profile raises the poll interval and applies bounded jitter.
+    """
+    config = {
+        "poll_interval_minutes": 30,
+        "low_profile": {
+            "enabled": True,
+            "base_interval_minutes": 120,
+            "jitter_percent": 20,
+        },
+    }
+
+    interval = resolve_poll_interval_seconds(config)
+    assert interval >= 120 * 60
+
+    rng = random.Random(42)
+    jitter_factor = resolve_poll_jitter_factor(config, rng)
+    assert 0.8 <= jitter_factor <= 1.2
