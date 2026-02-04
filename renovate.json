@@ -1,0 +1,15 @@
+{
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "rangeStrategy": "update-lockfile",
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
+    },
+    {
+      "matchManagers": ["pip_requirements", "poetry"],
+      "groupName": "python dependencies"
+    }
+  ]
+}

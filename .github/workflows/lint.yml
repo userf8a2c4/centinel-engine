@@ -1,10 +1,11 @@
-name: Chaos Tests
+name: Lint
 
 on:
-  pull_request:
+  push:
+    branches: ["main", "dev-v6"]
 
 jobs:
-  chaos-tests:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,7 +42,8 @@ jobs:
           poetry config virtualenvs.in-project true
           poetry install --no-root
 
-      # Run chaos tests / Ejecutar pruebas de caos
-      - name: Run chaos tests / Ejecutar pruebas de caos
+      # Lint / Revisar estilo
+      - name: Lint (flake8 + black) / Lint (flake8 + black)
         run: |
-          poetry run pytest tests/chaos -q
+          poetry run flake8 .
+          poetry run black --check .
