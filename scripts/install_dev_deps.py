@@ -4,7 +4,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-import tomllib
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    try:
+        import toml as tomllib
+    except ModuleNotFoundError:
+        print("`toml` not found for Python < 3.11. Installing...", file=sys.stderr)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "toml"])
+        import toml as tomllib
 
 
 def _format_dependency(name: str, constraint: object) -> str | None:
