@@ -253,10 +253,7 @@ reglas_auditoria:
     # Evalúa primer dígito con Ley de Benford.
     # Evaluates first digit with Benford's Law.
     descripcion: "Evalúa primer dígito con Ley de Benford y prueba chi-cuadrado."
-    thresholds:
-      # Umbral de alerta por desvío porcentual.
-      # Alert threshold for percentage deviation.
-      percent_deviation: 0.15
+
   - nombre: "check_distribution_chi2"
     # Compara distribución partido/departamento.
     # Compares party/department distribution.
@@ -321,34 +318,26 @@ resiliencia:
 - Restrict access to logs that include egress IPs or internal paths.
 - Version configuration changes with clear messages for traceability.
 
----
+## 5) Chaos Testing — Condiciones adversas realistas / Realistic adverse conditions
 
-## Troubleshooting común / Common troubleshooting
+**Qué hace / What it does**
+- **ES:** Ejecuta chaos engineering con fallos CNE Honduras (rate-limit 429, timeouts 503, JSON inválido, hashes alterados, fallas de proxy, latencia elevada y pérdida de heartbeat del watchdog). Estos escenarios refuerzan la credibilidad del monitoreo electoral ante misiones internacionales al demostrar recuperación controlada y trazable.
+- **EN:** Runs chaos engineering with Honduras CNE failures (429 rate limits, 503 timeouts, invalid JSON, altered hashes, proxy failures, elevated latency, and watchdog heartbeat loss). These scenarios strengthen credibility for international missions by demonstrating controlled, traceable recovery.
 
-**ES:**
-- **Reintentos excesivos sin progreso:** reducir `max_attempts` y aumentar `backoff_base` en 429.
-- **Bloqueos recurrentes (403/401):** activar `alert_only`, revisar headers mínimos y aplicar low-profile.
-- **Watchdog reinicia en bucle:** aumentar `failure_grace_minutes` y revisar `heartbeat_path`.
-- **Proxies inestables:** acortar `proxy_timeout_seconds`, validar con `HEAD`, y eliminar proxies con fallos recurrentes.
+**Componentes / Components**
+- **scripts/chaos_test.py:** Script principal con mocks HTTP usando `responses`, métricas de recuperación y reporte formal.
+- **chaos_config.yaml.example:** Configuración de nivel, duración, probabilidad de fallas y escenarios habilitados.
+- **.github/workflows/chaos-test.yml:** Ejecución automática en PRs (modo low por defecto) y en pushes.
 
-**EN:**
-- **Excessive retries without progress:** reduce `max_attempts` and increase `backoff_base` on 429.
-- **Recurring blocks (403/401):** enable `alert_only`, review minimal headers, and apply low-profile.
-- **Watchdog restart loop:** increase `failure_grace_minutes` and verify `heartbeat_path`.
-- **Unstable proxies:** shorten `proxy_timeout_seconds`, validate with `HEAD`, and remove recurrently failing proxies.
+**Ejecución manual / Manual run**
+```bash
+python scripts/chaos_test.py --config chaos_config.yaml.example --level low
+```
 
----
+**Verificación de recuperación / Recovery validation**
+- **ES:** Cada falla abre una ventana de recuperación. El test falla si no se observa un éxito posterior dentro del `max_recovery_seconds`.
+- **EN:** Each failure opens a recovery window. The test fails if no subsequent success occurs within `max_recovery_seconds`.
 
-## Credibilidad, reproducibilidad y confianza / Credibility, reproducibility, and trust
-
-**ES:** Estas configuraciones documentadas permiten a observadores internacionales reproducir la cadencia, los umbrales y la política de reintentos con precisión. La transparencia en backoff, jitter, validación de proxies y watchdogs reduce la ambigüedad sobre el comportamiento del sistema y fortalece la confianza en la auditoría digital. 
-
-**EN:** These documented configurations allow international observers to reproduce cadence, thresholds, and retry policy precisely. Transparency in backoff, jitter, proxy validation, and watchdog thresholds reduces ambiguity about system behavior and strengthens trust in the digital audit.
-
----
-
-## Referencias cruzadas / Cross-references
-
-**ES:** Para un panorama completo del pipeline y sus decisiones operativas, consultar [docs/README.md](README.md), [docs/architecture.md](architecture.md), [docs/operating_principles.md](operating_principles.md) y [docs/rules.md](rules.md). 
-
-**EN:** For a full view of the pipeline and operational decisions, see [docs/README.md](README.md), [docs/architecture.md](architecture.md), [docs/operating_principles.md](operating_principles.md), and [docs/rules.md](rules.md).
+**Notas de credibilidad / Credibility notes**
+- **ES:** Los reportes incluyen métricas de resiliencia (success/failure, tiempo de recuperación, escenarios activados) para auditoría independiente.
+- **EN:** Reports include resilience metrics (success/failure, recovery time, activated scenarios) for independent audit review.
