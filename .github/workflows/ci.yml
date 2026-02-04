@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install security tooling
-        run: pip install bandit safety
+        run: pip install "bandit<1.8.0" "safety<3.0.0"
       - name: Bandit
         run: bandit -r . --exclude tests
       - name: Safety
