@@ -41,7 +41,9 @@ def _get_fernet_key() -> bytes:
     """/** Obtiene la llave Fernet desde entorno. / Get Fernet key from environment. **/"""
     key = os.getenv("SECRET_ENCRYPTION_KEY") or os.getenv("FERNET_KEY")
     if not key:
-        raise ValueError("Missing SECRET_ENCRYPTION_KEY/FERNET_KEY environment variable")
+        raise ValueError(
+            "Missing SECRET_ENCRYPTION_KEY/FERNET_KEY environment variable"
+        )
     return key.encode("utf-8")
 
 
@@ -64,7 +66,9 @@ def encrypt_secrets(
     for key in selected_keys:
         value = os.getenv(key)
         if not value:
-            log_event(logger, logging.WARNING, "encrypt_missing_secret", secret_name=key)
+            log_event(
+                logger, logging.WARNING, "encrypt_missing_secret", secret_name=key
+            )
             continue
         try:
             token = fernet.encrypt(value.encode("utf-8")).decode("utf-8")
@@ -97,7 +101,9 @@ def decrypt_secrets(
     encrypted_path = encrypted_path or DEFAULT_ENCRYPTED_PATH
 
     if not encrypted_path.exists():
-        log_event(logger, logging.WARNING, "decrypt_missing_file", path=str(encrypted_path))
+        log_event(
+            logger, logging.WARNING, "decrypt_missing_file", path=str(encrypted_path)
+        )
         return {}
 
     try:

@@ -29,7 +29,11 @@ def _load_security_settings() -> dict[str, Any]:
     except (OSError, yaml.YAMLError):
         return {}
     if isinstance(payload, dict):
-        return payload.get("security", {}) if isinstance(payload.get("security"), dict) else {}
+        return (
+            payload.get("security", {})
+            if isinstance(payload.get("security"), dict)
+            else {}
+        )
     return {}
 
 
@@ -53,7 +57,9 @@ def _ensure_decrypted_private_key() -> None:
 
 def main() -> None:
     """/** CLI simple para anclaje manual. / Simple CLI for manual anchoring. **/"""
-    parser = argparse.ArgumentParser(description="Auto-anchor manual para C.E.N.T.I.N.E.L.")
+    parser = argparse.ArgumentParser(
+        description="Auto-anchor manual para C.E.N.T.I.N.E.L."
+    )
     parser.add_argument("--root-hash", help="Hash raíz a anclar (hex)")
     parser.add_argument("--hashes-json", help="Archivo JSON con lista de hashes")
     args = parser.parse_args()
@@ -62,7 +68,12 @@ def main() -> None:
 
     if args.root_hash:
         result = anchor_root(args.root_hash)
-        log_event(logger, logging.INFO, "auto_anchor_root_complete", anchor_id=result.get("anchor_id"))
+        log_event(
+            logger,
+            logging.INFO,
+            "auto_anchor_root_complete",
+            anchor_id=result.get("anchor_id"),
+        )
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return
 
@@ -71,7 +82,12 @@ def main() -> None:
         if not isinstance(hashes, list):
             raise ValueError("hashes-json must contain a list")
         result = anchor_batch([str(item) for item in hashes])
-        log_event(logger, logging.INFO, "auto_anchor_batch_complete", batch_id=result.get("batch_id"))
+        log_event(
+            logger,
+            logging.INFO,
+            "auto_anchor_batch_complete",
+            batch_id=result.get("batch_id"),
+        )
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return
 

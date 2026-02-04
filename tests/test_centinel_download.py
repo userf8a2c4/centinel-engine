@@ -4,7 +4,6 @@ Tests for Centinel download and hashing.
 """
 
 import asyncio
-from pathlib import Path
 
 import httpx
 import pytest

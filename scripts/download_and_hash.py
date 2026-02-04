@@ -241,7 +241,9 @@ def build_request_headers(
 ) -> dict[str, str]:
     """/** Construye headers por request (low-profile opcional). / Build per-request headers (low-profile optional). **/"""
     if not low_profile.get("enabled", False):
-        headers = config.get("headers", {}) if isinstance(config.get("headers"), dict) else {}
+        headers = (
+            config.get("headers", {}) if isinstance(config.get("headers"), dict) else {}
+        )
         if "Accept" not in headers:
             headers = {"Accept": "application/json", **headers}
         return headers
@@ -262,7 +264,9 @@ def build_request_headers(
     return headers
 
 
-def resolve_timeout_seconds(config: dict[str, Any], low_profile: dict[str, Any]) -> float:
+def resolve_timeout_seconds(
+    config: dict[str, Any], low_profile: dict[str, Any]
+) -> float:
     """/** Resuelve timeout efectivo. / Resolve effective timeout. **/"""
     if low_profile.get("enabled", False):
         timeout_value = low_profile.get("timeout_seconds")
@@ -345,9 +349,7 @@ def _is_cne_endpoint(endpoint: str, config: dict[str, Any]) -> bool:
     return any(domain.lower() in endpoint_lower for domain in domains)
 
 
-def _validate_real_payload(
-    payload: Any, endpoint: str, config: dict[str, Any]
-) -> bool:
+def _validate_real_payload(payload: Any, endpoint: str, config: dict[str, Any]) -> bool:
     """/** Valida payload real del CNE. / Validate real CNE payload. **"""
     if not _is_cne_endpoint(endpoint, config):
         logger.error("Endpoint fuera de CNE: %s", endpoint)
@@ -421,7 +423,9 @@ def process_sources(
                 logger.info("Fuente ya procesada en checkpoint: %s", source_label)
                 continue
             if should_skip_snapshot(data_dir, source_label, retry_config=retry_config):
-                logger.info("Snapshot reciente detectado, se omite descarga: %s", source_label)
+                logger.info(
+                    "Snapshot reciente detectado, se omite descarga: %s", source_label
+                )
                 continue
 
             try:
@@ -429,9 +433,7 @@ def process_sources(
                     session,
                     endpoint,
                     retry_config=retry_config,
-                    timeout=float(
-                        config.get("timeout", retry_config.timeout_seconds)
-                    ),
+                    timeout=float(config.get("timeout", retry_config.timeout_seconds)),
                     logger=structured_logger,
                     context={"source": source_label},
                     alert_hook=alert_hook,
@@ -525,9 +527,7 @@ def main() -> None:
     logger.info("Iniciando download_and_hash")
     log_event(logger, logging.INFO, "download_start")
 
-    parser = argparse.ArgumentParser(
-        description="Descarga y hashea snapshots del CNE"
-    )
+    parser = argparse.ArgumentParser(description="Descarga y hashea snapshots del CNE")
     parser.add_argument(
         "--mock",
         action="store_true",

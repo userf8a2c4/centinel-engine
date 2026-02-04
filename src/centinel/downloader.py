@@ -51,7 +51,9 @@ class RetryPolicy:
 
         English: Exponential delay with randomized jitter for backoff.
         """
-        exponential = self.backoff_base * (self.backoff_multiplier ** (attempt_number - 1))
+        exponential = self.backoff_base * (
+            self.backoff_multiplier ** (attempt_number - 1)
+        )
         capped = min(exponential, self.max_delay)
         if self.jitter_max <= 0:
             return capped
@@ -108,7 +110,13 @@ class RetryableError(Exception):
     English: Wraps a policy so wait/stop decisions can be dynamic.
     """
 
-    def __init__(self, message: str, policy: RetryPolicy, *, context: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        message: str,
+        policy: RetryPolicy,
+        *,
+        context: dict[str, Any] | None = None,
+    ):
         """Español: Función __init__ del módulo src/centinel/downloader.py.
 
         English: Function __init__ defined in src/centinel/downloader.py.
@@ -290,7 +298,9 @@ def _parse_policy(raw: Mapping[str, Any], fallback: RetryPolicy) -> RetryPolicy:
     return RetryPolicy(
         max_attempts=int(raw.get("max_attempts", fallback.max_attempts)),
         backoff_base=float(raw.get("backoff_base", fallback.backoff_base)),
-        backoff_multiplier=float(raw.get("backoff_multiplier", fallback.backoff_multiplier)),
+        backoff_multiplier=float(
+            raw.get("backoff_multiplier", fallback.backoff_multiplier)
+        ),
         max_delay=float(raw.get("max_delay", fallback.max_delay)),
         jitter_min=jitter_min,
         jitter_max=jitter_max,
@@ -328,9 +338,7 @@ def load_retry_config(path: str | Path | None = None) -> RetryConfig:
     if isinstance(payload.get("other_status"), Mapping):
         other_status = _parse_policy(payload["other_status"], default_policy)
 
-    timeout_seconds = float(
-        payload.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS)
-    )
+    timeout_seconds = float(payload.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS))
     failed_requests_path = Path(
         payload.get("failed_requests_path", DEFAULT_FAILED_REQUESTS_PATH)
     )
@@ -388,7 +396,9 @@ def _build_failed_payload(
     }
 
 
-def _extract_response_text(response: requests.Response | None, limit: int) -> str | None:
+def _extract_response_text(
+    response: requests.Response | None, limit: int
+) -> str | None:
     """Safely extract a bounded response body for logs."""
     if response is None:
         return None
@@ -442,7 +452,11 @@ def _perform_request(
             response = session.get(url, **request_kwargs)
         else:
             response = session.request(method, url, **request_kwargs)
-    except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout, requests.exceptions.SSLError) as exc:
+    except (
+        requests.exceptions.ConnectionError,
+        requests.exceptions.ReadTimeout,
+        requests.exceptions.SSLError,
+    ) as exc:
         policy = retry_config.policy_for_exception(exc)
         raise RetryableExceptionError(str(exc), policy, context=context) from exc
     except requests.exceptions.RequestException as exc:
@@ -483,7 +497,7 @@ def request_json_with_retry(
     logger: StructuredLogger | None = None,
     context: dict[str, Any] | None = None,
     alert_hook: Callable[[str, dict[str, Any]], None] | None = None,
-    ) -> tuple[requests.Response, Any]:
+) -> tuple[requests.Response, Any]:
     """Request JSON content with retryable errors and parsing protection."""
     logger = logger or StructuredLogger("centinel.downloader")
     context = context or {}
@@ -619,6 +633,7 @@ def request_with_retry(
         _write_failed_request(retry_config, failed_payload)
         raise
 
+
 def should_skip_snapshot(
     data_dir: Path, source_id: str, *, retry_config: RetryConfig
 ) -> bool:
@@ -635,7 +650,13 @@ def should_skip_snapshot(
     if not candidates:
         return False
     latest = candidates[0]
-    age_seconds = max(0.0, (datetime.now(timezone.utc) - datetime.fromtimestamp(latest.stat().st_mtime, tz=timezone.utc)).total_seconds())
+    age_seconds = max(
+        0.0,
+        (
+            datetime.now(timezone.utc)
+            - datetime.fromtimestamp(latest.stat().st_mtime, tz=timezone.utc)
+        ).total_seconds(),
+    )
     return age_seconds <= retry_config.recent_snapshot_seconds
 
 

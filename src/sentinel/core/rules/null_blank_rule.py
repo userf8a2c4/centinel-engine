@@ -68,13 +68,10 @@ def apply(
     critical_threshold = float(config.get("critical_pct", 12)) / 100
 
     severity = "INFO"
-    threshold = warning_threshold
     if ratio > critical_threshold:
         severity = "CRITICAL"
-        threshold = critical_threshold
     elif ratio > warning_threshold:
         severity = "WARNING"
-        threshold = warning_threshold
     else:
         return alerts
 

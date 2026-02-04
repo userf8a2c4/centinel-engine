@@ -31,7 +31,9 @@ def _extract_mesa_votes(mesa: dict) -> Dict[str, int]:
         Dictionary with votes per candidate.
     """
     votes_by_candidate: Dict[str, int] = {}
-    entries = mesa.get("votos") or mesa.get("candidates") or mesa.get("candidatos") or []
+    entries = (
+        mesa.get("votos") or mesa.get("candidates") or mesa.get("candidatos") or []
+    )
     if not isinstance(entries, list):
         return votes_by_candidate
 
@@ -54,7 +56,9 @@ def _extract_mesa_votes(mesa: dict) -> Dict[str, int]:
     return votes_by_candidate
 
 
-def _aggregate_mesas(mesas: List[dict]) -> tuple[Dict[str, int], List[Dict[str, float]]]:
+def _aggregate_mesas(
+    mesas: List[dict],
+) -> tuple[Dict[str, int], List[Dict[str, float]]]:
     """Agrega votos totales y proporciones por mesa.
 
     Args:
@@ -87,7 +91,10 @@ def _aggregate_mesas(mesas: List[dict]) -> tuple[Dict[str, int], List[Dict[str, 
         for candidate_id, votes in mesa_votes.items():
             totals[candidate_id] = totals.get(candidate_id, 0) + votes
         proportions.append(
-            {candidate_id: votes / mesa_total for candidate_id, votes in mesa_votes.items()}
+            {
+                candidate_id: votes / mesa_total
+                for candidate_id, votes in mesa_votes.items()
+            }
         )
 
     return totals, proportions

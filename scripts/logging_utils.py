@@ -170,7 +170,11 @@ def _load_security_settings() -> dict[str, Any]:
     try:
         parsed = yaml.safe_load(rules_path.read_text(encoding="utf-8")) or {}
         if isinstance(parsed, dict):
-            return parsed.get("security", {}) if isinstance(parsed.get("security"), dict) else {}
+            return (
+                parsed.get("security", {})
+                if isinstance(parsed.get("security"), dict)
+                else {}
+            )
     except Exception:
         return {}
     return {}

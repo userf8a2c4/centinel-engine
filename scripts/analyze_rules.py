@@ -49,6 +49,7 @@ def run_all_rules(current: dict, previous: Optional[dict], config: dict) -> list
         alerts.extend(rule(current, previous, config))
     return alerts
 
+
 PRESIDENTIAL_LEVELS = {
     "PRES",
     "PRESIDENTE",

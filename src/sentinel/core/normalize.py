@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from typing import Dict, Any, List, Iterable, Optional, Literal
+from typing import Dict, Any, List, Iterable, Literal
 
 from pydantic import BaseModel, Field, ValidationError, validator, root_validator
 
@@ -93,6 +93,7 @@ class PresidentialActa(BaseModel):
 
         English: Config class defined in src/sentinel/core/normalize.py.
         """
+
         extra = "forbid"
 
 
@@ -134,7 +135,9 @@ def _compute_payload_hash(raw: Any) -> str:
         elif isinstance(raw, str):
             encoded = raw.encode("utf-8")
         else:
-            encoded = json.dumps(raw, sort_keys=True, ensure_ascii=False).encode("utf-8")
+            encoded = json.dumps(raw, sort_keys=True, ensure_ascii=False).encode(
+                "utf-8"
+            )
     except (TypeError, ValueError):
         encoded = str(raw).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()

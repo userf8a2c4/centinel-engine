@@ -18,6 +18,8 @@ from typing import Any
 import random
 import requests
 import yaml
+from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.cron import CronTrigger
 from anchor.arbitrum_anchor import anchor_batch, anchor_root
 from scripts.circuit_breaker import CircuitBreaker
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
@@ -167,7 +169,11 @@ def load_rules_thresholds() -> dict[str, Any]:
 def load_security_settings() -> dict[str, Any]:
     """/** Carga configuración de seguridad desde rules.yaml. / Load security settings from rules.yaml. **/"""
     rules_thresholds = load_rules_thresholds()
-    security = rules_thresholds.get("security", {}) if isinstance(rules_thresholds, dict) else {}
+    security = (
+        rules_thresholds.get("security", {})
+        if isinstance(rules_thresholds, dict)
+        else {}
+    )
     return security if isinstance(security, dict) else {}
 
 
@@ -228,7 +234,9 @@ def build_chaos_rng(resilience: dict[str, Any]) -> random.Random:
     return random.Random(seed)
 
 
-def maybe_inject_chaos_failure(stage: str, resilience: dict[str, Any], rng: random.Random) -> None:
+def maybe_inject_chaos_failure(
+    stage: str, resilience: dict[str, Any], rng: random.Random
+) -> None:
     """/** Inyecta falla caótica si está habilitado. / Inject chaos failure when enabled. **/"""
     chaos_settings = resilience.get("chaos", {}) if isinstance(resilience, dict) else {}
     if not isinstance(chaos_settings, dict):
@@ -244,7 +252,9 @@ def maybe_inject_chaos_failure(stage: str, resilience: dict[str, Any], rng: rand
 
 def build_auto_resume_settings(resilience: dict[str, Any]) -> dict[str, Any]:
     """/** Normaliza configuración de auto-resume. / Normalize auto-resume settings. **/"""
-    auto_resume = resilience.get("auto_resume", {}) if isinstance(resilience, dict) else {}
+    auto_resume = (
+        resilience.get("auto_resume", {}) if isinstance(resilience, dict) else {}
+    )
     if not isinstance(auto_resume, dict):
         auto_resume = {}
     return {
@@ -256,7 +266,9 @@ def build_auto_resume_settings(resilience: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def compute_backoff_delay(attempt: int, base_seconds: float, max_seconds: float) -> float:
+def compute_backoff_delay(
+    attempt: int, base_seconds: float, max_seconds: float
+) -> float:
     """/** Calcula backoff exponencial. / Compute exponential backoff delay. **/"""
     if attempt <= 0:
         return 0.0
@@ -366,7 +378,9 @@ def save_resilience_checkpoint(
         "timestamp": utcnow().isoformat(),
         "hashes": collect_recent_hashes(),
         "snapshot_index": snapshot_index or collect_snapshot_index(),
-        "latest_snapshot": latest_snapshot.name if latest_snapshot else existing.get("latest_snapshot"),
+        "latest_snapshot": (
+            latest_snapshot.name if latest_snapshot else existing.get("latest_snapshot")
+        ),
         "last_content_hash": content_hash or existing.get("last_content_hash"),
     }
     if error:
@@ -410,9 +424,9 @@ def clear_resilience_checkpoint() -> None:
 def should_run_stage(current_stage: str, start_stage: str) -> bool:
     """/** Determina si una etapa debe ejecutarse al reanudar. / Determine if a stage should run when resuming. **"""
     try:
-        return RESILIENCE_STAGE_ORDER.index(current_stage) >= RESILIENCE_STAGE_ORDER.index(
-            start_stage
-        )
+        return RESILIENCE_STAGE_ORDER.index(
+            current_stage
+        ) >= RESILIENCE_STAGE_ORDER.index(start_stage)
     except ValueError:
         return True
 
@@ -442,8 +456,6 @@ def should_normalize(snapshot_path):
     """/** Determina si requiere normalización. / Determine if normalization is required. **"""
     payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
     return "resultados" in payload and "estadisticas" in payload
-
-
 
 
 def build_alerts(anomalies, *, severity: str = "HIGH"):
@@ -573,8 +585,10 @@ def run_pipeline(config: dict[str, Any]):
     state = load_state()
     checkpoint = load_pipeline_checkpoint()
     resilience_checkpoint = load_resilience_checkpoint()
-    run_id = checkpoint.get("run_id") or resilience_checkpoint.get("run_id") or now.strftime(
-        "%Y%m%d%H%M%S"
+    run_id = (
+        checkpoint.get("run_id")
+        or resilience_checkpoint.get("run_id")
+        or now.strftime("%Y%m%d%H%M%S")
     )
     start_stage = "start"
     latest_snapshot: Path | None = None
@@ -599,7 +613,9 @@ def run_pipeline(config: dict[str, Any]):
                 stage=resume_stage,
                 snapshot=resume_snapshot_name,
             )
-    save_pipeline_checkpoint({"run_id": run_id, "stage": "start", "at": now.isoformat()})
+    save_pipeline_checkpoint(
+        {"run_id": run_id, "stage": "start", "at": now.isoformat()}
+    )
     save_resilience_checkpoint(
         run_id,
         "start",
@@ -649,7 +665,9 @@ def run_pipeline(config: dict[str, Any]):
             )
 
         if latest_snapshot is None:
-            latest_snapshot = snapshots[-1] if snapshots else latest_file(DATA_DIR, "*.json")
+            latest_snapshot = (
+                snapshots[-1] if snapshots else latest_file(DATA_DIR, "*.json")
+            )
         if not latest_snapshot:
             print("[!] No se encontró snapshot para procesar")
             log_event(logger, logging.WARNING, "snapshot_missing", run_id=run_id)
@@ -679,7 +697,8 @@ def run_pipeline(config: dict[str, Any]):
             maybe_inject_chaos_failure("normalize", resilience_settings, chaos_rng)
             if should_normalize(latest_snapshot):
                 run_command(
-                    [sys.executable, "scripts/normalize_presidential.py"], "normalización"
+                    [sys.executable, "scripts/normalize_presidential.py"],
+                    "normalización",
                 )
             else:
                 print("[i] Normalización omitida: estructura no compatible")
@@ -722,7 +741,9 @@ def run_pipeline(config: dict[str, Any]):
             )
             maybe_inject_chaos_failure("report", resilience_settings, chaos_rng)
             if should_generate_report(state, now):
-                run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
+                run_command(
+                    [sys.executable, "scripts/summarize_findings.py"], "reportes"
+                )
                 state["last_report_at"] = now.isoformat()
             else:
                 print("[i] Reporte omitido por cadencia")
@@ -793,10 +814,16 @@ def safe_run_pipeline(config: dict[str, Any]) -> bool:
             retry_on = auto_resume["retry_on"]
             retryable = retry_on in {"any", "network"}
             attempt += 1
-            if not auto_resume["enabled"] or not retryable or attempt >= auto_resume["max_attempts"]:
+            if (
+                not auto_resume["enabled"]
+                or not retryable
+                or attempt >= auto_resume["max_attempts"]
+            ):
                 return False
             delay = compute_backoff_delay(
-                attempt, auto_resume["backoff_base_seconds"], auto_resume["backoff_max_seconds"]
+                attempt,
+                auto_resume["backoff_base_seconds"],
+                auto_resume["backoff_max_seconds"],
             )
             log_event(
                 logger,
@@ -826,7 +853,9 @@ def safe_run_pipeline(config: dict[str, Any]) -> bool:
             if attempt >= auto_resume["max_attempts"]:
                 return False
             delay = compute_backoff_delay(
-                attempt, auto_resume["backoff_base_seconds"], auto_resume["backoff_max_seconds"]
+                attempt,
+                auto_resume["backoff_base_seconds"],
+                auto_resume["backoff_max_seconds"],
             )
             log_event(
                 logger,
@@ -844,9 +873,7 @@ def run_polling_loop(config: dict[str, Any], *, run_once: bool, run_now: bool) -
     breaker_settings = load_circuit_breaker_settings(config)
     breaker = CircuitBreaker(
         failure_threshold=int(breaker_settings.get("failure_threshold", 5)),
-        failure_window_seconds=int(
-            breaker_settings.get("failure_window_seconds", 600)
-        ),
+        failure_window_seconds=int(breaker_settings.get("failure_window_seconds", 600)),
         open_timeout_seconds=int(breaker_settings.get("open_timeout_seconds", 1800)),
         half_open_after_seconds=int(
             breaker_settings.get("half_open_after_seconds", 600)
@@ -930,7 +957,9 @@ def _should_anchor(state: dict[str, Any], now: datetime, interval_minutes: int) 
     return now - last_dt >= timedelta(minutes=interval_minutes)
 
 
-def _anchor_if_due(config: dict[str, Any], state: dict[str, Any], now: datetime) -> None:
+def _anchor_if_due(
+    config: dict[str, Any], state: dict[str, Any], now: datetime
+) -> None:
     """/** Ejecuta anclaje de hashes si corresponde. / Execute hash anchoring when due. **"""
     arbitrum_config = config.get("arbitrum", {})
     if not arbitrum_config.get("enabled", False):

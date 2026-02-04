@@ -26,6 +26,7 @@ class RateLimitConfig:
         Stores the maximum allowed requests and the sliding window duration in
         seconds.
     """
+
     limit: int
     window_seconds: int
 

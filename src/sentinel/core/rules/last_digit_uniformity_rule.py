@@ -89,7 +89,11 @@ def apply(
     if len(candidate_votes) < min_samples:
         return alerts
 
-    digits = [digit for digit in (_last_digit(value) for value in candidate_votes) if digit is not None]
+    digits = [
+        digit
+        for digit in (_last_digit(value) for value in candidate_votes)
+        if digit is not None
+    ]
     if len(digits) < min_samples:
         return alerts
 

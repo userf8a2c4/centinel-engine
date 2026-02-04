@@ -290,9 +290,7 @@ def apply(
             if current_ts and previous_ts:
                 minutes = (current_ts - previous_ts).total_seconds() / 60
                 if minutes <= delta_pct_window:
-                    change_rows = merged[
-                        merged["delta_pct"].abs() >= delta_pct_alert
-                    ]
+                    change_rows = merged[merged["delta_pct"].abs() >= delta_pct_alert]
                     for _, row in change_rows.iterrows():
                         alerts.append(
                             {
@@ -301,9 +299,9 @@ def apply(
                                 "department": row["department"],
                                 "election_level": row["election_level"],
                                 "candidate": row["candidate_name_current"],
-                                "timestamp": current_ts.isoformat()
-                                if current_ts
-                                else None,
+                                "timestamp": (
+                                    current_ts.isoformat() if current_ts else None
+                                ),
                                 "previous_value": int(row["votes_previous"]),
                                 "current_value": int(row["votes_current"]),
                                 "delta_abs": int(row["delta_abs"]),
@@ -324,10 +322,9 @@ def apply(
                 on=["department", "election_level"],
                 suffixes=("_current", "_previous"),
             )
-            totals_merged["delta_abs"] = (
-                totals_merged["total_votes_current"].fillna(0)
-                - totals_merged["total_votes_previous"].fillna(0)
-            )
+            totals_merged["delta_abs"] = totals_merged["total_votes_current"].fillna(
+                0
+            ) - totals_merged["total_votes_previous"].fillna(0)
             totals_merged["delta_pct"] = totals_merged.apply(
                 lambda row: (
                     (row["delta_abs"] / row["total_votes_previous"]) * 100
@@ -349,9 +346,9 @@ def apply(
                                 "severity": "High",
                                 "department": row["department"],
                                 "election_level": row["election_level"],
-                                "timestamp": current_ts.isoformat()
-                                if current_ts
-                                else None,
+                                "timestamp": (
+                                    current_ts.isoformat() if current_ts else None
+                                ),
                                 "previous_value": int(row["total_votes_previous"] or 0),
                                 "current_value": int(row["total_votes_current"] or 0),
                                 "delta_abs": int(row["delta_abs"]),
@@ -375,11 +372,11 @@ def apply(
                     - zscore_candidates["total_votes_previous"]
                 )
                 zscore_candidates = zscore_candidates.groupby("election_level").apply(
-                    lambda group: group.assign(
-                        zscore=_compute_zscores(group["delta_abs"])
+                    lambda group: (
+                        group.assign(zscore=_compute_zscores(group["delta_abs"]))
+                        if len(group) >= z_min_groups
+                        else group.assign(zscore=0.0)
                     )
-                    if len(group) >= z_min_groups
-                    else group.assign(zscore=0.0)
                 )
                 zscore_candidates = zscore_candidates.reset_index(drop=True)
                 z_outliers = zscore_candidates[
@@ -393,9 +390,7 @@ def apply(
                             "severity": "High",
                             "department": row["department"],
                             "election_level": row["election_level"],
-                            "timestamp": current_ts.isoformat()
-                            if current_ts
-                            else None,
+                            "timestamp": current_ts.isoformat() if current_ts else None,
                             "previous_value": int(row["total_votes_previous"] or 0),
                             "current_value": int(row["total_votes_current"] or 0),
                             "delta_abs": int(row["delta_abs"]),
@@ -409,9 +404,7 @@ def apply(
                     )
 
         if not candidate_df.empty and not previous_candidate_df.empty:
-            current_grouped = candidate_df.groupby(
-                ["department", "election_level"]
-            )
+            current_grouped = candidate_df.groupby(["department", "election_level"])
             previous_grouped = previous_candidate_df.groupby(
                 ["department", "election_level"]
             )
@@ -431,18 +424,13 @@ def apply(
                 prev_runner = prev_sorted.iloc[1]
                 curr_leader = current_sorted.iloc[0]
                 prev_lead_margin = int(prev_leader["votes"] - prev_runner["votes"])
-                current_votes_by_candidate = current_group.set_index(
-                    "candidate_id"
-                )["votes"].to_dict()
-                prev_votes_by_candidate = prev_group.set_index("candidate_id")[
+                current_votes_by_candidate = current_group.set_index("candidate_id")[
                     "votes"
                 ].to_dict()
                 prev_leader_current_votes = current_votes_by_candidate.get(
                     prev_leader["candidate_id"], 0
                 )
-                prev_leader_delta = (
-                    prev_leader_current_votes - prev_leader["votes"]
-                )
+                prev_leader_delta = prev_leader_current_votes - prev_leader["votes"]
                 if (
                     prev_leader["candidate_id"] != curr_leader["candidate_id"]
                     and prev_lead_margin >= reversal_lead_margin
@@ -459,9 +447,7 @@ def apply(
                             "department": group_key[0],
                             "election_level": group_key[1],
                             "candidate": prev_leader["candidate_name"],
-                            "timestamp": current_ts.isoformat()
-                            if current_ts
-                            else None,
+                            "timestamp": current_ts.isoformat() if current_ts else None,
                             "previous_value": int(prev_leader["votes"]),
                             "current_value": int(prev_leader_current_votes),
                             "delta_abs": int(prev_leader_delta),
@@ -493,9 +479,7 @@ def apply(
                         "severity": "High",
                         "department": row["department"],
                         "election_level": row["election_level"],
-                        "timestamp": current_ts.isoformat()
-                        if current_ts
-                        else None,
+                        "timestamp": current_ts.isoformat() if current_ts else None,
                         "previous_value": None,
                         "current_value": int(total_votes),
                         "delta_abs": None,
@@ -520,9 +504,7 @@ def apply(
             counts = (
                 pd.Series(digits).value_counts().reindex(range(1, 10), fill_value=0)
             )
-            expected = [
-                len(digits) * np.log10(1 + 1 / digit) for digit in range(1, 10)
-            ]
+            expected = [len(digits) * np.log10(1 + 1 / digit) for digit in range(1, 10)]
             chi_result = chisquare(counts.values, f_exp=expected)
             if chi_result.pvalue < benford_p_threshold:
                 alerts.append(
@@ -556,9 +538,9 @@ def apply(
             how="left",
         )
         totals_merged["votes"] = totals_merged["votes"].fillna(0)
-        totals_merged["delta_abs"] = (
-            totals_merged["votes"] - totals_merged["total_votes"].fillna(0)
-        )
+        totals_merged["delta_abs"] = totals_merged["votes"] - totals_merged[
+            "total_votes"
+        ].fillna(0)
         mismatches = totals_merged[
             totals_merged["delta_abs"].abs() >= sum_mismatch_threshold
         ]

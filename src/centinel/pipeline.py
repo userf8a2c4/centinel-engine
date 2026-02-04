@@ -76,7 +76,9 @@ async def start_pipeline() -> None:
         return
     elif decision.decision is RecoveryDecisionType.SKIP_TO_NEXT_VALID:
         logger.warning(
-            "pipeline_skip_to_next_valid", reason=decision.reason, alerts=decision.alerts
+            "pipeline_skip_to_next_valid",
+            reason=decision.reason,
+            alerts=decision.alerts,
         )
 
     logger.info(

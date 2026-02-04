@@ -140,7 +140,7 @@ def _install_dotenv_stub() -> None:
 
 _install_dotenv_stub()
 
-from scripts import run_pipeline
+from scripts import run_pipeline  # noqa: E402
 
 
 def _set_pipeline_paths(monkeypatch, base_path: Path) -> None:
@@ -240,7 +240,9 @@ def test_run_pipeline_resumes_from_checkpoint(monkeypatch, tmp_path) -> None:
         commands.append(command)
 
     monkeypatch.setattr(run_pipeline, "run_command", _record_command)
-    monkeypatch.setattr(run_pipeline, "_anchor_snapshot", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        run_pipeline, "_anchor_snapshot", lambda *_args, **_kwargs: None
+    )
     monkeypatch.setattr(run_pipeline, "_anchor_if_due", lambda *_args, **_kwargs: None)
 
     config = {"alerts": {}, "arbitrum": {"enabled": False}}

@@ -11,7 +11,6 @@ import argparse
 import asyncio
 import getpass
 import json
-import logging
 import os
 import signal
 import sys
@@ -134,7 +133,9 @@ def set_panic_flag(user: str, timestamp: str) -> dict[str, Any]:
         "reason": "manual_panic",
     }
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    PANIC_FLAG_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    PANIC_FLAG_PATH.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     return payload
 
 
@@ -167,7 +168,11 @@ def resolve_alert_paths() -> tuple[Path, Path]:
         config = load_yaml(path)
         if not isinstance(config, dict):
             continue
-        alerts_config = config.get("alerts", {}) if isinstance(config.get("alerts", {}), dict) else {}
+        alerts_config = (
+            config.get("alerts", {})
+            if isinstance(config.get("alerts", {}), dict)
+            else {}
+        )
         if alerts_config.get("log_path"):
             alerts_log_path = Path(alerts_config["log_path"])
         if alerts_config.get("output_path"):
@@ -200,7 +205,9 @@ def load_last_alerts(limit: int = 10) -> list[dict[str, Any]]:
             if isinstance(payload, dict):
                 return [payload]
         except json.JSONDecodeError as exc:
-            logger.warning("panic_alerts_invalid path=%s error=%s", alerts_output_path, exc)
+            logger.warning(
+                "panic_alerts_invalid path=%s error=%s", alerts_output_path, exc
+            )
     return alerts
 
 
@@ -209,7 +216,9 @@ def latest_hash() -> str | None:
 
     English: Function latest_hash defined in panic.py.
     """
-    hash_files = sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)
+    hash_files = sorted(
+        HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
     if not hash_files:
         return None
     content = hash_files[0].read_text(encoding="utf-8").strip()
@@ -238,7 +247,9 @@ def get_health_status() -> dict[str, Any]:
         return {"ok": False, "message": f"healthcheck_error: {exc}"}
 
 
-def build_report(user: str, timestamp: str, checkpoint: dict[str, Any]) -> dict[str, Any]:
+def build_report(
+    user: str, timestamp: str, checkpoint: dict[str, Any]
+) -> dict[str, Any]:
     """Español: Función build_report del módulo panic.py.
 
     English: Function build_report defined in panic.py.
@@ -263,7 +274,9 @@ def build_s3_client() -> tuple[Any | None, str | None]:
 
     English: Function build_s3_client defined in panic.py.
     """
-    bucket = os.getenv("CENTINEL_PANIC_BUCKET") or os.getenv("CENTINEL_CHECKPOINT_BUCKET")
+    bucket = os.getenv("CENTINEL_PANIC_BUCKET") or os.getenv(
+        "CENTINEL_CHECKPOINT_BUCKET"
+    )
     if not bucket:
         return None, None
     session = boto3.session.Session()
@@ -332,7 +345,9 @@ def build_report_url(bucket: str, key: str) -> str | None:
     return None
 
 
-def send_alert_message(report_url: str | None, final_hash: str | None, timestamp: str) -> None:
+def send_alert_message(
+    report_url: str | None, final_hash: str | None, timestamp: str
+) -> None:
     """Español: Función send_alert_message del módulo panic.py.
 
     English: Function send_alert_message defined in panic.py.
@@ -382,7 +397,9 @@ def main() -> int:
 
     English: Function main defined in panic.py.
     """
-    parser = argparse.ArgumentParser(description="Activa el modo pánico de Centinel Engine.")
+    parser = argparse.ArgumentParser(
+        description="Activa el modo pánico de Centinel Engine."
+    )
     parser.add_argument("--user", help="Usuario que activa el modo pánico.")
     args = parser.parse_args()
 
@@ -415,7 +432,9 @@ def main() -> int:
 
     report = build_report(user, timestamp, checkpoint)
     report_path = panic_dir / "panic_report.json"
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     uploaded_report_url = None
     try:

@@ -3,7 +3,11 @@
 
 from __future__ import annotations
 
-from scripts.security.encrypt_secrets import decrypt_secrets, encrypt_secrets, generate_key
+from scripts.security.encrypt_secrets import (
+    decrypt_secrets,
+    encrypt_secrets,
+    generate_key,
+)
 
 __all__ = ["decrypt_secrets", "encrypt_secrets", "generate_key"]
 

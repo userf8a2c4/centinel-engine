@@ -55,10 +55,14 @@ def apply(
         return alerts
 
     current_codes = {
-        code for code in (extract_mesa_code(m) for m in extract_mesas(current_data)) if code
+        code
+        for code in (extract_mesa_code(m) for m in extract_mesas(current_data))
+        if code
     }
     previous_codes = {
-        code for code in (extract_mesa_code(m) for m in extract_mesas(previous_data)) if code
+        code
+        for code in (extract_mesa_code(m) for m in extract_mesas(previous_data))
+        if code
     }
     if not current_codes or not previous_codes:
         return alerts

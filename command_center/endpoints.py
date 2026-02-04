@@ -100,8 +100,7 @@ def build_departments_template(*, full_links: dict[str, str]) -> list[Endpoint]:
             path=full_links["colon"],
             method="GET",
             description=(
-                "Configuración activa para Colón.\n"
-                "Active configuration for Colón."
+                "Configuración activa para Colón.\n" "Active configuration for Colón."
             ),
             tags=("configuracion", "departamento"),
         ),
@@ -120,8 +119,7 @@ def build_departments_template(*, full_links: dict[str, str]) -> list[Endpoint]:
             path=full_links["copan"],
             method="GET",
             description=(
-                "Configuración activa para Copán.\n"
-                "Active configuration for Copán."
+                "Configuración activa para Copán.\n" "Active configuration for Copán."
             ),
             tags=("configuracion", "departamento"),
         ),
@@ -130,8 +128,7 @@ def build_departments_template(*, full_links: dict[str, str]) -> list[Endpoint]:
             path=full_links["cortes"],
             method="GET",
             description=(
-                "Configuración activa para Cortés.\n"
-                "Active configuration for Cortés."
+                "Configuración activa para Cortés.\n" "Active configuration for Cortés."
             ),
             tags=("configuracion", "departamento"),
         ),
@@ -190,8 +187,7 @@ def build_departments_template(*, full_links: dict[str, str]) -> list[Endpoint]:
             path=full_links["la_paz"],
             method="GET",
             description=(
-                "Configuración activa para La Paz.\n"
-                "Active configuration for La Paz."
+                "Configuración activa para La Paz.\n" "Active configuration for La Paz."
             ),
             tags=("configuracion", "departamento"),
         ),
@@ -240,8 +236,7 @@ def build_departments_template(*, full_links: dict[str, str]) -> list[Endpoint]:
             path=full_links["valle"],
             method="GET",
             description=(
-                "Configuración activa para Valle.\n"
-                "Active configuration for Valle."
+                "Configuración activa para Valle.\n" "Active configuration for Valle."
             ),
             tags=("configuracion", "departamento"),
         ),
@@ -250,8 +245,7 @@ def build_departments_template(*, full_links: dict[str, str]) -> list[Endpoint]:
             path=full_links["yoro"],
             method="GET",
             description=(
-                "Configuración activa para Yoro.\n"
-                "Active configuration for Yoro."
+                "Configuración activa para Yoro.\n" "Active configuration for Yoro."
             ),
             tags=("configuracion", "departamento"),
         ),

@@ -154,7 +154,9 @@ def load_data_source_settings(config_path: Optional[Path] = None) -> DataSourceS
         payload = {
             "DATA_SOURCES": raw.get("data_sources", []),
             "STORAGE_PATH": raw.get("storage_path", "data"),
-            "CHECKPOINT_FILENAME": raw.get("checkpoint_filename", "datasource_state.json"),
+            "CHECKPOINT_FILENAME": raw.get(
+                "checkpoint_filename", "datasource_state.json"
+            ),
         }
         try:
             return DataSourceSettings.model_validate(payload)
@@ -376,9 +378,7 @@ class DataSourceManager:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
-            self.logger.warning(
-                "datasource_checkpoint_corrupt", path=str(path)
-            )
+            self.logger.warning("datasource_checkpoint_corrupt", path=str(path))
             return None
         return data.get("last_successful_source_id")
 
@@ -391,6 +391,8 @@ class DataSourceManager:
             last_successful_source_id=source_id,
             updated_at=datetime.now(timezone.utc).isoformat(),
         )
-        data = json.dumps(payload.__dict__, ensure_ascii=False, indent=2).encode("utf-8")
+        data = json.dumps(payload.__dict__, ensure_ascii=False, indent=2).encode(
+            "utf-8"
+        )
         write_atomic(self.settings.checkpoint_path, data)
         self._last_successful_source_id = source_id

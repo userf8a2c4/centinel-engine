@@ -25,6 +25,7 @@ from .proxy_handler import ProxyRotator, get_proxy_rotator
 
 logger = logging.getLogger(__name__)
 
+
 class DownloadError(Exception):
     """Error controlado de descarga.
 

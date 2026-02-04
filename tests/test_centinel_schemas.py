@@ -3,8 +3,6 @@
 Tests for Centinel schema validation and normalization.
 """
 
-import json
-
 import pytest
 
 from centinel.schemas import validate_and_normalize

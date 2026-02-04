@@ -94,7 +94,9 @@ def apply(
     if len(candidate_votes) < min_samples:
         return alerts
 
-    digits = [digit for digit in (_first_digit(value) for value in candidate_votes) if digit]
+    digits = [
+        digit for digit in (_first_digit(value) for value in candidate_votes) if digit
+    ]
     if len(digits) < min_samples:
         return alerts
 
@@ -113,13 +115,10 @@ def apply(
     chi_pvalue_critical = float(config.get("chi_pvalue_critical", 0.01))
 
     severity = "INFO"
-    threshold = mad_warning
     if mad > mad_critical or chi_result.pvalue < chi_pvalue_critical:
         severity = "CRITICAL"
-        threshold = max(mad_critical, chi_pvalue_critical)
     elif mad_warning <= mad <= mad_critical:
         severity = "WARNING"
-        threshold = mad_warning
     else:
         return alerts
 
@@ -139,11 +138,16 @@ def apply(
                 "mad_critical": mad_critical,
                 "chi_pvalue_critical": chi_pvalue_critical,
             },
-            "result": (severity, message, {"mad": mad, "p_value": float(chi_result.pvalue)}, {
-                "mad_warning": mad_warning,
-                "mad_critical": mad_critical,
-                "chi_pvalue_critical": chi_pvalue_critical,
-            }),
+            "result": (
+                severity,
+                message,
+                {"mad": mad, "p_value": float(chi_result.pvalue)},
+                {
+                    "mad_warning": mad_warning,
+                    "mad_critical": mad_critical,
+                    "chi_pvalue_critical": chi_pvalue_critical,
+                },
+            ),
             "justification": (
                 "Se aplicó Benford 1BL sobre votos por candidato + total emitido. "
                 f"muestras={len(digits)}, MAD={mad:.4f}, "

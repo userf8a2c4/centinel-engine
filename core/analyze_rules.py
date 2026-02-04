@@ -78,7 +78,9 @@ def apply_benford_law(votes_list: list[int]) -> dict:
         _get_rule_param(
             config,
             "benford_p_threshold",
-            default=benford_config.get("p_threshold", _DEFAULT_RULES_CONFIG["benford_law"]["p_threshold"]),
+            default=benford_config.get(
+                "p_threshold", _DEFAULT_RULES_CONFIG["benford_law"]["p_threshold"]
+            ),
         )
     )
     min_samples = int(
@@ -111,7 +113,10 @@ def apply_benford_law(votes_list: list[int]) -> dict:
         }
 
     observed_counts = (
-        pd.Series(digits).value_counts().reindex(range(1, 10), fill_value=0).sort_index()
+        pd.Series(digits)
+        .value_counts()
+        .reindex(range(1, 10), fill_value=0)
+        .sort_index()
     )
     total_observed_count = observed_counts.sum()
     if total_observed_count == 0:
@@ -183,13 +188,22 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
             ),
         )
     )
-    min_groups = int(dist_config.get("min_groups", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_groups"]))
-    min_expected = float(dist_config.get("min_expected", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_expected"]))
+    min_groups = int(
+        dist_config.get(
+            "min_groups", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_groups"]
+        )
+    )
+    min_expected = float(
+        dist_config.get(
+            "min_expected", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_expected"]
+        )
+    )
     expected_basis = dist_config.get(
         "expected_basis", _DEFAULT_RULES_CONFIG["distribution_chi2"]["expected_basis"]
     )
     historical_shares = dist_config.get(
-        "historical_shares", _DEFAULT_RULES_CONFIG["distribution_chi2"]["historical_shares"]
+        "historical_shares",
+        _DEFAULT_RULES_CONFIG["distribution_chi2"]["historical_shares"],
     )
 
     dept_col = next(
@@ -205,7 +219,11 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
         None,
     )
     votes_col = next(
-        (col for col in ["votos", "votes", "vote_total", "total_votes"] if col in df_normalized),
+        (
+            col
+            for col in ["votos", "votes", "vote_total", "total_votes"]
+            if col in df_normalized
+        ),
         None,
     )
 
@@ -309,7 +327,12 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
     )
     if status == "ANOMALIA":
         logger.warning("Chi-cuadrado detectó anomalía: %s", detalle)
-    return {"status": status, "p_value": p_value, "chi2_stat": chi2_stat, "detalle": detalle}
+    return {
+        "status": status,
+        "p_value": p_value,
+        "chi2_stat": chi2_stat,
+        "detalle": detalle,
+    }
 
 
 if __name__ == "__main__":

@@ -18,7 +18,9 @@ class MasterSwitch:
     updated_at: datetime | None = None
     reason: str | None = None
 
-    def with_update(self, *, enabled: bool | None = None, reason: str | None = None) -> "MasterSwitch":
+    def with_update(
+        self, *, enabled: bool | None = None, reason: str | None = None
+    ) -> "MasterSwitch":
         """Devuelve una copia del interruptor con el estado actualizado.
 
         Return a copy of the switch with updated state.
