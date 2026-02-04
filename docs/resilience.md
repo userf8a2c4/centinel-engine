@@ -375,7 +375,17 @@ resiliencia:
 
 ---
 
-## Credibilidad y confianza para observadores internacionales / Credibility and trust for international observers
+**Configuración clave / Key configuration**
+- `chaos.level`: severidad (`low`, `medium`, `high`) con límites conservadores.
+- `chaos.duration_minutes`: duración total del ejercicio.
+- `chaos.failure_probability`: probabilidad de fallo por request (0–1).
+- `chaos.scenarios_enabled`: escenarios CNE habilitados (429, 503, JSON inválido, hash alterado, proxy fail, watchdog, respuesta lenta).
+- `chaos.max_recovery_seconds`: umbral máximo de recuperación para validar continuidad.
+
+**Ejecución manual / Manual run**
+```bash
+python scripts/chaos_test.py --config chaos_config.yaml.example --level low
+```
 
 **ES:** La resiliencia documentada aporta **reproducibilidad** (parámetros explícitos, registros de fallos, cadencias declaradas) y **trazabilidad** (hashes y snapshots verificables), lo que facilita auditorías independientes y fortalece la confianza de observadores internacionales en la neutralidad y consistencia técnica del monitoreo.
 

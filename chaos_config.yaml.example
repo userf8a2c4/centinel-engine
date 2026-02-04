@@ -16,7 +16,7 @@ chaos:
 
   # Escenarios específicos habilitados.
   # Enabled specific scenarios.
-  specific_scenarios_enabled:
+  scenarios_enabled:
     - "rate_limit_429"
     - "timeout_503"
     - "malformed_json"
