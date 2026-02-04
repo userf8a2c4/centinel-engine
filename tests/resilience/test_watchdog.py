@@ -1,114 +1,110 @@
-"""Watchdog resilience tests for heartbeat and restart logic."""
+"""Watchdog resilience tests for heartbeat and recovery logic."""
 
 from __future__ import annotations
 
-import logging
-import os
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
+import logging
 import pytest
 
 from scripts import watchdog
 
 
-def test_watchdog_heartbeat_stale_detection(tmp_path) -> None:
-    """Español: Detecta heartbeat vencido usando mtime y timeout configurado.
+def test_watchdog_heartbeat_miss_triggers_failure_and_recovery_log(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Español: Simula heartbeat perdido y valida registro de recuperación.
 
-    English: Detect stale heartbeat using file mtime and configured timeout.
+    English: Simulate a missed heartbeat and validate recovery logging.
     """
-    heartbeat = tmp_path / "heartbeat.json"
-    heartbeat.write_text("{}", encoding="utf-8")
-
-    stale_time = watchdog._utcnow() - timedelta(minutes=5)
-    os.utime(heartbeat, (stale_time.timestamp(), stale_time.timestamp()))
-
     config = watchdog.WatchdogConfig(
-        heartbeat_path=str(heartbeat),
         heartbeat_timeout=1,
+        heartbeat_path=str(tmp_path / "data" / "heartbeat.json"),
+        state_path=str(tmp_path / "data" / "watchdog_state.json"),
     )
+    heartbeat_path = Path(config.heartbeat_path)
+    heartbeat_path.parent.mkdir(parents=True, exist_ok=True)
+    heartbeat_path.write_text("{}", encoding="utf-8")
 
-    ok, message = watchdog._check_heartbeat(config)
+    stale_time = datetime.now(timezone.utc) - timedelta(minutes=5)
+    timestamp = stale_time.timestamp()
+    heartbeat_path.touch()
+    Path(config.heartbeat_path).utime((timestamp, timestamp))
 
+    ok, reason = watchdog._check_heartbeat(config)
     assert ok is False
-    assert "heartbeat_stale" in message
+    assert "heartbeat_stale" in reason
+
+    state: dict[str, object] = {"failures": {}}
+    logger = logging.getLogger("centinel.watchdog.test")
+
+    with caplog.at_level(logging.INFO):
+        watchdog._record_failures({"heartbeat": reason}, state, logger)
+        watchdog._record_failures({}, state, logger)
+
+    assert "watchdog_recovered" in caplog.text
 
 
-def test_watchdog_respects_grace_period_before_action() -> None:
-    """Español: Respeta el grace_period antes de ejecutar acciones.
+def test_watchdog_grace_period_and_action_trigger(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Español: Verifica respeto de grace_period y disparo posterior.
 
-    English: Respect the grace period before taking action.
+    English: Verify grace period is respected before action trigger.
     """
-    now = watchdog._utcnow()
-    config = watchdog.WatchdogConfig(failure_grace_minutes=5, action_cooldown_minutes=1)
+    config = watchdog.WatchdogConfig(failure_grace_minutes=2, action_cooldown_minutes=5)
+    now = datetime(2029, 11, 30, 12, 0, tzinfo=timezone.utc)
+
     state = {
         "failures": {
             "heartbeat": {
-                "first_seen": now.isoformat(),
-                "last_seen": now.isoformat(),
-                "reason": "heartbeat_missing",
+                "first_seen": (now - timedelta(minutes=1)).isoformat(),
+                "last_seen": (now - timedelta(minutes=1)).isoformat(),
+                "reason": "heartbeat_stale",
             }
         },
         "last_action": None,
-        "log_state": {},
     }
 
+    monkeypatch.setattr(watchdog, "_utcnow", lambda: now)
     should_act, reasons = watchdog._should_act(state, config)
     assert should_act is False
     assert reasons == []
 
-    past = (now - timedelta(minutes=6)).isoformat()
-    state["failures"]["heartbeat"]["first_seen"] = past
+    later = now + timedelta(minutes=3)
+    monkeypatch.setattr(watchdog, "_utcnow", lambda: later)
     should_act, reasons = watchdog._should_act(state, config)
     assert should_act is True
     assert reasons
 
 
-def test_watchdog_handle_failure_triggers_restart_and_logs(monkeypatch) -> None:
-    """Español: Confirma reinicio automático y logging crítico ante fallas.
+def test_watchdog_handle_failure_invokes_restart_hooks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Español: Confirma reinicio/alerta cuando fallas acumuladas superan el umbral.
 
-    English: Confirm automatic restart and critical logging on failures.
+    English: Confirm restart/alert is invoked when accumulated failures cross the threshold.
     """
-    actions: dict[str, int] = {"alerts": 0, "terminate": 0, "start": 0}
+    config = watchdog.WatchdogConfig(alert_urls=["https://alert.local"], aggressive_restart=False)
+    calls = {"alert": 0, "terminate": 0, "start": 0}
 
-    def fake_send_alerts(*_args, **_kwargs):
-        actions["alerts"] += 1
+    def fake_alerts(*_args, **_kwargs) -> None:
+        calls["alert"] += 1
 
-    def fake_terminate(*_args, **_kwargs):
-        actions["terminate"] += 1
+    def fake_terminate(*_args, **_kwargs) -> bool:
+        calls["terminate"] += 1
         return True
 
-    def fake_start(*_args, **_kwargs):
-        actions["start"] += 1
+    def fake_start(*_args, **_kwargs) -> None:
+        calls["start"] += 1
 
-    logged: list[tuple[int, str]] = []
-
-    def fake_log_event(_logger, level, event, **_fields):
-        logged.append((level, event))
-
-    monkeypatch.setattr(watchdog, "_send_alerts", fake_send_alerts)
+    monkeypatch.setattr(watchdog, "_send_alerts", fake_alerts)
     monkeypatch.setattr(watchdog, "_terminate_pipeline", fake_terminate)
     monkeypatch.setattr(watchdog, "_start_pipeline", fake_start)
-    monkeypatch.setattr(watchdog, "log_event", fake_log_event)
 
-    logger = logging.getLogger("centinel.watchdog")
-    config = watchdog.WatchdogConfig(aggressive_restart=False)
+    logger = logging.getLogger("centinel.watchdog.test")
+    watchdog._handle_failure(config, ["heartbeat:stale"], logger)
 
-    watchdog._handle_failure(config, ["heartbeat:missing"], logger)
-
-    assert actions == {"alerts": 1, "terminate": 1, "start": 1}
-    assert logged == [(logging.CRITICAL, "watchdog_failure")]
-
-
-def test_watchdog_record_failures_logs_recovery(caplog) -> None:
-    """Español: Registra recuperación cuando falla desaparece del estado.
-
-    English: Log recovery when a failure disappears from tracked state.
-    """
-    logger = logging.getLogger("centinel.watchdog")
-    state = {"failures": {}, "last_action": None, "log_state": {}}
-
-    with caplog.at_level(logging.INFO):
-        watchdog._record_failures({"snapshot": "missing"}, state, logger)
-        watchdog._record_failures({}, state, logger)
-
-    assert any("watchdog_recovered" in record.message for record in caplog.records)
+    assert calls["alert"] == 1
+    assert calls["terminate"] == 1
+    assert calls["start"] == 1

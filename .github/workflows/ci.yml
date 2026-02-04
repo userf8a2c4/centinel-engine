@@ -69,7 +69,7 @@ jobs:
       # Resilience tests / Pruebas de resiliencia
       - name: Resilience tests / Pruebas de resiliencia
         run: |
-          pytest tests/resilience/ -v --cov=scripts
+          poetry run pytest tests/resilience/ -v --cov=scripts
 
       # Upload coverage / Subir cobertura
       - name: Upload coverage to Codecov / Subir cobertura a Codecov
