@@ -198,6 +198,7 @@ reglas_auditoria:
     # Evalúa primer dígito con Ley de Benford y prueba chi-cuadrado.
     # Evaluates first digit with Benford's Law and chi-square test.
     descripcion: "Evalúa primer dígito con Ley de Benford y prueba chi-cuadrado."
+
   - nombre: "check_distribution_chi2"
     # Compara distribución partido/departamento contra esperados proporcionales.
     # Compares party/department distribution against proportional expectations.
@@ -262,23 +263,26 @@ resiliencia:
 - **ES:** El modo low-profile aumenta el intervalo base, añade jitter y rota user-agents con headers mínimos (por ejemplo, Accept-Language y Referer).
 - **EN:** Low-profile mode increases the base interval, adds jitter, and rotates user-agents with minimal headers (e.g., Accept-Language and Referer).
 
-## 3) Chaos Testing
+## 5) Chaos Testing — Condiciones adversas realistas / Realistic adverse conditions
 
 **Qué hace / What it does**
-- **ES:** Ejecuta experimentos de chaos engineering con fallos específicos del CNE (rate-limit 429, timeouts 503, JSON malformado, hashes alterados, fallos de proxy y watchdog). Estos escenarios refuerzan la credibilidad de la auditoría digital en Centroamérica al demostrar recuperación controlada en endpoints agregados.
-- **EN:** Runs chaos engineering experiments with CNE-specific failures (429 rate limits, 503 timeouts, malformed JSON, altered hashes, proxy failures, and watchdog triggers). These scenarios strengthen the credibility of the digital audit in Central America by demonstrating controlled recovery on aggregated endpoints.
+- **ES:** Ejecuta chaos engineering con fallos CNE Honduras (rate-limit 429, timeouts 503, JSON inválido, hashes alterados, fallas de proxy, latencia elevada y pérdida de heartbeat del watchdog). Estos escenarios refuerzan la credibilidad del monitoreo electoral ante misiones internacionales al demostrar recuperación controlada y trazable.
+- **EN:** Runs chaos engineering with Honduras CNE failures (429 rate limits, 503 timeouts, invalid JSON, altered hashes, proxy failures, elevated latency, and watchdog heartbeat loss). These scenarios strengthen credibility for international missions by demonstrating controlled, traceable recovery.
 
 **Componentes / Components**
-- **scripts/chaos_test.py:** Script principal con mocks usando `responses`, métricas de recuperación y reportes JSON.
-- **chaos_config.yaml.example:** Niveles de caos (low/mid/high) con duración, probabilidad de fallos y parámetros de reintento.
-- **tests/chaos/**: Pruebas unitarias que validan recuperación ante rate-limits.
-- **.github/workflows/chaos-test.yml:** Ejecución automática en PRs y pushes.
+- **scripts/chaos_test.py:** Script principal con mocks HTTP usando `responses`, métricas de recuperación y reporte formal.
+- **chaos_config.yaml.example:** Configuración de nivel, duración, probabilidad de fallas y escenarios habilitados.
+- **.github/workflows/chaos-test.yml:** Ejecución automática en PRs (modo low por defecto) y en pushes.
 
 **Ejecución manual / Manual run**
 ```bash
-python scripts/chaos_test.py --config chaos_config.yaml.example --level low --report chaos_report.json
+python scripts/chaos_test.py --config chaos_config.yaml.example --level low
 ```
 
+**Verificación de recuperación / Recovery validation**
+- **ES:** Cada falla abre una ventana de recuperación. El test falla si no se observa un éxito posterior dentro del `max_recovery_seconds`.
+- **EN:** Each failure opens a recovery window. The test fails if no subsequent success occurs within `max_recovery_seconds`.
+
 **Notas de credibilidad / Credibility notes**
-- **ES:** Los reportes incluyen tiempo de recuperación, banderas de anomalía y placeholders de p-values para análisis estadístico futuro.
-- **EN:** Reports include recovery time, anomaly flags, and p-value placeholders for future statistical analysis.
+- **ES:** Los reportes incluyen métricas de resiliencia (success/failure, tiempo de recuperación, escenarios activados) para auditoría independiente.
+- **EN:** Reports include resilience metrics (success/failure, recovery time, activated scenarios) for independent audit review.

@@ -7,6 +7,9 @@ on:
 jobs:
   chaos-tests:
     runs-on: ubuntu-latest
+    env:
+      CHAOS_LEVEL: ${{ github.event_name == 'pull_request' && 'low' || 'medium' }}
+      CHAOS_DURATION_MINUTES: ${{ github.event_name == 'pull_request' && '0.1' || '0.2' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,4 +26,7 @@ jobs:
 
       - name: Run chaos tests
         run: |
-          pytest tests/chaos -q
+          python scripts/chaos_test.py \
+            --config chaos_config.yaml.example \
+            --level "${CHAOS_LEVEL}" \
+            --duration-minutes "${CHAOS_DURATION_MINUTES}"
