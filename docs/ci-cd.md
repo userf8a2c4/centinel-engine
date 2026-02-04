@@ -10,7 +10,7 @@ Este repositorio utiliza GitHub Actions para validar calidad, pruebas, seguridad
 
 Incluye: / Includes:
 - Matriz Python 3.10–3.12. / Python 3.10–3.12 matrix.
-- Instalación con Poetry (`poetry install --no-root`). / Poetry install (`poetry install --no-root`).
+- Instalación con Poetry (`poetry install --no-root --with dev`). / Poetry install (`poetry install --no-root --with dev`).
 - Lint: `flake8` + `black --check`. / Lint: `flake8` + `black --check`.
 - Pruebas con cobertura (`pytest --cov`). / Tests with coverage (`pytest --cov`).
 - Seguridad con Bandit. / Security scan with Bandit.
@@ -26,9 +26,9 @@ Incluye: / Includes:
 **Objetivo:** ejecutar pruebas de caos a bajo nivel en PRs. / **Goal:** run low-level chaos tests on PRs.
 
 ## Cómo contribuir sin romper CI / How to contribute without breaking CI
-- **Instalar dependencias con Poetry**: `poetry install`. / **Install dependencies with Poetry**: `poetry install`.
+- **Instalar dependencias con Poetry**: `poetry install --with dev`. / **Install dependencies with Poetry**: `poetry install --with dev`.
 - **Ejecutar lint local**: `poetry run flake8 .` y `poetry run black --check .`. / **Run lint locally**: `poetry run flake8 .` and `poetry run black --check .`.
-- **Ejecutar pruebas**: `poetry run pytest --cov=centinel --cov-report=term-missing --ignore=tests/chaos --ignore=tests/integration`. / **Run tests**: `poetry run pytest --cov=centinel --cov-report=term-missing --ignore=tests/chaos --ignore=tests/integration`.
+- **Ejecutar pruebas**: `poetry run pytest --cov=centinel --cov-report=term-missing`. / **Run tests**: `poetry run pytest --cov=centinel --cov-report=term-missing`.
 - **Chaos tests (si aplica)**: `poetry run pytest tests/chaos -q`. / **Chaos tests (if applicable)**: `poetry run pytest tests/chaos -q`.
 - **Actualizar Poetry lock** cuando se agreguen dependencias. / **Update Poetry lock** when adding dependencies.
 
@@ -37,7 +37,7 @@ Incluye: / Includes:
 - **Falla de flake8**: revisa estilo y líneas largas; usa exclusiones solo si están justificadas. / **flake8 failure**: check style and long lines; use exclusions only with justification.
 - **Bandit reporta falsos positivos**: revisa el contexto y agrega exclusiones específicas con criterio. / **Bandit false positives**: review context and add targeted exclusions with care.
 - **Cobertura no sube**: revisa que se haya generado `coverage.xml`. / **Coverage not uploaded**: ensure `coverage.xml` is generated.
-- **Cache inválido**: elimina la cache o incrementa el lockfile. / **Invalid cache**: clear cache or update lockfile.
+- **Cache inválido**: elimina la cache o actualiza el lockfile. / **Invalid cache**: clear cache or update lockfile.
 
 ## Referencias / References
 - GitHub Actions: https://docs.github.com/en/actions

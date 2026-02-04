@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies / Instalar dependencias
         run: |
           poetry config virtualenvs.in-project true
-          poetry install --no-root
+          poetry install --no-root --with dev
 
       # Run chaos tests / Ejecutar pruebas de caos
       - name: Run chaos tests / Ejecutar pruebas de caos
