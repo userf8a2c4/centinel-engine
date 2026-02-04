@@ -68,6 +68,13 @@ async def fetch_content(
         request_kwargs["timeout"] = httpx.Timeout(proxy_rotator.proxy_timeout_seconds)
 
     start = time.monotonic()
+    logger.debug(
+        "fetch_start",
+        url=url,
+        proxy=proxy_url or "direct",
+        if_none_match=bool(if_none_match),
+        if_modified_since=bool(if_modified_since),
+    )
     try:
         response = await client.get(url, headers=headers, **request_kwargs)
     except httpx.RequestError as exc:
@@ -83,6 +90,7 @@ async def fetch_content(
         raise
 
     elapsed = time.monotonic() - start
+    content_length = response.headers.get("Content-Length")
     if proxy_rotator and proxy_url:
         if response.status_code >= 400:
             proxy_rotator.mark_failure(proxy_url, f"status {response.status_code}")
@@ -91,6 +99,7 @@ async def fetch_content(
                 proxy=proxy_url,
                 status_code=response.status_code,
                 elapsed_seconds=round(elapsed, 3),
+                content_length=content_length,
             )
         else:
             proxy_rotator.mark_success(proxy_url)
@@ -99,12 +108,14 @@ async def fetch_content(
                 proxy=proxy_url,
                 status_code=response.status_code,
                 elapsed_seconds=round(elapsed, 3),
+                content_length=content_length,
             )
     else:
         logger.info(
             "direct_response",
             status_code=response.status_code,
             elapsed_seconds=round(elapsed, 3),
+            content_length=content_length,
         )
 
     if response.status_code in {429, 503}:
@@ -229,4 +240,13 @@ async def download_and_hash(
 
     content = response.content
     write_atomic(output_path, content)
-    return chained_hash(content, previous_hash)
+    chained = chained_hash(content, previous_hash)
+    logger.info(
+        "download_hash_written",
+        url=url,
+        output_path=str(output_path),
+        content_bytes=len(content),
+        previous_hash=previous_hash,
+        chained_hash=chained,
+    )
+    return chained

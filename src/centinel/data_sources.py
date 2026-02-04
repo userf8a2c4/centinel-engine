@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -219,6 +220,12 @@ class DataSourceManager:
         """Obtiene el siguiente batch de actas con fallback automático."""
         start_index = self._starting_index()
         last_error: Optional[Exception] = None
+        self.logger.info(
+            "datasource_cycle_start",
+            sources=len(self.sources),
+            start_index=start_index,
+            last_successful_source_id=self._last_successful_source_id,
+        )
 
         for offset in range(len(self.sources)):
             source = self.sources[(start_index + offset) % len(self.sources)]
@@ -327,23 +334,46 @@ class DataSourceManager:
         if source.batch_path:
             url = f"{url.rstrip('/')}/{source.batch_path.lstrip('/')}"
 
+        start = time.monotonic()
         response = await self._client.get(
             url,
             headers=source.headers,
             params=source.params,
             timeout=httpx.Timeout(source.timeout_seconds or 10),
         )
+        elapsed = time.monotonic() - start
+        self.logger.info(
+            "datasource_response",
+            source_id=source.source_id,
+            kind=source.kind.value,
+            url=url,
+            status_code=response.status_code,
+            elapsed_seconds=round(elapsed, 3),
+        )
         if response.status_code >= 400:
             raise DataSourceError(
                 f"HTTP {response.status_code} from {source.source_id} ({url})"
             )
 
-        try:
-            payload = response.json()
-        except (ValueError, json.JSONDecodeError) as exc:
-            raise DataSourceError(
-                f"Invalid JSON from {source.source_id} ({url}): {exc}"
-            ) from exc
+        payload = response.json()
+        payload_type = type(payload).__name__
+        payload_size: Optional[int] = None
+        if isinstance(payload, list):
+            payload_size = len(payload)
+        elif isinstance(payload, dict):
+            if source.data_key and source.data_key in payload:
+                raw_batch = payload.get(source.data_key)
+            else:
+                raw_batch = payload.get("actas") or payload.get("data")
+            if isinstance(raw_batch, list):
+                payload_size = len(raw_batch)
+        self.logger.debug(
+            "datasource_payload_loaded",
+            source_id=source.source_id,
+            kind=source.kind.value,
+            payload_type=payload_type,
+            payload_size=payload_size,
+        )
         return self._extract_batch(payload, source)
 
     def _extract_batch(self, payload: Any, source: DataSourceDefinition) -> List[Acta]:

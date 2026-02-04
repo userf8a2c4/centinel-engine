@@ -218,7 +218,23 @@ def publish_hash_to_chain(current_chain_hash: str) -> str:
     from web3 import Web3
 
     payload = Web3.to_bytes(hexstr=current_chain_hash)
-    return _send_payload_to_chain(web3, chain_id, private_key, payload)
+    logger.info(
+        "blockchain_publish_start",
+        payload_type="hash",
+        chain_id=chain_id,
+    )
+    try:
+        tx_hash = _send_payload_to_chain(web3, chain_id, private_key, payload)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("blockchain_publish_failed", payload_type="hash", error=str(exc))
+        raise
+    logger.info(
+        "blockchain_publish_ok",
+        payload_type="hash",
+        chain_id=chain_id,
+        tx_hash=tx_hash,
+    )
+    return tx_hash
 
 
 def publish_cid_to_chain(cid: str) -> str:
@@ -252,4 +268,20 @@ def publish_cid_to_chain(cid: str) -> str:
     from web3 import Web3
 
     payload = Web3.to_bytes(text=cid)
-    return _send_payload_to_chain(web3, chain_id, private_key, payload)
+    logger.info(
+        "blockchain_publish_start",
+        payload_type="cid",
+        chain_id=chain_id,
+    )
+    try:
+        tx_hash = _send_payload_to_chain(web3, chain_id, private_key, payload)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("blockchain_publish_failed", payload_type="cid", error=str(exc))
+        raise
+    logger.info(
+        "blockchain_publish_ok",
+        payload_type="cid",
+        chain_id=chain_id,
+        tx_hash=tx_hash,
+    )
+    return tx_hash

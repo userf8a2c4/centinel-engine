@@ -338,7 +338,7 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
 if __name__ == "__main__":
     # Ejemplo de uso / Usage example.
     sample_votes = [120, 340, 560, 780, 910, 101, 230, 456, 789, 905]
-    print(apply_benford_law(sample_votes))
+    logger.info("benford_sample_result %s", apply_benford_law(sample_votes))
 
     sample_votes_frame = pd.DataFrame(
         {
@@ -347,4 +347,6 @@ if __name__ == "__main__":
             "votos": [1200, 800, 2400, 1600],
         }
     )
-    print(check_distribution_chi2(sample_votes_frame))
+    logger.info(
+        "chi2_sample_result %s", check_distribution_chi2(sample_votes_frame)
+    )

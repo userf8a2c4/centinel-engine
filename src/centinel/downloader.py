@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import random
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -523,6 +524,7 @@ def request_json_with_retry(
                     url=url,
                     context=context,
                 )
+                start = time.monotonic()
                 response = _perform_request(
                     session,
                     "GET",
@@ -534,6 +536,7 @@ def request_json_with_retry(
                     context=context,
                     alert_hook=alert_hook,
                 )
+                elapsed = time.monotonic() - start
                 try:
                     payload = response.json()
                 except (json.JSONDecodeError, ValueError) as exc:
@@ -554,11 +557,27 @@ def request_json_with_retry(
                         response_text=response_text,
                         context=context,
                     ) from exc
+                logger.info(
+                    "request_success",
+                    url=url,
+                    status_code=response.status_code,
+                    elapsed_seconds=round(elapsed, 3),
+                    payload_type=type(payload).__name__,
+                    context=context,
+                )
                 return response, payload
     except Exception as exc:
         status_code = getattr(exc, "status_code", None)
         response_text = getattr(exc, "response_text", None)
         attempts = getattr(retrying, "statistics", {}).get("attempt_number", 0)
+        logger.error(
+            "request_failed",
+            url=url,
+            status_code=status_code,
+            attempts=attempts or 1,
+            error=str(exc),
+            context=context,
+        )
         failed_payload = _build_failed_payload(
             url=url,
             method="GET",
@@ -608,6 +627,7 @@ def request_with_retry(
                     url=url,
                     context=context,
                 )
+                start = time.monotonic()
                 response = _perform_request(
                     session,
                     "GET",
@@ -619,11 +639,27 @@ def request_with_retry(
                     context=context,
                     alert_hook=alert_hook,
                 )
+                elapsed = time.monotonic() - start
+                logger.info(
+                    "request_success",
+                    url=url,
+                    status_code=response.status_code,
+                    elapsed_seconds=round(elapsed, 3),
+                    context=context,
+                )
                 return response
     except Exception as exc:
         status_code = getattr(exc, "status_code", None)
         response_text = getattr(exc, "response_text", None)
         attempts = getattr(retrying, "statistics", {}).get("attempt_number", 0)
+        logger.error(
+            "request_failed",
+            url=url,
+            status_code=status_code,
+            attempts=attempts or 1,
+            error=str(exc),
+            context=context,
+        )
         failed_payload = _build_failed_payload(
             url=url,
             method="GET",
