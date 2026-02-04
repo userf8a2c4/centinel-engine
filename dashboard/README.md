@@ -17,6 +17,14 @@ Para habilitar el reporte PDF profesional instala ReportLab:
 pip install reportlab
 ```
 
+Si usas `requirements.txt` del dashboard ya incluye `reportlab>=4.2.5`.
+
+## Uso del botón Exportar Reporte PDF
+
+1. Abre el dashboard y navega a la pestaña **Reportes y Exportación**.
+2. Usa el selector de **Snapshot histórico** en la barra lateral para elegir el snapshot a exportar.
+3. Presiona **Exportar Reporte PDF** para descargar un reporte profesional con portada, tablas resumen y secciones bilingües.
+
 ## Contenido principal
 - Pilar principal: inmutabilidad criptográfica + anclaje en L2.
 - Detección automática y reproducible de cambios.
