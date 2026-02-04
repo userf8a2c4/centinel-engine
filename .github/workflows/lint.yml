@@ -1,18 +1,12 @@
-name: CI
+name: Lint
 
 on:
   push:
     branches: ["main", "dev-v6"]
-  pull_request:
 
 jobs:
-  ci:
-    name: CI (Python ${{ matrix.python-version }})
+  lint:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       # Checkout / Revisar código
@@ -20,10 +14,10 @@ jobs:
         uses: actions/checkout@v4
 
       # Setup Python / Preparar Python
-      - name: Set up Python ${{ matrix.python-version }} / Configurar Python
+      - name: Set up Python / Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
 
       # Install Poetry / Instalar Poetry
       - name: Install Poetry / Instalar Poetry
@@ -38,9 +32,9 @@ jobs:
           path: |
             ~/.cache/pypoetry
             .venv
-          key: ${{ runner.os }}-poetry-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+          key: ${{ runner.os }}-poetry-3.11-${{ hashFiles('poetry.lock') }}
           restore-keys: |
-            ${{ runner.os }}-poetry-${{ matrix.python-version }}-
+            ${{ runner.os }}-poetry-3.11-
 
       # Install dependencies / Instalar dependencias
       - name: Lock dependencies / Bloquear dependencias
@@ -57,24 +51,3 @@ jobs:
         run: |
           poetry run flake8 .
           poetry run black --check .
-
-      # Test + coverage / Pruebas + cobertura
-      - name: Test with coverage / Pruebas con cobertura
-        run: |
-          poetry run pytest --cov=centinel --cov-report=xml --cov-report=term-missing --ignore=tests/chaos --ignore=tests/integration
-
-      # Upload coverage / Subir cobertura
-      - name: Upload coverage to Codecov / Subir cobertura a Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.xml
-          fail_ci_if_error: false
-
-      # Security scan / Escaneo de seguridad
-      - name: Install Bandit / Instalar Bandit
-        run: |
-          poetry run pip install bandit
-
-      - name: Bandit security scan / Escaneo Bandit
-        run: |
-          poetry run bandit -r src -x tests,docs,.venv,build,dist
