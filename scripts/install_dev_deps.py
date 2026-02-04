@@ -37,7 +37,7 @@ def _format_dependency(name: str, constraint: object) -> str | None:
 def main() -> int:
     pyproject = Path("pyproject.toml")
     data = tomllib.loads(pyproject.read_text())
-    dev_deps = data["tool"]["poetry"]["group"]["dev"]["dependencies"]
+    dev_deps = data.get("tool", {}).get("poetry", {}).get("group", {}).get("dev", {}).get("dependencies", {})
     requirements = [
         formatted
         for name, constraint in dev_deps.items()
