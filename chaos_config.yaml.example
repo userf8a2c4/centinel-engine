@@ -1,0 +1,13 @@
+# Chaos testing configuration for CNE polling simulations.
+
+chaos:
+  enabled: true
+  level: "PRES"
+  scope: "NATIONAL"
+  scenarios:
+    - "rate_limit_429"
+    - "timeout_503"
+    - "malformed_json"
+    - "hash_altered"
+    - "proxy_fail"
+    - "server_error_503"
