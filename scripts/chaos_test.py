@@ -47,7 +47,7 @@ def create_mock_callback(
     """Create a callback that simulates server behaviors without recording metrics."""
 
     def _callback(request: requests.PreparedRequest) -> ScenarioResponse:
-        attempt_counter["count"] += 1
+        attempt_counter["count"] = attempt_counter.get("count", 0) + 1
         scenario = select_scenario(rng, level)
         if scenario == "rate_limit_429":
             logger.warning("scenario=rate_limit_429 url=%s", request.url)
