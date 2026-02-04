@@ -2619,13 +2619,25 @@ with tabs[0]:
         timeline_labels = timeline_labels.fillna(timeline_df["timestamp"].astype(str))
         timeline_df["timeline_label"] = timeline_labels
 
-        range_indices = st.slider(
-            "Rango de tiempo",
-            min_value=0,
-            max_value=max(len(timeline_df) - 1, 0),
-            value=(0, max(len(timeline_df) - 1, 0)),
-            step=1,
-        )
+        max_index = max(len(timeline_df) - 1, 0)
+        if max_index < 1:
+            st.slider(
+                "Rango de tiempo",
+                min_value=0,
+                max_value=max_index,
+                value=0,
+                step=1,
+                disabled=True,
+            )
+            range_indices = (0, 0)
+        else:
+            range_indices = st.slider(
+                "Rango de tiempo",
+                min_value=0,
+                max_value=max_index,
+                value=(0, max_index),
+                step=1,
+            )
         speed_label = st.select_slider(
             "Velocidad de avance",
             options=["Lento", "Medio", "Rápido"],
