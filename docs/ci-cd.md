@@ -28,7 +28,7 @@ Incluye: / Includes:
 ## Cómo contribuir sin romper CI / How to contribute without breaking CI
 - **Instalar dependencias con Poetry**: `poetry install`. / **Install dependencies with Poetry**: `poetry install`.
 - **Ejecutar lint local**: `poetry run flake8 .` y `poetry run black --check .`. / **Run lint locally**: `poetry run flake8 .` and `poetry run black --check .`.
-- **Ejecutar pruebas**: `poetry run pytest --cov=centinel --cov-report=term-missing`. / **Run tests**: `poetry run pytest --cov=centinel --cov-report=term-missing`.
+- **Ejecutar pruebas**: `poetry run pytest --cov=centinel --cov-report=term-missing --ignore=tests/chaos --ignore=tests/integration`. / **Run tests**: `poetry run pytest --cov=centinel --cov-report=term-missing --ignore=tests/chaos --ignore=tests/integration`.
 - **Chaos tests (si aplica)**: `poetry run pytest tests/chaos -q`. / **Chaos tests (if applicable)**: `poetry run pytest tests/chaos -q`.
 - **Actualizar Poetry lock** cuando se agreguen dependencias. / **Update Poetry lock** when adding dependencies.
 
@@ -37,7 +37,7 @@ Incluye: / Includes:
 - **Falla de flake8**: revisa estilo y líneas largas; usa exclusiones solo si están justificadas. / **flake8 failure**: check style and long lines; use exclusions only with justification.
 - **Bandit reporta falsos positivos**: revisa el contexto y agrega exclusiones específicas con criterio. / **Bandit false positives**: review context and add targeted exclusions with care.
 - **Cobertura no sube**: revisa que se haya generado `coverage.xml`. / **Coverage not uploaded**: ensure `coverage.xml` is generated.
-- **Cache inválido**: elimina la cache o actualiza el lockfile ejecutando `poetry lock`. / **Invalid cache**: clear cache or update the lockfile by running `poetry lock`.
+- **Cache inválido**: elimina la cache o incrementa el lockfile. / **Invalid cache**: clear cache or update lockfile.
 
 ## Referencias / References
 - GitHub Actions: https://docs.github.com/en/actions

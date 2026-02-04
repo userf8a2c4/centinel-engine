@@ -8,7 +8,7 @@
       "groupName": "github-actions"
     },
     {
-      "matchManagers": ["poetry"],
+      "matchManagers": ["pip_requirements", "poetry"],
       "groupName": "python dependencies"
     }
   ]
