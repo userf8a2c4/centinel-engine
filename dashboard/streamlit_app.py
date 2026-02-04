@@ -312,6 +312,21 @@ def resolve_snapshot_context(
     return current_ts, previous_ts
 
 
+def derive_alert_thresholds(resilience_cfg: dict, expected_streams: int) -> dict[str, int]:
+    """Español: Calcula umbrales de alerta basados en rules.yaml para diffs/anomalías.
+
+    English: Compute alert thresholds from rules.yaml for diffs/anomalies visibility.
+    """
+    min_samples = int(resilience_cfg.get("benford_min_samples", 10) or 10)
+    diff_error_min = max(2, int(round(expected_streams * 0.2)))
+    anomaly_error_min = max(1, min_samples)
+    return {
+        "diff_error_min": diff_error_min,
+        "anomaly_error_min": anomaly_error_min,
+        "min_samples": min_samples,
+    }
+
+
 def emit_toast(message: str, icon: str = "⚠️") -> None:
     """Español: Emite una notificación tipo snackbar si está disponible.
 
@@ -1709,9 +1724,9 @@ def generate_pdf_report(
     previous_hash: str,
     diffs: dict[str, Any],
 ) -> bytes:
-    """Español: Genera un PDF formal bilingüe con resumen nacional y por departamento.
+    """Español: Genera un PDF formal bilingüe con portada, resumen y trazabilidad técnica.
 
-    English: Generate a bilingual formal PDF with national and departmental summaries.
+    English: Generate a formal bilingual PDF with cover page, summary tables, and traceability.
     """
     if not REPORTLAB_AVAILABLE:
         raise RuntimeError("reportlab is required to build the PDF report.")
@@ -1831,6 +1846,13 @@ def generate_pdf_report(
     elements.append(Paragraph("Reporte de Auditoría Centinel", styles["CoverTitle"]))
     elements.append(
         Paragraph(
+            "Monitoreo técnico de integridad y trazabilidad para datos públicos del CNE "
+            "(JSON agregado nacional + 18 departamentos).",
+            styles["Body"],
+        )
+    )
+    elements.append(
+        Paragraph(
             f"Fecha de generación: {report_date}<br/>"
             f"Versión: {version}<br/>"
             f"Hash del snapshot actual: {current_hash}<br/>"
@@ -1839,6 +1861,7 @@ def generate_pdf_report(
         )
     )
     elements.append(Spacer(1, 16))
+    elements.append(PageBreak())
 
     elements.append(Paragraph("Resumen Nacional", styles["SectionTitle"]))
     national_rows = [
@@ -1861,20 +1884,29 @@ def generate_pdf_report(
     elements.append(build_table(dept_rows, [doc.width * 0.45, doc.width * 0.25, doc.width * 0.3]))
     elements.append(Spacer(1, 12))
 
+    elements.append(Paragraph("Diferencias detectadas (Diffs)", styles["SectionTitle"]))
+    diff_rows = [["Departamento", "Delta vs snapshot previo"]]
+    if diffs:
+        for dept, diff_value in diffs.items():
+            diff_rows.append([dept, diff_value])
+    else:
+        diff_rows.append(["N/D", "Sin cambios relevantes detectados"])
+    elements.append(build_table(diff_rows, [doc.width * 0.5, doc.width * 0.5]))
+    elements.append(Spacer(1, 12))
+
     elements.append(Paragraph("Metodología (ES/EN)", styles["SectionTitle"]))
     metodologia = (
         "<b>ES:</b> Este reporte resume únicamente datos públicos agregados del CNE "
-        "a nivel nacional y departamental. En futuras versiones se incorporarán pruebas "
-        "estadísticas (Benford, chi-cuadrado) para evaluar distribución de dígitos y "
-        "consistencia temporal. El hashing encadenado asegura que cada snapshot se "
-        "vincula criptográficamente con el anterior, permitiendo detectar alteraciones. "
-        "Las diferencias (diffs) reflejan cambios entre el snapshot más reciente y el "
-        "inmediatamente anterior. [Placeholder metodológico bilingüe].<br/><br/>"
+        "a nivel nacional y por departamento (18). No se incluyen mesas, actas ni votos "
+        "individuales. Las métricas se calculan sobre snapshots JSON públicos y encadenados "
+        "por hash, lo que permite detectar cambios entre el snapshot actual y el previo. "
+        "En futuras versiones se incorporarán pruebas estadísticas (Benford, chi-cuadrado) "
+        "y validaciones adicionales de consistencia. [Placeholder metodológico bilingüe].<br/><br/>"
         "<b>EN:</b> This report summarizes only public, aggregated CNE data at national "
-        "and departmental levels. Future versions will include statistical tests "
-        "(Benford, chi-square) to assess digit distribution and temporal consistency. "
-        "Chained hashing links each snapshot to the previous one, enabling tamper detection. "
-        "Diffs represent changes between the latest snapshot and the immediately prior one. "
+        "and departmental levels (18). It excludes precinct tables, actas, or individual votes. "
+        "Metrics are computed from public JSON snapshots linked by hashing to detect changes "
+        "between the latest and previous snapshots. Future versions will include statistical "
+        "tests (Benford, chi-square) and additional consistency checks. "
         "[Bilingual methodology placeholder]."
     )
     elements.append(Paragraph(metodologia, styles["Body"]))
@@ -1882,15 +1914,16 @@ def generate_pdf_report(
 
     elements.append(Paragraph("Declaración de Neutralidad (ES/EN)", styles["SectionTitle"]))
     disclaimer = (
-        "<b>ES:</b> Este documento utiliza únicamente datos públicos del CNE. "
-        "No contiene interpretación política ni conclusiones electorales. "
-        "No sustituye ni pretende reemplazar procesos oficiales del CNE. "
+        "<b>ES:</b> Este documento utiliza exclusivamente datos públicos del CNE y "
+        "no incluye información sensible ni desagregada. No contiene interpretación "
+        "política ni conclusiones electorales, y no sustituye procesos oficiales del CNE. "
         "Su propósito es documentar integridad técnica, trazabilidad y transparencia "
-        "para observadores internacionales. <br/><br/>"
-        "<b>EN:</b> This document relies solely on public CNE data. It contains "
-        "no political interpretation or electoral conclusions. It does not replace "
-        "official CNE processes. Its purpose is to document technical integrity, "
-        "traceability, and transparency for international observers."
+        "para observadores internacionales de manera neutral y verificable.<br/><br/>"
+        "<b>EN:</b> This document relies solely on public CNE data and contains no "
+        "sensitive or disaggregated information. It provides no political interpretation "
+        "or electoral conclusions, and it does not replace official CNE processes. "
+        "Its purpose is to document technical integrity, traceability, and transparency "
+        "for international observers in a neutral, verifiable manner."
     )
     elements.append(Paragraph(disclaimer, styles["Body"]))
 
@@ -2337,7 +2370,8 @@ current_snapshot_ts, previous_snapshot_ts = resolve_snapshot_context(
     snapshots_df, selected_snapshot_timestamp
 )
 expected_streams = int(resilience_cfg.get("max_json_presidenciales", 19) or 19)
-min_samples = int(resilience_cfg.get("benford_min_samples", 10) or 10)
+alert_thresholds = derive_alert_thresholds(resilience_cfg, expected_streams)
+min_samples = alert_thresholds["min_samples"]
 observed_streams = 0
 if current_snapshot_ts is not None and not snapshots_df.empty:
     snapshots_df["timestamp_dt"] = pd.to_datetime(
@@ -2430,9 +2464,10 @@ with alert_focus_container:
         diff_label = ", ".join(negative_diffs[:5])
         message = (
             "Deltas negativos detectados en departamentos: "
-            f"{diff_label}{'…' if len(negative_diffs) > 5 else ''}."
+            f"{diff_label}{'…' if len(negative_diffs) > 5 else ''}. "
+            f"(Umbral rules.yaml ≥ {alert_thresholds['diff_error_min']})"
         )
-        if len(negative_diffs) >= 3:
+        if len(negative_diffs) >= alert_thresholds["diff_error_min"]:
             st.error(message)
             emit_toast(message, icon="🚨")
         else:
@@ -2452,11 +2487,15 @@ with alert_focus_container:
 
 if not filtered_anomalies.empty:
     st.markdown("<div class='alert-bar'>", unsafe_allow_html=True)
-    st.warning(
+    anomalies_message = (
         f"Se detectaron {len(filtered_anomalies)} anomalías recientes. "
-        "Revisar deltas negativos y outliers.",
-        icon="⚠️",
+        "Revisar deltas negativos y outliers. "
+        f"(Umbral rules.yaml ≥ {alert_thresholds['anomaly_error_min']})"
     )
+    if len(filtered_anomalies) >= alert_thresholds["anomaly_error_min"]:
+        st.error(anomalies_message, icon="🚨")
+    else:
+        st.warning(anomalies_message, icon="⚠️")
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
@@ -2802,6 +2841,10 @@ with tabs[5]:
         "Reporte generado desde JSON público del CNE (18 departamentos + nacional). "
         f"Snapshot seleccionado: {selected_snapshot_display} · "
         f"Hash actual: {snapshot_hash_display}."
+    )
+    st.info(
+        "Instalación PDF (reportlab): `pip install reportlab`",
+        icon="🧾",
     )
     report_time_dt = dt.datetime.now(dt.timezone.utc)
     report_time = report_time_dt.strftime("%Y-%m-%d %H:%M")
