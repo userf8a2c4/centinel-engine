@@ -64,6 +64,8 @@ def setup_logging() -> None:
             level_str,
             log_file,
         )
-    except Exception as e:  # noqa: BLE001
-        print(f"Error al configurar logging: {e}")
+    except Exception:  # noqa: BLE001
         logging.basicConfig(level=logging.INFO)
+        logging.getLogger(__name__).exception(
+            "logging_setup_failed fallback=basic_config"
+        )

@@ -697,10 +697,15 @@ async def is_healthy_strict() -> tuple[bool, dict[str, Any]]:
 
     diagnostics["healthy"] = not diagnostics["failures"]
     if diagnostics["healthy"]:
-        logger.info("strict_healthcheck_ok")
+        logger.info(
+            "strict_healthcheck_ok",
+            checks=list(diagnostics["checks"].keys()),
+        )
     else:
         logger.critical(
-            "strict_healthcheck_failed failures=%s", diagnostics["failures"]
+            "strict_healthcheck_failed",
+            failures=diagnostics["failures"],
+            checks=diagnostics["checks"],
         )
 
     _record_diagnostic(diagnostics)

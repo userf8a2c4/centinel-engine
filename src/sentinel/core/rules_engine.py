@@ -6,6 +6,7 @@ Advanced rules engine for statistical snapshot analysis.
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,6 +28,8 @@ from sentinel.core.rules import (  # noqa: F401
     turnout_impossible_rule,
 )
 from sentinel.core.rules.registry import RuleDefinition, list_rules
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -100,6 +103,12 @@ class RulesEngine:
                     status="skipped",
                     alerts=[],
                 )
+                logger.debug(
+                    "rule_skipped",
+                    rule=rule.name,
+                    snapshot_id=snapshot_id,
+                    config_key=rule.config_key,
+                )
                 continue
 
             rule_config = self.config.get("rules", {}).get(rule.config_key, {})
@@ -111,6 +120,12 @@ class RulesEngine:
                     snapshot_id,
                     status="error",
                     alerts=[],
+                    error=str(exc),
+                )
+                logger.error(
+                    "rule_error",
+                    rule=rule.name,
+                    snapshot_id=snapshot_id,
                     error=str(exc),
                 )
                 continue
@@ -128,6 +143,19 @@ class RulesEngine:
                 status="ok",
                 alerts=rule_alerts,
             )
+            if rule_alerts:
+                logger.warning(
+                    "rule_alerts",
+                    rule=rule.name,
+                    snapshot_id=snapshot_id,
+                    alerts_count=len(rule_alerts),
+                )
+            else:
+                logger.info(
+                    "rule_ok",
+                    rule=rule.name,
+                    snapshot_id=snapshot_id,
+                )
 
         return RulesEngineResult(
             alerts=alerts,

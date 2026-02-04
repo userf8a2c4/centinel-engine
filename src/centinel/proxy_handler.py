@@ -171,6 +171,12 @@ class ProxyRotator:
             return None
         if self.mode == "proxy_list":
             self._current_proxy = active[0]
+            self.logger.debug(
+                "proxy_selected",
+                mode=self.mode,
+                strategy=self.rotation_strategy,
+                proxy=self._current_proxy.url,
+            )
             return self._current_proxy.url
         self._requests_since_rotation += 1
         if (
@@ -179,6 +185,13 @@ class ProxyRotator:
         ):
             self._current_proxy = self._select_next_proxy()
             self._requests_since_rotation = 0
+            if self._current_proxy:
+                self.logger.debug(
+                    "proxy_rotated",
+                    mode=self.mode,
+                    strategy=self.rotation_strategy,
+                    proxy=self._current_proxy.url,
+                )
         return self._current_proxy.url if self._current_proxy else None
 
     def mark_success(self, proxy_url: str) -> None:
@@ -189,6 +202,10 @@ class ProxyRotator:
         proxy = self._find_proxy(proxy_url)
         if proxy:
             proxy.mark_success()
+            self.logger.info(
+                "proxy_marked_success",
+                proxy=proxy.url,
+            )
 
     def mark_failure(self, proxy_url: str, reason: str) -> None:
         """Español: Función mark_failure del módulo src/centinel/proxy_handler.py.
@@ -199,6 +216,12 @@ class ProxyRotator:
         if not proxy:
             return
         proxy.mark_failure(reason)
+        self.logger.warning(
+            "proxy_marked_failure",
+            proxy=proxy.url,
+            reason=reason,
+            consecutive_failures=proxy.consecutive_failures,
+        )
         if proxy.dead:
             self.logger.warning(
                 "proxy_marked_dead",

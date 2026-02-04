@@ -520,8 +520,10 @@ if __name__ == "__main__":
 
     if not os.environ.get("CHECKPOINT_KEY"):
         key = generate_checkpoint_key()
-        print("Generated CHECKPOINT_KEY:", key)
-        print("Export it before running: export CHECKPOINT_KEY='...'\n")
+        logging.info(
+            "Generated CHECKPOINT_KEY. Export it before running: export CHECKPOINT_KEY='...'"
+        )
+        logging.debug("CHECKPOINT_KEY_VALUE=%s", key)
 
     manager = CheckpointManager(
         bucket_name=os.environ.get(
