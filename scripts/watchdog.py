@@ -18,6 +18,10 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
+try:
+    import psutil
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    psutil = None
 import requests
 import yaml
 
@@ -322,8 +326,9 @@ def _terminate_pipeline(config: WatchdogConfig, logger: logging.Logger) -> bool:
 
     English: Function _terminate_pipeline defined in scripts/watchdog.py.
     """
-    import psutil
-
+    if psutil is None:
+        logger.warning("watchdog_psutil_missing")
+        return False
     matched = []
     for proc in psutil.process_iter(["pid", "cmdline"]):
         cmdline = proc.info.get("cmdline") or []
