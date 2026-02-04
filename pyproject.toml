@@ -52,7 +52,7 @@ black = "*"
 flake8 = "*"
 mypy = "*"
 pytest-cov = "*"
-httpx-mock = "*"
+httpx-mock = ">=0.10.0,<0.11.0"
 pytest-mock = ">=3.14.0"
 responses = ">=0.25.0"
 
