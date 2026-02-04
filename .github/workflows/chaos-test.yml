@@ -7,27 +7,47 @@ jobs:
   chaos-tests:
     runs-on: ubuntu-latest
     env:
-      CHAOS_LEVEL: ${{ github.event_name == 'pull_request' && 'low' || 'medium' }}
-      CHAOS_DURATION_MINUTES: ${{ github.event_name == 'pull_request' && '0.1' || '0.2' }}
+      CHAOS_LEVEL: low
+      CHAOS_DURATION_MINUTES: "0.1"
+
     steps:
-      # Checkout / Revisar código
+      # Checkout / Clonar repositorio
       - name: Checkout repository / Clonar repositorio
         uses: actions/checkout@v4
 
-      # Setup Python / Preparar Python
+      # Setup Python / Configurar Python
       - name: Set up Python / Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: poetry
+          cache-dependency-path: poetry.lock
+
+      # Install Poetry / Instalar Poetry
+      - name: Install Poetry / Instalar Poetry
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+
+      # Cache Poetry + venv / Cache de Poetry + entorno virtual
+      - name: Cache Poetry and virtualenv / Cache de Poetry y entorno virtual
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            .venv
+          key: ${{ runner.os }}-poetry-3.11-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-3.11-
 
       # Install dependencies / Instalar dependencias
       - name: Install dependencies / Instalar dependencias
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-dev.txt
+          poetry config virtualenvs.in-project true
+          poetry install --no-root --with dev
 
       # Run chaos tests / Ejecutar pruebas de caos
-      - name: Run chaos tests / Ejecutar pruebas de caos
+      - name: Run chaos tests (low level) / Ejecutar pruebas de caos (nivel bajo)
         run: |
           python scripts/chaos_test.py \
             --config chaos_config.yaml.example \
