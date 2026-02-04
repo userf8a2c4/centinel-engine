@@ -2,9 +2,9 @@
 
 ## Introducción formal / Formal introduction
 
-**ES:** La resiliencia en auditoría electoral digital asegura continuidad, integridad y verificabilidad del monitoreo cuando las fuentes públicas presentan **rate-limits, timeouts, fingerprinting o bloqueos temporales**. En CENTINEL, el pipeline consulta JSON públicos del CNE con cadencia típica de **cada 5 minutos** en elección activa. La estrategia es defensiva y proporcional: **reintentos controlados, backoff con jitter, rotación de proxies y watchdogs** reducen presión sobre la fuente, documentan fallos y preservan evidencia reproducible para observadores internacionales (OEA, Carter Center, NED, Luminate).
+**ES:** La resiliencia en auditoría electoral digital garantiza continuidad, integridad y verificabilidad cuando las fuentes públicas presentan **rate-limits, timeouts, fingerprinting o bloqueos temporales**. En C.E.N.T.I.N.E.L., el pipeline consulta JSON públicos del CNE con cadencia típica de **cada 5 minutos** en elección activa. La estrategia es defensiva y proporcional: **reintentos controlados, backoff con jitter, rotación de proxies y watchdogs** reducen presión sobre la fuente, documentan fallos y preservan evidencia reproducible para observadores internacionales (OEA, Carter Center).
 
-**EN:** Resilience in digital electoral auditing preserves continuity, integrity, and verifiability when public sources face **rate limits, timeouts, fingerprinting, or temporary blocks**. In CENTINEL, the pipeline polls public CNE JSON on a typical **5-minute cadence** during active elections. The approach is defensive and proportional: **controlled retries, backoff with jitter, proxy rotation, and watchdog thresholds** reduce pressure on the source, document failures, and preserve reproducible evidence for international observers (OAS, Carter Center, NED, Luminate).
+**EN:** Resilience in digital electoral auditing preserves continuity, integrity, and verifiability when public sources experience **rate limits, timeouts, fingerprinting, or temporary blocks**. In C.E.N.T.I.N.E.L., the pipeline polls public CNE JSON on a typical **5-minute cadence** during active elections. The approach is defensive and proportional: **controlled retries, backoff with jitter, proxy rotation, and watchdog thresholds** reduce pressure on the source, document failures, and preserve reproducible evidence for international observers (OAS, Carter Center).
 
 **Enlaces internos / Internal links:**
 - [README principal / Main README](../README.md)
@@ -12,6 +12,7 @@
 - [Arquitectura / Architecture](architecture.md)
 - [Reglas de auditoría / Audit rules](rules.md)
 - [Principios operativos / Operating principles](operating_principles.md)
+- [Seguridad / Security](security.md)
 
 ---
 
@@ -21,141 +22,63 @@
 
 | Parámetro | Descripción | Default | Recomendado | Escenario |
 | --- | --- | --- | --- | --- |
-| `default.max_attempts` | ES: Límite general de reintentos. EN: Global retry cap. | `5` | `5` | Elección activa / Active election |
-| `default.backoff_base` | ES: Base del backoff exponencial. EN: Base for exponential backoff. | `2` | `2` | Elección activa / Active election |
-| `default.backoff_multiplier` | ES: Multiplicador por intento. EN: Multiplier per attempt. | `2` | `2–3` | Mantenimiento / Maintenance |
-| `default.max_delay` | ES: Espera máxima entre reintentos (s). EN: Maximum delay between retries (s). | `300` | `600–900` | Mantenimiento / Maintenance |
-| `default.jitter` | ES: Jitter fijo (0–1). EN: Fixed jitter (0–1). | `0.25` | `0.2–0.3` | Elección activa / Active election |
-| `per_status."429".max_attempts` | ES: Reintentos ante rate-limit. EN: Retries for rate-limit. | `20` | `10–20` | Elección activa / Active election |
-| `per_status."429".jitter.max` | ES: Tope de jitter para 429. EN: Jitter upper bound for 429. | `0.3` | `0.3–0.4` | Low-profile |
-| `per_status."403".action` | ES: Acción ante bloqueo. EN: Action on forbidden/blocked. | `alert_only` | `alert_only` | Todos / All |
-| `per_status."401".action` | ES: Credenciales inválidas. EN: Invalid credentials. | `alert_only` | `alert_only` | Todos / All |
-| `per_status."5xx".max_attempts` | ES: Reintentos por errores del servidor. EN: Retries for server errors. | `8` | `6–8` | Elección activa / Active election |
-| `other_status.max_attempts` | ES: Regla para códigos no listados. EN: Default for unlisted codes. | `3` | `2–3` | Mantenimiento / Maintenance |
-| `per_exception.ReadTimeout.max_attempts` | ES: Reintentos por timeout. EN: Retries on timeout. | `6` | `4–6` | Elección activa / Active election |
-| `timeout_seconds` | ES: Timeout por request. EN: Per-request timeout. | `30` | `20–30` | Low-profile |
+| `default.max_attempts` | ES: Límite general de reintentos. EN: Global retry cap. | `5` | Normal: `5` / Low-profile: `3` | Elección activa y mantenimiento / Active election & maintenance |
+| `default.backoff_multiplier` | ES: Multiplicador por intento. EN: Multiplier per attempt. | `2` | Normal: `2` / Low-profile: `3` | Mantenimiento / Maintenance |
+| `default.jitter` | ES: Jitter fijo (0–1). EN: Fixed jitter (0–1). | `0.25` | Normal: `0.2–0.3` / Low-profile: `0.3–0.4` | Elección activa / Active election |
+| `per_status."429".max_attempts` | ES: Reintentos ante rate-limit. EN: Retries for rate-limit. | `20` | Normal: `10–20` / Low-profile: `6–10` | Elección activa / Active election |
+| `per_status."5xx".max_attempts` | ES: Reintentos por errores del servidor. EN: Retries for server errors. | `8` | Normal: `6–8` / Low-profile: `3–5` | Elección activa / Active election |
+| `per_exception.ReadTimeout.max_attempts` | ES: Reintentos por timeout. EN: Retries on timeout. | `6` | Normal: `4–6` / Low-profile: `3–4` | Elección activa / Active election |
+| `timeout_seconds` | ES: Timeout por request. EN: Per-request timeout. | `30` | Normal: `20–30` / Low-profile: `20–25` | Low-profile |
 | `failed_requests_path` | ES: Registro de fallos definitivos. EN: Failed requests log. | `failed_requests.jsonl` | Sin cambio / No change | Todos / All |
-| `recent_snapshot_seconds` | ES: Idempotencia (evita duplicados). EN: Idempotency (avoid duplicates). | `300` | `300–600` | Mantenimiento / Maintenance |
-| `idempotency_mode` | ES: Modo de idempotencia. EN: Idempotency mode. | `timestamp` | `timestamp` | Todos / All |
-| `log_payload_bytes` | ES: Tamaño máximo del payload en logs. EN: Max payload bytes in logs. | `2000` | `2000` | Todos / All |
 
-**Notas / Notes:**
-- **ES:** `retry_on_status_codes` se deriva operativamente de `per_status` y `other_status`. Limitar reintentos en 401/403/400 para no amplificar bloqueos. 
-- **EN:** `retry_on_status_codes` is operationally derived from `per_status` and `other_status`. Limit retries on 401/403/400 to avoid amplifying blocks.
-
-### Escenarios recomendados / Recommended scenarios
-
-**ES:**
-- **Elección activa (cada 5–15 min):** mantener `max_attempts` moderado, backoff conservador y `jitter` para evitar sincronización.
-- **Mantenimiento:** reducir reintentos y aumentar `max_delay` para minimizar presión sobre la fuente.
-
-**EN:**
-- **Active election (every 5–15 min):** keep moderate `max_attempts`, conservative backoff, and `jitter` to avoid synchronization.
-- **Maintenance:** reduce retries and increase `max_delay` to minimize source pressure.
+**Notas de compatibilidad / Compatibility notes:**
+- **ES:** `retry_on_status_codes` se implementa por composición con `per_status` y `other_status`. Limite reintentos en `401/403/400` para no amplificar bloqueos. **EN:** `retry_on_status_codes` is implemented by composition via `per_status` and `other_status`. Limit retries on `401/403/400` to avoid amplifying blocks.
+- **ES:** `jitter_max` puede expresarse como `jitter.max` cuando el jitter es un rango; en `retry_config.yaml` se usa `jitter` como número fijo o como objeto `{min, max}`. **EN:** `jitter_max` can be expressed as `jitter.max` when jitter is a range; in `retry_config.yaml` jitter is defined as a fixed number or a `{min, max}` object.
 
 ### Ejemplo comentado (elección activa) / Commented example (active election)
 
 ```yaml
-# """
 # ES: Configuración estándar para polling cada 5 minutos.
 # EN: Standard configuration for 5-minute polling.
-# """
 
 default:
-  # Intentos máximos por solicitud.
-  # Maximum attempts per request.
+  # ES: Intentos máximos por solicitud.
+  # EN: Maximum attempts per request.
   max_attempts: 5
-  # Base del backoff exponencial.
-  # Base for exponential backoff.
-  backoff_base: 2
-  # Multiplicador por intento.
-  # Multiplier per attempt.
+  # ES: Multiplicador por intento.
+  # EN: Multiplier per attempt.
   backoff_multiplier: 2
-  # Espera máxima entre reintentos (s).
-  # Maximum delay between retries (s).
-  max_delay: 300
-  # Jitter fijo (0-1).
-  # Fixed jitter (0-1).
+  # ES: Jitter fijo (0-1).
+  # EN: Fixed jitter (0-1).
   jitter: 0.25
 
 per_status:
   "429":
-    # Rate limit: más intentos y backoff lento.
-    # Rate limit: more attempts and slower backoff.
+    # ES: Rate limit: más intentos y backoff lento.
+    # EN: Rate limit: more attempts and slower backoff.
     max_attempts: 20
-    backoff_base: 8
     backoff_multiplier: 2
-    max_delay: 900
     jitter:
       min: 0.1
       max: 0.3
   "5xx":
-    # Errores del servidor: reintentos moderados.
-    # Server errors: moderate retries.
+    # ES: Errores del servidor: reintentos moderados.
+    # EN: Server errors: moderate retries.
     max_attempts: 8
-    backoff_base: 3
-    backoff_multiplier: 2
-    max_delay: 300
-    jitter: 0.2
   "403":
-    # Bloqueo: alertar sin insistir.
-    # Forbidden/block: alert without heavy retry.
+    # ES: Bloqueo: alertar sin insistir.
+    # EN: Forbidden/block: alert without heavy retry.
     max_attempts: 2
     action: "alert_only"
 
 per_exception:
   ReadTimeout:
-    # Timeout de lectura: reintentos moderados.
-    # Read timeout: moderate retries.
+    # ES: Timeout de lectura: reintentos moderados.
+    # EN: Read timeout: moderate retries.
     max_attempts: 6
-    backoff_base: 2
-    backoff_multiplier: 2
-    max_delay: 120
-    jitter: 0.2
 
 timeout_seconds: 30
 failed_requests_path: failed_requests.jsonl
-recent_snapshot_seconds: 300
-idempotency_mode: "timestamp"
-log_payload_bytes: 2000
-```
-
-### Ejemplo comentado (mantenimiento) / Commented example (maintenance)
-
-```yaml
-# """
-# ES: Modo mantenimiento para minimizar huella y presión.
-# EN: Maintenance mode to minimize footprint and pressure.
-# """
-
-default:
-  max_attempts: 3
-  backoff_base: 3
-  backoff_multiplier: 3
-  max_delay: 900
-  jitter: 0.3
-
-per_status:
-  "429":
-    max_attempts: 10
-    backoff_base: 10
-    backoff_multiplier: 2
-    max_delay: 900
-    jitter:
-      min: 0.2
-      max: 0.4
-  "403":
-    max_attempts: 1
-    action: "alert_only"
-
-other_status:
-  max_attempts: 2
-  backoff_base: 3
-  max_delay: 180
-  jitter: 0.25
-
-timeout_seconds: 25
-recent_snapshot_seconds: 600
 ```
 
 ---
@@ -166,43 +89,33 @@ recent_snapshot_seconds: 600
 
 | Parámetro | Descripción | Default | Recomendado | Escenario |
 | --- | --- | --- | --- | --- |
-| `check_interval_minutes` | ES: Intervalo de chequeo (equivale a `heartbeat_interval`). EN: Check interval (equivalent to `heartbeat_interval`). | `3` | `3–5` | Mantenimiento / Maintenance |
-| `max_inactivity_minutes` | ES: Máxima inactividad (equivale a `max_missed_heartbeats` sobre el intervalo). EN: Maximum inactivity (equivalent to `max_missed_heartbeats`). | `30` | `30–45` | Elección activa / Active election |
-| `heartbeat_timeout` | ES: Timeout del heartbeat (s). EN: Heartbeat timeout (s). | `10` | `10–15` | Low-profile |
-| `failure_grace_minutes` | ES: Ventana de gracia antes de actuar (equivale a `grace_period`). EN: Grace period before action (`grace_period`). | `6` | `6–10` | Elección activa / Active election |
-| `action_cooldown_minutes` | ES: Enfriamiento entre acciones. EN: Cooldown between actions. | `10` | `10–15` | Mantenimiento / Maintenance |
-| `restart_timeout_seconds` | ES: Espera máxima del reinicio (equivale a `restart_delay` operativo). EN: Max restart wait (`restart_delay`). | `30` | `30–45` | Elección activa / Active election |
-| `lock_timeout_minutes` | ES: Locks considerados atascados. EN: When locks are considered stuck. | `30` | `30–45` | Mantenimiento / Maintenance |
-| `max_log_growth_mb_per_min` | ES: Umbral de crecimiento de logs. EN: Log growth threshold. | `30` | `30` | Todos / All |
-| `alert_urls` | ES: Destinos de alertas. EN: Alert endpoints. | `[]` | Configurar según operación / Operational | Todos / All |
-| `heartbeat_path` | ES: Ruta del heartbeat. EN: Heartbeat path. | `data/heartbeat.json` | Sin cambio / No change | Todos / All |
-| `pipeline_command` | ES: Comando de reinicio. EN: Restart command. | ver archivo | Ajustar a entorno | Todos / All |
+| `heartbeat_interval` | ES: Intervalo de heartbeat. EN: Heartbeat interval. | `3 min` | Normal: `3–5 min` / Low-profile: `5–10 min` | Mantenimiento / Maintenance |
+| `max_missed_heartbeats` | ES: Umbral de heartbeats perdidos. EN: Threshold of missed heartbeats. | `10` | Normal: `8–12` / Low-profile: `12–18` | Elección activa / Active election |
+| `grace_period` | ES: Ventana de gracia antes de actuar. EN: Grace period before action. | `6 min` | Normal: `6–10 min` / Low-profile: `10–15 min` | Elección activa / Active election |
+| `restart_delay` | ES: Espera antes del reinicio. EN: Delay before restart. | `30 s` | Normal: `30–45 s` / Low-profile: `45–60 s` | Mantenimiento / Maintenance |
+
+**Notas de compatibilidad / Compatibility notes:**
+- **ES:** En `watchdog.yaml`, `heartbeat_interval` corresponde a `check_interval_minutes`. `max_missed_heartbeats` se deriva de `max_inactivity_minutes / check_interval_minutes`. `grace_period` corresponde a `failure_grace_minutes` y `restart_delay` a `restart_timeout_seconds`. **EN:** In `watchdog.yaml`, `heartbeat_interval` maps to `check_interval_minutes`. `max_missed_heartbeats` is derived from `max_inactivity_minutes / check_interval_minutes`. `grace_period` maps to `failure_grace_minutes` and `restart_delay` to `restart_timeout_seconds`.
 
 ### Ejemplo comentado / Commented example
 
 ```yaml
-# """
 # ES: Watchdog con umbrales conservadores para elecciones activas.
 # EN: Watchdog with conservative thresholds for active elections.
-# """
 
 check_interval_minutes: 3
 max_inactivity_minutes: 30
-heartbeat_timeout: 10
 failure_grace_minutes: 6
-action_cooldown_minutes: 10
-aggressive_restart: false
+restart_timeout_seconds: 30
+heartbeat_timeout: 10
 alert_urls: []
 log_path: "logs/centinel.log"
-max_log_growth_mb_per_min: 30
 lock_files:
   - "data/temp/pipeline.lock"
-lock_timeout_minutes: 30
 heartbeat_path: "data/heartbeat.json"
 pipeline_command:
   - "python"
   - "scripts/run_pipeline.py"
-restart_timeout_seconds: 30
 ```
 
 ---
@@ -215,18 +128,16 @@ restart_timeout_seconds: 30
 | --- | --- | --- | --- | --- |
 | `mode` | ES: Modo del rotador. EN: Rotator mode. | `proxy_rotator` | `proxy_rotator` | Todos / All |
 | `rotation_strategy` | ES: Estrategia de rotación. EN: Rotation strategy. | `round_robin` | `round_robin` | Todos / All |
-| `rotation_every_n` | ES: Rotar cada N requests. EN: Rotate every N requests. | `1` | `1–2` | Low-profile |
-| `proxy_timeout_seconds` | ES: Timeout de prueba. EN: Proxy test timeout. | `15` | `10–15` | Elección activa / Active election |
+| `rotation_every_n` | ES: Rotar cada N requests. EN: Rotate every N requests. | `1` | Normal: `1–2` / Low-profile: `2–3` | Low-profile |
+| `proxy_timeout_seconds` | ES: Timeout de validación. EN: Proxy validation timeout. | `15` | Normal: `10–15` / Low-profile: `15–20` | Elección activa / Active election |
 | `test_url` | ES: Endpoint de validación (HEAD). EN: Validation endpoint (HEAD). | `https://httpbin.org/ip` | Endpoint estable | Todos / All |
-| `proxies[]` | ES: Lista de proxies (http/socks5). EN: Proxy list (http/socks5). | (ejemplo) | 2–5 proxies validados | Elección activa / Active election |
+| `proxies[]` | ES: Lista de proxies (http/socks5). EN: Proxy list (http/socks5). | (ejemplo) | Normal: `2–5` / Low-profile: `1–2` | Elección activa / Active election |
 
 ### Ejemplo comentado / Commented example
 
 ```yaml
-# """
 # ES: Lista de proxies con validación y rotación round-robin.
 # EN: Proxy list with validation and round-robin rotation.
-# """
 
 mode: proxy_rotator
 rotation_strategy: round_robin
@@ -234,8 +145,8 @@ rotation_every_n: 1
 proxy_timeout_seconds: 15
 test_url: https://httpbin.org/ip
 proxies:
-  # Formato: esquema://[user:pass@]ip:port
-  # Format: scheme://[user:pass@]ip:port
+  # ES: Formato esquema://[user:pass@]ip:port
+  # EN: Format scheme://[user:pass@]ip:port
   - "http://user:pass@ip:port"
   - "socks5://ip:port"
 ```
@@ -256,38 +167,27 @@ proxies:
 | --- | --- | --- | --- | --- |
 | `reglas_auditoria[].nombre` | ES: Identificador estable. EN: Stable rule identifier. | ver archivo | Mantener estable | Todos / All |
 | `reglas_auditoria[].descripcion` | ES: Propósito de la regla. EN: Rule purpose. | ver archivo | Describir criterio estadístico | Todos / All |
-| `reglas_auditoria[].thresholds` | ES: Umbrales porcentuales. EN: Percentage thresholds. | (opcional) | Documentar por elección | Elección activa / Active election |
-| `resiliencia.retry_max` | ES: Reintentos sugeridos (documentación). EN: Suggested retry cap. | `5` | `3–5` | Low-profile |
-| `resiliencia.backoff_factor` | ES: Backoff sugerido. EN: Suggested backoff factor. | `2` | `2–3` | Low-profile |
-| `resiliencia.chi2_p_critical` | ES: Umbral crítico chi-cuadrado. EN: Chi-square critical threshold. | `0.01` | `0.01` | Todos / All |
-| `resiliencia.benford_min_samples` | ES: Mínimo de muestras Benford. EN: Minimum samples for Benford. | `10` | `10–20` | Elección activa / Active election |
+| `reglas_auditoria[].thresholds.percent_deviation` | ES: Umbral de desviación porcentual. EN: Percent deviation threshold. | (opcional) | Normal: `0.10–0.15` / Low-profile: `0.15–0.20` | Elección activa / Active election |
+| `reglas_auditoria[].thresholds.max_diff_pct` | ES: Diferencia máxima permitida. EN: Maximum allowed difference. | (opcional) | Normal: `0.05–0.10` / Low-profile: `0.10–0.15` | Elección activa / Active election |
 
-### Ejemplo comentado / Commented example
+### Ejemplo comentado (diffs básicos) / Commented example (basic diffs)
 
 ```yaml
-# """
-# ES: Reglas básicas con umbrales y ejemplos de entrada/salida.
-# EN: Baseline rules with thresholds and input/output examples.
-# """
+# ES: Regla básica para detectar diferencias entre snapshots consecutivos.
+# EN: Basic rule to detect differences between consecutive snapshots.
 
 reglas_auditoria:
-  - nombre: "apply_benford_law"
-    # Evalúa primer dígito con Ley de Benford.
-    # Evaluates first digit with Benford's Law.
-    descripcion: "Evalúa primer dígito con Ley de Benford y prueba chi-cuadrado."
-
-  - nombre: "check_distribution_chi2"
-    # Compara distribución partido/departamento.
-    # Compares party/department distribution.
-    descripcion: "Compara distribución partido/departamento contra esperados proporcionales."
+  - nombre: "basic_snapshot_diff"
+    # ES: Regla mínima para diferencias porcentuales.
+    # EN: Minimal rule for percentage differences.
+    descripcion: "Detecta diferencias básicas entre snapshots consecutivos."
     thresholds:
+      # ES: Desviación porcentual máxima por entidad.
+      # EN: Maximum percent deviation per entity.
       percent_deviation: 0.12
-
-resiliencia:
-  retry_max: 5
-  backoff_factor: 2
-  chi2_p_critical: 0.01
-  benford_min_samples: 10
+      # ES: Diferencia absoluta máxima (en proporción).
+      # EN: Maximum absolute difference (proportion).
+      max_diff_pct: 0.08
 ```
 
 ### Cómo agregar nuevas reglas / How to add new rules
@@ -323,7 +223,7 @@ resiliencia:
 - Validate proxies at the start of the shift and use round-robin rotation; if degraded, apply fallback with reduced cadence.
 - Keep the watchdog on short intervals to detect inactivity without aggressive restarts.
 
-### Mantenimiento / Maintenance
+### Mantenimiento mensual / Monthly maintenance
 
 **ES:**
 - Incrementar `max_inactivity_minutes` y `action_cooldown_minutes` para minimizar reinicios.
@@ -375,18 +275,8 @@ resiliencia:
 
 ---
 
-**Configuración clave / Key configuration**
-- `chaos.level`: severidad (`low`, `medium`, `high`) con límites conservadores.
-- `chaos.duration_minutes`: duración total del ejercicio.
-- `chaos.failure_probability`: probabilidad de fallo por request (0–1).
-- `chaos.scenarios_enabled`: escenarios CNE habilitados (429, 503, JSON inválido, hash alterado, proxy fail, watchdog, respuesta lenta).
-- `chaos.max_recovery_seconds`: umbral máximo de recuperación para validar continuidad.
+## Credibilidad ante observadores internacionales / Credibility with international observers
 
-**Ejecución manual / Manual run**
-```bash
-python scripts/chaos_test.py --config chaos_config.yaml.example --level low
-```
+**ES:** La resiliencia documentada aporta **reproducibilidad** (parámetros explícitos, registros de fallos, cadencias declaradas) y **trazabilidad** (hashes y snapshots verificables), lo que facilita auditorías independientes y fortalece la confianza de observadores internacionales en la neutralidad y consistencia técnica del monitoreo. Vincular estas configuraciones con el [manual operativo](manual.md) y la [metodología](methodology.md) permite explicar decisiones técnicas ante OEA, Carter Center y otras misiones con criterios verificables.
 
-**ES:** La resiliencia documentada aporta **reproducibilidad** (parámetros explícitos, registros de fallos, cadencias declaradas) y **trazabilidad** (hashes y snapshots verificables), lo que facilita auditorías independientes y fortalece la confianza de observadores internacionales en la neutralidad y consistencia técnica del monitoreo.
-
-**EN:** Documented resilience provides **reproducibility** (explicit parameters, failure logs, declared cadences) and **traceability** (verifiable hashes and snapshots), enabling independent audits and strengthening international observers’ confidence in the neutrality and technical consistency of the monitoring.
+**EN:** Documented resilience provides **reproducibility** (explicit parameters, failure logs, declared cadences) and **traceability** (verifiable hashes and snapshots), enabling independent audits and strengthening international observers’ confidence in the neutrality and technical consistency of monitoring. Linking these configurations with the [operational manual](manual.md) and [methodology](methodology.md) makes technical decisions explainable to the OAS, Carter Center, and other missions using verifiable criteria.
