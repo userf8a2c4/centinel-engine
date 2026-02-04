@@ -333,20 +333,15 @@ def select_scenario(
 
     if rng.random() > level.failure_probability:
         return None
-    scenarios = list(level.scenarios.items())
-    if not scenarios:
+
+    scenarios_population = list(level.scenarios.keys())
+    weights = [profile.probability for profile in level.scenarios.values()]
+
+    if not scenarios_population or sum(weights) <= 0:
         return None
-    weights = [profile.probability for _, profile in scenarios]
-    total = sum(weights)
-    if total <= 0:
-        return None
-    choice = rng.random() * total
-    cumulative = 0.0
-    for name, profile in scenarios:
-        cumulative += profile.probability
-        if choice <= cumulative:
-            return name
-    return scenarios[-1][0]
+
+    return rng.choices(scenarios_population, weights=weights, k=1)[0]
+
 
 
 def build_mock_callback(
