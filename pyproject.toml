@@ -70,7 +70,7 @@ addopts = [
 [tool.bandit]
 exclude_dirs = ["tests"]
 skips = ["B101"]
-exclude = ["chaos_test.py", "scripts/chaos_test.py"]
+exclude = ["scripts/chaos_test.py"]
 
 [tool.poetry.scripts]
 centinel = "centinel.cli:main"
