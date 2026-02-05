@@ -42,7 +42,7 @@ def main() -> int:
         return 0
     command = [sys.executable, "-m", "pip", "install", "--upgrade", *requirements]
     print("Installing dev dependencies:", " ".join(command))
-    subprocess.check_call(command)
+    subprocess.check_call(command)  # nosec B603
     return 0
 
 

@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -433,8 +434,14 @@ def should_run_stage(current_stage: str, start_stage: str) -> bool:
 
 def run_command(command, description, env: dict[str, str] | None = None):
     """/** Ejecuta un comando del sistema. / Execute a system command. **"""
-    print(f"[+] {description}: {' '.join(command)}")
-    subprocess.run(command, check=True, env=env)
+    if not command:
+        raise ValueError("Command list cannot be empty.")
+    executable = shutil.which(command[0])
+    if not executable:
+        raise FileNotFoundError(f"Command not found: {command[0]}")
+    full_command = [executable, *command[1:]]
+    print(f"[+] {description}: {' '.join(full_command)}")
+    subprocess.run(full_command, check=True, env=env)  # nosec B603
 
 
 def latest_file(directory, pattern):
