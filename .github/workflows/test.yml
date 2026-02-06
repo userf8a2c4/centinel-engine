@@ -22,38 +22,23 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: poetry
-          cache-dependency-path: poetry.lock
-
-      # Install Poetry / Instalar Poetry
-      - name: Install Poetry / Instalar Poetry
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
-
-      # Cache Poetry + venv / Cache de Poetry + entorno virtual
-      - name: Cache Poetry and virtualenv / Cache de Poetry y entorno virtual
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pypoetry
-            .venv
-          key: ${{ runner.os }}-poetry-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-${{ matrix.python-version }}-
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       # Install dependencies / Instalar dependencias
       - name: Install dependencies / Instalar dependencias
         run: |
-          poetry config virtualenvs.in-project true
-          poetry install --no-root --with dev --no-interaction --no-ansi
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
 
       # Test + coverage / Pruebas + cobertura
       - name: Test with coverage / Pruebas con cobertura
         env:
           PYTHONPATH: src
         run: |
-          poetry run pytest \
+          pytest \
             --cov=centinel \
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing

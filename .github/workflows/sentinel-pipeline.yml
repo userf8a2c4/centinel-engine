@@ -65,6 +65,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install -r requirements-dev.txt
         # Instala todas las dependencias del proyecto / Installs all project dependencies
 
       - name: Install Playwright browsers
@@ -73,13 +74,13 @@ jobs:
 
       - name: Run download and hash (mock mode in CI)
         env:
-          PYTHONPATH: ${{ github.workspace }}
+          PYTHONPATH: ${{ github.workspace }}/src
         run: python -m scripts.download_and_hash --mock
         # Ejecuta el script de descarga con modo mock en CI para evitar errores de red
         # Runs download_and_hash script with mock mode in CI to avoid network errors
 
       - name: Run pytests
         env:
-          PYTHONPATH: ${{ github.workspace }}
+          PYTHONPATH: ${{ github.workspace }}/src
         run: pytest
         # Ejecuta pruebas unitarias / Runs unit tests
