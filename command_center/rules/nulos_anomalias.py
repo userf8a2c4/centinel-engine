@@ -88,13 +88,14 @@ def _extract_vote_breakdown(entry: dict) -> Tuple[Optional[int], Optional[int]]:
 
 
 def _extract_registered_voters(entry: dict) -> Optional[int]:
-    padron = entry.get("padron") or entry.get("padron_total") or {}
+    padron_value = entry.get("padron") or entry.get("padron_total")
+    padron_dict = padron_value if isinstance(padron_value, dict) else {}
     return _safe_int(
         entry.get("registered_voters")
         or entry.get("electores")
-        or entry.get("padron")
-        or padron.get("total")
-        or padron.get("registered_voters"),
+        or (padron_value if not isinstance(padron_value, dict) else None)
+        or padron_dict.get("total")
+        or padron_dict.get("registered_voters"),
         default=0,
     )
 
