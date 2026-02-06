@@ -1,0 +1,1 @@
+"""Reglas del dashboard Centinel."""
