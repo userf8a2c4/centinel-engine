@@ -1,7 +1,4 @@
-"""Regla ML para detectar outliers en cambios relativos de votos.
-
-ML rule to detect outliers in relative vote changes.
-"""
+"""Regla ML para detectar outliers en cambios relativos de votos. (ML rule to detect outliers in relative vote changes.)"""
 
 from __future__ import annotations
 
@@ -21,35 +18,24 @@ def apply(
 ) -> List[dict]:
     """
     Detecta outliers estadísticos en cambios relativos con Isolation Forest.
+    (Detect statistical outliers in relative vote changes using Isolation Forest.)
 
     La regla calcula el cambio porcentual de votos totales entre snapshots y lo
     incorpora a una serie histórica por departamento. Con suficientes puntos, se
     entrena un modelo Isolation Forest para identificar saltos atípicos. Si el punto
-    actual es marcado como outlier, se genera una alerta de anomalía ML.
+    actual es marcado como outlier, se genera una alerta de anomalía ML. (The rule
+    computes the percentage change in total votes between snapshots and stores it
+    in a department-level history. Once enough points exist, an Isolation Forest
+    model flags abnormal jumps; if the current point is an outlier, an ML anomaly
+    alert is emitted.)
 
     Args:
-        current_data: Snapshot JSON actual del CNE.
-        previous_data: Snapshot JSON anterior (None en el primer snapshot).
-        config: Sección de configuración específica de la regla desde config.yaml.
+        current_data: Snapshot JSON actual del CNE. (Current CNE JSON snapshot.)
+        previous_data: Snapshot JSON anterior (None en el primer snapshot). (Previous JSON snapshot (None for the first snapshot).)
+        config: Sección de configuración específica de la regla desde config.yaml. (Rule-specific configuration section from config.yaml.)
 
     Returns:
-        Lista de alertas en formato estándar (vacía si todo normal).
-
-    English:
-        Detects statistical outliers in relative vote changes using Isolation Forest.
-
-        The rule computes the percentage change in total votes between snapshots and
-        stores it in a department-level history. Once enough points exist, an
-        Isolation Forest model flags abnormal jumps; if the current point is an
-        outlier, an ML anomaly alert is emitted.
-
-    Args:
-        current_data: Current CNE JSON snapshot.
-        previous_data: Previous JSON snapshot (None for the first snapshot).
-        config: Rule-specific configuration section from config.yaml.
-
-    Returns:
-        List of alerts in the standard format (empty if normal).
+        Lista de alertas en formato estándar (vacía si todo normal). (List of alerts in the standard format (empty if normal).)
     """
     alerts: List[dict] = []
     if not previous_data:
