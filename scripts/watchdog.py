@@ -41,6 +41,11 @@ class WatchdogConfig:
     failure_grace_minutes: int = 5
     action_cooldown_minutes: int = 10
     aggressive_restart: bool = False
+    restart_on_fail: bool = True
+    resource_checks_enabled: bool = True
+    max_cpu_percent: float = 80.0
+    max_mem_percent: float = 90.0
+    resource_check_interval_seconds: int = 30
     alert_urls: list[str] = field(default_factory=list)
     data_dir: str = "data"
     snapshot_glob: str = "*.json"
@@ -105,6 +110,11 @@ def _load_config(path: Path) -> WatchdogConfig:
     cfg.max_log_growth_mb_per_min = int(cfg.max_log_growth_mb_per_min)
     cfg.lock_timeout_minutes = int(cfg.lock_timeout_minutes)
     cfg.restart_timeout_seconds = int(cfg.restart_timeout_seconds)
+    cfg.restart_on_fail = bool(cfg.restart_on_fail)
+    cfg.resource_checks_enabled = bool(cfg.resource_checks_enabled)
+    cfg.max_cpu_percent = float(cfg.max_cpu_percent)
+    cfg.max_mem_percent = float(cfg.max_mem_percent)
+    cfg.resource_check_interval_seconds = int(cfg.resource_check_interval_seconds)
     return cfg
 
 
@@ -237,6 +247,24 @@ def _check_heartbeat(config: WatchdogConfig) -> tuple[bool, str]:
     if age > timedelta(minutes=config.heartbeat_timeout):
         return False, f"heartbeat_stale age_minutes={age.total_seconds() / 60:.1f}"
     return True, "heartbeat_ok"
+
+
+def _check_resources(config: WatchdogConfig) -> tuple[bool, str]:
+    """English: Function _check_resources defined in scripts/watchdog.py.
+
+    Español: Función _check_resources del módulo scripts/watchdog.py.
+    """
+    if not config.resource_checks_enabled:
+        return True, "resource_checks_disabled"
+    if psutil is None:
+        return True, "resource_checks_skipped_psutil_missing"
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+    mem_percent = psutil.virtual_memory().percent
+    if cpu_percent > config.max_cpu_percent:
+        return False, f"cpu_high percent={cpu_percent:.1f}"
+    if mem_percent > config.max_mem_percent:
+        return False, f"mem_high percent={mem_percent:.1f}"
+    return True, f"resources_ok cpu={cpu_percent:.1f} mem={mem_percent:.1f}"
 
 
 def _record_failures(
@@ -428,6 +456,11 @@ def _handle_failure(
     summary = "; ".join(reasons)
     log_event(logger, logging.CRITICAL, "watchdog_failure", reasons=summary)
     _send_alerts(config, summary, logger)
+    if not config.restart_on_fail:
+        logger.warning(
+            "watchdog_restart_disabled summary=%s", summary
+        )
+        return
     _terminate_pipeline(config, logger)
     _start_pipeline(config, logger)
     if config.aggressive_restart:
@@ -460,13 +493,21 @@ def run_watchdog(config: WatchdogConfig, logger: logging.Logger) -> None:
         if not ok:
             failures["heartbeat"] = message
         logger.info("watchdog_heartbeat %s", message)
+        ok, message = _check_resources(config)
+        if not ok:
+            failures["resources"] = message
+        logger.info("watchdog_resources %s", message)
         _record_failures(failures, state, logger)
         should_act, reasons = _should_act(state, config)
         if should_act:
             _handle_failure(config, reasons, logger)
             state["last_action"] = _utcnow().isoformat()
         _save_state(state_path, state)
-        time.sleep(config.check_interval_minutes * 60)
+        sleep_seconds = min(
+            config.check_interval_minutes * 60,
+            max(1, config.resource_check_interval_seconds),
+        )
+        time.sleep(sleep_seconds)
 
 
 def main() -> None:
