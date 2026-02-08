@@ -1,0 +1,4 @@
+# Minimal dependencies for chaos workflow.
+requests>=2.31.0
+PyYAML>=6.0.2
+responses>=0.25.0,<0.26.0
