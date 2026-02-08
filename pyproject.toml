@@ -52,7 +52,11 @@ black = ">=24.0.0,<25.0.0"
 flake8 = ">=7.0.0,<8.0.0"
 mypy = ">=1.10.0,<1.12.0"
 pytest-cov = ">=5.0.0,<6.0.0"
-httpx-mock = ">=0.27.0,<0.28.0"
+# Conditional httpx-mock constraints handled by Poetry for Python 3.10/3.11. (Restricciones condicionales de httpx-mock gestionadas por Poetry para Python 3.10/3.11.)
+httpx-mock = [
+    {version = ">=0.27.0,<0.28.0", python = ">=3.11"},
+    {version = ">=0.24.0,<0.27.0", python = "<3.11"}
+]
 pytest-mock = ">=3.14.0,<4.0.0"
 responses = ">=0.25.0,<0.26.0"
 bandit = ">=1.7.9,<2.0.0"
