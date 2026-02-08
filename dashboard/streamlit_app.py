@@ -195,10 +195,10 @@ def load_blockchain_anchor() -> BlockchainAnchor:
             anchored_at=record.get("anchored_at", record.get("timestamp", "N/A")),
         )
     return BlockchainAnchor(
-        root_hash="0x9f3fa7c2d1b4a7e1f02d5e1c34aa9b21b",
+        root_hash="Pendiente",
         network="Arbitrum L2",
-        tx_url="https://arbiscan.io/tx/0x9f3b0c0d1d2e3f4a5b6c7d8e9f000111222333444555666777888999aaa",
-        anchored_at="2026-01-12 18:40 UTC",
+        tx_url="",
+        anchored_at="Sin anclaje registrado",
     )
 
 

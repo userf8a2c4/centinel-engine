@@ -306,13 +306,21 @@ def anchor_batch(hashes: List[str]) -> Dict[str, Any]:
         raise ValueError("Arbitrum anchoring está deshabilitado en config.")
 
     rpc_url = settings.get("rpc_url")
-    private_key = settings.get("private_key")
+    private_key = _resolve_private_key(settings)
     contract_address = settings.get("contract_address")
 
-    if not rpc_url or not private_key or not contract_address:
+    missing_configs = []
+    if not rpc_url:
+        missing_configs.append("rpc_url")
+    if not contract_address:
+        missing_configs.append("contract_address")
+
+    if missing_configs:
         raise ValueError(
-            "Configuración incompleta de Arbitrum en command_center/config.yaml."
+            f"Configuración incompleta de Arbitrum: falta {', '.join(missing_configs)} en command_center/config.yaml."
         )
+    if not private_key:
+        raise ValueError("Missing private key for Arbitrum anchoring.")
 
     batch_id = uuid4().hex
     timestamp = datetime.now(timezone.utc).isoformat()

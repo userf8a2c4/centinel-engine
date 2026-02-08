@@ -18,3 +18,12 @@ anomalies_report.json
 .env.local
 __pycache__/
 node_modules/
+
+# Databases
+*.db
+*.sqlite3
+
+# Secret/key files
+*.pem
+*.key
+secrets.yaml

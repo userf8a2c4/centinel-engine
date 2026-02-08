@@ -21,11 +21,9 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Install Poetry / Instalar Poetry
+      # Install Poetry / Instalar Poetry (before cache step)
       - name: Install Poetry / Instalar Poetry
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
+        run: pipx install poetry
 
       # Cache Poetry + venv / Cache de Poetry + entorno virtual
       - name: Cache Poetry and virtualenv / Cache de Poetry y entorno virtual
