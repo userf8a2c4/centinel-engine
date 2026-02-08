@@ -173,7 +173,7 @@ def _load_latest_anchor_record() -> dict | None:
 
     try:
         return json.loads(candidates[0].read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
+    except (OSError, json.JSONDecodeError):
         return None
 
 
@@ -208,6 +208,35 @@ def compute_report_hash(payload: str) -> str:
     English: Function compute_report_hash defined in dashboard/streamlit_app.py.
     """
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    """Español: Convierte a int con fallback seguro.
+
+    English: Convert to int with a safe fallback.
+    """
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_read_json(path: Path) -> dict[str, Any] | None:
+    """Español: Lee JSON con tolerancia a errores.
+
+    English: Read JSON with error tolerance.
+    """
+    try:
+        content = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return payload
 
 
 def build_qr_bytes(payload: str) -> bytes | None:
@@ -521,7 +550,11 @@ def _count_failed_retries(log_path: Path) -> int:
         return 0
     cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
     count = 0
-    for line in log_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except OSError:
+        return 0
+    for line in lines:
         lowered = line.lower()
         if "retry" not in lowered:
             continue
@@ -542,7 +575,11 @@ def _count_rate_limit_retries(log_path: Path) -> int:
         return 0
     cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
     count = 0
-    for line in log_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except OSError:
+        return 0
+    for line in lines:
         lowered = line.lower()
         if "rate" not in lowered and "429" not in lowered:
             continue
@@ -638,8 +675,13 @@ def load_snapshot_files(
     for path in paths:
         if not path.exists():
             continue
-        content = path.read_text(encoding="utf-8")
-        payload = json.loads(content)
+        payload = _safe_read_json(path)
+        if payload is None:
+            continue
+        try:
+            content = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+        except (TypeError, ValueError):
+            continue
         timestamp = payload.get("timestamp")
         if not timestamp:
             try:
@@ -964,13 +1006,13 @@ def build_rules_engine_payload(snapshot_row: pd.Series) -> dict:
     English: Function build_rules_engine_payload defined in dashboard/streamlit_app.py.
     """
     return {
-        "timestamp": snapshot_row["timestamp"],
-        "departamento": snapshot_row["department"],
+        "timestamp": snapshot_row.get("timestamp"),
+        "departamento": snapshot_row.get("department", "N/D"),
         "totals": {
-            "total_votes": int(snapshot_row["votes"]),
-            "valid_votes": int(snapshot_row["votes"] * 0.92),
-            "null_votes": int(snapshot_row["votes"] * 0.05),
-            "blank_votes": int(snapshot_row["votes"] * 0.03),
+            "total_votes": _safe_int(snapshot_row.get("votes")),
+            "valid_votes": _safe_int(snapshot_row.get("votes", 0) * 0.92),
+            "null_votes": _safe_int(snapshot_row.get("votes", 0) * 0.05),
+            "blank_votes": _safe_int(snapshot_row.get("votes", 0) * 0.03),
         },
     }
 
@@ -989,9 +1031,12 @@ def run_rules_engine(snapshot_df: pd.DataFrame, config: dict) -> dict:
         if len(snapshot_df) > 1
         else None
     )
-    result = engine.run(
-        current, previous, snapshot_id=snapshot_df.iloc[-1]["timestamp"]
-    )
+    try:
+        result = engine.run(
+            current, previous, snapshot_id=snapshot_df.iloc[-1]["timestamp"]
+        )
+    except Exception:  # noqa: BLE001
+        return {"alerts": [], "critical": []}
     return {"alerts": result.alerts, "critical": result.critical_alerts}
 
 

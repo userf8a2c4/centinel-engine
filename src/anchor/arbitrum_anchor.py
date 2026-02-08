@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 from uuid import uuid4
 
-from Crypto.Hash import keccak
 from eth_account import Account
+from eth_utils import keccak
 from web3 import Web3
 
 from sentinel.utils.config_loader import load_config
@@ -62,9 +62,7 @@ def _keccak256(data: bytes) -> bytes:
     :param data: Input bytes.
     :return: keccak256 digest bytes.
     """
-    digest = keccak.new(digest_bits=256)
-    digest.update(data)
-    return digest.digest()
+    return keccak(data)
 
 
 def _normalize_hash(hex_hash: str) -> bytes:
