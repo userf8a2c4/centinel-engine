@@ -16,9 +16,12 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 import requests
+
 try:
     import responses
-except ModuleNotFoundError:  # pragma: no cover - fallback when responses isn't installed.
+except (
+    ModuleNotFoundError
+):  # pragma: no cover - fallback when responses isn't installed.
     responses = None
 import yaml
 
@@ -210,7 +213,10 @@ def _configure_logger() -> logging.Logger:
 
 
 def _write_report(
-    config: ChaosConfig, metrics: ChaosMetrics, report_path: Path, duration_seconds: float
+    config: ChaosConfig,
+    metrics: ChaosMetrics,
+    report_path: Path,
+    duration_seconds: float,
 ) -> None:
     """Español: Escribe un reporte formal para observadores internacionales.
 
@@ -272,12 +278,16 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
     last_failure_time: Optional[float] = None
 
     def _callback(request: requests.PreparedRequest) -> Tuple[int, Dict[str, str], str]:
-        scenario = _select_scenario(rng, config.scenarios_enabled, config.failure_probability)
+        scenario = _select_scenario(
+            rng, config.scenarios_enabled, config.failure_probability
+        )
         scenario_context.name = scenario
         scenario_context.skip_heartbeat = scenario == "watchdog_heartbeat_miss"
         scenario_context.slow_response = scenario == "slow_response"
         if scenario:
-            metrics.scenario_counts[scenario] = metrics.scenario_counts.get(scenario, 0) + 1
+            metrics.scenario_counts[scenario] = (
+                metrics.scenario_counts.get(scenario, 0) + 1
+            )
         if scenario == "rate_limit_429":
             logger.warning("scenario=rate_limit_429 url=%s", request.url)
             return 429, {"Retry-After": "5"}, json.dumps({"error": "rate limit"})
@@ -315,7 +325,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
 
     @contextmanager
     def _mock_requests(
-        callback: Callable[[requests.PreparedRequest], Tuple[int, Dict[str, str], str]]
+        callback: Callable[[requests.PreparedRequest], Tuple[int, Dict[str, str], str]],
     ) -> Iterable[None]:
         original_get = session.get
 
@@ -362,7 +372,9 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
                     watchdog.heartbeat()
                 else:
                     watchdog.last_heartbeat -= config.heartbeat_timeout_seconds + 0.1
-                    logger.warning("watchdog_skip_heartbeat scenario=watchdog_heartbeat_miss")
+                    logger.warning(
+                        "watchdog_skip_heartbeat scenario=watchdog_heartbeat_miss"
+                    )
                 if last_failure_time is not None:
                     recovery_time = time.monotonic() - last_failure_time
                     metrics.recovery_times.append(recovery_time)
@@ -377,7 +389,9 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
                 KeyError,
             ) as exc:
                 metrics.failed_requests += 1
-                logger.warning("poll_fail error=%s scenario=%s", exc, scenario_context.name)
+                logger.warning(
+                    "poll_fail error=%s scenario=%s", exc, scenario_context.name
+                )
                 if last_failure_time is None:
                     last_failure_time = time.monotonic()
             if watchdog.check():
@@ -394,9 +408,12 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
         if config.level != "low":
             assert metrics.recovery_times, "No recovery events recorded after failures."
             assert all(
-                recovery <= config.max_recovery_seconds for recovery in metrics.recovery_times
+                recovery <= config.max_recovery_seconds
+                for recovery in metrics.recovery_times
             ), "Recovery time exceeded configured maximum."
-            assert last_failure_time is None, "Unrecovered failure detected at end of run."
+            assert (
+                last_failure_time is None
+            ), "Unrecovered failure detected at end of run."
         elif last_failure_time is not None:
             logger.warning(
                 "unrecovered_failure_tolerated level=low last_failure_age=%.2fs",
@@ -407,9 +424,11 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
         "summary success=%s failed=%s avg_recovery=%.2fs",
         metrics.successful_requests,
         metrics.failed_requests,
-        sum(metrics.recovery_times) / len(metrics.recovery_times)
-        if metrics.recovery_times
-        else 0.0,
+        (
+            sum(metrics.recovery_times) / len(metrics.recovery_times)
+            if metrics.recovery_times
+            else 0.0
+        ),
     )
 
     return {
@@ -439,7 +458,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--config", required=True, help="Path to chaos_config.yaml")
     parser.add_argument("--level", help="Override chaos level")
     parser.add_argument("--duration-minutes", type=float, help="Override duration")
-    parser.add_argument("--failure-probability", type=float, help="Override failure probability")
+    parser.add_argument(
+        "--failure-probability", type=float, help="Override failure probability"
+    )
     return parser.parse_args()
 
 

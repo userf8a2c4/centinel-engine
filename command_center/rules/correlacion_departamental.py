@@ -63,7 +63,9 @@ def _extract_department_name(entry: dict) -> str:
 
 def _extract_candidate_votes(entry: dict) -> Dict[str, int]:
     if isinstance(entry.get("resultados"), dict):
-        return {str(key): _safe_int(value) for key, value in entry["resultados"].items()}
+        return {
+            str(key): _safe_int(value) for key, value in entry["resultados"].items()
+        }
     for key in ("candidatos", "candidates", "votos"):
         candidates = entry.get(key)
         if isinstance(candidates, list):
@@ -112,7 +114,9 @@ def check_correlacion_departamental(data: dict) -> dict:
     config = _load_rules_config()
     rule_config = _get_rule_config(config, rule_key)
 
-    default_min_expected = 0.7  # TODO: agregar este umbral a rules.yaml / command_center
+    default_min_expected = (
+        0.7  # TODO: agregar este umbral a rules.yaml / command_center
+    )
     min_expected = float(rule_config.get("min_expected", default_min_expected))
 
     departments = list(_extract_departments(data))
@@ -168,9 +172,7 @@ def check_correlacion_departamental(data: dict) -> dict:
     alert = min_corr < min_expected
     passed = not alert
     severity = str(rule_config.get("severity", "warning" if alert else "info")).lower()
-    default_message = (
-        "Correlación baja detectada entre departamentos."
-    )  # TODO: agregar mensaje a rules.yaml / command_center
+    default_message = "Correlación baja detectada entre departamentos."  # TODO: agregar mensaje a rules.yaml / command_center
     message = str(rule_config.get("message") or default_message)
 
     details = {

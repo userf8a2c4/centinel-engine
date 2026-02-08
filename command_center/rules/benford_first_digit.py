@@ -64,7 +64,9 @@ def _extract_candidates(entry: dict) -> List[int]:
             for candidate in candidates:
                 if not isinstance(candidate, dict):
                     continue
-                votes.append(_safe_int(candidate.get("votes") or candidate.get("votos")))
+                votes.append(
+                    _safe_int(candidate.get("votes") or candidate.get("votos"))
+                )
             return votes
     return votes
 
@@ -105,7 +107,9 @@ def check_benford_first_digit(data: dict) -> dict:
     config = _load_rules_config()
     rule_config = _get_rule_config(config, rule_key)
 
-    default_p_threshold = 0.05  # TODO: agregar este umbral a rules.yaml / command_center
+    default_p_threshold = (
+        0.05  # TODO: agregar este umbral a rules.yaml / command_center
+    )
     default_min_samples = 50  # TODO: agregar este umbral a rules.yaml / command_center
     p_threshold = float(rule_config.get("p_threshold", default_p_threshold))
     min_samples = int(rule_config.get("min_samples", default_min_samples))
@@ -144,9 +148,7 @@ def check_benford_first_digit(data: dict) -> dict:
     alert = chi_result.pvalue < p_threshold
     passed = not alert
     severity = str(rule_config.get("severity", "critical" if alert else "info")).lower()
-    default_message = (
-        "Distribución del primer dígito desvía de Benford."
-    )  # TODO: agregar mensaje a rules.yaml / command_center
+    default_message = "Distribución del primer dígito desvía de Benford."  # TODO: agregar mensaje a rules.yaml / command_center
     message = str(rule_config.get("message") or default_message)
 
     details = {

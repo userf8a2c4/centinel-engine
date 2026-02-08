@@ -62,7 +62,9 @@ def _extract_department_name(entry: dict) -> str:
 
 def _extract_candidates(entry: dict) -> Dict[str, int]:
     if isinstance(entry.get("resultados"), dict):
-        return {str(key): _safe_int(value) for key, value in entry["resultados"].items()}
+        return {
+            str(key): _safe_int(value) for key, value in entry["resultados"].items()
+        }
     for key in ("candidatos", "candidates", "votos"):
         candidates = entry.get(key)
         if isinstance(candidates, list):
@@ -138,13 +140,9 @@ def check_consistencia_agregada(data: dict) -> dict:
 
     passed = mismatches == 0
     alert = not passed
-    default_message = (
-        "Diferencias detectadas entre la suma departamental y el total nacional."
-    )  # TODO: agregar mensaje a rules.yaml / command_center
+    default_message = "Diferencias detectadas entre la suma departamental y el total nacional."  # TODO: agregar mensaje a rules.yaml / command_center
     message = str(rule_config.get("message") or default_message)
-    severity = str(
-        rule_config.get("severity", "warning" if alert else "info")
-    ).lower()
+    severity = str(rule_config.get("severity", "warning" if alert else "info")).lower()
 
     details = {
         "tolerance": tolerance,

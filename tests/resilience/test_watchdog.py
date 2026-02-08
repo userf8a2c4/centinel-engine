@@ -47,7 +47,9 @@ def test_watchdog_heartbeat_miss_triggers_failure_and_recovery_log(
     assert "watchdog_recovered" in caplog.text
 
 
-def test_watchdog_grace_period_and_action_trigger(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_watchdog_grace_period_and_action_trigger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Español: Verifica respeto de grace_period y disparo posterior.
 
     English: Verify grace period is respected before action trigger.
@@ -85,7 +87,9 @@ def test_watchdog_handle_failure_invokes_restart_hooks(
 
     English: Confirm restart/alert is invoked when accumulated failures cross the threshold.
     """
-    config = watchdog.WatchdogConfig(alert_urls=["https://alert.local"], aggressive_restart=False)
+    config = watchdog.WatchdogConfig(
+        alert_urls=["https://alert.local"], aggressive_restart=False
+    )
     calls = {"alert": 0, "terminate": 0, "start": 0}
 
     def fake_alerts(*_args, **_kwargs) -> None:

@@ -18,15 +18,19 @@ from pathlib import Path
 from typing import Any
 
 import altair as alt
+
 try:
     import boto3
+
     BOTO3_AVAILABLE = True
 except ImportError:  # pragma: no cover - optional dependency for S3 checks
     boto3 = None
     BOTO3_AVAILABLE = False
 import pandas as pd
+
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:  # pragma: no cover - optional dependency for system metrics
     psutil = None
@@ -341,7 +345,9 @@ def resolve_snapshot_context(
     return current_ts, previous_ts
 
 
-def derive_alert_thresholds(resilience_cfg: dict, expected_streams: int) -> dict[str, int]:
+def derive_alert_thresholds(
+    resilience_cfg: dict, expected_streams: int
+) -> dict[str, int]:
     """Español: Calcula umbrales de alerta basados en rules.yaml para diffs/anomalías.
 
     English: Compute alert thresholds from rules.yaml for diffs/anomalies visibility.
@@ -1871,7 +1877,9 @@ def generate_pdf_report(
     version = "v1.0"
     repo_url = "https://github.com/userf8a2c4/centinel-engine"
 
-    def draw_footer(canvas: reportlab_canvas.Canvas, doc_instance: SimpleDocTemplate) -> None:
+    def draw_footer(
+        canvas: reportlab_canvas.Canvas, doc_instance: SimpleDocTemplate
+    ) -> None:
         """Español: Dibuja el pie de página con enlace y timestamp.
 
         English: Draw footer with repository link and timestamp.
@@ -1926,7 +1934,9 @@ def generate_pdf_report(
         total = row.get("total", "N/D")
         diff_value = diffs.get(dept, row.get("diff", "N/D"))
         dept_rows.append([dept, total, diff_value])
-    elements.append(build_table(dept_rows, [doc.width * 0.45, doc.width * 0.25, doc.width * 0.3]))
+    elements.append(
+        build_table(dept_rows, [doc.width * 0.45, doc.width * 0.25, doc.width * 0.3])
+    )
     elements.append(Spacer(1, 12))
 
     elements.append(Paragraph("Diferencias detectadas (Diffs)", styles["SectionTitle"]))
@@ -1957,7 +1967,9 @@ def generate_pdf_report(
     elements.append(Paragraph(metodologia, styles["Body"]))
     elements.append(Spacer(1, 12))
 
-    elements.append(Paragraph("Declaración de Neutralidad (ES/EN)", styles["SectionTitle"]))
+    elements.append(
+        Paragraph("Declaración de Neutralidad (ES/EN)", styles["SectionTitle"])
+    )
     disclaimer = (
         "<b>ES:</b> Este documento utiliza exclusivamente datos públicos del CNE y "
         "no incluye información sensible ni desagregada. No contiene interpretación "
@@ -2036,7 +2048,9 @@ def build_pdf_export_payload(
     )
 
     national_latest = latest_df[~latest_df["department"].isin(departments)]
-    total_nacional = int(national_latest["votes"].sum()) if not national_latest.empty else 0
+    total_nacional = (
+        int(national_latest["votes"].sum()) if not national_latest.empty else 0
+    )
     suma_departamentos = int(dept_latest["votes"].sum()) if not dept_latest.empty else 0
     delta_aggregacion = suma_departamentos - total_nacional
 
@@ -2061,9 +2075,13 @@ def build_pdf_export_payload(
 
         English: Build a serializable payload for snapshot hashing.
         """
-        return snapshot_df[
-            ["timestamp", "department", "votes", "delta", "changes", "hash"]
-        ].fillna("").to_dict(orient="records")
+        return (
+            snapshot_df[
+                ["timestamp", "department", "votes", "delta", "changes", "hash"]
+            ]
+            .fillna("")
+            .to_dict(orient="records")
+        )
 
     payload = _snapshot_payload(latest_df)
     hash_snapshot = compute_report_hash(json.dumps(payload, sort_keys=True))
@@ -2915,9 +2933,7 @@ with tabs[5]:
         ["Timestamp", "Dept", "Δ", "Estado", "Hash"],
     ] + snapshots_real[
         ["timestamp", "department", "delta", "status", "hash"]
-    ].head(
-        10
-    ).values.tolist()
+    ].head(10).values.tolist()
 
     anomalies_sorted = filtered_anomalies.copy()
     if not anomalies_sorted.empty:

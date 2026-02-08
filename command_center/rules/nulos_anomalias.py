@@ -126,8 +126,12 @@ def check_nulos_anomalias(data: dict) -> dict:
     config = _load_rules_config()
     rule_config = _get_rule_config(config, rule_key)
 
-    default_max_percentage = 0.08  # TODO: agregar este umbral a rules.yaml / command_center
-    default_residual_threshold = 0.05  # TODO: agregar este umbral a rules.yaml / command_center
+    default_max_percentage = (
+        0.08  # TODO: agregar este umbral a rules.yaml / command_center
+    )
+    default_residual_threshold = (
+        0.05  # TODO: agregar este umbral a rules.yaml / command_center
+    )
     max_percentage = float(rule_config.get("max_percentage", default_max_percentage))
     residual_threshold = float(
         rule_config.get("residual_threshold", default_residual_threshold)
@@ -171,9 +175,7 @@ def check_nulos_anomalias(data: dict) -> dict:
     alert = bool(department_alerts or regression_alerts)
     passed = not alert
     severity = str(rule_config.get("severity", "warning" if alert else "info")).lower()
-    default_message = (
-        "Porcentaje de votos nulos elevado o desviación atípica vs turnout."
-    )  # TODO: agregar mensaje a rules.yaml / command_center
+    default_message = "Porcentaje de votos nulos elevado o desviación atípica vs turnout."  # TODO: agregar mensaje a rules.yaml / command_center
     message = str(rule_config.get("message") or default_message)
 
     details = {

@@ -347,6 +347,4 @@ if __name__ == "__main__":
             "votos": [1200, 800, 2400, 1600],
         }
     )
-    logger.info(
-        "chi2_sample_result %s", check_distribution_chi2(sample_votes_frame)
-    )
+    logger.info("chi2_sample_result %s", check_distribution_chi2(sample_votes_frame))

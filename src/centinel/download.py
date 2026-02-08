@@ -187,7 +187,9 @@ def _build_chain_payload(
     ]
     if timestamp:
         timestamp_bytes = timestamp.encode("utf-8")
-        parts.extend([b"ts", str(len(timestamp_bytes)).encode("utf-8"), timestamp_bytes])
+        parts.extend(
+            [b"ts", str(len(timestamp_bytes)).encode("utf-8"), timestamp_bytes]
+        )
     if metadata:
         parts.extend([b"meta", str(len(metadata)).encode("utf-8"), metadata])
 
