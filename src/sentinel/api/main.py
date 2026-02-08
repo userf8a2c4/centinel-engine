@@ -7,6 +7,7 @@ English:
 import json
 import logging
 import os
+import re
 import sqlite3
 from pathlib import Path
 
@@ -115,6 +116,13 @@ def get_connection() -> sqlite3.Connection:
     return connection
 
 
+def _validate_table_name(table_name: str) -> str:
+    """Asegura que el nombre de tabla tenga el formato esperado."""
+    if not re.fullmatch(r"dept_[A-Za-z0-9]+_snapshots", table_name):
+        raise ValueError(f"Invalid table name: {table_name}")
+    return table_name
+
+
 def fetch_latest_snapshot(connection: sqlite3.Connection) -> dict | None:
     """Devuelve el snapshot más reciente del índice.
 
@@ -143,13 +151,14 @@ def fetch_latest_snapshot(connection: sqlite3.Connection) -> dict | None:
     ).fetchone()
     if not row:
         return None
+    table_name = _validate_table_name(row["table_name"])
     snapshot = connection.execute(
         f"""
         SELECT canonical_json, registered_voters, total_votes, valid_votes,
                null_votes, blank_votes, candidates_json, ipfs_cid, ipfs_tx_hash
-        FROM {row['table_name']}
+        FROM {table_name}
         WHERE hash = ?
-        """,
+        """,  # nosec B608 - table name validated against strict pattern.
         (row["hash"],),
     ).fetchone()
     payload = json.loads(snapshot["canonical_json"]) if snapshot else None
@@ -198,12 +207,13 @@ def fetch_snapshot_by_hash(
     ).fetchone()
     if not row:
         return None
+    table_name = _validate_table_name(row["table_name"])
     snapshot = connection.execute(
         f"""
         SELECT canonical_json, ipfs_cid, ipfs_tx_hash
-        FROM {row['table_name']}
+        FROM {table_name}
         WHERE hash = ?
-        """,
+        """,  # nosec B608 - table name validated against strict pattern.
         (snapshot_hash,),
     ).fetchone()
     payload = json.loads(snapshot["canonical_json"]) if snapshot else None
@@ -250,12 +260,13 @@ def verify_hashchain(connection: sqlite3.Connection, snapshot_hash: str) -> dict
     ).fetchone()
     if not row:
         return {"exists": False, "valid": False}
+    table_name = _validate_table_name(row["table_name"])
     snapshot = connection.execute(
         f"""
         SELECT canonical_json
-        FROM {row['table_name']}
+        FROM {table_name}
         WHERE hash = ?
-        """,
+        """,  # nosec B608 - table name validated against strict pattern.
         (snapshot_hash,),
     ).fetchone()
     if not snapshot:

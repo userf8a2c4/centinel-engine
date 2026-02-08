@@ -303,7 +303,7 @@ class LocalSnapshotStore:
                 ipfs_tx_hash
             FROM {table_name}
             ORDER BY timestamp_utc
-            """
+            """,  # nosec B608 - table name derived from sanitized department code.
         ).fetchall()
 
     def _ensure_index_table(self) -> None:
@@ -358,10 +358,10 @@ class LocalSnapshotStore:
                 ipfs_cid TEXT,
                 ipfs_tx_hash TEXT
             )
-            """
+            """,  # nosec B608 - table name derived from sanitized department code.
         )
         self._connection.execute(
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_timestamp ON {table_name}(timestamp_utc)"
+            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_timestamp ON {table_name}(timestamp_utc)"  # nosec B608 - table name derived from sanitized department code.
         )
         self._ensure_column(table_name, "tx_hash", "TEXT")
         self._ensure_column(table_name, "ipfs_cid", "TEXT")
@@ -385,10 +385,12 @@ class LocalSnapshotStore:
         English:
             Add a column if it does not exist in the specified table.
         """
-        cursor = self._connection.execute(f"PRAGMA table_info({table_name})")
+        cursor = self._connection.execute(
+            f"PRAGMA table_info({table_name})"  # nosec B608 - table name derived from sanitized department code.
+        )
         columns = {row[1] for row in cursor.fetchall()}
         if column_name in columns:
             return
         self._connection.execute(
-            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
+            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"  # nosec B608 - table name derived from sanitized department code.
         )
