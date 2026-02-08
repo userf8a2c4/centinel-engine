@@ -1,12 +1,9 @@
-"""Reglas estadísticas para auditoría presidencial.
+"""Reglas estadísticas para auditoría presidencial. (Presidential audit statistical rules.)
 
 Este módulo incluye funciones específicas para auditorías de distribución de
-votos usando la Ley de Benford y pruebas chi-cuadrado.
-
-Presidential audit statistical rules.
-
-This module includes specific functions for auditing vote distributions using
-Benford's Law and chi-square tests.
+votos usando la Ley de Benford y pruebas chi-cuadrado. (This module includes
+specific functions for auditing vote distributions using Benford's Law and
+chi-square tests.)
 """
 
 from __future__ import annotations
@@ -37,7 +34,7 @@ _DEFAULT_RULES_CONFIG = {
 
 
 def _load_rules_config() -> dict:
-    """/** Carga reglas desde command_center/rules.yaml. / Load rules from command_center/rules.yaml. **"""
+    """Carga reglas desde command_center/rules.yaml. (Load rules from command_center/rules.yaml.)"""
     rules_path = Path(__file__).resolve().parents[1] / "command_center" / "rules.yaml"
     if not rules_path.exists():
         return {}
@@ -50,7 +47,7 @@ def _load_rules_config() -> dict:
 
 
 def _get_rule_param(config: dict, *keys: str, default):
-    """/** Obtiene un parámetro de reglas con múltiples llaves. / Fetch a rules parameter using multiple keys. **"""
+    """Obtiene un parámetro de reglas con múltiples llaves. (Fetch a rules parameter using multiple keys.)"""
     for key in keys:
         if key in config:
             return config[key]
@@ -58,7 +55,7 @@ def _get_rule_param(config: dict, *keys: str, default):
 
 
 def _first_digits(values: Iterable[int]) -> list[int]:
-    """/** Extrae primer dígito (1-9) de una lista. / Extract first digit (1-9) from a list. **"""
+    """Extrae primer dígito (1-9) de una lista. (Extract first digit (1-9) from a list.)"""
     digits: list[int] = []
     for value in values:
         if value is None:
@@ -71,7 +68,7 @@ def _first_digits(values: Iterable[int]) -> list[int]:
 
 
 def apply_benford_law(votes_list: list[int]) -> dict:
-    """/** Aplica Benford y chi-cuadrado al primer dígito. / Apply Benford and chi-square to the first digit. **"""
+    """Aplica Benford y chi-cuadrado al primer dígito. (Apply Benford and chi-square to the first digit.)"""
     config = _load_rules_config()
     benford_config = config.get("benford_law", {})
     p_threshold = float(
@@ -125,7 +122,7 @@ def apply_benford_law(votes_list: list[int]) -> dict:
             "p_value": 1.0,
             "detalle": "Total de votos igual a cero; Benford omitido.",
         }
-    # Distribución Benford: P(d) = log10(1 + 1/d). / Benford distribution formula.
+    # Benford distribution: P(d) = log10(1 + 1/d). (Distribución Benford: P(d) = log10(1 + 1/d).)
     expected_probabilities = np.array(
         [math.log10(1 + 1 / digit_value) for digit_value in range(1, 10)]
     )
@@ -139,11 +136,11 @@ def apply_benford_law(votes_list: list[int]) -> dict:
     }
 
     try:
-        # Chi-cuadrado = Σ((O - E)^2 / E). / Chi-square = Σ((O - E)^2 / E).
+        # Chi-square = Σ((O - E)^2 / E). (Chi-cuadrado = Σ((O - E)^2 / E).)
         chi_result = chisquare(observed_counts.values, f_exp=expected_counts)
         p_value = float(chi_result.pvalue)
     except (ValueError, ZeroDivisionError, FloatingPointError):
-        # Evita división por cero en chi2. / Avoid divide-by-zero in chi2.
+        # Avoid divide-by-zero in chi2. (Evita división por cero en chi2.)
         return {
             "status": "OK",
             "p_value": 1.0,
@@ -168,7 +165,7 @@ def apply_benford_law(votes_list: list[int]) -> dict:
 
 
 def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
-    """/** Prueba chi-cuadrado de distribución por grupos. / Chi-square test for group distributions. **"""
+    """Prueba chi-cuadrado de distribución por grupos. (Chi-square test for group distributions.)"""
     if df_normalized is None or df_normalized.empty:
         return {
             "status": "OK",
@@ -291,7 +288,7 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
         expected_share = raw_shares / raw_shares.sum()
         basis_label = "historica"
     else:
-        # Distribución uniforme: cada grupo recibe 1 / n. / Uniform distribution: each group gets 1 / n.
+        # Uniform distribution: each group gets 1 / n. (Distribución uniforme: cada grupo recibe 1 / n.)
         expected_share = np.array([1.0 / len(group_names)] * len(group_names))
         basis_label = "uniforme"
 
@@ -307,11 +304,11 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
     try:
         observed_values = observed_series.values.astype(float)
         expected_values = expected_counts.astype(float)
-        # Chi-cuadrado = Σ((O - E)^2 / E). / Chi-square = Σ((O - E)^2 / E).
+        # Chi-square = Σ((O - E)^2 / E). (Chi-cuadrado = Σ((O - E)^2 / E).)
         chi_result = chisquare(observed_values, f_exp=expected_values)
         p_value = float(chi_result.pvalue)
     except (ValueError, ZeroDivisionError, FloatingPointError):
-        # Evita división por cero en chi2. / Avoid divide-by-zero in chi2.
+        # Avoid divide-by-zero in chi2. (Evita división por cero en chi2.)
         return {
             "status": "OK",
             "p_value": 1.0,
@@ -336,7 +333,7 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
 
 
 if __name__ == "__main__":
-    # Ejemplo de uso / Usage example.
+    # Usage example. (Ejemplo de uso.)
     sample_votes = [120, 340, 560, 780, 910, 101, 230, 456, 789, 905]
     logger.info("benford_sample_result %s", apply_benford_law(sample_votes))
 

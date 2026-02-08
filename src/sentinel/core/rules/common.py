@@ -1,7 +1,4 @@
-"""Funciones comunes para extracción segura de datos electorales.
-
-Common helpers for safely extracting electoral data.
-"""
+"""Funciones comunes para extracción segura de datos electorales. (Common helpers for safely extracting electoral data.)"""
 
 from __future__ import annotations
 
@@ -11,10 +8,7 @@ from dateutil import parser
 
 
 def safe_int(value: object, default: int = 0) -> int:
-    """Convierte a entero con fallback seguro.
-
-    Convert to integer with a safe fallback.
-    """
+    """Convierte a entero con fallback seguro. (Convert to integer with a safe fallback.)"""
     try:
         if value is None:
             return default
@@ -24,10 +18,7 @@ def safe_int(value: object, default: int = 0) -> int:
 
 
 def safe_int_or_none(value: object) -> Optional[int]:
-    """Convierte a entero o devuelve None si no es posible.
-
-    Convert to integer or return None if not possible.
-    """
+    """Convierte a entero o devuelve None si no es posible. (Convert to integer or return None if not possible.)"""
     try:
         if value is None:
             return None
@@ -37,10 +28,7 @@ def safe_int_or_none(value: object) -> Optional[int]:
 
 
 def safe_float_or_none(value: object) -> Optional[float]:
-    """Convierte a float o devuelve None si no es posible.
-
-    Convert to float or return None if not possible.
-    """
+    """Convierte a float o devuelve None si no es posible. (Convert to float or return None if not possible.)"""
     try:
         if value is None:
             return None
@@ -50,10 +38,7 @@ def safe_float_or_none(value: object) -> Optional[float]:
 
 
 def extract_department(data: dict) -> str:
-    """Extrae el departamento o retorna un valor por defecto.
-
-    Extract the department or return a default value.
-    """
+    """Extrae el departamento o retorna un valor por defecto. (Extract the department or return a default value.)"""
     meta = data.get("meta") or data.get("metadata") or {}
     return (
         data.get("departamento")
@@ -65,10 +50,7 @@ def extract_department(data: dict) -> str:
 
 
 def parse_timestamp(data: dict) -> Optional[object]:
-    """Parsea un timestamp desde varias claves conocidas.
-
-    Parse a timestamp from known keys.
-    """
+    """Parsea un timestamp desde varias claves conocidas. (Parse a timestamp from known keys.)"""
     raw_ts = data.get("timestamp") or data.get("timestamp_utc") or data.get("fecha")
     meta = data.get("meta") or data.get("metadata") or {}
     raw_ts = raw_ts or meta.get("timestamp_utc")
@@ -81,10 +63,7 @@ def parse_timestamp(data: dict) -> Optional[object]:
 
 
 def extract_candidates(data: dict) -> List[dict]:
-    """Extrae la lista de candidatos desde variantes de clave.
-
-    Extract the candidate list from key variants.
-    """
+    """Extrae la lista de candidatos desde variantes de clave. (Extract the candidate list from key variants.)"""
     if isinstance(data.get("candidates"), list):
         return data.get("candidates", [])
     if isinstance(data.get("candidatos"), list):
@@ -95,10 +74,7 @@ def extract_candidates(data: dict) -> List[dict]:
 
 
 def extract_candidate_votes(data: dict) -> Dict[str, Dict[str, object]]:
-    """Construye un mapa de votos por candidato.
-
-    Build a candidate vote map.
-    """
+    """Construye un mapa de votos por candidato. (Build a candidate vote map.)"""
     candidates = {}
 
     if isinstance(data.get("resultados"), dict):
@@ -139,10 +115,7 @@ def extract_candidate_votes(data: dict) -> Dict[str, Dict[str, object]]:
 
 
 def extract_total_votes(data: dict) -> Optional[int]:
-    """Extrae el total de votos desde claves conocidas.
-
-    Extract total votes from known keys.
-    """
+    """Extrae el total de votos desde claves conocidas. (Extract total votes from known keys.)"""
     totals = data.get("totals") or {}
     votos_totales = data.get("votos_totales") or {}
     return safe_int_or_none(
@@ -157,10 +130,7 @@ def extract_total_votes(data: dict) -> Optional[int]:
 
 
 def extract_vote_breakdown(data: dict) -> Dict[str, Optional[int]]:
-    """Extrae el desglose de votos válidos/nulos/blancos.
-
-    Extract the breakdown of valid/null/blank votes.
-    """
+    """Extrae el desglose de votos válidos/nulos/blancos. (Extract the breakdown of valid/null/blank votes.)"""
     totals = data.get("totals") or {}
     votos_totales = data.get("votos_totales") or {}
     return {
@@ -190,10 +160,7 @@ def extract_vote_breakdown(data: dict) -> Dict[str, Optional[int]]:
 
 
 def extract_actas_mesas_counts(data: dict) -> Dict[str, Optional[int]]:
-    """Extrae conteos de actas y mesas.
-
-    Extract tally sheet and table counts.
-    """
+    """Extrae conteos de actas y mesas. (Extract tally sheet and table counts.)"""
     actas = data.get("actas") or {}
     mesas = data.get("mesas") or {}
     totals = data.get("totals") or {}
@@ -228,10 +195,7 @@ def extract_actas_mesas_counts(data: dict) -> Dict[str, Optional[int]]:
 
 
 def extract_porcentaje_escrutado(data: dict) -> Optional[float]:
-    """Extrae el porcentaje de escrutinio cuando existe.
-
-    Extract the scrutiny percentage when available.
-    """
+    """Extrae el porcentaje de escrutinio cuando existe. (Extract the scrutiny percentage when available.)"""
     porcentaje = (
         data.get("porcentaje_escrutado")
         or data.get("porcentaje")
@@ -244,10 +208,7 @@ def extract_porcentaje_escrutado(data: dict) -> Optional[float]:
 
 
 def extract_registered_voters(data: dict) -> Optional[int]:
-    """Extrae el total de electores registrados.
-
-    Extract the total registered voters.
-    """
+    """Extrae el total de electores registrados. (Extract the total registered voters.)"""
     totals = data.get("totals") or {}
     return safe_int_or_none(
         totals.get("registered_voters")
@@ -260,10 +221,7 @@ def extract_registered_voters(data: dict) -> Optional[int]:
 
 
 def extract_mesas(data: dict) -> List[dict]:
-    """Extrae la lista de mesas desde llaves conocidas.
-
-    Extract the list of polling tables from known keys.
-    """
+    """Extrae la lista de mesas desde llaves conocidas. (Extract the list of polling tables from known keys.)"""
     mesas = data.get("mesas") or data.get("tables") or data.get("actas") or []
     if isinstance(mesas, dict):
         return [mesa for mesa in mesas.values() if isinstance(mesa, dict)]
@@ -273,10 +231,7 @@ def extract_mesas(data: dict) -> List[dict]:
 
 
 def extract_mesa_code(mesa: dict) -> Optional[str]:
-    """Extrae el código de mesa desde campos conocidos.
-
-    Extract the table code from known fields.
-    """
+    """Extrae el código de mesa desde campos conocidos. (Extract the table code from known fields.)"""
     code = (
         mesa.get("codigo")
         or mesa.get("codigo_mesa")
@@ -288,10 +243,7 @@ def extract_mesa_code(mesa: dict) -> Optional[str]:
 
 
 def extract_mesa_candidate_votes(mesa: dict) -> Dict[str, int]:
-    """Extrae votos por candidato desde una mesa.
-
-    Extract candidate votes from a table entry.
-    """
+    """Extrae votos por candidato desde una mesa. (Extract candidate votes from a table entry.)"""
     candidates = extract_candidate_votes(mesa)
     return {
         key: int(candidate.get("votes") or 0)
@@ -301,10 +253,7 @@ def extract_mesa_candidate_votes(mesa: dict) -> Dict[str, int]:
 
 
 def extract_mesa_vote_breakdown(mesa: dict) -> Dict[str, Optional[int]]:
-    """Extrae desglose de votos desde una mesa.
-
-    Extract vote breakdown from a table entry.
-    """
+    """Extrae desglose de votos desde una mesa. (Extract vote breakdown from a table entry.)"""
     totals = mesa.get("totals") or {}
     return {
         "valid_votes": safe_int_or_none(
@@ -336,10 +285,7 @@ def extract_mesa_vote_breakdown(mesa: dict) -> Dict[str, Optional[int]]:
 
 
 def extract_department_entries(data: dict) -> List[dict]:
-    """Extrae entradas por departamento desde claves conocidas.
-
-    Extract department-level entries from known keys.
-    """
+    """Extrae entradas por departamento desde claves conocidas. (Extract department-level entries from known keys.)"""
     for key in ("departments", "departamentos", "by_department", "por_departamento"):
         entries = data.get(key)
         if isinstance(entries, list):
@@ -354,10 +300,7 @@ def extract_department_entries(data: dict) -> List[dict]:
 
 
 def extract_numeric_list(values: Iterable[object]) -> List[int]:
-    """Convierte una colección a una lista de enteros válidos.
-
-    Convert a collection to a list of valid integers.
-    """
+    """Convierte una colección a una lista de enteros válidos. (Convert a collection to a list of valid integers.)"""
     numbers: List[int] = []
     for value in values:
         number = safe_int_or_none(value)
