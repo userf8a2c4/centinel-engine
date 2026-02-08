@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any, Dict
 
 from .download import chained_hash, write_atomic
+from .hasher import canonical_metadata_bytes, ensure_snapshot_metadata
+from . import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +74,14 @@ def save_snapshot(
     metadata_path = snapshot_dir / "snapshot.metadata.json"
     hash_path = snapshot_dir / "hash.txt"
 
-    metadata_bytes = json.dumps(metadata, ensure_ascii=False, sort_keys=True).encode(
-        "utf-8"
+    enriched_metadata = ensure_snapshot_metadata(
+        metadata,
+        timestamp_iso=timestamp_iso,
+        source_url=metadata.get("source_url") or metadata.get("source"),
+        software_version=__version__,
+        previous_hash=previous_hash,
     )
+    metadata_bytes = canonical_metadata_bytes(enriched_metadata)
     new_hash = chained_hash(
         content,
         previous_hash,
@@ -85,7 +92,7 @@ def save_snapshot(
     write_atomic(raw_path, content)
     write_atomic(
         metadata_path,
-        json.dumps(metadata, ensure_ascii=False, indent=2).encode("utf-8"),
+        json.dumps(enriched_metadata, ensure_ascii=False, indent=2).encode("utf-8"),
     )
     write_atomic(hash_path, f"{new_hash}\n".encode("utf-8"))
 
