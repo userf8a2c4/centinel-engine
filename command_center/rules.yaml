@@ -27,3 +27,28 @@ security:
   encrypt_enabled: true
   log_sensitive: false
   rate_limit_rpm: 10
+
+# Definiciones de reglas con metadatos mínimos.
+# Rule definitions with minimum metadata.
+rules:
+  benford_first_digit:
+    # Nombre único de la regla (Unique rule name).
+    rule_name: "benford_first_digit"
+    # Umbral principal de la regla (Primary rule threshold).
+    threshold: 0.05
+    # Si la regla está habilitada (Whether the rule is enabled).
+    enabled: true
+    # Parámetros específicos de la regla (Rule-specific parameters).
+    parameters:
+      min_samples: 50
+  turnout_zscore:
+    # Nombre único de la regla (Unique rule name).
+    rule_name: "turnout_zscore"
+    # Umbral principal de la regla (Primary rule threshold).
+    threshold: 2.5
+    # Si la regla está habilitada (Whether the rule is enabled).
+    enabled: true
+    # Parámetros específicos de la regla (Rule-specific parameters).
+    parameters:
+      turnout_min: 0.4
+      turnout_max: 0.95

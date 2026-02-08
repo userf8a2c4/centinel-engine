@@ -73,6 +73,7 @@ exclude = ["chaos_test.py", "scripts/chaos_test.py"]
 
 [tool.poetry.scripts]
 centinel = "centinel.cli:main"
+command-center = "command_center.main:main"
 
 [build-system]
 requires = ["poetry-core>=1.5.0"]
