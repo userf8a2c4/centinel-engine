@@ -69,7 +69,7 @@ def apply(
 
     max_history = int(config.get("max_history", 200))
     if len(history) > max_history:
-        del history[: len(history) - max_history]
+        del history[:-max_history]
 
     min_samples = int(config.get("min_samples", 5))
     if len(history) < min_samples:
