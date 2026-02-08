@@ -31,6 +31,18 @@ from sentinel.core.rules.registry import RuleDefinition, list_rules
 
 logger = logging.getLogger(__name__)
 
+RULE_CONFIG_ALIASES: dict[str, str] = {
+    "benford": "benford_first_digit",
+    "benford_law": "benford_first_digit",
+    "irreversibility": "irreversibility_rule",
+    "processing_speed": "processing_speed_rule",
+    "ml_outliers": "ml_outliers_rule",
+    "participation_anomaly": "participation_anomaly_rule",
+    "snapshot_jump": "snapshot_jump_rule",
+    "null_blank": "null_blank_votes",
+    "turnout": "turnout_impossible",
+}
+
 
 @dataclass(frozen=True)
 class RulesEngineResult:
