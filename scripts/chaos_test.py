@@ -9,13 +9,17 @@ import json
 import logging
 import random
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
 import requests
-import responses
+try:
+    import responses
+except ModuleNotFoundError:  # pragma: no cover - fallback when responses isn't installed.
+    responses = None
 import yaml
 
 
@@ -290,7 +294,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
             return 200, {}, json.dumps(payload)
         if scenario == "proxy_fail":
             logger.warning("scenario=proxy_fail url=%s", request.url)
-            raise requests.ProxyError("simulated_proxy_failure")
+            raise requests.exceptions.ProxyError("simulated_proxy_failure")
         if scenario == "slow_response":
             logger.warning("scenario=slow_response url=%s", request.url)
             time.sleep(config.slow_response_seconds)
@@ -300,8 +304,39 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
     start_time = time.monotonic()
     end_time = start_time + config.duration_minutes * 60
     session = requests.Session()
-    with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
-        rsps.add_callback(responses.GET, config.base_url, callback=_callback)
+
+    class _MockResponse:
+        def __init__(self, status_code: int, body: str) -> None:
+            self.status_code = status_code
+            self._body = body
+
+        def json(self) -> Dict[str, object]:
+            return json.loads(self._body)
+
+    @contextmanager
+    def _mock_requests(callback: callable) -> Iterable[None]:
+        original_get = session.get
+
+        def _fake_get(url: str, timeout: float | None = None) -> _MockResponse:
+            if url != config.base_url:
+                return original_get(url, timeout=timeout)
+            request = requests.Request("GET", url).prepare()
+            status, _headers, body = callback(request)
+            return _MockResponse(status, body)
+
+        session.get = _fake_get  # type: ignore[assignment]
+        try:
+            yield
+        finally:
+            session.get = original_get  # type: ignore[assignment]
+
+    if responses is not None:
+        context = responses.RequestsMock(assert_all_requests_are_fired=False)
+        context.add_callback(responses.GET, config.base_url, callback=_callback)
+    else:
+        context = _mock_requests(_callback)
+
+    with context:
         while time.monotonic() < end_time:
             try:
                 response = session.get(
@@ -333,7 +368,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
                     last_failure_time = None
             except (
                 requests.Timeout,
-                requests.ProxyError,
+                requests.exceptions.ProxyError,
                 ValueError,
                 RuntimeError,
                 json.JSONDecodeError,
