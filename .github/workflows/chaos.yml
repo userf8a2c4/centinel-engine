@@ -20,32 +20,21 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      # Install Poetry / Instalar Poetry (before cache step)
-      - name: Install Poetry / Instalar Poetry
-        run: pipx install poetry
-
-      # Cache Poetry + venv / Cache de Poetry + entorno virtual
-      - name: Cache Poetry and virtualenv / Cache de Poetry y entorno virtual
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pypoetry
-            .venv
-          key: ${{ runner.os }}-poetry-3.11-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-3.11-
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       # Install dependencies / Instalar dependencias
       - name: Install dependencies / Instalar dependencias
         run: |
-          poetry config virtualenvs.in-project true
-          poetry install --no-root --with dev --no-interaction --no-ansi
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-dev.txt
 
       # Run chaos tests / Ejecutar pruebas de caos
       - name: Run chaos tests (light) / Ejecutar pruebas de caos (ligero)
         run: |
-          poetry run python scripts/chaos_test.py \
+          python scripts/chaos_test.py \
             --config chaos_config.yaml.example \
             --level "${CHAOS_LEVEL}" \
             --duration-minutes "${CHAOS_DURATION_MINUTES}"
