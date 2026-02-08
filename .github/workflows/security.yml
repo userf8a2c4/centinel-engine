@@ -15,36 +15,17 @@ jobs:
       - name: Checkout repository / Clonar repositorio
         uses: actions/checkout@v4
 
-      # Install Poetry / Instalar Poetry (before setup-python so cache works)
-      - name: Install Poetry / Instalar Poetry
-        run: pipx install poetry
-
       # Setup Python / Configurar Python
       - name: Set up Python / Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: poetry
-          cache-dependency-path: poetry.lock
 
-      # Cache Poetry + venv / Cache de Poetry + entorno virtual
-      - name: Cache Poetry and virtualenv / Cache de Poetry y entorno virtual
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pypoetry
-            .venv
-          key: ${{ runner.os }}-poetry-3.11-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-3.11-
-
-      # Install dependencies / Instalar dependencias
-      - name: Install dependencies / Instalar dependencias
-        run: |
-          poetry config virtualenvs.in-project true
-          poetry install --no-root --with dev --no-interaction --no-ansi
+      # Install Bandit / Instalar Bandit
+      - name: Install Bandit / Instalar Bandit
+        run: python -m pip install --upgrade pip bandit
 
       # Bandit scan / Escaneo con Bandit
       - name: Bandit scan / Escaneo con Bandit
         run: |
-          poetry run bandit -r src -c pyproject.toml
+          bandit -r src -c pyproject.toml
