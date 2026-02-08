@@ -7,6 +7,25 @@ from pathlib import Path
 import tomllib
 
 
+def _python_allows(constraint: str | None) -> bool:
+    if not constraint:
+        return True
+    normalized = constraint.replace(" ", "")
+    current = (sys.version_info.major, sys.version_info.minor)
+
+    try:
+        if normalized.startswith(">="):
+            threshold = tuple(map(int, normalized[2:].split(".")))
+            return current >= threshold
+        if normalized.startswith("<"):
+            threshold = tuple(map(int, normalized[1:].split(".")))
+            return current < threshold
+    except (ValueError, IndexError):
+        pass
+
+    return True
+
+
 def _format_dependency(name: str, constraint: object) -> str | None:
     if name == "python":
         return None
@@ -17,6 +36,8 @@ def _format_dependency(name: str, constraint: object) -> str | None:
             return f"{name}=={constraint}"
         return f"{name}{constraint}"
     if isinstance(constraint, dict):
+        if not _python_allows(constraint.get("python")):
+            return None
         extras = ""
         extra_values = constraint.get("extras")
         if extra_values:
