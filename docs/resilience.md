@@ -18,6 +18,50 @@
 
 ## 1) `retry_config.yaml` — Reintentos, backoff y jitter / Retries, backoff, and jitter
 
+### Ecuaciones de backoff y jitter / Backoff and jitter equations
+
+**ES:** Para el intento `n` (empezando en 0), el tiempo de espera se modela como:
+
+**EN:** For attempt `n` (starting at 0), the wait time is modeled as:
+
+\[
+t_n = \text{base} \cdot 2^{n} + J
+\]
+
+**ES:** donde el jitter `J` suele ser una variable aleatoria uniforme `J \sim U(0, j_{max})`. El valor esperado es:
+
+**EN:** where jitter `J` is typically a uniform random variable `J \sim U(0, j_{max})`. The expected value is:
+
+\[
+\mathbb{E}[t_n] = \text{base} \cdot 2^{n} + \frac{j_{max}}{2}
+\]
+
+**ES:** El jitter reduce colisiones porque desincroniza clientes que fallan al mismo tiempo. Si `N` clientes reintentan en una ventana `T` y se considera una colisión cuando dos caen en el mismo sub-intervalo `w`, la probabilidad aproximada de colisión por cliente se reduce a:
+
+**EN:** Jitter reduces collisions by desynchronizing clients that fail at the same time. If `N` clients retry within a window `T` and a collision is defined as two clients landing in the same sub-interval `w`, an approximate collision probability per client is reduced to:
+
+\[
+P(\text{colisión}) \approx 1 - \left(1 - \frac{w}{T}\right)^{N-1}
+\]
+
+**ES:** Al aumentar la aleatoriedad (`j_{max}` más amplio), se incrementa `T` efectivo y disminuye la probabilidad de reintentos simultáneos. Esto reduce presión sobre el endpoint y evita bloqueos por patrones de tráfico repetitivo.
+
+**EN:** Increasing randomness (wider `j_{max}`) effectively increases `T`, decreasing the chance of synchronized retries. This reduces pressure on the endpoint and avoids blocks caused by repetitive traffic patterns.
+
+### Umbral de circuit breaker / Circuit breaker threshold
+
+**ES:** El circuito se abre cuando el número de fallos en la ventana `W` supera `k`:
+
+**EN:** The circuit opens when the number of failures within window `W` exceeds `k`:
+
+\[
+\text{OPEN si } f_W \ge k
+\]
+
+**ES:** Esta regla evita reintentos agresivos cuando la fuente presenta fallos persistentes (429/5xx), permitiendo usar snapshots locales como fallback sin perder continuidad operativa.
+
+**EN:** This rule avoids aggressive retries when the source returns persistent failures (429/5xx), enabling local snapshot fallback without losing operational continuity.
+
 ### Parámetros y valores recomendados / Parameters and recommended values
 
 | Parámetro | Descripción | Default | Recomendado | Escenario |
@@ -93,6 +137,10 @@ failed_requests_path: failed_requests.jsonl
 | `max_missed_heartbeats` | ES: Umbral de heartbeats perdidos. EN: Threshold of missed heartbeats. | `10` | Normal: `8–12` / Low-profile: `12–18` | Elección activa / Active election |
 | `grace_period` | ES: Ventana de gracia antes de actuar. EN: Grace period before action. | `6 min` | Normal: `6–10 min` / Low-profile: `10–15 min` | Elección activa / Active election |
 | `restart_delay` | ES: Espera antes del reinicio. EN: Delay before restart. | `30 s` | Normal: `30–45 s` / Low-profile: `45–60 s` | Mantenimiento / Maintenance |
+| `resource_check_interval_seconds` | ES: Frecuencia de chequeo CPU/MEM. EN: CPU/MEM check cadence. | `30 s` | Normal: `30–60 s` | Elección activa / Active election |
+| `max_cpu_percent` | ES: Umbral máximo de CPU. EN: Max CPU threshold. | `80` | Normal: `75–85` | Todos / All |
+| `max_mem_percent` | ES: Umbral máximo de memoria. EN: Max memory threshold. | `90` | Normal: `85–92` | Todos / All |
+| `restart_on_fail` | ES: Auto-recuperación. EN: Auto-recovery. | `true` | `true` | Todos / All |
 
 **Notas de compatibilidad / Compatibility notes:**
 - **ES:** En `watchdog.yaml`, `heartbeat_interval` corresponde a `check_interval_minutes`. `max_missed_heartbeats` se deriva de `max_inactivity_minutes / check_interval_minutes`. `grace_period` corresponde a `failure_grace_minutes` y `restart_delay` a `restart_timeout_seconds`. **EN:** In `watchdog.yaml`, `heartbeat_interval` maps to `check_interval_minutes`. `max_missed_heartbeats` is derived from `max_inactivity_minutes / check_interval_minutes`. `grace_period` maps to `failure_grace_minutes` and `restart_delay` to `restart_timeout_seconds`.
@@ -108,6 +156,16 @@ max_inactivity_minutes: 30
 failure_grace_minutes: 6
 restart_timeout_seconds: 30
 heartbeat_timeout: 10
+# EN: Resource check every 30 seconds.
+# ES: Chequeo de recursos cada 30 segundos.
+resource_check_interval_seconds: 30
+# EN: CPU/MEM thresholds.
+# ES: Umbrales de CPU/MEM.
+max_cpu_percent: 80
+max_mem_percent: 90
+# EN: Auto-restart on failures.
+# ES: Reinicio automático ante fallos.
+restart_on_fail: true
 alert_urls: []
 log_path: "logs/centinel.log"
 lock_files:
@@ -204,6 +262,30 @@ reglas_auditoria:
 **ES:** El circuito de corte (circuit breaker) limita la insistencia cuando la fuente pública responde con fallos persistentes (p. ej. 429 o 5xx). Se recomienda pausar o espaciar el polling cuando se superan umbrales de fallo consecutivo, registrando el evento en logs y `failed_requests.jsonl`. El modo **low-profile** complementa este enfoque ajustando `max_attempts`, `max_delay` y `jitter` para reducir la huella operativa sin perder evidencia técnica.
 
 **EN:** The circuit breaker limits retries when the public source returns persistent failures (e.g., 429 or 5xx). It is recommended to pause or space polling when consecutive failure thresholds are exceeded, recording the event in logs and `failed_requests.jsonl`. **Low-profile** mode complements this by tuning `max_attempts`, `max_delay`, and `jitter` to reduce operational footprint without losing technical evidence.
+
+---
+
+## Pruebas locales de resiliencia / Local resilience testing
+
+**ES:** Use los siguientes comandos para validar resiliencia y fallback en un entorno local (ajustar rutas si es necesario):
+
+**EN:** Use the following commands to validate resilience and fallback in a local environment (adjust paths if needed):
+
+- **ES:** Ejecutar pipeline una vez con configuración actual.  
+  **EN:** Run the pipeline once with current configuration.  
+  `poetry run python scripts/run_pipeline.py --run-once`
+- **ES:** Forzar fallos de polling en pruebas de caos.  
+  **EN:** Force polling failures in chaos tests.  
+  `poetry run python scripts/chaos_test.py --scenario network_fail`
+- **ES:** Ejecutar watchdog con umbrales de recursos y auto-recuperación.  
+  **EN:** Run the watchdog with resource thresholds and auto-recovery.  
+  `poetry run python scripts/watchdog.py`
+- **ES:** Simular fallo del endpoint cambiando temporalmente `BASE_URL` (por ejemplo a un host inválido) y observar fallback.  
+  **EN:** Simulate endpoint failure by temporarily changing `BASE_URL` (e.g., to an invalid host) and observe fallback.  
+  `BASE_URL=https://invalid.local poetry run python scripts/download_and_hash.py`
+
+**ES:** Verifique que se generen snapshots con `fallback: true` en `data/` y que los hashes se actualicen en `hashes/`.  
+**EN:** Verify that snapshots with `fallback: true` are generated in `data/` and hashes are updated in `hashes/`.
 
 ---
 
