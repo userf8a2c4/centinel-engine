@@ -315,7 +315,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
 
     @contextmanager
     def _mock_requests(
-        callback: Callable[[requests.PreparedRequest], Tuple[int, Dict[str, str], str]]
+        callback: Callable[[requests.PreparedRequest], CallbackResponse]
     ) -> Iterable[None]:
         original_get = session.get
 
