@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 import requests
 try:
@@ -271,7 +271,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
     watchdog = WatchdogMonitor(config.heartbeat_timeout_seconds)
     last_failure_time: Optional[float] = None
 
-    def _callback(request: requests.PreparedRequest) -> responses.CallbackResponse:
+    def _callback(request: requests.PreparedRequest) -> Tuple[int, Dict[str, str], str]:
         scenario = _select_scenario(rng, config.scenarios_enabled, config.failure_probability)
         scenario_context.name = scenario
         scenario_context.skip_heartbeat = scenario == "watchdog_heartbeat_miss"
@@ -314,7 +314,9 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
             return json.loads(self._body)
 
     @contextmanager
-    def _mock_requests(callback: callable) -> Iterable[None]:
+    def _mock_requests(
+        callback: Callable[[requests.PreparedRequest], Tuple[int, Dict[str, str], str]]
+    ) -> Iterable[None]:
         original_get = session.get
 
         def _fake_get(url: str, timeout: float | None = None) -> _MockResponse:
