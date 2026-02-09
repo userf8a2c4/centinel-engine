@@ -494,22 +494,19 @@ def _perform_request(
     return response
 
 
-def request_json_with_retry(
+def _request_with_retry(
     session: requests.Session,
     url: str,
     *,
     retry_config: RetryConfig,
-    timeout: float | None = None,
-    headers: dict[str, str] | None = None,
-    logger: StructuredLogger | None = None,
-    context: dict[str, Any] | None = None,
-    alert_hook: Callable[[str, dict[str, Any]], None] | None = None,
-) -> tuple[requests.Response, Any]:
-    """Request JSON content with retryable errors and parsing protection."""
-    logger = logger or StructuredLogger("centinel.downloader")
-    context = context or {}
-    timeout = timeout or retry_config.timeout_seconds
-
+    timeout: float,
+    headers: dict[str, str] | None,
+    logger: StructuredLogger,
+    context: dict[str, Any],
+    alert_hook: Callable[[str, dict[str, Any]], None] | None,
+    parse_json: bool,
+) -> tuple[requests.Response, Any | None]:
+    """Shared retry loop for JSON and raw requests."""
     retrying = Retrying(
         retry=retry_if_exception_type(RetryableError),
         wait=PolicyWait(),
@@ -540,34 +537,37 @@ def request_json_with_retry(
                     alert_hook=alert_hook,
                 )
                 elapsed = time.monotonic() - start
-                try:
-                    payload = response.json()
-                except (json.JSONDecodeError, ValueError) as exc:
-                    policy = retry_config.policy_for_exception(exc)
-                    response_text = _extract_response_text(
-                        response, retry_config.log_payload_bytes
-                    )
-                    logger.warning(
-                        "json_parse_error",
-                        url=url,
-                        error=str(exc),
-                        response_text=response_text,
-                        context=context,
-                    )
-                    raise RetryableParsingError(
-                        "json_parse_error",
-                        policy,
-                        response_text=response_text,
-                        context=context,
-                    ) from exc
-                logger.info(
-                    "request_success",
-                    url=url,
-                    status_code=response.status_code,
-                    elapsed_seconds=round(elapsed, 3),
-                    payload_type=type(payload).__name__,
-                    context=context,
-                )
+                payload = None
+                if parse_json:
+                    try:
+                        payload = response.json()
+                    except (json.JSONDecodeError, ValueError) as exc:
+                        policy = retry_config.policy_for_exception(exc)
+                        response_text = _extract_response_text(
+                            response, retry_config.log_payload_bytes
+                        )
+                        logger.warning(
+                            "json_parse_error",
+                            url=url,
+                            error=str(exc),
+                            response_text=response_text,
+                            context=context,
+                        )
+                        raise RetryableParsingError(
+                            "json_parse_error",
+                            policy,
+                            response_text=response_text,
+                            context=context,
+                        ) from exc
+                success_fields: dict[str, Any] = {
+                    "url": url,
+                    "status_code": response.status_code,
+                    "elapsed_seconds": round(elapsed, 3),
+                    "context": context,
+                }
+                if parse_json and payload is not None:
+                    success_fields["payload_type"] = type(payload).__name__
+                logger.info("request_success", **success_fields)
                 return response, payload
     except Exception as exc:
         status_code = getattr(exc, "status_code", None)
@@ -594,6 +594,35 @@ def request_json_with_retry(
         raise
 
 
+def request_json_with_retry(
+    session: requests.Session,
+    url: str,
+    *,
+    retry_config: RetryConfig,
+    timeout: float | None = None,
+    headers: dict[str, str] | None = None,
+    logger: StructuredLogger | None = None,
+    context: dict[str, Any] | None = None,
+    alert_hook: Callable[[str, dict[str, Any]], None] | None = None,
+) -> tuple[requests.Response, Any]:
+    """Request JSON content with retryable errors and parsing protection."""
+    logger = logger or StructuredLogger("centinel.downloader")
+    context = context or {}
+    timeout = timeout or retry_config.timeout_seconds
+    response, payload = _request_with_retry(
+        session,
+        url,
+        retry_config=retry_config,
+        timeout=timeout,
+        headers=headers,
+        logger=logger,
+        context=context,
+        alert_hook=alert_hook,
+        parse_json=True,
+    )
+    return response, payload
+
+
 def request_with_retry(
     session: requests.Session,
     url: str,
@@ -612,68 +641,18 @@ def request_with_retry(
     logger = logger or StructuredLogger("centinel.downloader")
     context = context or {}
     timeout = timeout or retry_config.timeout_seconds
-
-    retrying = Retrying(
-        retry=retry_if_exception_type(RetryableError),
-        wait=PolicyWait(),
-        stop=PolicyStop(),
-        before_sleep=lambda state: _log_before_sleep(logger, state),
-        reraise=True,
+    response, _ = _request_with_retry(
+        session,
+        url,
+        retry_config=retry_config,
+        timeout=timeout,
+        headers=headers,
+        logger=logger,
+        context=context,
+        alert_hook=alert_hook,
+        parse_json=False,
     )
-
-    try:
-        for attempt in retrying:
-            with attempt:
-                logger.info(
-                    "request_attempt",
-                    attempt=attempt.retry_state.attempt_number,
-                    url=url,
-                    context=context,
-                )
-                start = time.monotonic()
-                response = _perform_request(
-                    session,
-                    "GET",
-                    url,
-                    headers=headers,
-                    timeout=timeout,
-                    retry_config=retry_config,
-                    logger=logger,
-                    context=context,
-                    alert_hook=alert_hook,
-                )
-                elapsed = time.monotonic() - start
-                logger.info(
-                    "request_success",
-                    url=url,
-                    status_code=response.status_code,
-                    elapsed_seconds=round(elapsed, 3),
-                    context=context,
-                )
-                return response
-    except Exception as exc:
-        status_code = getattr(exc, "status_code", None)
-        response_text = getattr(exc, "response_text", None)
-        attempts = getattr(retrying, "statistics", {}).get("attempt_number", 0)
-        logger.error(
-            "request_failed",
-            url=url,
-            status_code=status_code,
-            attempts=attempts or 1,
-            error=str(exc),
-            context=context,
-        )
-        failed_payload = _build_failed_payload(
-            url=url,
-            method="GET",
-            attempts=attempts or 1,
-            error=str(exc),
-            status_code=status_code,
-            response_text=response_text,
-            context=context,
-        )
-        _write_failed_request(retry_config, failed_payload)
-        raise
+    return response
 
 
 def should_skip_snapshot(
