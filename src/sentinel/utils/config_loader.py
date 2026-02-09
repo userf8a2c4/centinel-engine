@@ -14,10 +14,6 @@ import yaml
 
 CONFIG_PATH = Path("config") / "config.yaml"
 
-# ── Claves obligatorias de primer nivel ──
-# Estas DEBEN existir en config/config.yaml para que el sistema arranque.
-# ── Required top-level keys ──
-# These MUST exist in config/config.yaml for the system to boot.
 REQUIRED_TOP_LEVEL_KEYS = [
     "master_switch",
     "base_url",
@@ -25,6 +21,12 @@ REQUIRED_TOP_LEVEL_KEYS = [
     "timeout",
     "retries",
     "headers",
+    "use_playwright",
+    "playwright_stealth",
+    "playwright_user_agent",
+    "playwright_viewport",
+    "playwright_locale",
+    "playwright_timezone",
     "backoff_base_seconds",
     "backoff_max_seconds",
     "candidate_count",
@@ -38,10 +40,6 @@ REQUIRED_TOP_LEVEL_KEYS = [
     "rules",
 ]
 
-# ── Claves obligatorias anidadas ──
-# Para cada sección, las sub-claves que DEBEN estar presentes.
-# ── Required nested keys ──
-# For each section, the sub-keys that MUST be present.
 REQUIRED_NESTED_KEYS = {
     "logging": ["level", "file"],
     "blockchain": ["enabled", "network", "private_key"],
