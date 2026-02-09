@@ -1,18 +1,84 @@
-master_switch: "ON" # ON/OFF para habilitar procesos automáticos.
-base_url: "https://api.example.com/cne/resultados" # URL base del API oficial.
-# Ejemplo de URL completa (NACIONAL): https://api.example.com/cne/resultados?ambito=NACIONAL&nivel=PRES
-# Ejemplo de URL completa (DEPARTAMENTO): https://api.example.com/cne/resultados?ambito=DEPARTMENT&nivel=PD&cod_departamento=01
-# Parámetros comunes: ambito (NATIONAL/DEPARTMENT), nivel (PRES/PD), cod_departamento (01-18).
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  C.E.N.T.I.N.E.L. — Configuración Unificada                              ║
+# ║  Civic Electoral Nonpartisan Transparent Integrity & Notification Engine   ║
+# ║                                                                            ║
+# ║  ESTE ES EL UNICO ARCHIVO DE CONFIGURACION DEL SISTEMA.                   ║
+# ║  THIS IS THE ONLY CONFIGURATION FILE FOR THE SYSTEM.                       ║
+# ║                                                                            ║
+# ║  Cualquier cambio operativo se hace aquí. No hay otros archivos YAML       ║
+# ║  que el sistema lea para configuración principal.                           ║
+# ║  All operational changes are made here. No other YAML files are read       ║
+# ║  for main configuration.                                                   ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+#
+# SEGURIDAD / SECURITY:
+#   - NUNCA escribas private keys, tokens o secretos directamente en este archivo.
+#   - Usa variables de entorno o un archivo .env (incluido en .gitignore).
+#   - Los campos marcados con "env:" indican qué variable de entorno usar.
+#
+#   - NEVER write private keys, tokens or secrets directly in this file.
+#   - Use environment variables or a .env file (included in .gitignore).
+#   - Fields marked with "env:" indicate which environment variable to use.
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECCION 1: ENGINE — Control maestro del sistema
+# SECTION 1: ENGINE — Master system control
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Interruptor maestro. "OFF" detiene TODOS los procesos automáticos.
+# Master switch. "OFF" stops ALL automatic processes.
+# Valores válidos / Valid values: "ON", "OFF"
+master_switch: "ON"
+
+# Alcance analítico. Qué tipo de elección monitorear.
+# Analysis scope. What type of election to monitor.
+# Valores válidos / Valid values: "presidential", "congressional", "municipal"
+scope:
+  - "presidential"
+
+# Permite modo mock para CI/CD (datos ficticios, sin fetch real).
+# Allows mock mode for CI/CD (dummy data, no real fetch).
+allow_mock: false
+
+# Dominios válidos del ente electoral. Se rechazan payloads de otros dominios.
+# Valid electoral body domains. Payloads from other domains are rejected.
+cne_domains:
+  - "cne.hn"
+
+# Edad máxima (horas) aceptable para timestamps en los datos del CNE.
+# Si un payload tiene timestamp más viejo que esto, se rechaza.
+# Max age (hours) accepted for CNE data timestamps.
+# Payloads with timestamps older than this are rejected.
+timestamp_max_age_hours: 24
+
+# Máximo de fuentes procesadas por ciclo de descarga.
+# Maximum sources processed per download cycle.
+max_sources_per_cycle: 19
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECCION 2: SOURCES — De dónde vienen los datos
+# SECTION 2: SOURCES — Where the data comes from
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# URL base del API oficial (referencia, los endpoints reales están abajo).
+# Official API base URL (reference, actual endpoints are below).
+base_url: "https://api.example.com/cne/resultados"
+
+# Endpoints reales del ente electoral, uno por ámbito.
+# Real electoral body endpoints, one per scope.
+#
+# "nacional"           → Resultados presidenciales a nivel país.
+# "fallback_nacional"  → URL alternativa si la principal falla.
+# "01" a "18"          → Resultados por departamento (código CNE).
+#
+# "nacional"           → Presidential results at country level.
+# "fallback_nacional"  → Fallback URL if the primary fails.
+# "01" to "18"         → Results per department (CNE code).
 endpoints:
-  # Endpoint principal de resultados presidenciales nacionales
-  # National presidential results main endpoint
-  # Si falla → fallback a Playwright scraping
   nacional: "https://resultadosgenerales2025.cne.hn/api/presidencial/nacional"
-  # Variante conocida para totales nacionales
-  # Known national totals variant
   fallback_nacional: "https://resultadosgenerales2025.cne.hn/api/resultados/presidencial/totales"
-  # Endpoints por departamento (01-18)
-  # Department endpoints (01-18)
   "01": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/01"
   "02": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/02"
   "03": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/03"
@@ -31,124 +97,439 @@ endpoints:
   "16": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/16"
   "17": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/17"
   "18": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/18"
-timeout: 15 # Segundos máximos por solicitud.
-retries: 3 # Reintentos totales antes de fallar.
-headers: # Encabezados HTTP enviados en cada solicitud.
-  Accept: "application/json" # Tipo de respuesta esperado.
-  User-Agent: "C.E.N.T.I.N.E.L./1.0" # Identificador del cliente.
-use_playwright: false # Usa Playwright como fallback cuando falle la descarga HTTP.
-playwright_stealth: true # Activa el modo stealth (playwright-stealth) si está disponible.
-playwright_user_agent: "C.E.N.T.I.N.E.L./1.0" # User-Agent para el contexto Playwright (por defecto usa headers.User-Agent).
-playwright_viewport: # Viewport para Playwright.
-  width: 1280
-  height: 720
-playwright_locale: "es-HN" # Locale del contexto Playwright.
-playwright_timezone: "America/Tegucigalpa" # Timezone del contexto Playwright.
-backoff_base_seconds: 1 # Espera inicial entre reintentos.
-backoff_max_seconds: 30 # Espera máxima entre reintentos.
-candidate_count: 10 # Número de candidatos esperados por fuente.
-required_keys: [] # Claves obligatorias adicionales, si aplica.
-field_map: # Mapeo de rutas JSON hacia campos normalizados.
-  totals: # Totales agregados por fuente.
-    valid_votes: # Votos válidos.
-      - "estadisticas.distribucion_votos.validos" # Ruta JSON para votos válidos.
-    null_votes: # Votos nulos.
-      - "estadisticas.distribucion_votos.nulos" # Ruta JSON para votos nulos.
-    blank_votes: # Votos en blanco.
-      - "estadisticas.distribucion_votos.blancos" # Ruta JSON para votos en blanco.
-    total_votes: # Total de votos.
-      - "estadisticas.distribucion_votos.total" # Ruta JSON para total de votos.
-  candidate_roots: # Raíces JSON donde vienen los candidatos.
-    - "resultados" # Ruta JSON principal de resultados por candidato.
 
-sources: # Fuentes configuradas para consultas.
-  - name: "Nacional" # Etiqueta legible de la fuente.
-    source_id: "NACIONAL" # Identificador para ambito=NATIONAL.
-    level: "PRES" # Nivel electoral para esta fuente.
-    scope: "NATIONAL" # Alcance de la fuente.
-  - name: "Atlántida" # Etiqueta legible de la fuente.
-    department_code: "01" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Choluteca" # Etiqueta legible de la fuente.
-    department_code: "02" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Colón" # Etiqueta legible de la fuente.
-    department_code: "03" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Comayagua" # Etiqueta legible de la fuente.
-    department_code: "04" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Copán" # Etiqueta legible de la fuente.
-    department_code: "05" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Cortés" # Etiqueta legible de la fuente.
-    department_code: "06" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "El Paraíso" # Etiqueta legible de la fuente.
-    department_code: "07" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Francisco Morazán" # Etiqueta legible de la fuente.
-    department_code: "08" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Gracias a Dios" # Etiqueta legible de la fuente.
-    department_code: "09" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Intibucá" # Etiqueta legible de la fuente.
-    department_code: "10" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Islas de la Bahía" # Etiqueta legible de la fuente.
-    department_code: "11" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "La Paz" # Etiqueta legible de la fuente.
-    department_code: "12" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Lempira" # Etiqueta legible de la fuente.
-    department_code: "13" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Ocotepeque" # Etiqueta legible de la fuente.
-    department_code: "14" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Olancho" # Etiqueta legible de la fuente.
-    department_code: "15" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Santa Bárbara" # Etiqueta legible de la fuente.
-    department_code: "16" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Valle" # Etiqueta legible de la fuente.
-    department_code: "17" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
-  - name: "Yoro" # Etiqueta legible de la fuente.
-    department_code: "18" # Código de departamento (01-18).
-    level: "PD" # Nivel electoral para esta fuente.
-    scope: "DEPARTMENT" # Alcance de la fuente.
+# Lista de fuentes a consultar. Cada entrada define qué descargar.
+# List of sources to query. Each entry defines what to download.
+#
+# Campos por fuente / Fields per source:
+#   name:             Nombre legible (para logs y reportes).
+#   source_id:        Identificador único (solo para scope NATIONAL).
+#   department_code:  Código del departamento (solo para scope DEPARTMENT).
+#   level:            Nivel electoral: "PRES" (presidente) o "PD" (por departamento).
+#   scope:            "NATIONAL" o "DEPARTMENT".
+sources:
+  - name: "Nacional"
+    source_id: "NACIONAL"
+    level: "PRES"
+    scope: "NATIONAL"
+  - { name: "Atlántida",       department_code: "01", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Choluteca",       department_code: "02", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Colón",           department_code: "03", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Comayagua",       department_code: "04", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Copán",           department_code: "05", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Cortés",          department_code: "06", level: "PD", scope: "DEPARTMENT" }
+  - { name: "El Paraíso",      department_code: "07", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Francisco Morazán", department_code: "08", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Gracias a Dios",  department_code: "09", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Intibucá",        department_code: "10", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Islas de la Bahía", department_code: "11", level: "PD", scope: "DEPARTMENT" }
+  - { name: "La Paz",          department_code: "12", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Lempira",         department_code: "13", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Ocotepeque",      department_code: "14", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Olancho",         department_code: "15", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Santa Bárbara",   department_code: "16", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Valle",           department_code: "17", level: "PD", scope: "DEPARTMENT" }
+  - { name: "Yoro",            department_code: "18", level: "PD", scope: "DEPARTMENT" }
 
-logging:
-  level: INFO # Opciones: DEBUG, INFO, WARNING, ERROR
-  file: centinel.log # Ruta relativa al root
+# Mapeo de rutas JSON del CNE a campos normalizados internos.
+# El sistema usa esto para saber dónde encontrar cada dato en el JSON crudo.
+# Mapping of CNE JSON paths to internal normalized fields.
+# The system uses this to locate each data point in the raw JSON.
+field_map:
+  totals:
+    valid_votes:
+      - "estadisticas.distribucion_votos.validos"
+    null_votes:
+      - "estadisticas.distribucion_votos.nulos"
+    blank_votes:
+      - "estadisticas.distribucion_votos.blancos"
+    total_votes:
+      - "estadisticas.distribucion_votos.total"
+  candidate_roots:
+    - "resultados"
 
+# Número de candidatos esperados por fuente (validación de integridad).
+# Expected number of candidates per source (integrity check).
+candidate_count: 10
+
+# Claves obligatorias que DEBEN existir en el JSON del CNE.
+# Si faltan, el snapshot se rechaza.
+# Required keys that MUST exist in the CNE JSON.
+# If missing, the snapshot is rejected.
+required_keys: []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECCION 3: NETWORK — Red, reintentos y resiliencia
+# SECTION 3: NETWORK — Networking, retries and resilience
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Timeout por request HTTP (segundos).
+# HTTP request timeout (seconds).
+timeout: 15
+
+# Número total de reintentos antes de declarar fallo.
+# Total retries before declaring failure.
+retries: 3
+
+# Headers HTTP enviados en cada solicitud.
+# HTTP headers sent with every request.
+headers:
+  Accept: "application/json"
+  User-Agent: "C.E.N.T.I.N.E.L./1.0"
+
+# Backoff exponencial entre reintentos.
+# Exponential backoff between retries.
+backoff_base_seconds: 1
+backoff_max_seconds: 30
+
+# ── Reintentos avanzados por código HTTP ──
+# ── Advanced retries per HTTP status code ──
+#
+# Cada código puede tener su propia política de reintentos.
+# "action: alert_only" significa: no reintentar, solo alertar.
+# "action: retry" (default) significa: reintentar con backoff.
+#
+# Each status code can have its own retry policy.
+# "action: alert_only" means: don't retry, just alert.
+# "action: retry" (default) means: retry with backoff.
+retry_policies:
+  default:
+    max_attempts: 5
+    backoff_base: 2
+    backoff_multiplier: 2
+    max_delay: 300
+    jitter: 0.25
+
+  per_status:
+    "429":                          # Too Many Requests — esperar más.
+      max_attempts: 20
+      backoff_base: 8
+      backoff_multiplier: 2
+      max_delay: 900
+      jitter: { min: 0.1, max: 0.3 }
+    "5xx":                          # Errores del servidor — reintentar con moderación.
+      max_attempts: 8
+      backoff_base: 3
+      backoff_multiplier: 2
+      max_delay: 300
+      jitter: 0.2
+    "403":                          # Prohibido — probablemente nos bloquearon, solo alertar.
+      max_attempts: 2
+      action: "alert_only"
+    "401":                          # No autorizado — no reintentar.
+      max_attempts: 2
+      action: "alert_only"
+    "400":                          # Bad request — algo cambió en la API, alertar.
+      max_attempts: 3
+      action: "alert_only"
+    "404":                          # No encontrado — reintentar brevemente por si es temporal.
+      max_attempts: 2
+      backoff_base: 2
+      max_delay: 60
+      jitter: 0.2
+
+  other_status:                     # Cualquier otro código HTTP no listado arriba.
+    max_attempts: 3
+    backoff_base: 2
+    max_delay: 120
+    jitter: 0.2
+
+  per_exception:                    # Reintentos por tipo de excepción de red.
+    ConnectionError:
+      max_attempts: 6
+      backoff_base: 2
+      backoff_multiplier: 2
+      max_delay: 120
+      jitter: 0.2
+    ReadTimeout:
+      max_attempts: 6
+      backoff_base: 2
+      backoff_multiplier: 2
+      max_delay: 120
+      jitter: 0.2
+    SSLError:
+      max_attempts: 5
+      backoff_base: 2
+      backoff_multiplier: 2
+      max_delay: 120
+      jitter: 0.2
+    JSONDecodeError:
+      max_attempts: 3
+      backoff_base: 2
+      backoff_multiplier: 2
+      max_delay: 60
+      jitter: 0.15
+
+  # Idempotencia: evita descargas duplicadas si ya existe un snapshot reciente.
+  # Idempotency: prevents duplicate downloads if a recent snapshot exists.
+  recent_snapshot_seconds: 300
+  idempotency_mode: "timestamp"
+
+  # Tamaño máximo (bytes) de body loggeado en errores de parsing.
+  # Max body size (bytes) logged on parsing errors.
+  log_payload_bytes: 2000
+
+  # Archivo donde se registran requests fallidos para auditoría.
+  # File where failed requests are logged for auditing.
+  failed_requests_path: "failed_requests.jsonl"
+
+# ── Proxies (opcional) ──
+# ── Proxies (optional) ──
+#
+# Si se configuran, el sistema rota entre ellos para evitar bloqueos por IP.
+# If configured, the system rotates between them to avoid IP blocking.
+proxies:
+  enabled: false
+  rotation_strategy: "round_robin"  # "round_robin" o "random"
+  rotation_every_n: 1               # Rotar cada N requests.
+  proxy_timeout_seconds: 15
+  urls: []
+  # Ejemplo / Example:
+  # urls:
+  #   - "http://user:pass@ip:port"
+  #   - "socks5://ip:port"
+
+# ── Low-profile mode (anti-detección) ──
+# ── Low-profile mode (anti-detection) ──
+#
+# Randomiza headers y timing para parecer tráfico humano.
+# Randomizes headers and timing to mimic human traffic.
+low_profile:
+  enabled: false
+  timeout_seconds: 20
+  user_agents:
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"
+  accept_languages:
+    - "es-HN,es;q=0.9"
+    - "es-419,es;q=0.9,en;q=0.8"
+  referers:
+    - "https://www.google.com/"
+    - "https://cne.hn/"
+
+# ── Playwright fallback ──
+# Si la descarga HTTP falla, puede usar un browser headless como último recurso.
+# If HTTP download fails, can use a headless browser as last resort.
+playwright:
+  enabled: false
+  stealth: true
+  user_agent: "C.E.N.T.I.N.E.L./1.0"
+  viewport: { width: 1280, height: 720 }
+  locale: "es-HN"
+  timezone: "America/Tegucigalpa"
+
+# ── Rate limiting interno ──
+# ── Internal rate limiting ──
+polling_rate_limit:
+  cooldown_seconds: 10
+  state_path: "data/temp/polling_rate_limit.json"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECCION 4: RULES — Motor de detección de anomalías
+# SECTION 4: RULES — Anomaly detection engine
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Cada regla puede habilitarse/deshabilitarse individualmente.
+# Si global_enabled es false, NINGUNA regla se ejecuta.
+#
+# Each rule can be enabled/disabled individually.
+# If global_enabled is false, NO rules run at all.
+
+rules:
+  global_enabled: true
+
+  # ── Consistencia aritmética ──
+  # Detecta: suma de candidatos ≠ total, votos que bajan, saltos extremos.
+  # Detects: candidate sum ≠ total, vote decreases, extreme jumps.
+  basic_diff:
+    enabled: true
+    relative_vote_change_pct: 15    # Alerta si el total cambia más de 15% entre snapshots.
+
+  # ── Cambio de tendencia en tiempo real ──
+  # Detecta: desviación abrupta del porcentaje de un candidato entre snapshots.
+  # Detects: abrupt deviation of a candidate's percentage between snapshots.
+  trend_shift:
+    enabled: true
+    threshold_percent: 10           # Delta mínimo (%) para alertar.
+    max_hours: 3                    # Ventana de tiempo máxima para el análisis.
+
+  # ── Irreversibilidad matemática ──
+  # Detecta: líder que era matemáticamente inalcanzable y luego pierde.
+  # Detects: leader who was mathematically unreachable and then loses.
+  irreversibility:
+    enabled: true
+    historical_participation_rate: 0.60
+    sqlite_path: "reports/irreversibility_state.db"
+
+  # ── Velocidad de procesamiento de actas ──
+  # Detecta: más actas procesadas por minuto de lo humanamente posible.
+  # Detects: more tally sheets processed per minute than humanly possible.
+  processing_speed:
+    enabled: true
+    max_actas_per_15min: 500        # Umbral máximo por ventana de 15 minutos.
+
+  # ── Ley de Benford (primer dígito) ──
+  # Detecta: distribución del primer dígito que se desvía de lo esperado.
+  # Detects: first-digit distribution deviating from expected (Benford's Law).
+  benford_law:
+    enabled: true
+    chi_square_threshold: 0.05
+    deviation_pct: 15
+    min_samples: 10
+
+  # ── Benford avanzado (primer dígito, registro en registry) ──
+  benford_first_digit:
+    enabled: true
+    p_value_threshold: 0.05
+    min_samples: 10
+
+  # ── ML Outliers (Isolation Forest) ──
+  # Detecta: saltos estadísticamente anómalos usando machine learning.
+  # Detects: statistically anomalous jumps using machine learning.
+  ml_outliers:
+    enabled: true
+    contamination: 0.1
+    min_samples: 5
+
+  # ── Anomalía de participación ──
+  # Detecta: saltos abruptos en el porcentaje escrutado.
+  # Detects: abrupt jumps in the scrutiny percentage.
+  participation_anomaly:
+    enabled: true
+    scrutiny_jump_pct: 5            # Alerta si el escrutinio sube más de 5% de golpe.
+
+  # ── Participación avanzada ──
+  participation_anomaly_advanced:
+    enabled: true
+
+  # ── Turnout imposible ──
+  # Detecta: participación < 0% o > 100% respecto al padrón.
+  # Detects: turnout < 0% or > 100% of registered voters.
+  turnout_impossible:
+    enabled: true
+    min_turnout_pct: 0
+    max_turnout_pct: 100
+
+  # ── Votos nulos/blancos elevados ──
+  # Detecta: porcentaje anormalmente alto de votos nulos + blancos.
+  # Detects: abnormally high percentage of null + blank votes.
+  null_blank:
+    enabled: true
+    warning_pct: 8
+    critical_pct: 12
+
+  # ── Uniformidad del último dígito ──
+  # Detecta: distribución sospechosamente uniforme del último dígito.
+  # Detects: suspiciously uniform last-digit distribution.
+  last_digit_uniformity:
+    enabled: true
+
+  # ── Correlación participación-voto ──
+  # Detecta: correlación sospechosa entre participación y % de un candidato.
+  # Detects: suspicious correlation between turnout and a candidate's %.
+  correlation_participation_vote:
+    enabled: true
+
+  # ── Dispersión geográfica ──
+  # Detecta: patrones geográficos anómalos en la distribución de votos.
+  # Detects: anomalous geographic patterns in vote distribution.
+  geographic_dispersion:
+    enabled: true
+
+  # ── Test de rachas (runs test) ──
+  # Detecta: falta de aleatoriedad en secuencias de datos.
+  # Detects: lack of randomness in data sequences.
+  runs_test:
+    enabled: true
+
+  # ── Ley de grandes números ──
+  large_numbers:
+    enabled: true
+
+  # ── Salto entre snapshots ──
+  # Detecta: cambios sospechosos entre dos snapshots consecutivos.
+  # Detects: suspicious changes between two consecutive snapshots.
+  snapshot_jump:
+    enabled: true
+
+  # ── Consistencia entre mesas ──
+  # Detecta: inconsistencias entre los datos de mesas individuales.
+  # Detects: inconsistencies between individual polling table data.
+  table_consistency:
+    enabled: true
+
+  # ── Diferencias en actas/mesas ──
+  mesas_diff:
+    enabled: true
+
+  # ── Anomalía granular (multi-test combinado) ──
+  # Combina: delta negativo, z-score, Benford, turnout, reversals, sumas.
+  # Combines: negative delta, z-score, Benford, turnout, reversals, sums.
+  granular_anomaly:
+    enabled: true
+    negative_delta_threshold: 0
+    delta_pct_alert: 0.5
+    delta_pct_time_window_minutes: 30
+    zscore_threshold: 3.0
+    zscore_min_abs_delta: 100
+    zscore_min_departments: 5
+    benford_pvalue_threshold: 0.05
+    benford_min_samples: 10
+    benford_min_vote: 10
+    turnout_min_pct: 0
+    turnout_max_pct: 100
+    reversal_min_lead_margin: 500
+    reversal_time_window_minutes: 30
+    reversal_min_negative_delta: 100
+    sum_mismatch_threshold: 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECCION 5: ANCHORING — Blockchain y cadena de custodia
+# SECTION 5: ANCHORING — Blockchain and chain of custody
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Blockchain genérica (legacy, prefer Arbitrum) ──
 blockchain:
   enabled: false
-  network: polygon-mumbai
-  private_key: "0x..." # Advertencia: nunca commitear, usar secrets manager o .gitignore
+  network: "polygon-mumbai"
+  # env: BLOCKCHAIN_PRIVATE_KEY
+  private_key: ""
+
+# ── Arbitrum One (producción) ──
+# El sistema ancla Merkle roots de snapshots en Arbitrum para prueba inmutable.
+# The system anchors Merkle roots of snapshots on Arbitrum for immutable proof.
+arbitrum:
+  enabled: false
+  network: "Arbitrum One"
+  rpc_url: "https://arb1.arbitrum.io/rpc"
+  # env: ARBITRUM_PRIVATE_KEY — NUNCA poner la key aquí.
+  private_key: ""
+  # Dirección del contrato CentinelAnchor desplegado.
+  # Deployed CentinelAnchor contract address.
+  contract_address: ""
+  explorer_url: "https://arbiscan.io/tx/"
+  # Cada cuántos minutos anclar un batch.
+  # How often to anchor a batch (minutes).
+  interval_minutes: 15
+  # Cuántos hashes por batch.
+  # How many hashes per batch.
+  batch_size: 19
+  # Anclar automáticamente cada snapshot descargado.
+  # Automatically anchor every downloaded snapshot.
+  auto_anchor_snapshots: true
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECCION 6: ALERTS — Notificaciones y alertas
+# SECTION 6: ALERTS — Notifications and alerts
+# ═══════════════════════════════════════════════════════════════════════════════
 
 alerts:
+  # Tipos de anomalía que disparan alerta crítica inmediata.
+  # Anomaly types that trigger an immediate critical alert.
   critical_anomaly_types:
     - ARITHMETIC_MISMATCH
     - NEGATIVE_DELTA
@@ -156,51 +537,97 @@ alerts:
     - RELATIVE_DELTA
     - SCRUTINY_JUMP
     - VOTE_BREAKDOWN_MISMATCH
+
+  # Ruta de log de alertas (archivo plano).
+  log_path: "alerts.log"
+
+  # Salida JSON para API pública o dashboard.
+  output_path: "data/alerts.json"
+
+  # ── Telegram (opcional) ──
   telegram:
     enabled: false
-    bot_token: "" # Advertencia: nunca commitear, usar secrets manager o .gitignore
+    # env: TELEGRAM_BOT_TOKEN
+    bot_token: ""
     chat_id: ""
     template: "neutral"
+
+  # ── X / Twitter (opcional) ──
   x:
     enabled: false
-    api_key: "" # Advertencia: nunca commitear, usar secrets manager o .gitignore
+    # env: X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET
+    api_key: ""
     api_secret: ""
     access_token: ""
     access_token_secret: ""
 
-arbitrum:
-  enabled: false
-  rpc_url: "https://arb1.arbitrum.io/rpc"
-  private_key: "0x..." # Advertencia: nunca commitear, usar secrets manager o .gitignore
-  contract_address: "0x..." # Después del deploy
-  interval_minutes: 15
-  batch_size: 19
 
-rules:
-  global_enabled: true
-  trend_shift:
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECCION 7: RESILIENCE — Auto-recuperación y watchdog
+# SECTION 7: RESILIENCE — Auto-recovery and watchdog
+# ═══════════════════════════════════════════════════════════════════════════════
+
+resilience:
+  # ── Auto-resume tras caídas ──
+  auto_resume:
     enabled: true
-    threshold_percent: 10
-    max_hours: 3
-  processing_speed:
-    enabled: true
-    max_actas_per_15min: 500
-  irreversibility:
-    enabled: true
-    historical_participation_rate: 0.60
-    sqlite_path: "reports/irreversibility_state.db"
-  benford_law:
-    enabled: true
-    chi_square_threshold: 0.05
-    deviation_pct: 15
-    min_samples: 10
-  ml_outliers:
-    enabled: true
-    contamination: 0.1
-    min_samples: 5
-  basic_diff:
-    enabled: true
-    relative_vote_change_pct: 15
-  participation_anomaly:
-    enabled: true
-    scrutiny_jump_pct: 5
+    max_attempts: 5
+    backoff_base_seconds: 5
+    backoff_max_seconds: 60
+    retry_on: "any"                 # "any" = cualquier error, "network" = solo red.
+
+  # ── Chaos testing (solo desarrollo) ──
+  # Inyecta fallas aleatorias para probar resiliencia. NUNCA activar en producción.
+  # Injects random failures to test resilience. NEVER enable in production.
+  chaos:
+    enabled: false
+    failure_rate: 0.9
+    seed: 2026
+
+  # ── Watchdog — Monitorea que el pipeline no se cuelgue ──
+  watchdog:
+    check_interval_minutes: 3       # Cada cuánto revisar.
+    max_inactivity_minutes: 30      # Sin actividad por este tiempo = pipeline muerto.
+    heartbeat_timeout: 10
+    failure_grace_minutes: 6
+    action_cooldown_minutes: 10
+    aggressive_restart: false
+    alert_urls: []                  # URLs para webhooks de alerta.
+    data_dir: "data"
+    snapshot_glob: "*.json"
+    snapshot_exclude:
+      - "pipeline_state.json"
+      - "heartbeat.json"
+      - "alerts.json"
+      - "snapshot_index.json"
+      - "pipeline_checkpoint.json"
+      - "checkpoint.json"
+    log_path: "logs/centinel.log"
+    max_log_size_mb: 200
+    max_log_growth_mb_per_min: 30
+    lock_files:
+      - "data/temp/pipeline.lock"
+      - "data/temp/stuck.lock"
+    lock_timeout_minutes: 30
+    heartbeat_path: "data/heartbeat.json"
+    pipeline_process_match:
+      - "scripts/run_pipeline.py"
+    pipeline_command:
+      - "python"
+      - "scripts/run_pipeline.py"
+    restart_timeout_seconds: 30
+    docker_socket_path: "/var/run/docker.sock"
+    docker_container_name: "centinel-engine"
+    state_path: "data/watchdog_state.json"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECCION 8: LOGGING — Registro centralizado
+# SECTION 8: LOGGING — Centralized logging
+# ═══════════════════════════════════════════════════════════════════════════════
+
+logging:
+  # Nivel: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  # Archivo de log relativo al root del proyecto.
+  file: "centinel.log"

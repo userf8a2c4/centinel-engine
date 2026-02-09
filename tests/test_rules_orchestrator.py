@@ -1,58 +1,39 @@
+"""Tests para las reglas individuales del motor de detección.
+
+English:
+    Tests for individual detection engine rules.
+"""
+
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List
 
-import scripts.analyze_rules as analyze_rules
-
-
-def _make_rule(tag: str, bucket: List[str]):
-    def _rule(current: dict, previous: Optional[dict], config: dict) -> List[dict]:
-        bucket.append(tag)
-        return [
-            {
-                "type": f"Regla {tag}",
-                "severity": "Low",
-                "justification": "ok",
-            }
-        ]
-
-    return _rule
+from sentinel.core.rules.basic_diff_rule import apply as basic_diff_apply
 
 
-def test_run_all_rules_respects_global_enabled(monkeypatch):
-    called: List[str] = []
-    monkeypatch.setattr(
-        analyze_rules,
-        "RULES",
-        [("dummy", _make_rule("dummy", called))],
-    )
+def test_basic_diff_detects_arithmetic_mismatch():
+    """Detecta descuadre cuando la suma de candidatos ≠ total reportado."""
+    snapshot = {
+        "totals": {"total_votes": 1000, "valid_votes": 900, "null_votes": 50, "blank_votes": 50},
+        "candidates": [
+            {"name": "A", "votes": 600},
+            {"name": "B", "votes": 300},
+        ],
+    }
+    alerts = basic_diff_apply(snapshot, None, {})
+    types = [a["type"] for a in alerts]
+    assert "Descuadre Aritmético de Votos" in types
 
-    alerts = analyze_rules.run_all_rules({}, None, {"rules": {"global_enabled": False}})
 
-    assert alerts == []
-    assert called == []
-
-
-def test_run_all_rules_filters_enabled_rules(monkeypatch):
-    called: List[str] = []
-    rules = [
-        ("alpha", _make_rule("alpha", called)),
-        ("beta", _make_rule("beta", called)),
-    ]
-    monkeypatch.setattr(analyze_rules, "RULES", rules)
-
-    alerts = analyze_rules.run_all_rules(
-        {"foo": "bar"},
-        None,
-        {
-            "rules": {
-                "global_enabled": True,
-                "alpha": {"enabled": True},
-                "beta": {"enabled": False},
-            }
-        },
-    )
-
-    assert called == ["alpha"]
-    assert len(alerts) == 1
-    assert alerts[0]["type"] == "Regla alpha"
+def test_basic_diff_no_alerts_when_consistent():
+    """Sin alertas cuando todo cuadra."""
+    snapshot = {
+        "totals": {"total_votes": 1000, "valid_votes": 900, "null_votes": 50, "blank_votes": 50},
+        "candidates": [
+            {"name": "A", "votes": 600},
+            {"name": "B", "votes": 400},
+        ],
+    }
+    alerts = basic_diff_apply(snapshot, None, {})
+    types = [a["type"] for a in alerts]
+    assert "Descuadre Aritmético de Votos" not in types
