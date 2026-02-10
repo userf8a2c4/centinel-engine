@@ -337,50 +337,22 @@ custody:
   # Operator ID (used as label in signatures).
   operator_id: "default-operator"
 
-# Reglas de análisis.
-# Analysis rules.
+# Reglas de análisis — todas activadas por defecto.
+# El usuario desactiva las que no quiera (enabled: false).
+# Analysis rules — all enabled by default.
+# The user disables the ones they don't want (enabled: false).
 rules:
   global_enabled: true
   basic_diff:
-    enabled: false
-  correlation_participation_vote:
-    enabled: false
-  geographic_dispersion:
-    enabled: false
-  last_digit_uniformity:
-    enabled: false
-  large_numbers:
-    enabled: false
-  mesas_diff:
-    enabled: false
-  null_blank:
-    enabled: false
-  participation_anomaly:
-    enabled: false
-  participation_anomaly_advanced:
-    enabled: false
-  processing_speed:
-    enabled: false
-  runs_test:
-    enabled: false
-  snapshot_jump:
-    enabled: false
-  table_consistency:
-    enabled: false
-  turnout_impossible:
-    enabled: false
-  trend_shift:
     enabled: true
-    threshold_percent: 10
-    max_hours: 3
-  irreversibility:
+  benford_first_digit:
     enabled: true
-    historical_participation_rate: 0.60
-    sqlite_path: "reports/irreversibility_state.db"
   benford_law:
-    enabled: false
-  ml_outliers:
-    enabled: false
+    enabled: true
+  correlation_participation_vote:
+    enabled: true
+  geographic_dispersion:
+    enabled: true
   granular_anomaly:
     enabled: true
     negative_delta_threshold: 0
@@ -398,3 +370,35 @@ rules:
     reversal_time_window_minutes: 30
     reversal_min_negative_delta: 100
     sum_mismatch_threshold: 1
+  irreversibility:
+    enabled: true
+    historical_participation_rate: 0.60
+    sqlite_path: "reports/irreversibility_state.db"
+  large_numbers:
+    enabled: true
+  last_digit_uniformity:
+    enabled: true
+  mesas_diff:
+    enabled: true
+  ml_outliers:
+    enabled: true
+  null_blank:
+    enabled: true
+  participation_anomaly:
+    enabled: true
+  participation_anomaly_advanced:
+    enabled: true
+  processing_speed:
+    enabled: true
+  runs_test:
+    enabled: true
+  snapshot_jump:
+    enabled: true
+  table_consistency:
+    enabled: true
+  trend_shift:
+    enabled: true
+    threshold_percent: 10
+    max_hours: 3
+  turnout_impossible:
+    enabled: true

@@ -16,6 +16,7 @@ from sentinel.core.rules.common import (
     extract_total_votes,
     parse_timestamp,
 )
+from sentinel.core.rules.registry import rule
 
 
 def _ensure_db(path: str) -> None:
@@ -119,6 +120,12 @@ def _top_two_candidates(
     return leader_id, leader_votes, runner_id, runner_votes
 
 
+@rule(
+    name="Irreversibilidad Estadística",
+    severity="High",
+    description="Detecta cambios irreversibles en liderazgos electorales.",
+    config_key="irreversibility",
+)
 def apply(
     current_data: dict, previous_data: Optional[dict], config: dict
 ) -> List[dict]:

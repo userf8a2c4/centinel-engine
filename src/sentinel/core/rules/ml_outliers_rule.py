@@ -7,12 +7,19 @@ import logging
 from typing import Dict, List, Optional
 
 from sentinel.core.rules.common import extract_department, extract_total_votes
+from sentinel.core.rules.registry import rule
 
 
 _HISTORY: Dict[str, List[float]] = collections.defaultdict(list)
 logger = logging.getLogger(__name__)
 
 
+@rule(
+    name="Outliers ML (Isolation Forest)",
+    severity="Medium",
+    description="Detecta outliers estadísticos en cambios relativos de votos con ML.",
+    config_key="ml_outliers",
+)
 def apply(
     current_data: dict, previous_data: Optional[dict], config: dict
 ) -> List[dict]:

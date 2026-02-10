@@ -12,8 +12,15 @@ from sentinel.core.rules.common import (
     extract_department,
     parse_timestamp,
 )
+from sentinel.core.rules.registry import rule
 
 
+@rule(
+    name="Velocidad de Procesamiento",
+    severity="High",
+    description="Evalúa velocidad de procesamiento de actas en intervalos cortos.",
+    config_key="processing_speed",
+)
 def apply(
     current_data: dict, previous_data: Optional[dict], config: dict
 ) -> List[dict]:

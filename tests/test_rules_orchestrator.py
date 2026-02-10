@@ -1,26 +1,24 @@
-"""Pruebas del orquestador de reglas de análisis.
+"""Pruebas del motor unificado de reglas.
 
-Tests for the analysis rules orchestrator.
+Tests for the unified rules engine.
 """
 
 from __future__ import annotations
 
 from typing import List, Optional
 
-import scripts.analyze_rules as analyze_rules
+from sentinel.core.rules.registry import RuleDefinition, _RULE_REGISTRY
+from sentinel.core.rules_engine import RulesEngine
 
 
-def _make_rule(tag: str, bucket: List[str]):
-    """Español: Función _make_rule del módulo tests/test_rules_orchestrator.py.
+def _make_rule_def(tag: str, bucket: List[str]) -> RuleDefinition:
+    """Crea un RuleDefinition de prueba que registra su ejecución en *bucket*.
 
-    English: Function _make_rule defined in tests/test_rules_orchestrator.py.
+    English:
+        Create a test RuleDefinition that logs its execution into *bucket*.
     """
 
     def _rule(current: dict, previous: Optional[dict], config: dict) -> List[dict]:
-        """Español: Función _rule del módulo tests/test_rules_orchestrator.py.
-
-        English: Function _rule defined in tests/test_rules_orchestrator.py.
-        """
         bucket.append(tag)
         return [
             {
@@ -30,51 +28,122 @@ def _make_rule(tag: str, bucket: List[str]):
             }
         ]
 
-    return _rule
+    return RuleDefinition(
+        name=tag,
+        severity="Low",
+        description=f"Test rule {tag}",
+        config_key=tag,
+        func=_rule,
+    )
 
 
-def test_run_all_rules_respects_global_enabled(monkeypatch):
-    """Español: Función test_run_all_rules_respects_global_enabled del módulo tests/test_rules_orchestrator.py.
+def test_engine_respects_global_enabled(monkeypatch):
+    """Cuando global_enabled=false, ninguna regla debe ejecutarse.
 
-    English: Function test_run_all_rules_respects_global_enabled defined in tests/test_rules_orchestrator.py.
+    English:
+        When global_enabled=false, no rule should execute.
     """
     called: List[str] = []
     monkeypatch.setattr(
-        analyze_rules,
-        "RULES",
-        [("dummy", _make_rule("dummy", called))],
+        "sentinel.core.rules_engine.list_rules",
+        lambda: [_make_rule_def("dummy", called)],
     )
 
-    alerts = analyze_rules.run_all_rules({}, None, {"rules": {"global_enabled": False}})
+    engine = RulesEngine(config={"rules": {"global_enabled": False}})
+    result = engine.run({}, None)
 
-    assert alerts == []
+    assert result.alerts == []
     assert called == []
 
 
-def test_run_all_rules_filters_enabled_rules(monkeypatch):
-    """Español: Función test_run_all_rules_filters_enabled_rules del módulo tests/test_rules_orchestrator.py.
+def test_engine_filters_enabled_rules(monkeypatch):
+    """Solo las reglas habilitadas deben ejecutarse.
 
-    English: Function test_run_all_rules_filters_enabled_rules defined in tests/test_rules_orchestrator.py.
+    English:
+        Only enabled rules should execute.
     """
     called: List[str] = []
-    rules = [
-        ("alpha", _make_rule("alpha", called)),
-        ("beta", _make_rule("beta", called)),
-    ]
-    monkeypatch.setattr(analyze_rules, "RULES", rules)
+    monkeypatch.setattr(
+        "sentinel.core.rules_engine.list_rules",
+        lambda: [
+            _make_rule_def("alpha", called),
+            _make_rule_def("beta", called),
+        ],
+    )
 
-    alerts = analyze_rules.run_all_rules(
-        {"foo": "bar"},
-        None,
-        {
+    engine = RulesEngine(
+        config={
             "rules": {
                 "global_enabled": True,
                 "alpha": {"enabled": True},
                 "beta": {"enabled": False},
             }
-        },
+        }
     )
+    result = engine.run({"foo": "bar"}, None)
 
     assert called == ["alpha"]
-    assert len(alerts) == 1
-    assert alerts[0]["type"] == "Regla alpha"
+    assert len(result.alerts) == 1
+    assert result.alerts[0]["type"] == "Regla alpha"
+
+
+def test_all_rules_enabled_by_default(monkeypatch):
+    """Las reglas sin configuración explícita deben estar habilitadas.
+
+    English:
+        Rules without explicit config should be enabled by default.
+    """
+    called: List[str] = []
+    monkeypatch.setattr(
+        "sentinel.core.rules_engine.list_rules",
+        lambda: [
+            _make_rule_def("no_config_rule", called),
+        ],
+    )
+
+    engine = RulesEngine(config={"rules": {"global_enabled": True}})
+    result = engine.run({}, None)
+
+    assert called == ["no_config_rule"]
+    assert len(result.alerts) == 1
+
+
+def test_all_legacy_rules_registered():
+    """Verifica que las 20 reglas (13 originales + 7 legacy) estén registradas.
+
+    English:
+        Verify that all 20 rules (13 original + 7 legacy) are registered.
+    """
+    from sentinel.core import rules_engine  # noqa: F401 — triggers imports
+
+    registered_keys = {r.config_key for r in _RULE_REGISTRY}
+
+    expected_legacy = {
+        "basic_diff",
+        "benford_law",
+        "irreversibility",
+        "ml_outliers",
+        "participation_anomaly",
+        "processing_speed",
+        "trend_shift",
+    }
+    for key in expected_legacy:
+        assert key in registered_keys, f"Legacy rule {key!r} not registered"
+
+    expected_original = {
+        "benford_first_digit",
+        "participation_vote_correlation",
+        "geographic_dispersion",
+        "granular_anomaly",
+        "large_numbers_convergence",
+        "last_digit_uniformity",
+        "mesas_diff",
+        "null_blank_votes",
+        "participation_anomaly_advanced",
+        "runs_test",
+        "snapshot_jump",
+        "table_consistency",
+        "turnout_impossible",
+    }
+    for key in expected_original:
+        assert key in registered_keys, f"Original rule {key!r} not registered"

@@ -1,54 +1,31 @@
 """
-Motor avanzado de reglas para detección de anomalías electorales.
+CLI delgado para ejecutar el motor unificado de reglas.
 
-Este módulo ejecuta reglas estadísticas avanzadas sobre el snapshot más reciente
-comparándolo con el snapshot anterior. Genera reportes JSON y logs estructurados
-para auditoría internacional.
+Toda la lógica de ejecución, verificación de hashchain y generación de
+reportes vive en ``RulesEngine``.  Este script sólo resuelve rutas de
+snapshots, carga configuración y delega a ``RulesEngine.run()``.
 
-Advanced rules engine for electoral anomaly detection.
+Thin CLI wrapper for the unified rules engine.
 
-This module runs advanced statistical rules on the latest snapshot and compares
-it with the previous snapshot. It generates JSON reports and structured logs for
-international auditing.
+All execution logic, hashchain verification, and report generation lives in
+``RulesEngine``.  This script only resolves snapshot paths, loads config, and
+delegates to ``RulesEngine.run()``.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import unicodedata
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 import yaml
 
-from sentinel.core.hashchain import compute_hash
 from sentinel.core.rules.common import extract_candidate_votes, extract_total_votes
 from sentinel.core.rules_engine import RulesEngine
 from sentinel.utils.config_loader import CONFIG_PATH, load_config
 
 ANALYSIS_DIR = Path("analysis")
-ANALYSIS_DIR.mkdir(exist_ok=True)
-
-RuleFn = Callable[[dict, Optional[dict], dict], list[dict]]
-RULES: list[tuple[str, RuleFn]] = []
-
-
-def run_all_rules(current: dict, previous: Optional[dict], config: dict) -> list[dict]:
-    """Run configured rules respecting enablement flags."""
-    rules_config = config.get("rules", {}) if config else {}
-    if not rules_config.get("global_enabled", True):
-        return []
-
-    alerts: list[dict] = []
-    for name, rule in RULES:
-        rule_config = rules_config.get(name, {})
-        if rule_config.get("enabled", True) is False:
-            continue
-        alerts.extend(rule(current, previous, config))
-    return alerts
-
 
 PRESIDENTIAL_LEVELS = {
     "PRES",
@@ -60,10 +37,14 @@ PRESIDENTIAL_LEVELS = {
 UNWANTED_KEYS = {"actas", "mesas", "tables"}
 
 
-def _load_config() -> dict:
-    """Español: Función _load_config del módulo scripts/analyze_rules.py.
+# ── config & snapshot helpers ────────────────────────────────────────────
 
-    English: Function _load_config defined in scripts/analyze_rules.py.
+
+def _load_config() -> dict:
+    """Carga la configuración desde config.yaml o el ejemplo.
+
+    English:
+        Load configuration from config.yaml or the example file.
     """
     if CONFIG_PATH.exists():
         return load_config()
@@ -74,28 +55,47 @@ def _load_config() -> dict:
 
 
 def _load_snapshot(path: Path) -> dict:
-    """Español: Función _load_snapshot del módulo scripts/analyze_rules.py.
+    """Lee y parsea un snapshot JSON.
 
-    English: Function _load_snapshot defined in scripts/analyze_rules.py.
+    English:
+        Read and parse a JSON snapshot.
     """
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _normalize_level(level: Optional[str]) -> Optional[str]:
-    """Español: Función _normalize_level del módulo scripts/analyze_rules.py.
+def _latest_snapshots() -> tuple[Optional[Path], Optional[Path]]:
+    """Ubica los dos snapshots más recientes.
 
-    English: Function _normalize_level defined in scripts/analyze_rules.py.
+    English:
+        Locate the two most recent snapshots.
     """
+    normalized_dir = Path("normalized")
+    candidates = sorted(
+        normalized_dir.glob("*.normalized.json"),
+        key=lambda path: path.stat().st_mtime,
+    )
+    if not candidates:
+        candidates = sorted(
+            Path("data").glob("*.json"),
+            key=lambda path: path.stat().st_mtime,
+        )
+    if not candidates:
+        return None, None
+    current = candidates[-1]
+    previous = candidates[-2] if len(candidates) > 1 else None
+    return current, previous
+
+
+# ── presidential filtering helpers ───────────────────────────────────────
+
+
+def _normalize_level(level: Optional[str]) -> Optional[str]:
     if level is None:
         return None
     return str(level).strip().upper()
 
 
 def _extract_level(payload: dict) -> Optional[str]:
-    """Español: Función _extract_level del módulo scripts/analyze_rules.py.
-
-    English: Function _extract_level defined in scripts/analyze_rules.py.
-    """
     metadata = payload.get("meta") or payload.get("metadata") or {}
     return (
         payload.get("election_level")
@@ -107,10 +107,6 @@ def _extract_level(payload: dict) -> Optional[str]:
 
 
 def _extract_department(payload: dict) -> Optional[str]:
-    """Español: Función _extract_department del módulo scripts/analyze_rules.py.
-
-    English: Function _extract_department defined in scripts/analyze_rules.py.
-    """
     metadata = payload.get("meta") or payload.get("metadata") or {}
     return (
         payload.get("departamento")
@@ -122,18 +118,10 @@ def _extract_department(payload: dict) -> Optional[str]:
 
 
 def _strip_unwanted_fields(payload: dict) -> dict:
-    """Español: Función _strip_unwanted_fields del módulo scripts/analyze_rules.py.
-
-    English: Function _strip_unwanted_fields defined in scripts/analyze_rules.py.
-    """
     return {key: value for key, value in payload.items() if key not in UNWANTED_KEYS}
 
 
 def _build_source_map(config: dict) -> dict[str, dict[str, Any]]:
-    """Español: Función _build_source_map del módulo scripts/analyze_rules.py.
-
-    English: Function _build_source_map defined in scripts/analyze_rules.py.
-    """
     source_map: dict[str, dict[str, Any]] = {}
     for source in config.get("sources", []):
         source_id = source.get("source_id") or source.get("name")
@@ -144,20 +132,12 @@ def _build_source_map(config: dict) -> dict[str, dict[str, Any]]:
 
 
 def _normalize_department_label(label: str) -> str:
-    """Español: Función _normalize_department_label del módulo scripts/analyze_rules.py.
-
-    English: Function _normalize_department_label defined in scripts/analyze_rules.py.
-    """
     cleaned = unicodedata.normalize("NFKD", label)
     cleaned = "".join(char for char in cleaned if not unicodedata.combining(char))
     return cleaned.strip().upper()
 
 
 def _allowed_departments(config: dict) -> set[str]:
-    """Español: Función _allowed_departments del módulo scripts/analyze_rules.py.
-
-    English: Function _allowed_departments defined in scripts/analyze_rules.py.
-    """
     departments: set[str] = set()
     for source in config.get("sources", []):
         if source.get("scope") != "DEPARTMENT":
@@ -171,10 +151,6 @@ def _allowed_departments(config: dict) -> set[str]:
 
 
 def _aggregate_national(entries: list[dict]) -> dict:
-    """Español: Función _aggregate_national del módulo scripts/analyze_rules.py.
-
-    English: Function _aggregate_national defined in scripts/analyze_rules.py.
-    """
     totals_by_candidate: dict[str, int] = {}
     total_votes_sum = 0
     for entry in entries:
@@ -199,10 +175,6 @@ def _aggregate_national(entries: list[dict]) -> dict:
 
 
 def _filter_presidential_snapshot(snapshot: dict, config: dict) -> dict:
-    """Español: Función _filter_presidential_snapshot del módulo scripts/analyze_rules.py.
-
-    English: Function _filter_presidential_snapshot defined in scripts/analyze_rules.py.
-    """
     source_map = _build_source_map(config)
     allowed_departments = _allowed_departments(config)
     scope = {scope.lower() for scope in config.get("scope", ["presidential"])}
@@ -253,42 +225,10 @@ def _filter_presidential_snapshot(snapshot: dict, config: dict) -> dict:
     }
 
 
-def _snapshot_hash(payload: dict) -> str:
-    """Español: Función _snapshot_hash del módulo scripts/analyze_rules.py.
-
-    English: Function _snapshot_hash defined in scripts/analyze_rules.py.
-    """
-    canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    return hashlib.sha256(canonical).hexdigest()
-
-
-def _latest_snapshots() -> tuple[Optional[Path], Optional[Path]]:
-    """Español: Función _latest_snapshots del módulo scripts/analyze_rules.py.
-
-    English: Function _latest_snapshots defined in scripts/analyze_rules.py.
-    """
-    normalized_dir = Path("normalized")
-    candidates = sorted(
-        normalized_dir.glob("*.normalized.json"),
-        key=lambda path: path.stat().st_mtime,
-    )
-    if not candidates:
-        candidates = sorted(
-            Path("data").glob("*.json"),
-            key=lambda path: path.stat().st_mtime,
-        )
-    if not candidates:
-        return None, None
-    current = candidates[-1]
-    previous = candidates[-2] if len(candidates) > 1 else None
-    return current, previous
+# ── hashchain path helper ───────────────────────────────────────────────
 
 
 def _locate_hashchain(current_path: Path) -> Optional[Path]:
-    """Español: Función _locate_hashchain del módulo scripts/analyze_rules.py.
-
-    English: Function _locate_hashchain defined in scripts/analyze_rules.py.
-    """
     if current_path.parent.name == "normalized":
         candidate = current_path.parent.parent / "hashchain.json"
         if candidate.exists():
@@ -299,74 +239,14 @@ def _locate_hashchain(current_path: Path) -> Optional[Path]:
     return None
 
 
-def _verify_hashchain(normalized_dir: Path, hashchain_path: Path) -> list[dict]:
-    """Español: Función _verify_hashchain del módulo scripts/analyze_rules.py.
-
-    English: Function _verify_hashchain defined in scripts/analyze_rules.py.
-    """
-    alerts: list[dict] = []
-    try:
-        entries = json.loads(hashchain_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return alerts
-
-    previous_hash: Optional[str] = None
-    for entry in entries:
-        snapshot_name = entry.get("snapshot")
-        if not snapshot_name:
-            continue
-        snapshot_path = normalized_dir / f"{snapshot_name}.json"
-        if not snapshot_path.exists():
-            alerts.append(
-                {
-                    "type": "Hashchain Inconsistente",
-                    "severity": "CRITICAL",
-                    "snapshot": snapshot_name,
-                    "justification": (
-                        "Falta el snapshot esperado en el directorio normalizado. "
-                        f"snapshot={snapshot_name}."
-                    ),
-                }
-            )
-            previous_hash = entry.get("hash") or previous_hash
-            continue
-        canonical_json = snapshot_path.read_text(encoding="utf-8").strip()
-        expected_previous = entry.get("previous_hash")
-        if expected_previous != previous_hash:
-            alerts.append(
-                {
-                    "type": "Hashchain Inconsistente",
-                    "severity": "CRITICAL",
-                    "snapshot": snapshot_name,
-                    "justification": (
-                        "El hash previo no coincide con la cadena esperada. "
-                        f"previo_esperado={expected_previous}, "
-                        f"previo_calculado={previous_hash}."
-                    ),
-                }
-            )
-        computed_hash = compute_hash(canonical_json, previous_hash)
-        expected_hash = entry.get("hash")
-        if expected_hash != computed_hash:
-            alerts.append(
-                {
-                    "type": "Tampering Retroactivo (Hashchain)",
-                    "severity": "CRITICAL",
-                    "snapshot": snapshot_name,
-                    "justification": (
-                        "El hash encadenado no coincide con el contenido canónico. "
-                        f"hash_esperado={expected_hash}, hash_calculado={computed_hash}."
-                    ),
-                }
-            )
-        previous_hash = expected_hash or previous_hash
-    return alerts
+# ── main ─────────────────────────────────────────────────────────────────
 
 
 def main() -> None:
-    """Español: Función main del módulo scripts/analyze_rules.py.
+    """Punto de entrada CLI: delega todo a RulesEngine.
 
-    English: Function main defined in scripts/analyze_rules.py.
+    English:
+        CLI entry point: delegates everything to RulesEngine.
     """
     current_path, previous_path = _latest_snapshots()
     if not current_path:
@@ -383,40 +263,27 @@ def main() -> None:
         if previous_path
         else None
     )
+
     log_path = ANALYSIS_DIR / "rules_log.jsonl"
     engine = RulesEngine(config=config, log_path=log_path)
-    snapshot_id = _snapshot_hash(current_data)
+    snapshot_id = RulesEngine.snapshot_hash(current_data)
 
+    # ── ejecutar TODAS las reglas ────────────────────────────────────
     result = engine.run(current_data, previous_data, snapshot_id=snapshot_id)
 
-    tamper_alerts: list[dict] = []
+    # ── verificar hashchain ──────────────────────────────────────────
     hashchain_path = _locate_hashchain(current_path)
     if hashchain_path and current_path.parent.name == "normalized":
-        tamper_alerts = _verify_hashchain(current_path.parent, hashchain_path)
+        tamper_alerts = RulesEngine.verify_hashchain(
+            current_path.parent, hashchain_path
+        )
         if tamper_alerts:
             result.alerts.extend(tamper_alerts)
             result.critical_alerts.extend(tamper_alerts)
 
-    report = {
-        "snapshot": {
-            "path": current_path.as_posix(),
-            "hash": snapshot_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        },
-        "alerts": result.alerts,
-        "critical_alerts": result.critical_alerts,
-        "pause_snapshots": result.pause_snapshots or bool(tamper_alerts),
-    }
-
-    report_path = ANALYSIS_DIR / f"rules_report_{current_path.stem}.json"
-    report_path.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-    Path("anomalies_report.json").write_text(
-        json.dumps(result.alerts, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+    # ── generar reportes ─────────────────────────────────────────────
+    report_path = RulesEngine.write_report(
+        result, current_path, snapshot_id, ANALYSIS_DIR
     )
 
     print(f"[i] Reporte generado: {report_path}")
