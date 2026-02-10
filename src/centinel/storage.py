@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -65,8 +65,8 @@ def save_snapshot(
     Save snapshot, metadata, and chained hash.
     """
     base = base_path or Path("data")
-    timestamp = datetime.utcnow()
-    timestamp_iso = timestamp.isoformat() + "Z"
+    timestamp = datetime.now(timezone.utc)
+    timestamp_iso = timestamp.isoformat()
     snapshot_dir = _snapshot_directory(base, timestamp)
     snapshot_dir.mkdir(parents=True, exist_ok=True)
 

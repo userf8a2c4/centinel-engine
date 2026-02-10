@@ -4,7 +4,7 @@ Master switch controls for the command center.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 @dataclass(frozen=True)
@@ -28,6 +28,6 @@ class MasterSwitch:
 
         return MasterSwitch(
             enabled=self.enabled if enabled is None else enabled,
-            updated_at=datetime.utcnow(),
+            updated_at=datetime.now(timezone.utc),
             reason=reason if reason is not None else self.reason,
         )

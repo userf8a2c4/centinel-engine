@@ -1867,7 +1867,7 @@ def generate_pdf_report(
         )
         return table
 
-    report_date = dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    report_date = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     version = "v1.0"
     repo_url = "https://github.com/userf8a2c4/centinel-engine"
 

@@ -265,9 +265,9 @@ blockchain:
   # Red objetivo.
   # Target network.
   network: polygon-mumbai
-  # Llave privada (usar secrets manager / .env).
-  # Private key (use secrets manager / .env).
-  private_key: "0x..."
+  # Llave privada — SOLO via env var BLOCKCHAIN_PRIVATE_KEY (valores aquí se ignoran).
+  # Private key — ONLY via env var BLOCKCHAIN_PRIVATE_KEY (values here are ignored).
+  private_key: "REPLACE_ME"
 
 # Alertas críticas.
 # Critical alerts.
@@ -308,7 +308,9 @@ arbitrum:
   enabled: false
   network: "Arbitrum One"
   rpc_url: "https://arb1.arbitrum.io/rpc"
-  private_key: "0x..."
+  # Llave privada — SOLO via env var ARBITRUM_PRIVATE_KEY (valores aquí se ignoran).
+  # Private key — ONLY via env var ARBITRUM_PRIVATE_KEY (values here are ignored).
+  private_key: "REPLACE_ME"
   contract_address: "0x..."
   explorer_url: "https://arbiscan.io/tx/"
   interval_minutes: 15
