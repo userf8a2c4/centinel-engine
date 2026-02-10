@@ -28,6 +28,7 @@ from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
 from scripts.security.encrypt_secrets import decrypt_secrets
 from sentinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
+from sentinel.core.custody import run_startup_verification, sign_hash_record
 from sentinel.utils.config_loader import load_config
 
 DATA_DIR = Path("data")
@@ -1122,6 +1123,41 @@ def main():
     if not is_master_switch_on(config):
         print("[!] Ejecución detenida por switch maestro (OFF)")
         return
+
+    # --- FASE 2: Verificación de cadena de custodia al arranque ---
+    custody_config = config.get("custody", {})
+    if custody_config.get("verify_on_startup", False):
+        print("[+] Verificando cadena de custodia al arranque...")
+        log_event(logger, logging.INFO, "custody_verification_start")
+        try:
+            custody_report = run_startup_verification(
+                hash_dir=HASH_DIR,
+                anchor_log_dir=ANCHOR_LOG_DIR,
+                verify_anchors=custody_config.get("verify_anchors_on_startup", False),
+                verify_signatures=custody_config.get("verify_signatures", True),
+                max_anchor_checks=int(custody_config.get("max_anchor_checks", 5)),
+            )
+            report_path = DATA_DIR / "custody_verification.json"
+            report_path.write_text(
+                json.dumps(custody_report.to_dict(), indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            if custody_report.overall_valid:
+                print(f"[+] Cadena de custodia válida ({custody_report.chain_result.verified_links} eslabones)")
+                log_event(
+                    logger, logging.INFO, "custody_verification_passed",
+                    links=custody_report.chain_result.verified_links if custody_report.chain_result else 0,
+                )
+            else:
+                print("[!] ADVERTENCIA: Cadena de custodia con inconsistencias")
+                log_event(
+                    logger, logging.WARNING, "custody_verification_warning",
+                    errors=custody_report.chain_result.errors if custody_report.chain_result else [],
+                    sig_failures=custody_report.signature_failures,
+                )
+        except Exception as exc:
+            print(f"[!] Error en verificación de custodia: {exc}")
+            log_event(logger, logging.ERROR, "custody_verification_failed", error=str(exc))
 
     if args.once:
         update_heartbeat(status="manual_once")
