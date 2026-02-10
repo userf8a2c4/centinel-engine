@@ -315,6 +315,28 @@ arbitrum:
   batch_size: 19
   auto_anchor_snapshots: true
 
+# Cadena de custodia verificable — FASE 2.
+# Verifiable custody chain — PHASE 2.
+custody:
+  # Verificar cadena de hashes al arranque del pipeline.
+  # Verify hash chain on pipeline startup.
+  verify_on_startup: true
+  # Verificar anclajes recientes contra Arbitrum al arranque.
+  # Verify recent anchors against Arbitrum on startup.
+  verify_anchors_on_startup: false
+  # Verificar firmas del operador en registros de hash.
+  # Verify operator signatures on hash records.
+  verify_signatures: true
+  # Máximo de anclajes a verificar en cada arranque.
+  # Max anchors to verify per startup.
+  max_anchor_checks: 5
+  # Firmar cada registro de hash con Ed25519 del operador.
+  # Sign each hash record with operator Ed25519 key.
+  sign_hash_records: true
+  # ID del operador (se usa como etiqueta en firmas).
+  # Operator ID (used as label in signatures).
+  operator_id: "default-operator"
+
 # Reglas de análisis.
 # Analysis rules.
 rules:

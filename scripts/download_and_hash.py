@@ -51,6 +51,7 @@ from scripts.circuit_breaker import CircuitBreaker
 
 from monitoring.health import get_health_state
 from scripts.logging_utils import configure_logging, log_event
+from sentinel.core.custody import sign_hash_record
 
 logger = configure_logging("centinel.download", log_file="logs/centinel.log")
 
@@ -579,12 +580,18 @@ def _persist_snapshot_payload(
     snapshot_file = data_dir / f"snapshot_{timestamp}_{source_id}.json"
     hash_file = hash_dir / f"snapshot_{timestamp}_{source_id}.sha256"
     snapshot_file.write_bytes(snapshot_bytes)
+    hash_record = {"hash": current_hash, "chained_hash": chained_hash}
+
+    # FASE 2: Firma Ed25519 del operador si hay clave disponible
+    try:
+        sign_hash_record(hash_record)
+    except FileNotFoundError:
+        pass  # Sin clave configurada — no firmar
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("operator_sign_failed file=%s error=%s", hash_file.name, exc)
+
     hash_file.write_text(
-        json.dumps(
-            {"hash": current_hash, "chained_hash": chained_hash},
-            ensure_ascii=False,
-            indent=2,
-        ),
+        json.dumps(hash_record, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     return chained_hash, current_hash, snapshot_file
