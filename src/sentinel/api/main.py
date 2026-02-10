@@ -21,6 +21,7 @@ import yaml
 
 from monitoring.health import register_healthchecks
 from monitoring.strict_health import register_strict_health_endpoints
+from sentinel.api.middleware import install_zero_trust
 from sentinel.core.hashchain import compute_hash
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -95,6 +96,11 @@ limiter = Limiter(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+# Zero Trust middleware — outermost layer, runs first on every request.
+# (Middleware Zero Trust — capa más externa, corre primero en cada request.)
+# Opt-in via config.yaml → security.zero_trust: true
+install_zero_trust(app)
 
 
 def get_connection() -> sqlite3.Connection:

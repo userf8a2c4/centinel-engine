@@ -44,6 +44,7 @@ structlog = "*"
 typer = "*"
 slowapi = ">=0.1.9"
 boto3 = ">=1.34.0"
+psutil = ">=5.9.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "8.3.3"
@@ -77,6 +78,7 @@ exclude = ["chaos_test.py", "scripts/chaos_test.py"]
 [tool.poetry.scripts]
 centinel = "centinel.cli:main"
 command-center = "command_center.main:main"
+watchdog-daemon = "scripts.watchdog_daemon:main"
 
 [build-system]
 requires = ["poetry-core>=1.5.0"]

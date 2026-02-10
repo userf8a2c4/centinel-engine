@@ -288,6 +288,46 @@ alerts:
   # JSON output for public API.
   output_path: "data/alerts.json"
 
+# ─────────────────────────────────────────────────────────────────
+# Seguridad Zero Trust (opt-in, todo deshabilitado por defecto).
+# Zero Trust Security (opt-in, everything disabled by default).
+# ─────────────────────────────────────────────────────────────────
+security:
+  # Habilitar middleware Zero Trust en la API pública.
+  # Enable Zero Trust middleware on the public API.
+  # ← Cambiar a true para activar / Change to true to enable.
+  zero_trust: false
+
+  # Configuración detallada de Zero Trust (solo aplica si zero_trust: true).
+  # Detailed Zero Trust configuration (only applies when zero_trust: true).
+  zero_trust_config:
+    # Máximo de requests por IP por minuto (Rate limit per IP per minute).
+    rate_limit_rpm: 60
+    # Máximo tamaño de body en bytes (Max body size in bytes).
+    max_body_bytes: 1048576  # 1 MB
+    # IPs/CIDRs bloqueadas permanentemente (Permanently blocked IPs/CIDRs).
+    # ← Agregar IPs sospechosas aquí / Add suspicious IPs here.
+    ip_blocklist: []
+    #   - "192.168.1.100"
+    #   - "10.0.0.0/8"
+    # Headers HTTP bloqueados (Blocked HTTP headers).
+    blocked_headers: []
+    #   - "x-custom-malicious"
+
+  # Habilitar hashing encadenado SHA-256 en logs de integridad.
+  # Enable SHA-256 chained hashing on integrity logs.
+  # ← Cambiar a true para activar / Change to true to enable.
+  log_hashing: false
+
+  # Habilitar encriptación de logs con Fernet (AES-128-CBC).
+  # Enable log encryption with Fernet (AES-128-CBC).
+  # Requiere env var CENTINEL_LOG_KEY con clave Fernet.
+  # Requires env var CENTINEL_LOG_KEY with Fernet key.
+  # Generar clave / Generate key:
+  #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  log_encryption: false
+  log_encryption_key_env: "CENTINEL_LOG_KEY"
+
 # Resiliencia operativa.
 # Operational resilience.
 resilience:
@@ -301,6 +341,34 @@ resilience:
     enabled: false
     failure_rate: 0.9
     seed: 2026
+
+  # ─────────────────────────────────────────────────────────────────
+  # Umbrales de detección de DoS / condiciones anómalas del sistema.
+  # DoS detection / abnormal system condition thresholds.
+  # ─────────────────────────────────────────────────────────────────
+  dos_thresholds:
+    # CPU % que dispara alerta y curación (CPU % that triggers alert and healing).
+    cpu: 90
+    # Memoria % que dispara alerta (Memory % that triggers alert).
+    memory: 90
+    # Disco % que dispara alerta (Disk % that triggers alert).
+    disk: 95
+
+  # ─────────────────────────────────────────────────────────────────
+  # Watchdog Daemon — proceso externo de auto-curación obsesiva.
+  # Watchdog Daemon — external obsessive self-healing process.
+  # ─────────────────────────────────────────────────────────────────
+  watchdog_daemon:
+    # Habilitar el daemon (Enable the daemon).
+    # ← Cambiar a true para activar / Change to true to enable.
+    enabled: false
+    # Intervalo de chequeo en segundos (Check interval in seconds).
+    check_interval_seconds: 30
+    # Cooldown entre acciones correctivas en segundos para prevenir restart storms.
+    # Cooldown between corrective actions in seconds to prevent restart storms.
+    cooldown_seconds: 120
+    # Fallos consecutivos antes de actuar (Consecutive failures before acting).
+    failure_threshold: 3
 
 # Configuración Arbitrum (opcional).
 # Arbitrum configuration (optional).
