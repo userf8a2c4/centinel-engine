@@ -155,9 +155,7 @@ def _set_pipeline_paths(monkeypatch, base_path: Path) -> None:
     monkeypatch.setattr(run_pipeline, "ANALYSIS_DIR", base_path / "analysis")
     monkeypatch.setattr(run_pipeline, "REPORTS_DIR", base_path / "reports")
     monkeypatch.setattr(run_pipeline, "ANCHOR_LOG_DIR", base_path / "logs" / "anchors")
-    monkeypatch.setattr(
-        run_pipeline, "STATE_PATH", base_path / "data" / "pipeline_state.json"
-    )
+    monkeypatch.setattr(run_pipeline, "STATE_PATH", base_path / "data" / "pipeline_state.json")
     monkeypatch.setattr(
         run_pipeline,
         "PIPELINE_CHECKPOINT_PATH",
@@ -176,9 +174,7 @@ def _set_pipeline_paths(monkeypatch, base_path: Path) -> None:
     run_pipeline.ANCHOR_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def test_safe_run_pipeline_saves_checkpoint_on_connection_error(
-    monkeypatch, tmp_path
-) -> None:
+def test_safe_run_pipeline_saves_checkpoint_on_connection_error(monkeypatch, tmp_path) -> None:
     """Español: Función test_safe_run_pipeline_saves_checkpoint_on_connection_error del módulo tests/test_failure_injection.py.
 
     English: Function test_safe_run_pipeline_saves_checkpoint_on_connection_error defined in tests/test_failure_injection.py.
@@ -223,9 +219,7 @@ def test_run_pipeline_resumes_from_checkpoint(monkeypatch, tmp_path) -> None:
         "latest_snapshot": snapshot_path.name,
         "last_content_hash": content_hash,
     }
-    run_pipeline.FAILURE_CHECKPOINT_PATH.write_text(
-        json.dumps(checkpoint_payload, indent=2), encoding="utf-8"
-    )
+    run_pipeline.FAILURE_CHECKPOINT_PATH.write_text(json.dumps(checkpoint_payload, indent=2), encoding="utf-8")
 
     commands: list[list[str]] = []
 
@@ -240,9 +234,7 @@ def test_run_pipeline_resumes_from_checkpoint(monkeypatch, tmp_path) -> None:
         commands.append(command)
 
     monkeypatch.setattr(run_pipeline, "run_command", _record_command)
-    monkeypatch.setattr(
-        run_pipeline, "_anchor_snapshot", lambda *_args, **_kwargs: None
-    )
+    monkeypatch.setattr(run_pipeline, "_anchor_snapshot", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(run_pipeline, "_anchor_if_due", lambda *_args, **_kwargs: None)
 
     config = {"alerts": {}, "arbitrum": {"enabled": False}}
@@ -302,9 +294,7 @@ def test_emit_critical_alerts_writes_outputs(monkeypatch, tmp_path) -> None:
         "alerts": {"log_path": str(alerts_log), "output_path": str(alerts_output)},
         "arbitrum": {"enabled": False},
     }
-    critical_anomalies = [
-        {"type": "CHAOS_SPIKE", "description": "Falla crítica", "file": "snap.json"}
-    ]
+    critical_anomalies = [{"type": "CHAOS_SPIKE", "description": "Falla crítica", "file": "snap.json"}]
 
     run_pipeline.emit_critical_alerts(critical_anomalies, config, run_id="run-1")
 

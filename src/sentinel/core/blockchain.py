@@ -63,10 +63,7 @@ def resolve_private_key(raw_value: str | None) -> str | None:
     if env_key:
         return env_key
     if raw_value and str(raw_value).strip() not in {"", "0x...", "REPLACE_ME"}:
-        logger.warning(
-            "private_key found in config.yaml but ignored — "
-            "set BLOCKCHAIN_PRIVATE_KEY env var instead"
-        )
+        logger.warning("private_key found in config.yaml but ignored — " "set BLOCKCHAIN_PRIVATE_KEY env var instead")
     return None
 
 
@@ -149,9 +146,7 @@ def _build_web3_client(config: Dict[str, Any]) -> tuple["Web3", int]:
     return web3, chain_id
 
 
-def _send_payload_to_chain(
-    web3: "Web3", chain_id: int, private_key: str, payload: bytes
-) -> str:
+def _send_payload_to_chain(web3: "Web3", chain_id: int, private_key: str, payload: bytes) -> str:
     """Envía un payload en una transacción y devuelve el tx hash.
 
     Args:

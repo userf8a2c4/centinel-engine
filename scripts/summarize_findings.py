@@ -88,20 +88,13 @@ def _build_summary(alerts_payload: list[dict]) -> tuple[list[str], list[dict]]:
     critical_threshold = float(rules_thresholds.get("chi2_p_critical", 0.01))
 
     if not alerts_payload:
-        summary_lines.append(
-            "No se detectaron eventos atípicos en los datos públicos analizados."
-        )
+        summary_lines.append("No se detectaron eventos atípicos en los datos públicos analizados.")
         return summary_lines, critical_p_alerts
 
     for alert_window in alerts_payload:
-        summary_lines.append(
-            "Evento atípico detectado entre "
-            f"{alert_window['from']} y {alert_window['to']} UTC."
-        )
+        summary_lines.append("Evento atípico detectado entre " f"{alert_window['from']} y {alert_window['to']} UTC.")
         for triggered_rule in alert_window.get("alerts", []):
-            description = triggered_rule.get("description") or triggered_rule.get(
-                "descripcion"
-            )
+            description = triggered_rule.get("description") or triggered_rule.get("descripcion")
             if description:
                 summary_lines.append(f"- {description}")
             else:

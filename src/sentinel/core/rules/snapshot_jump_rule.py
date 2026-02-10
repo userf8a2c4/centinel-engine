@@ -18,9 +18,7 @@ from sentinel.core.rules.registry import rule
     description="Detecta cambios >5% en 10 minutos.",
     config_key="snapshot_jump",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Detecta saltos anómalos en votos emitidos entre snapshots cercanos.
 

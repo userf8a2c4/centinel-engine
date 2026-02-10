@@ -16,12 +16,12 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 import requests
+
 try:
     import responses
 except ModuleNotFoundError:  # pragma: no cover - fallback when responses isn't installed.
     responses = None
 import yaml
-
 
 SCENARIOS = (
     "rate_limit_429",
@@ -143,9 +143,7 @@ def _load_config(config_path: Path) -> ChaosConfig:
     """
     payload = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     chaos = payload.get("chaos", {})
-    scenarios = chaos.get(
-        "scenarios_enabled", chaos.get("specific_scenarios_enabled", SCENARIOS)
-    )
+    scenarios = chaos.get("scenarios_enabled", chaos.get("specific_scenarios_enabled", SCENARIOS))
     return ChaosConfig(
         level=str(chaos.get("level", "low")).lower(),
         duration_minutes=float(chaos.get("duration_minutes", 1)),
@@ -181,9 +179,7 @@ def _apply_level_defaults(config: ChaosConfig) -> None:
         config.polling_interval_seconds = max(config.polling_interval_seconds, 0.1)
 
 
-def _select_scenario(
-    rng: random.Random, enabled: Iterable[str], failure_probability: float
-) -> Optional[str]:
+def _select_scenario(rng: random.Random, enabled: Iterable[str], failure_probability: float) -> Optional[str]:
     """Español: Selecciona un escenario según probabilidad.
 
     English: Select a scenario based on probability.
@@ -210,17 +206,16 @@ def _configure_logger() -> logging.Logger:
 
 
 def _write_report(
-    config: ChaosConfig, metrics: ChaosMetrics, report_path: Path, duration_seconds: float
+    config: ChaosConfig,
+    metrics: ChaosMetrics,
+    report_path: Path,
+    duration_seconds: float,
 ) -> None:
     """Español: Escribe un reporte formal para observadores internacionales.
 
     English: Write a formal report for international observers.
     """
-    avg_recovery = (
-        sum(metrics.recovery_times) / len(metrics.recovery_times)
-        if metrics.recovery_times
-        else 0.0
-    )
+    avg_recovery = sum(metrics.recovery_times) / len(metrics.recovery_times) if metrics.recovery_times else 0.0
     max_recovery = max(metrics.recovery_times) if metrics.recovery_times else 0.0
     lines = [
         "# Chaos Testing Report — CNE Honduras",
@@ -315,7 +310,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
 
     @contextmanager
     def _mock_requests(
-        callback: Callable[[requests.PreparedRequest], Tuple[int, Dict[str, str], str]]
+        callback: Callable[[requests.PreparedRequest], Tuple[int, Dict[str, str], str]],
     ) -> Iterable[None]:
         original_get = session.get
 
@@ -341,9 +336,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
     with context:
         while time.monotonic() < end_time:
             try:
-                response = session.get(
-                    config.base_url, timeout=config.request_timeout_seconds
-                )
+                response = session.get(config.base_url, timeout=config.request_timeout_seconds)
                 if response.status_code == 429:
                     raise RuntimeError("rate_limit_429")
                 if response.status_code == 503:
@@ -407,9 +400,7 @@ def _run_chaos_test(config: ChaosConfig) -> Dict[str, object]:
         "summary success=%s failed=%s avg_recovery=%.2fs",
         metrics.successful_requests,
         metrics.failed_requests,
-        sum(metrics.recovery_times) / len(metrics.recovery_times)
-        if metrics.recovery_times
-        else 0.0,
+        (sum(metrics.recovery_times) / len(metrics.recovery_times) if metrics.recovery_times else 0.0),
     )
 
     return {

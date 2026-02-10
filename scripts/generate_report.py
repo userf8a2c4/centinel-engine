@@ -51,15 +51,8 @@ def load_snapshot_files(base_dir: Path) -> list[dict]:
     for path in sorted(base_dir.glob("snapshot_*.json")):
         content = path.read_text(encoding="utf-8")
         payload = json.loads(content)
-        timestamp = payload.get("timestamp") or path.stem.replace(
-            "snapshot_", ""
-        ).replace("_", " ")
-        source_value = str(
-            payload.get("source")
-            or payload.get("source_url")
-            or payload.get("fuente")
-            or ""
-        ).upper()
+        timestamp = payload.get("timestamp") or path.stem.replace("snapshot_", "").replace("_", " ")
+        source_value = str(payload.get("source") or payload.get("source_url") or payload.get("fuente") or "").upper()
         parsed_ts = None
         if timestamp:
             try:
@@ -164,9 +157,7 @@ def build_snapshot_metrics(snapshot_files: list[dict]) -> pd.DataFrame:
             )
             .fillna("Candidato D")
         )
-        df["impact"] = df["delta"].apply(
-            lambda value: "Favorece" if value > 0 else "Afecta"
-        )
+        df["impact"] = df["delta"].apply(lambda value: "Favorece" if value > 0 else "Afecta")
     return df
 
 
@@ -231,14 +222,8 @@ def build_heatmap(anomalies: pd.DataFrame) -> pd.DataFrame:
     if anomalies.empty:
         return pd.DataFrame()
     anomalies = anomalies.copy()
-    anomalies["hour"] = pd.to_datetime(
-        anomalies["timestamp"], errors="coerce", utc=True
-    ).dt.hour
-    heatmap = (
-        anomalies.groupby(["department", "hour"], dropna=False)
-        .size()
-        .reset_index(name="anomaly_count")
-    )
+    anomalies["hour"] = pd.to_datetime(anomalies["timestamp"], errors="coerce", utc=True).dt.hour
+    heatmap = anomalies.groupby(["department", "hour"], dropna=False).size().reset_index(name="anomaly_count")
     return heatmap
 
 
@@ -407,13 +392,9 @@ def create_pdf_charts(
         chart_buffers["timeline"] = buf
 
     if not heatmap_df.empty:
-        heatmap_pivot = heatmap_df.pivot(
-            index="department", columns="hour", values="anomaly_count"
-        ).fillna(0)
+        heatmap_pivot = heatmap_df.pivot(index="department", columns="hour", values="anomaly_count").fillna(0)
         fig, ax = plt.subplots(figsize=(7.2, 3.0))
-        heatmap = ax.imshow(
-            heatmap_pivot.values, aspect="auto", cmap="RdYlGn_r", vmin=0, vmax=10
-        )
+        heatmap = ax.imshow(heatmap_pivot.values, aspect="auto", cmap="RdYlGn_r", vmin=0, vmax=10)
         ax.set_title("Mapa de anomalías por departamento/hora")
         ax.set_yticks(range(len(heatmap_pivot.index)))
         ax.set_yticklabels(heatmap_pivot.index, fontsize=6)
@@ -467,9 +448,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             spaceAfter=4,
         )
     )
-    styles.add(
-        ParagraphStyle(name="Body", fontName=regular_font, fontSize=10, leading=13)
-    )
+    styles.add(ParagraphStyle(name="Body", fontName=regular_font, fontSize=10, leading=13))
     styles.add(
         ParagraphStyle(
             name="TableCell",
@@ -503,10 +482,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         English: Function build_table defined in scripts/generate_report.py.
         """
         header = [as_paragraph(cell, styles["TableHeader"]) for cell in rows[0]]
-        body = [
-            [as_paragraph(cell, styles["TableCell"]) for cell in row]
-            for row in rows[1:]
-        ]
+        body = [[as_paragraph(cell, styles["TableCell"]) for cell in row] for row in rows[1:]]
         table = Table([header] + body, colWidths=col_widths, repeatRows=1)
         table.setStyle(
             TableStyle(
@@ -520,9 +496,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         return table
 
     elements: list = []
-    elements.append(
-        Paragraph("🔒 C.E.N.T.I.N.E.L. · Informe Ejecutivo", styles["HeadingPrimary"])
-    )
+    elements.append(Paragraph("🔒 C.E.N.T.I.N.E.L. · Informe Ejecutivo", styles["HeadingPrimary"]))
     elements.append(Paragraph(data["subtitle"], styles["Body"]))
     elements.append(Paragraph(data["generated"], styles["Body"]))
     elements.append(Paragraph("Nivel: Presidencial", styles["Body"]))
@@ -544,9 +518,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(kpi_table)
     elements.append(Spacer(1, 8))
 
-    elements.append(
-        Paragraph("Sección 2 · Anomalías Detectadas", styles["HeadingSecondary"])
-    )
+    elements.append(Paragraph("Sección 2 · Anomalías Detectadas", styles["HeadingSecondary"]))
     anomaly_rows = data["anomaly_rows"]
     anomaly_col_widths = [
         doc.width * 0.14,
@@ -573,19 +545,13 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         except ValueError:
             delta_pct_val = 0.0
         if delta_pct_val <= -1.0:
-            table_style.append(
-                ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#fdecea"))
-            )
-            table_style.append(
-                ("TEXTCOLOR", (2, row_idx), (3, row_idx), colors.HexColor("#D62728"))
-            )
+            table_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#fdecea")))
+            table_style.append(("TEXTCOLOR", (2, row_idx), (3, row_idx), colors.HexColor("#D62728")))
     anomaly_table.setStyle(TableStyle(table_style))
     elements.append(anomaly_table)
     elements.append(Spacer(1, 8))
 
-    elements.append(
-        Paragraph("Sección 3 · Gráficos Avanzados", styles["HeadingSecondary"])
-    )
+    elements.append(Paragraph("Sección 3 · Gráficos Avanzados", styles["HeadingSecondary"]))
     for key, caption in data["chart_captions"].items():
         buf = chart_buffers.get(key)
         if buf:
@@ -594,9 +560,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             elements.append(Spacer(1, 4))
 
     elements.append(PageBreak())
-    elements.append(
-        Paragraph("Sección 4 · Snapshots Recientes", styles["HeadingSecondary"])
-    )
+    elements.append(Paragraph("Sección 4 · Snapshots Recientes", styles["HeadingSecondary"]))
     snapshot_rows = data["snapshot_rows"]
     snapshot_col_widths = [
         doc.width * 0.18,
@@ -627,18 +591,12 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         elements.append(Paragraph(f"• {rule}", styles["Body"]))
     elements.append(Spacer(1, 6))
 
-    elements.append(
-        Paragraph("Sección 6 · Verificación Criptográfica", styles["HeadingSecondary"])
-    )
+    elements.append(Paragraph("Sección 6 · Verificación Criptográfica", styles["HeadingSecondary"]))
     elements.append(Paragraph(data["crypto_text"], styles["Body"]))
     elements.append(Spacer(1, 8))
 
     elements.append(PageBreak())
-    elements.append(
-        Paragraph(
-            "Sección 7 · Mapa de Riesgos y Gobernanza", styles["HeadingSecondary"]
-        )
-    )
+    elements.append(Paragraph("Sección 7 · Mapa de Riesgos y Gobernanza", styles["HeadingSecondary"]))
     elements.append(Paragraph(data["risk_text"], styles["Body"]))
     elements.append(Paragraph(data["governance_text"], styles["Body"]))
     elements.append(Spacer(1, 6))
@@ -677,20 +635,14 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(description="Genera PDF premium C.E.N.T.I.N.E.L.")
     parser.add_argument("--source-dir", default="data", help="Directorio de snapshots.")
-    parser.add_argument(
-        "--output", default="centinel_informe_nacional.pdf", help="Ruta PDF salida."
-    )
-    parser.add_argument(
-        "--department", default="Nacional", help="Departamento (Nacional/Cortés/etc)."
-    )
+    parser.add_argument("--output", default="centinel_informe_nacional.pdf", help="Ruta PDF salida.")
+    parser.add_argument("--department", default="Nacional", help="Departamento (Nacional/Cortés/etc).")
     args = parser.parse_args()
 
     snapshots = load_snapshot_files(Path(args.source_dir))
     snapshot_df = build_snapshot_metrics(snapshots)
     if args.department.lower() != "nacional":
-        snapshot_df = snapshot_df[
-            snapshot_df["department"].str.lower() == args.department.lower()
-        ]
+        snapshot_df = snapshot_df[snapshot_df["department"].str.lower() == args.department.lower()]
     anomalies_df = build_anomalies(snapshot_df)
     heatmap_df = build_heatmap(anomalies_df)
     benford_df = build_benford_data()
@@ -701,9 +653,7 @@ def main() -> None:
         anomalies_sorted = anomalies_sorted.sort_values("delta_abs", ascending=False)
         if len(anomalies_sorted) > 8:
             anomalies_sorted = (
-                anomalies_sorted.groupby("department", as_index=False)
-                .head(2)
-                .sort_values("delta_abs", ascending=False)
+                anomalies_sorted.groupby("department", as_index=False).head(2).sort_values("delta_abs", ascending=False)
             )
 
     anomaly_rows = [
@@ -728,9 +678,7 @@ def main() -> None:
         ["Timestamp", "Dept", "Candidato", "Impacto", "Estado", "Hash"],
     ] + snapshots_real[
         ["timestamp", "department", "candidate", "impact", "status", "hash"]
-    ].head(
-        10
-    ).values.tolist()
+    ].head(10).values.tolist()
 
     data = {
         "title": "Informe de Auditoría C.E.N.T.I.N.E.L.",

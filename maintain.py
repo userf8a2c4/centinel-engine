@@ -154,13 +154,9 @@ def resolve_rate_limit_settings(logger: logging.Logger) -> tuple[int, Path]:
         logger.warning("Config YAML inválido para rate limiting: %s", exc)
         return cooldown_seconds, state_path
 
-    rate_limit_cfg = (
-        config.get("polling_rate_limit", {}) if isinstance(config, dict) else {}
-    )
+    rate_limit_cfg = config.get("polling_rate_limit", {}) if isinstance(config, dict) else {}
     if isinstance(rate_limit_cfg, dict):
-        cooldown_seconds = int(
-            rate_limit_cfg.get("cooldown_seconds", DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS)
-        )
+        cooldown_seconds = int(rate_limit_cfg.get("cooldown_seconds", DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS))
         state_path_value = rate_limit_cfg.get("state_path")
         if state_path_value:
             state_path = Path(state_path_value)
@@ -197,9 +193,7 @@ def _read_rate_limit_state(state_path: Path, logger: logging.Logger) -> float | 
         return None
 
 
-def _write_rate_limit_state(
-    state_path: Path, timestamp: float, logger: logging.Logger
-) -> None:
+def _write_rate_limit_state(state_path: Path, timestamp: float, logger: logging.Logger) -> None:
     """Español:
         Escribe el timestamp del último request en el archivo de estado.
 
@@ -221,9 +215,7 @@ def _write_rate_limit_state(
         logger.warning("No se pudo actualizar el estado de rate limit: %s", exc)
 
 
-def is_rate_limited(
-    state_path: Path, cooldown_seconds: int, logger: logging.Logger
-) -> bool:
+def is_rate_limited(state_path: Path, cooldown_seconds: int, logger: logging.Logger) -> bool:
     """Español:
         Determina si debe saltarse una petición por cooldown activo.
 
@@ -242,9 +234,7 @@ def is_rate_limited(
     now = time.time()
     if last_request is not None and now - last_request < cooldown_seconds:
         remaining = round(cooldown_seconds - (now - last_request), 2)
-        logger.warning(
-            "Rate limit activo. Omitiendo petición (restante=%ss).", remaining
-        )
+        logger.warning("Rate limit activo. Omitiendo petición (restante=%ss).", remaining)
         return True
 
     _write_rate_limit_state(state_path, now, logger)
@@ -256,9 +246,7 @@ def parse_runtime_config() -> RuntimeConfig:
 
     pipeline_version = os.getenv("CENTINEL_PIPELINE_VERSION", "").strip()
     run_id = os.getenv("CENTINEL_RUN_ID", "").strip()
-    checkpoint_state_path = Path(
-        os.getenv("CENTINEL_CHECKPOINT_STATE_PATH", "data/temp/checkpoint_state.json")
-    )
+    checkpoint_state_path = Path(os.getenv("CENTINEL_CHECKPOINT_STATE_PATH", "data/temp/checkpoint_state.json"))
     panic_flag_path = Path(os.getenv("CENTINEL_PANIC_FLAG", "data/panic.flag"))
     backup_bucket = os.getenv("CENTINEL_BACKUP_BUCKET")
     backup_secret = os.getenv("CENTINEL_BACKUP_SECRET")
@@ -267,9 +255,7 @@ def parse_runtime_config() -> RuntimeConfig:
     assume_yes = os.getenv("CENTINEL_ASSUME_YES", "").lower() in {"1", "true", "yes"}
 
     if not pipeline_version or not run_id:
-        raise RuntimeError(
-            "CENTINEL_PIPELINE_VERSION y CENTINEL_RUN_ID son obligatorios para las tareas."
-        )
+        raise RuntimeError("CENTINEL_PIPELINE_VERSION y CENTINEL_RUN_ID son obligatorios para las tareas.")
 
     return RuntimeConfig(
         pipeline_version=pipeline_version,
@@ -288,19 +274,11 @@ def build_bucket_config(bucket: Optional[str] = None) -> BucketConfig:
     """Create bucket configuration from env variables."""
 
     return BucketConfig(
-        bucket=bucket
-        or os.getenv("CENTINEL_CHECKPOINT_BUCKET")
-        or os.getenv("CHECKPOINT_BUCKET")
-        or "",
-        endpoint_url=os.getenv("CENTINEL_S3_ENDPOINT")
-        or os.getenv("STORAGE_ENDPOINT_URL"),
-        region=os.getenv("CENTINEL_S3_REGION")
-        or os.getenv("AWS_REGION")
-        or "us-east-1",
-        access_key=os.getenv("CENTINEL_S3_ACCESS_KEY")
-        or os.getenv("AWS_ACCESS_KEY_ID"),
-        secret_key=os.getenv("CENTINEL_S3_SECRET_KEY")
-        or os.getenv("AWS_SECRET_ACCESS_KEY"),
+        bucket=bucket or os.getenv("CENTINEL_CHECKPOINT_BUCKET") or os.getenv("CHECKPOINT_BUCKET") or "",
+        endpoint_url=os.getenv("CENTINEL_S3_ENDPOINT") or os.getenv("STORAGE_ENDPOINT_URL"),
+        region=os.getenv("CENTINEL_S3_REGION") or os.getenv("AWS_REGION") or "us-east-1",
+        access_key=os.getenv("CENTINEL_S3_ACCESS_KEY") or os.getenv("AWS_ACCESS_KEY_ID"),
+        secret_key=os.getenv("CENTINEL_S3_SECRET_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY"),
     )
 
 
@@ -358,9 +336,7 @@ def retry_operation(
     raise RuntimeError(f"Operación falló definitivamente: {description}") from last_exc
 
 
-def build_checkpoint_manager(
-    runtime: RuntimeConfig, logger: logging.Logger
-) -> CheckpointManager:
+def build_checkpoint_manager(runtime: RuntimeConfig, logger: logging.Logger) -> CheckpointManager:
     """Create a checkpoint manager using environment configuration."""
 
     bucket_config = build_bucket_config()
@@ -383,9 +359,7 @@ def load_state_from_file(path: Path) -> dict[str, Any]:
     """Load a JSON state file for checkpointing."""
 
     if not path.exists():
-        raise FileNotFoundError(
-            f"No se encontró el estado en {path}. Define CENTINEL_CHECKPOINT_STATE_PATH."
-        )
+        raise FileNotFoundError(f"No se encontró el estado en {path}. Define CENTINEL_CHECKPOINT_STATE_PATH.")
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -394,9 +368,7 @@ def command_checkpoint_now(runtime: RuntimeConfig, logger: logging.Logger) -> No
 
     manager = build_checkpoint_manager(runtime, logger)
     state = load_state_from_file(runtime.checkpoint_state_path)
-    logger.info(
-        "Guardando checkpoint inmediato desde %s", runtime.checkpoint_state_path
-    )
+    logger.info("Guardando checkpoint inmediato desde %s", runtime.checkpoint_state_path)
     manager.save_checkpoint(state)
     logger.info("Checkpoint guardado correctamente en el bucket.")
 
@@ -406,14 +378,10 @@ def _latest_checkpoint_key(runtime: RuntimeConfig) -> str:
 
     English: Function _latest_checkpoint_key defined in maintain.py.
     """
-    return (
-        f"centinel/checkpoints/{runtime.pipeline_version}/{runtime.run_id}/latest.json"
-    )
+    return f"centinel/checkpoints/{runtime.pipeline_version}/{runtime.run_id}/latest.json"
 
 
-def fetch_latest_checkpoint_metadata(
-    runtime: RuntimeConfig, logger: logging.Logger
-) -> dict[str, Any]:
+def fetch_latest_checkpoint_metadata(runtime: RuntimeConfig, logger: logging.Logger) -> dict[str, Any]:
     """Español:
         Obtiene metadata del último checkpoint con rate limiting interno.
 
@@ -456,9 +424,7 @@ def fetch_latest_checkpoint_metadata(
         }
 
     try:
-        return retry_operation(
-            _get, logger=logger, description="checkpoint_metadata_read"
-        )
+        return retry_operation(_get, logger=logger, description="checkpoint_metadata_read")
     except RuntimeError:
         return {"status": "unavailable"}
 
@@ -481,11 +447,7 @@ def command_status(runtime: RuntimeConfig, logger: logging.Logger) -> None:
     health_status = ("unknown", "strict_health_unavailable")
     diagnostics: list[dict[str, Any]] = []
     ok, diagnostics = asyncio.run(is_healthy_strict())
-    detail = (
-        "strict_health_ok"
-        if ok
-        else "; ".join(diagnostics.get("failures", [])) or "strict_health_failed"
-    )
+    detail = "strict_health_ok" if ok else "; ".join(diagnostics.get("failures", [])) or "strict_health_failed"
     health_status = ("ok" if ok else "fail", detail)
     diagnostics = get_recent_health_diagnostics()
 
@@ -524,9 +486,7 @@ def command_status(runtime: RuntimeConfig, logger: logging.Logger) -> None:
 def _update_env_file(path: Path, updates: dict[str, str]) -> None:
     """Update .env file with new key values while keeping other lines."""
 
-    existing_lines = (
-        path.read_text(encoding="utf-8").splitlines() if path.exists() else []
-    )
+    existing_lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
     updated_lines: list[str] = []
     remaining = updates.copy()
 
@@ -555,9 +515,7 @@ def command_rotate_keys(runtime: RuntimeConfig, logger: logging.Logger) -> None:
         runtime.assume_yes,
     )
     env_path = Path(os.getenv("CENTINEL_ENV_PATH", ".env"))
-    backup_path = env_path.with_suffix(
-        f".bak-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    )
+    backup_path = env_path.with_suffix(f".bak-{datetime.now().strftime('%Y%m%d%H%M%S')}")
     if env_path.exists():
         backup_path.write_text(env_path.read_text(encoding="utf-8"), encoding="utf-8")
 
@@ -575,9 +533,7 @@ def command_rotate_keys(runtime: RuntimeConfig, logger: logging.Logger) -> None:
     logger.info("Claves rotadas y .env actualizado. Backup en %s", backup_path)
 
 
-def command_clean_old_checkpoints(
-    runtime: RuntimeConfig, logger: logging.Logger, days: int
-) -> None:
+def command_clean_old_checkpoints(runtime: RuntimeConfig, logger: logging.Logger, days: int) -> None:
     """Delete checkpoints older than the specified number of days."""
 
     confirm_action(
@@ -668,11 +624,7 @@ def command_backup_config(runtime: RuntimeConfig, logger: logging.Logger) -> Non
     bucket_config = build_bucket_config(bucket=bucket_name)
     s3 = build_s3_client(bucket_config)
 
-    extra_files = [
-        path.strip()
-        for path in os.getenv("CENTINEL_BACKUP_EXTRA_FILES", "").split(",")
-        if path.strip()
-    ]
+    extra_files = [path.strip() for path in os.getenv("CENTINEL_BACKUP_EXTRA_FILES", "").split(",") if path.strip()]
 
     candidate_files = [".env", "config.yaml", "config.example.yaml"] + extra_files
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -767,18 +719,14 @@ def command_panic(runtime: RuntimeConfig, logger: logging.Logger) -> None:
 def build_parser() -> argparse.ArgumentParser:
     """Create argument parser with subcommands."""
 
-    parser = argparse.ArgumentParser(
-        description="Herramienta de mantenimiento para Centinel Engine."
-    )
+    parser = argparse.ArgumentParser(description="Herramienta de mantenimiento para Centinel Engine.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("checkpoint-now", help="Forzar checkpoint inmediato.")
     subparsers.add_parser("status", help="Mostrar estado completo.")
     subparsers.add_parser("rotate-keys", help="Rotar claves de encriptación.")
 
-    clean_parser = subparsers.add_parser(
-        "clean-old-checkpoints", help="Eliminar checkpoints antiguos."
-    )
+    clean_parser = subparsers.add_parser("clean-old-checkpoints", help="Eliminar checkpoints antiguos.")
     clean_parser.add_argument(
         "--days",
         type=int,

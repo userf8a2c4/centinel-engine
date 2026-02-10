@@ -81,10 +81,7 @@ def _diff_totals(previous: Dict[str, Any], current: Dict[str, Any]) -> Dict[str,
         "null_votes",
         "blank_votes",
     ]
-    return {
-        field: int(totals_curr.get(field, 0)) - int(totals_prev.get(field, 0))
-        for field in fields
-    }
+    return {field: int(totals_curr.get(field, 0)) - int(totals_prev.get(field, 0)) for field in fields}
 
 
 def _diff_candidates(
@@ -152,9 +149,7 @@ def write_report(report_path: Path, normalized_dir: Path) -> Path:
         "diffs": diffs,
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    report_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return report_path
 
 

@@ -40,9 +40,7 @@ def _compute_percentages(votes: Dict[str, Dict[str, object]]) -> Dict[str, float
     description="Detecta cambios de tendencia en votos por candidato entre snapshots.",
     config_key="trend_shift",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Evalúa estabilidad de tendencia comparando el delta de votos con la tendencia histórica.
 
@@ -97,18 +95,14 @@ def apply(
     delta_votes = {}
     for candidate_id, current_candidate in current_votes.items():
         previous_candidate = previous_votes.get(candidate_id, {})
-        delta_votes[candidate_id] = int(current_candidate.get("votes") or 0) - int(
-            previous_candidate.get("votes") or 0
-        )
+        delta_votes[candidate_id] = int(current_candidate.get("votes") or 0) - int(previous_candidate.get("votes") or 0)
 
     total_delta = sum(delta_votes.values())
     if total_delta <= 0:
         return alerts
 
     delta_percentages = {
-        candidate_id: (delta / total_delta) * 100
-        for candidate_id, delta in delta_votes.items()
-        if delta > 0
+        candidate_id: (delta / total_delta) * 100 for candidate_id, delta in delta_votes.items() if delta > 0
     }
     historical_percentages = _compute_percentages(current_votes)
 

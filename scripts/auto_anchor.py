@@ -29,11 +29,7 @@ def _load_security_settings() -> dict[str, Any]:
     except (OSError, yaml.YAMLError):
         return {}
     if isinstance(payload, dict):
-        return (
-            payload.get("security", {})
-            if isinstance(payload.get("security"), dict)
-            else {}
-        )
+        return payload.get("security", {}) if isinstance(payload.get("security"), dict) else {}
     return {}
 
 
@@ -57,9 +53,7 @@ def _ensure_decrypted_private_key() -> None:
 
 def main() -> None:
     """/** CLI simple para anclaje manual. / Simple CLI for manual anchoring. **/"""
-    parser = argparse.ArgumentParser(
-        description="Auto-anchor manual para C.E.N.T.I.N.E.L."
-    )
+    parser = argparse.ArgumentParser(description="Auto-anchor manual para C.E.N.T.I.N.E.L.")
     parser.add_argument("--root-hash", help="Hash raíz a anclar (hex)")
     parser.add_argument("--hashes-json", help="Archivo JSON con lista de hashes")
     args = parser.parse_args()

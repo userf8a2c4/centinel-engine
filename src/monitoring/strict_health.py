@@ -163,14 +163,10 @@ def _build_s3_client():
     """
     if boto3 is None:
         raise RuntimeError("boto3 is required to build the S3 client")
-    endpoint_url = os.getenv("CENTINEL_S3_ENDPOINT") or os.getenv(
-        "STORAGE_ENDPOINT_URL"
-    )
+    endpoint_url = os.getenv("CENTINEL_S3_ENDPOINT") or os.getenv("STORAGE_ENDPOINT_URL")
     region = os.getenv("CENTINEL_S3_REGION") or os.getenv("AWS_REGION", "us-east-1")
     access_key = os.getenv("CENTINEL_S3_ACCESS_KEY") or os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("CENTINEL_S3_SECRET_KEY") or os.getenv(
-        "AWS_SECRET_ACCESS_KEY"
-    )
+    secret_key = os.getenv("CENTINEL_S3_SECRET_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY")
     session = boto3.session.Session()
     return session.client(
         "s3",
@@ -187,9 +183,7 @@ def _get_bucket_name() -> str:
 
     English: Function _get_bucket_name defined in src/monitoring/strict_health.py.
     """
-    return (
-        os.getenv("CENTINEL_CHECKPOINT_BUCKET") or os.getenv("CHECKPOINT_BUCKET") or ""
-    ).strip()
+    return (os.getenv("CENTINEL_CHECKPOINT_BUCKET") or os.getenv("CHECKPOINT_BUCKET") or "").strip()
 
 
 def _get_pipeline_version() -> str:
@@ -231,13 +225,10 @@ def _get_checkpoint_manager() -> Tuple[CheckpointManager | None, str | None]:
         bucket=bucket,
         pipeline_version=pipeline_version,
         run_id=run_id,
-        s3_endpoint_url=os.getenv("CENTINEL_S3_ENDPOINT")
-        or os.getenv("STORAGE_ENDPOINT_URL"),
+        s3_endpoint_url=os.getenv("CENTINEL_S3_ENDPOINT") or os.getenv("STORAGE_ENDPOINT_URL"),
         s3_region=os.getenv("CENTINEL_S3_REGION") or os.getenv("AWS_REGION"),
-        s3_access_key=os.getenv("CENTINEL_S3_ACCESS_KEY")
-        or os.getenv("AWS_ACCESS_KEY_ID"),
-        s3_secret_key=os.getenv("CENTINEL_S3_SECRET_KEY")
-        or os.getenv("AWS_SECRET_ACCESS_KEY"),
+        s3_access_key=os.getenv("CENTINEL_S3_ACCESS_KEY") or os.getenv("AWS_ACCESS_KEY_ID"),
+        s3_secret_key=os.getenv("CENTINEL_S3_SECRET_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY"),
     )
 
     try:
@@ -292,10 +283,7 @@ class ResourceSampler:
         English: Function _trim defined in src/monitoring/strict_health.py.
         """
         window = self._window_seconds
-        while (
-            self._samples
-            and (now - self._samples[0].timestamp).total_seconds() > window
-        ):
+        while self._samples and (now - self._samples[0].timestamp).total_seconds() > window:
             self._samples.popleft()
 
     def _average(self) -> Tuple[float, float]:
@@ -350,9 +338,7 @@ class CriticalLogTracker(logging.Handler):
 
 
 _resource_sampler = (
-    ResourceSampler(_env_int("CPU_WINDOW_SECONDS", DEFAULT_CPU_WINDOW_SECONDS))
-    if psutil is not None
-    else None
+    ResourceSampler(_env_int("CPU_WINDOW_SECONDS", DEFAULT_CPU_WINDOW_SECONDS)) if psutil is not None else None
 )
 
 
@@ -501,9 +487,7 @@ def _check_critical_errors() -> dict[str, Any]:
     English: Function _check_critical_errors defined in src/monitoring/strict_health.py.
     """
     tracker = _ensure_critical_tracker()
-    window_seconds = _env_int(
-        "CRITICAL_WINDOW_SECONDS", DEFAULT_CRITICAL_WINDOW_SECONDS
-    )
+    window_seconds = _env_int("CRITICAL_WINDOW_SECONDS", DEFAULT_CRITICAL_WINDOW_SECONDS)
     max_errors = _env_int("MAX_CRITICAL_ERRORS", DEFAULT_MAX_CRITICAL_ERRORS)
     consecutive = tracker.max_consecutive_critical(window_seconds)
     if consecutive >= max_errors:
@@ -639,13 +623,9 @@ async def is_healthy_strict() -> tuple[bool, dict[str, Any]]:
     bucket_latency = await asyncio.to_thread(_check_bucket_latency, s3_client, bucket)
     diagnostics["checks"]["bucket_latency"] = bucket_latency
     if not bucket_latency.get("ok", False):
-        diagnostics["failures"].append(
-            bucket_latency.get("message", "bucket_latency_failed")
-        )
+        diagnostics["failures"].append(bucket_latency.get("message", "bucket_latency_failed"))
 
-    checkpoint_payload, integrity_message = await asyncio.to_thread(
-        _load_checkpoint_payload, manager
-    )
+    checkpoint_payload, integrity_message = await asyncio.to_thread(_load_checkpoint_payload, manager)
     checkpoint_check = {
         "ok": checkpoint_payload is not None,
         "message": integrity_message,
@@ -658,37 +638,27 @@ async def is_healthy_strict() -> tuple[bool, dict[str, Any]]:
         age_check = _check_checkpoint_age(timestamp)
         diagnostics["checks"]["checkpoint_age"] = age_check
         if not age_check.get("ok", False):
-            diagnostics["failures"].append(
-                age_check.get("message", "checkpoint_age_failed")
-            )
+            diagnostics["failures"].append(age_check.get("message", "checkpoint_age_failed"))
 
         last_acta_check = _check_last_acta_timestamp(timestamp)
         diagnostics["checks"]["last_acta"] = last_acta_check
         if not last_acta_check.get("ok", False):
-            diagnostics["failures"].append(
-                last_acta_check.get("message", "last_acta_failed")
-            )
+            diagnostics["failures"].append(last_acta_check.get("message", "last_acta_failed"))
 
     write_check = await asyncio.to_thread(_check_storage_write, s3_client, bucket)
     diagnostics["checks"]["storage_write"] = write_check
     if not write_check.get("ok", False):
-        diagnostics["failures"].append(
-            write_check.get("message", "storage_write_failed")
-        )
+        diagnostics["failures"].append(write_check.get("message", "storage_write_failed"))
 
     critical_check = _check_critical_errors()
     diagnostics["checks"]["critical_errors"] = critical_check
     if not critical_check.get("ok", False):
-        diagnostics["failures"].append(
-            critical_check.get("message", "critical_errors_failed")
-        )
+        diagnostics["failures"].append(critical_check.get("message", "critical_errors_failed"))
 
     resources_check = _check_resources()
     diagnostics["checks"]["resources"] = resources_check
     if not resources_check.get("ok", False):
-        diagnostics["failures"].append(
-            resources_check.get("message", "resources_failed")
-        )
+        diagnostics["failures"].append(resources_check.get("message", "resources_failed"))
 
     paused_check = _check_paused_flag()
     diagnostics["checks"]["paused"] = paused_check

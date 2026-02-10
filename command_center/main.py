@@ -27,15 +27,11 @@ def run_command_center(*, dry_run: bool, once: bool, run_now: bool) -> None:
     load_config()
 
     if dry_run:
-        logger.info(
-            "Dry-run activo: no se ejecuta polling real (Dry-run active: no real polling executed)."
-        )
+        logger.info("Dry-run activo: no se ejecuta polling real (Dry-run active: no real polling executed).")
         return
 
     # Ejecuta el pipeline real cuando dry-run está desactivado (Run the real pipeline when dry-run is disabled).
-    pipeline_args = _build_pipeline_args(
-        argparse.Namespace(once=once, run_now=run_now)
-    )
+    pipeline_args = _build_pipeline_args(argparse.Namespace(once=once, run_now=run_now))
     original_argv = sys.argv[:]
     sys.argv = ["run_pipeline"] + pipeline_args
     try:
@@ -47,9 +43,7 @@ def run_command_center(*, dry_run: bool, once: bool, run_now: bool) -> None:
 def main() -> None:
     """CLI for the command center. (CLI para el command center.)"""
     logging.basicConfig(level=logging.INFO)
-    parser = argparse.ArgumentParser(
-        description="C.E.N.T.I.N.E.L. Command Center CLI"
-    )
+    parser = argparse.ArgumentParser(description="C.E.N.T.I.N.E.L. Command Center CLI")
     parser.add_argument(
         "--dry-run",
         action="store_true",

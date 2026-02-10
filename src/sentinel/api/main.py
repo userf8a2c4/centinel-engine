@@ -35,9 +35,7 @@ logger = logging.getLogger(__name__)
 
 origins_raw = os.getenv("CORS_ORIGINS", "*")
 origins = (
-    ["*"]
-    if origins_raw.strip() == "*"
-    else [origin.strip() for origin in origins_raw.split(",") if origin.strip()]
+    ["*"] if origins_raw.strip() == "*" else [origin.strip() for origin in origins_raw.split(",") if origin.strip()]
 )
 app.add_middleware(
     CORSMiddleware,
@@ -141,14 +139,12 @@ def fetch_latest_snapshot(connection: sqlite3.Connection) -> dict | None:
     Returns:
         dict | None: Latest snapshot or None if missing.
     """
-    row = connection.execute(
-        """
+    row = connection.execute("""
         SELECT department_code, timestamp_utc, table_name, hash, previous_hash, tx_hash
         FROM snapshot_index
         ORDER BY timestamp_utc DESC
         LIMIT 1
-        """
-    ).fetchone()
+        """).fetchone()
     if not row:
         return None
     table_name = _validate_table_name(row["table_name"])
@@ -174,9 +170,7 @@ def fetch_latest_snapshot(connection: sqlite3.Connection) -> dict | None:
     }
 
 
-def fetch_snapshot_by_hash(
-    connection: sqlite3.Connection, snapshot_hash: str
-) -> dict | None:
+def fetch_snapshot_by_hash(connection: sqlite3.Connection, snapshot_hash: str) -> dict | None:
     """Busca un snapshot por hash en el índice.
 
     Args:

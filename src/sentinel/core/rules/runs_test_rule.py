@@ -57,9 +57,7 @@ def _runs_test(sequence: List[int]) -> float:
     description="Aplica runs test sobre secuencia ordenada de mesas.",
     config_key="runs_test",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Aplica el runs test sobre mesas ordenadas por código.
 

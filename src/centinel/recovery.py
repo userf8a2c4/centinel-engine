@@ -103,18 +103,12 @@ class CheckpointData:
             batch_id = str(data["batch_id"])
             created_at = _parse_timestamp(data["created_at"])
         except KeyError as exc:
-            raise CheckpointCorruptError(
-                f"Missing required checkpoint field: {exc}", partial=False
-            ) from exc
+            raise CheckpointCorruptError(f"Missing required checkpoint field: {exc}", partial=False) from exc
         except (TypeError, ValueError) as exc:
-            raise CheckpointCorruptError(
-                f"Invalid checkpoint field type: {exc}", partial=False
-            ) from exc
+            raise CheckpointCorruptError(f"Invalid checkpoint field type: {exc}", partial=False) from exc
 
         if offset < 0:
-            raise CheckpointCorruptError(
-                "Checkpoint offset must be >= 0.", partial=False
-            )
+            raise CheckpointCorruptError("Checkpoint offset must be >= 0.", partial=False)
 
         return cls(
             acta_id=acta_id,
@@ -227,18 +221,14 @@ class RecoveryManager:
                 alerts=["Critical: no checkpoint available."],
             )
 
-        checkpoint, checkpoint_path, warnings, last_error = _load_first_valid(
-            candidate_paths
-        )
+        checkpoint, checkpoint_path, warnings, last_error = _load_first_valid(candidate_paths)
         for warning in warnings:
             self.logger.warning("recovery_checkpoint_warning", warning=warning)
 
         if checkpoint is None:
             if isinstance(last_error, CheckpointCorruptError) and last_error.partial:
                 message = "Checkpoint partially corrupt; reprocessing last batch."
-                self.logger.error(
-                    "recovery_partial_corruption", reason=message, error=str(last_error)
-                )
+                self.logger.error("recovery_partial_corruption", reason=message, error=str(last_error))
                 return RecoveryDecision(
                     decision=RecoveryDecisionType.REPROCESS_LAST_BATCH,
                     reason=message,
@@ -288,8 +278,7 @@ class RecoveryManager:
             state = await self.state_probe()
             self._log_state_differences(checkpoint, state)
             if state.source_format and (
-                self.expected_source_format
-                and state.source_format != self.expected_source_format
+                self.expected_source_format and state.source_format != self.expected_source_format
             ):
                 message = "Source format changed in live state; pausing recovery."
                 self.logger.error(
@@ -328,9 +317,7 @@ class RecoveryManager:
         )
         return decision
 
-    def _decide_from_age(
-        self, checkpoint: CheckpointData, path: Path, age_minutes: float
-    ) -> RecoveryDecision:
+    def _decide_from_age(self, checkpoint: CheckpointData, path: Path, age_minutes: float) -> RecoveryDecision:
         """Español: Función _decide_from_age del módulo src/centinel/recovery.py.
 
         English: Function _decide_from_age defined in src/centinel/recovery.py.
@@ -391,9 +378,7 @@ class RecoveryManager:
             checkpoint_age_minutes=age_minutes,
         )
 
-    def _log_state_differences(
-        self, checkpoint: CheckpointData, state: RecoveryState
-    ) -> None:
+    def _log_state_differences(self, checkpoint: CheckpointData, state: RecoveryState) -> None:
         """Español: Función _log_state_differences del módulo src/centinel/recovery.py.
 
         English: Function _log_state_differences defined in src/centinel/recovery.py.
@@ -472,9 +457,7 @@ def _load_checkpoint(path: Path) -> tuple[CheckpointData, list[str]]:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise CheckpointCorruptError(
-            f"Checkpoint JSON is invalid: {exc}", partial=False
-        ) from exc
+        raise CheckpointCorruptError(f"Checkpoint JSON is invalid: {exc}", partial=False) from exc
 
     if not isinstance(data, dict):
         raise CheckpointCorruptError("Checkpoint must be a JSON object.", partial=False)

@@ -95,6 +95,7 @@ class SignatureResult:
 # 1. verify_chain — recorre hashes y confirma hash[n] = sha256(hash[n-1] + data[n])
 # ---------------------------------------------------------------------------
 
+
 def _compute_expected_hash(previous_hash: Optional[str], data_bytes: bytes) -> str:
     """Calcula el hash esperado: sha256(previous_hash + data).
 
@@ -155,12 +156,9 @@ def verify_chain(chain_dir: Path) -> ChainVerificationResult:
 
         # Reconstruir data canónica del eslabón
         data_payload = {
-            k: v for k, v in sorted(payload.items())
-            if k not in ("chained_hash", "previous_hash", "operator_signature")
+            k: v for k, v in sorted(payload.items()) if k not in ("chained_hash", "previous_hash", "operator_signature")
         }
-        data_bytes = json.dumps(
-            data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")
+        data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
         stored_previous = payload.get("previous_hash")
         effective_previous = stored_previous if stored_previous else previous_hash
@@ -232,9 +230,7 @@ def verify_chain_from_entries(entries: List[Dict[str, Any]]) -> ChainVerificatio
             first_hash = stored_hash
 
         if stored_hash != expected:
-            errors.append(
-                f"hash_mismatch index={idx} expected={expected[:16]}... stored={stored_hash[:16]}..."
-            )
+            errors.append(f"hash_mismatch index={idx} expected={expected[:16]}... stored={stored_hash[:16]}...")
             return ChainVerificationResult(
                 valid=False,
                 total_links=len(entries),
@@ -262,6 +258,7 @@ def verify_chain_from_entries(entries: List[Dict[str, Any]]) -> ChainVerificatio
 # 2. verify_anchor — consulta Arbitrum y confirma que Merkle root coincide
 # ---------------------------------------------------------------------------
 
+
 def verify_anchor(
     tx_hash: str,
     expected_root: Optional[str] = None,
@@ -282,6 +279,7 @@ def verify_anchor(
     """
     if rpc_url is None or contract_address is None:
         from sentinel.utils.config_loader import load_config
+
         config = load_config()
         arb = config.get("arbitrum", {})
         rpc_url = rpc_url if rpc_url is not None else arb.get("rpc_url")
@@ -312,10 +310,10 @@ def verify_anchor(
             web3 = Web3(Web3.HTTPProvider(rpc_url))
             if web3.is_connected():
                 break
-        except Exception:
+        except Exception:  # nosec B110 - retry logic, connection failures expected
             pass
         if attempt < max_retries - 1:
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)
 
     if not web3 or not web3.is_connected():
         return AnchorVerificationResult(
@@ -400,7 +398,9 @@ def verify_anchor_from_log(anchor_log_path: Path) -> AnchorVerificationResult:
         record = json.loads(anchor_log_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
         return AnchorVerificationResult(
-            valid=False, tx_hash="", expected_root="",
+            valid=False,
+            tx_hash="",
+            expected_root="",
             error=f"log_read_error: {exc}",
         )
 
@@ -409,7 +409,9 @@ def verify_anchor_from_log(anchor_log_path: Path) -> AnchorVerificationResult:
 
     if not tx_hash:
         return AnchorVerificationResult(
-            valid=False, tx_hash="", expected_root=expected_root,
+            valid=False,
+            tx_hash="",
+            expected_root=expected_root,
             error="missing_tx_hash_in_log",
         )
 
@@ -443,12 +445,8 @@ def generate_operator_keypair(
     private_key = Ed25519PrivateKey.generate()
     public_key = private_key.public_key()
 
-    private_pem = private_key.private_bytes(
-        Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
-    )
-    public_pem = public_key.public_bytes(
-        Encoding.PEM, PublicFormat.SubjectPublicKeyInfo
-    )
+    private_pem = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+    public_pem = public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
 
     private_path = key_dir / "operator_private.pem"
     public_path = key_dir / "operator_public.pem"
@@ -463,7 +461,8 @@ def generate_operator_keypair(
 
     logger.info(
         "operator_keypair_generated operator_id=%s key_dir=%s",
-        resolved_id, key_dir,
+        resolved_id,
+        key_dir,
     )
 
     return {
@@ -513,8 +512,7 @@ def _load_operator_public_key(key_path: Optional[Path] = None) -> Ed25519PublicK
 
     if not key_path.exists():
         raise FileNotFoundError(
-            f"Clave pública del operador no encontrada: {key_path}. "
-            f"English: Operator public key not found."
+            f"Clave pública del operador no encontrada: {key_path}. " f"English: Operator public key not found."
         )
 
     pem_data = key_path.read_bytes()
@@ -581,6 +579,7 @@ def verify_snapshot_signature(
         from cryptography.hazmat.primitives.asymmetric.ed25519 import (
             Ed25519PublicKey as Ed25519Pub,
         )
+
         public_key = Ed25519Pub.from_public_bytes(bytes.fromhex(public_key_hex))
     else:
         public_key = _load_operator_public_key(public_key_path)
@@ -603,13 +602,8 @@ def sign_hash_record(
     English: Sign a hash record and append signature metadata.
     """
     # Serializar sin campos de firma previos
-    signable = {
-        k: v for k, v in sorted(hash_record.items())
-        if k != "operator_signature"
-    }
-    data = json.dumps(
-        signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-    ).encode("utf-8")
+    signable = {k: v for k, v in sorted(hash_record.items()) if k != "operator_signature"}
+    data = json.dumps(signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
     result = sign_snapshot(data, key_path=key_path, operator_id=operator_id)
 
@@ -638,22 +632,16 @@ def verify_hash_record_signature(hash_record: Dict[str, Any]) -> bool:
     if not signature_hex or not public_key_hex:
         return False
 
-    signable = {
-        k: v for k, v in sorted(hash_record.items())
-        if k != "operator_signature"
-    }
-    data = json.dumps(
-        signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-    ).encode("utf-8")
+    signable = {k: v for k, v in sorted(hash_record.items()) if k != "operator_signature"}
+    data = json.dumps(signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
-    return verify_snapshot_signature(
-        data, signature_hex, public_key_hex=public_key_hex
-    )
+    return verify_snapshot_signature(data, signature_hex, public_key_hex=public_key_hex)
 
 
 # ---------------------------------------------------------------------------
 # 4. Verificación automática al arranque del pipeline
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class StartupVerificationReport:
@@ -670,21 +658,23 @@ class StartupVerificationReport:
         """Serializa el reporte. / Serialize the report."""
         anchor_dicts = []
         for ar in self.anchor_results:
-            anchor_dicts.append({
-                "valid": ar.valid,
-                "tx_hash": ar.tx_hash,
-                "expected_root": ar.expected_root,
-                "onchain_root": ar.onchain_root,
-                "error": ar.error,
-            })
+            anchor_dicts.append(
+                {
+                    "valid": ar.valid,
+                    "tx_hash": ar.tx_hash,
+                    "expected_root": ar.expected_root,
+                    "onchain_root": ar.onchain_root,
+                    "error": ar.error,
+                }
+            )
         return {
             "overall_valid": self.overall_valid,
             "verified_at": self.verified_at,
             "duration_seconds": round(self.duration_seconds, 3),
             "chain": {
                 "valid": self.chain_result.valid if self.chain_result else False,
-                "total_links": self.chain_result.total_links if self.chain_result else 0,
-                "verified_links": self.chain_result.verified_links if self.chain_result else 0,
+                "total_links": (self.chain_result.total_links if self.chain_result else 0),
+                "verified_links": (self.chain_result.verified_links if self.chain_result else 0),
                 "errors": self.chain_result.errors if self.chain_result else [],
             },
             "anchors": anchor_dicts,
@@ -738,7 +728,9 @@ def run_startup_verification(
             )
     else:
         report.chain_result = ChainVerificationResult(
-            valid=True, total_links=0, verified_links=0,
+            valid=True,
+            total_links=0,
+            verified_links=0,
             errors=["hash_dir_not_found"],
         )
 
@@ -757,7 +749,8 @@ def run_startup_verification(
                 if result.valid:
                     logger.info(
                         "startup_anchor_valid tx=%s root=%s",
-                        result.tx_hash[:16], (result.onchain_root or "")[:16],
+                        result.tx_hash[:16],
+                        (result.onchain_root or "")[:16],
                     )
                 else:
                     logger.warning(

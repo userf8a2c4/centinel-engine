@@ -14,7 +14,7 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from importlib.util import find_spec
+
 from pathlib import Path
 from typing import Any
 
@@ -128,9 +128,7 @@ def _load_state(path: Path) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        logging.getLogger("centinel.watchdog").warning(
-            "watchdog_state_invalid path=%s error=%s", path, exc
-        )
+        logging.getLogger("centinel.watchdog").warning("watchdog_state_invalid path=%s error=%s", path, exc)
         return {"failures": {}, "last_action": None, "log_state": {}}
     if not isinstance(payload, dict):
         return {"failures": {}, "last_action": None, "log_state": {}}
@@ -187,9 +185,7 @@ def _check_snapshot(config: WatchdogConfig) -> tuple[bool, str]:
     return True, f"snapshot_ok file={snapshot.name}"
 
 
-def _check_log_growth(
-    config: WatchdogConfig, state: dict[str, Any]
-) -> tuple[bool, str]:
+def _check_log_growth(config: WatchdogConfig, state: dict[str, Any]) -> tuple[bool, str]:
     """Español: Función _check_log_growth del módulo scripts/watchdog.py.
 
     English: Function _check_log_growth defined in scripts/watchdog.py.
@@ -241,9 +237,7 @@ def _check_heartbeat(config: WatchdogConfig) -> tuple[bool, str]:
     heartbeat_path = Path(config.heartbeat_path)
     if not heartbeat_path.exists():
         return False, "heartbeat_missing"
-    age = _utcnow() - datetime.fromtimestamp(
-        heartbeat_path.stat().st_mtime, timezone.utc
-    )
+    age = _utcnow() - datetime.fromtimestamp(heartbeat_path.stat().st_mtime, timezone.utc)
     if age > timedelta(minutes=config.heartbeat_timeout):
         return False, f"heartbeat_stale age_minutes={age.total_seconds() / 60:.1f}"
     return True, "heartbeat_ok"
@@ -294,9 +288,7 @@ def _record_failures(
     return tracked
 
 
-def _should_act(
-    state: dict[str, Any], config: WatchdogConfig
-) -> tuple[bool, list[str]]:
+def _should_act(state: dict[str, Any], config: WatchdogConfig) -> tuple[bool, list[str]]:
     """Español: Función _should_act del módulo scripts/watchdog.py.
 
     English: Function _should_act defined in scripts/watchdog.py.
@@ -342,9 +334,7 @@ def _send_alerts(config: WatchdogConfig, message: str, logger: logging.Logger) -
                 json={"event": "watchdog_alert", "message": message},
                 timeout=10,
             )
-            logger.info(
-                "watchdog_alert_sent url=%s status=%s", url, response.status_code
-            )
+            logger.info("watchdog_alert_sent url=%s status=%s", url, response.status_code)
         except requests.RequestException as exc:
             logger.warning("watchdog_alert_failed url=%s error=%s", url, exc)
 
@@ -370,18 +360,14 @@ def _terminate_pipeline(config: WatchdogConfig, logger: logging.Logger) -> bool:
         try:
             proc.terminate()
         except psutil.Error as exc:
-            logger.warning(
-                "watchdog_pipeline_terminate_failed pid=%s error=%s", proc.pid, exc
-            )
+            logger.warning("watchdog_pipeline_terminate_failed pid=%s error=%s", proc.pid, exc)
     gone, alive = psutil.wait_procs(matched, timeout=config.restart_timeout_seconds)
     if alive:
         for proc in alive:
             try:
                 proc.kill()
             except psutil.Error as exc:
-                logger.warning(
-                    "watchdog_pipeline_kill_failed pid=%s error=%s", proc.pid, exc
-                )
+                logger.warning("watchdog_pipeline_kill_failed pid=%s error=%s", proc.pid, exc)
         psutil.wait_procs(alive, timeout=5)
     logger.info("watchdog_pipeline_terminated count=%s", len(matched))
     return True
@@ -408,9 +394,7 @@ def _docker_restart(config: WatchdogConfig, logger: logging.Logger) -> bool:
     if not Path(socket_path).exists():
         logger.warning("watchdog_docker_socket_missing path=%s", socket_path)
         return False
-    request_line = (
-        f"POST /containers/{config.docker_container_name}/restart HTTP/1.1\r\n"
-    )
+    request_line = f"POST /containers/{config.docker_container_name}/restart HTTP/1.1\r\n"
     headers = "Host: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     try:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
@@ -422,13 +406,9 @@ def _docker_restart(config: WatchdogConfig, logger: logging.Logger) -> bool:
         logger.warning("watchdog_docker_restart_failed error=%s", exc)
         return False
     if "204 No Content" in response or "304 Not Modified" in response:
-        logger.info(
-            "watchdog_docker_restart_ok container=%s", config.docker_container_name
-        )
+        logger.info("watchdog_docker_restart_ok container=%s", config.docker_container_name)
         return True
-    logger.warning(
-        "watchdog_docker_restart_unexpected response=%s", response.splitlines()[:1]
-    )
+    logger.warning("watchdog_docker_restart_unexpected response=%s", response.splitlines()[:1])
     return False
 
 
@@ -446,9 +426,7 @@ def _force_restart_self(logger: logging.Logger) -> None:
         logger.warning("watchdog_force_restart_failed error=%s", exc)
 
 
-def _handle_failure(
-    config: WatchdogConfig, reasons: list[str], logger: logging.Logger
-) -> None:
+def _handle_failure(config: WatchdogConfig, reasons: list[str], logger: logging.Logger) -> None:
     """Español: Función _handle_failure del módulo scripts/watchdog.py.
 
     English: Function _handle_failure defined in scripts/watchdog.py.
@@ -457,9 +435,7 @@ def _handle_failure(
     log_event(logger, logging.CRITICAL, "watchdog_failure", reasons=summary)
     _send_alerts(config, summary, logger)
     if not config.restart_on_fail:
-        logger.warning(
-            "watchdog_restart_disabled summary=%s", summary
-        )
+        logger.warning("watchdog_restart_disabled summary=%s", summary)
         return
     _terminate_pipeline(config, logger)
     _start_pipeline(config, logger)

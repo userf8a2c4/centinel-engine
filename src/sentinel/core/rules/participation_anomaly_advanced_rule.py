@@ -34,9 +34,7 @@ def _normalize_ratio(value: float) -> float:
     description="Detecta participación fuera de rango y desviaciones >3σ.",
     config_key="participation_anomaly_advanced",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Detecta participación anómala a nivel agregado.
 
@@ -107,9 +105,7 @@ def apply(
         return alerts
 
     historical = config.get("historical_by_department", {})
-    dept_reference = (
-        historical.get(department) if isinstance(historical, dict) else None
-    )
+    dept_reference = historical.get(department) if isinstance(historical, dict) else None
     mean_value = None
     std_value = None
     if isinstance(dept_reference, dict):

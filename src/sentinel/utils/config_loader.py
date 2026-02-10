@@ -72,9 +72,7 @@ class RuleDefinition(BaseModel):
     def rule_name_must_be_non_empty(cls, value: str) -> str:
         """Ensure rule_name is not blank. (Asegura que rule_name no esté vacío.)"""
         if not value.strip():
-            raise ValueError(
-                "rule_name debe ser una cadena no vacía (rule_name must be a non-empty string)."
-            )
+            raise ValueError("rule_name debe ser una cadena no vacía (rule_name must be a non-empty string).")
         return value
 
 
@@ -128,21 +126,15 @@ def _archive_config_file(source_path: Path, prefix: str) -> None:
 def load_rules_config() -> dict[str, Any]:
     """Load and validate rules.yaml. (Carga y valida rules.yaml.)"""
     if not RULES_PATH.exists():
-        raise FileNotFoundError(
-            "Falta command_center/rules.yaml (Missing command_center/rules.yaml)."
-        )
+        raise FileNotFoundError("Falta command_center/rules.yaml (Missing command_center/rules.yaml).")
 
     try:
         raw_config = yaml.safe_load(RULES_PATH.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
-        raise ValueError(
-            "rules.yaml tiene errores de sintaxis (rules.yaml has syntax errors)."
-        ) from exc
+        raise ValueError("rules.yaml tiene errores de sintaxis (rules.yaml has syntax errors).") from exc
 
     if not isinstance(raw_config, dict):
-        raise ValueError(
-            "rules.yaml debe ser un mapa YAML (rules.yaml must be a YAML mapping)."
-        )
+        raise ValueError("rules.yaml debe ser un mapa YAML (rules.yaml must be a YAML mapping).")
 
     try:
         RulesConfig.model_validate(raw_config)
@@ -163,9 +155,7 @@ def load_rules_config() -> dict[str, Any]:
 def load_config() -> dict[str, Any]:
     """Load configuration from command_center/config.yaml and validate required keys. (Carga la configuración desde command_center/config.yaml y valida sus claves.)"""
     if not CONFIG_PATH.exists():
-        raise FileNotFoundError(
-            "Falta command_center/config.yaml. Centraliza toda la configuración en esa ruta."
-        )
+        raise FileNotFoundError("Falta command_center/config.yaml. Centraliza toda la configuración en esa ruta.")
 
     with CONFIG_PATH.open("r", encoding="utf-8") as handle:
         config = yaml.safe_load(handle) or {}
@@ -198,7 +188,5 @@ def load_config() -> dict[str, Any]:
 
     _archive_config_file(CONFIG_PATH, "config")
     load_rules_config()
-    logging.getLogger(__name__).debug(
-        "Configuración cargada desde %s", CONFIG_PATH.as_posix()
-    )
+    logging.getLogger(__name__).debug("Configuración cargada desde %s", CONFIG_PATH.as_posix())
     return config

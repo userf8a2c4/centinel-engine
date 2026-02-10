@@ -28,7 +28,7 @@ from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
 from scripts.security.encrypt_secrets import decrypt_secrets
 from sentinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
-from sentinel.core.custody import run_startup_verification, sign_hash_record
+from sentinel.core.custody import run_startup_verification
 from sentinel.utils.config_loader import load_config
 
 DATA_DIR = Path("data")
@@ -78,9 +78,7 @@ def update_heartbeat(status: str = "ok", details: dict[str, Any] | None = None) 
     if details:
         payload["details"] = details
     try:
-        HEARTBEAT_PATH.write_text(
-            json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        HEARTBEAT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     except OSError as exc:
         logger.warning("heartbeat_write_failed path=%s error=%s", HEARTBEAT_PATH, exc)
 
@@ -118,9 +116,7 @@ def load_pipeline_checkpoint() -> dict[str, Any]:
 
 def save_pipeline_checkpoint(payload: dict[str, Any]) -> None:
     """/** Guarda estado intermedio del pipeline en disco. / Persist intermediate pipeline state to disk. **"""
-    PIPELINE_CHECKPOINT_PATH.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    PIPELINE_CHECKPOINT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def clear_pipeline_checkpoint() -> None:
@@ -143,9 +139,7 @@ def load_resilience_checkpoint() -> dict[str, Any]:
 
 def collect_snapshot_index(limit: int = 19) -> list[dict[str, Any]]:
     """/** Genera índice JSON con snapshots recientes. / Generate a JSON index with recent snapshots. **"""
-    snapshots = sorted(
-        DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
-    )
+    snapshots = sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
     index: list[dict[str, Any]] = []
     for snapshot in snapshots[:limit]:
         index.append(
@@ -171,11 +165,7 @@ def load_rules_thresholds() -> dict[str, Any]:
 def load_security_settings() -> dict[str, Any]:
     """/** Carga configuración de seguridad desde rules.yaml. / Load security settings from rules.yaml. **/"""
     rules_thresholds = load_rules_thresholds()
-    security = (
-        rules_thresholds.get("security", {})
-        if isinstance(rules_thresholds, dict)
-        else {}
-    )
+    security = rules_thresholds.get("security", {}) if isinstance(rules_thresholds, dict) else {}
     return security if isinstance(security, dict) else {}
 
 
@@ -236,9 +226,7 @@ def build_chaos_rng(resilience: dict[str, Any]) -> random.Random:
     return random.Random(seed)
 
 
-def maybe_inject_chaos_failure(
-    stage: str, resilience: dict[str, Any], rng: random.Random
-) -> None:
+def maybe_inject_chaos_failure(stage: str, resilience: dict[str, Any], rng: random.Random) -> None:
     """/** Inyecta falla caótica si está habilitado. / Inject chaos failure when enabled. **/"""
     chaos_settings = resilience.get("chaos", {}) if isinstance(resilience, dict) else {}
     if not isinstance(chaos_settings, dict):
@@ -254,9 +242,7 @@ def maybe_inject_chaos_failure(
 
 def build_auto_resume_settings(resilience: dict[str, Any]) -> dict[str, Any]:
     """/** Normaliza configuración de auto-resume. / Normalize auto-resume settings. **/"""
-    auto_resume = (
-        resilience.get("auto_resume", {}) if isinstance(resilience, dict) else {}
-    )
+    auto_resume = resilience.get("auto_resume", {}) if isinstance(resilience, dict) else {}
     if not isinstance(auto_resume, dict):
         auto_resume = {}
     return {
@@ -268,9 +254,7 @@ def build_auto_resume_settings(resilience: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def compute_backoff_delay(
-    attempt: int, base_seconds: float, max_seconds: float
-) -> float:
+def compute_backoff_delay(attempt: int, base_seconds: float, max_seconds: float) -> float:
     """/** Calcula backoff exponencial. / Compute exponential backoff delay. **/"""
     if attempt <= 0:
         return 0.0
@@ -310,11 +294,7 @@ def _ensure_decrypted_private_key(arbitrum_config: dict[str, Any]) -> None:
 def resolve_max_json_limit(config: dict[str, Any]) -> int:
     """/** Resuelve límite de JSON presidenciales. / Resolve presidential JSON limit. **"""
     rules_thresholds = load_rules_thresholds()
-    return int(
-        rules_thresholds.get(
-            "max_json_presidenciales", config.get("max_sources_per_cycle", 19)
-        )
-    )
+    return int(rules_thresholds.get("max_json_presidenciales", config.get("max_sources_per_cycle", 19)))
 
 
 def build_snapshot_queue(limit: int) -> list[Path]:
@@ -380,9 +360,7 @@ def save_resilience_checkpoint(
         "timestamp": utcnow().isoformat(),
         "hashes": collect_recent_hashes(),
         "snapshot_index": snapshot_index or collect_snapshot_index(),
-        "latest_snapshot": (
-            latest_snapshot.name if latest_snapshot else existing.get("latest_snapshot")
-        ),
+        "latest_snapshot": (latest_snapshot.name if latest_snapshot else existing.get("latest_snapshot")),
         "last_content_hash": content_hash or existing.get("last_content_hash"),
     }
     if error:
@@ -391,16 +369,12 @@ def save_resilience_checkpoint(
         payload["processed_hashes"] = processed_hashes
     if current_index is not None:
         payload["current_index"] = current_index
-    FAILURE_CHECKPOINT_PATH.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    FAILURE_CHECKPOINT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def collect_recent_hashes(limit: int = 19) -> list[dict[str, Any]]:
     """/** Recolecta hashes recientes para checkpoint. / Collect recent hashes for checkpoint. **"""
-    hash_files = sorted(
-        HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True
-    )
+    hash_files = sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)
     hashes: list[dict[str, Any]] = []
     for hash_file in hash_files[:limit]:
         try:
@@ -426,9 +400,7 @@ def clear_resilience_checkpoint() -> None:
 def should_run_stage(current_stage: str, start_stage: str) -> bool:
     """/** Determina si una etapa debe ejecutarse al reanudar. / Determine if a stage should run when resuming. **"""
     try:
-        return RESILIENCE_STAGE_ORDER.index(
-            current_stage
-        ) >= RESILIENCE_STAGE_ORDER.index(start_stage)
+        return RESILIENCE_STAGE_ORDER.index(current_stage) >= RESILIENCE_STAGE_ORDER.index(start_stage)
     except ValueError:
         return True
 
@@ -447,9 +419,7 @@ def run_command(command, description, env: dict[str, str] | None = None):
 
 def latest_file(directory, pattern):
     """/** Obtiene archivo más reciente por patrón. / Get newest file by pattern. **"""
-    files = sorted(
-        directory.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True
-    )
+    files = sorted(directory.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
     return files[0] if files else None
 
 
@@ -504,9 +474,7 @@ def emit_critical_alerts(
     alerts_payload = build_alerts(critical_anomalies, severity="CRITICAL")
     alerts_log_path, alerts_output_path = resolve_alert_paths(config)
     alerts_output_path.parent.mkdir(parents=True, exist_ok=True)
-    alerts_output_path.write_text(
-        json.dumps(alerts_payload, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    alerts_output_path.write_text(json.dumps(alerts_payload, indent=2, ensure_ascii=False), encoding="utf-8")
     alerts_log_path.parent.mkdir(parents=True, exist_ok=True)
     log_lines = [
         json.dumps(
@@ -549,9 +517,7 @@ def filter_critical_anomalies(anomalies, config: dict[str, Any]):
     rules = critical_rules(config)
     if not rules:
         return anomalies
-    return [
-        anomaly for anomaly in anomalies if anomaly.get("type", "").upper() in rules
-    ]
+    return [anomaly for anomaly in anomalies if anomaly.get("type", "").upper() in rules]
 
 
 def should_generate_report(state, now):
@@ -593,11 +559,7 @@ def run_pipeline(config: dict[str, Any]):
     state = load_state()
     checkpoint = load_pipeline_checkpoint()
     resilience_checkpoint = load_resilience_checkpoint()
-    run_id = (
-        checkpoint.get("run_id")
-        or resilience_checkpoint.get("run_id")
-        or now.strftime("%Y%m%d%H%M%S")
-    )
+    run_id = checkpoint.get("run_id") or resilience_checkpoint.get("run_id") or now.strftime("%Y%m%d%H%M%S")
     start_stage = "start"
     latest_snapshot: Path | None = None
     content_hash: str | None = None
@@ -621,9 +583,7 @@ def run_pipeline(config: dict[str, Any]):
                 stage=resume_stage,
                 snapshot=resume_snapshot_name,
             )
-    save_pipeline_checkpoint(
-        {"run_id": run_id, "stage": "start", "at": now.isoformat()}
-    )
+    save_pipeline_checkpoint({"run_id": run_id, "stage": "start", "at": now.isoformat()})
     save_resilience_checkpoint(
         run_id,
         "start",
@@ -634,9 +594,7 @@ def run_pipeline(config: dict[str, Any]):
 
     try:
         if should_run_stage("healthcheck", start_stage):
-            save_pipeline_checkpoint(
-                {"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()}
-            )
+            save_pipeline_checkpoint({"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()})
             save_resilience_checkpoint(run_id, "healthcheck")
             maybe_inject_chaos_failure("healthcheck", resilience_settings, chaos_rng)
             health_ok = check_cne_connectivity(config)
@@ -651,9 +609,7 @@ def run_pipeline(config: dict[str, Any]):
                 download_cmd.append("--mock")
 
             if should_run_stage("download", start_stage):
-                save_pipeline_checkpoint(
-                    {"run_id": run_id, "stage": "download", "at": utcnow().isoformat()}
-                )
+                save_pipeline_checkpoint({"run_id": run_id, "stage": "download", "at": utcnow().isoformat()})
                 save_resilience_checkpoint(run_id, "download")
                 maybe_inject_chaos_failure("download", resilience_settings, chaos_rng)
                 retry_config_path = config.get("retry_config_path") or os.getenv(
@@ -673,9 +629,7 @@ def run_pipeline(config: dict[str, Any]):
             )
 
         if latest_snapshot is None:
-            latest_snapshot = (
-                snapshots[-1] if snapshots else latest_file(DATA_DIR, "*.json")
-            )
+            latest_snapshot = snapshots[-1] if snapshots else latest_file(DATA_DIR, "*.json")
         if not latest_snapshot:
             print("[!] No se encontró snapshot para procesar")
             log_event(logger, logging.WARNING, "snapshot_missing", run_id=run_id)
@@ -693,9 +647,7 @@ def run_pipeline(config: dict[str, Any]):
         state["last_snapshot"] = latest_snapshot.name
 
         if should_run_stage("normalize", start_stage):
-            save_pipeline_checkpoint(
-                {"run_id": run_id, "stage": "normalize", "at": utcnow().isoformat()}
-            )
+            save_pipeline_checkpoint({"run_id": run_id, "stage": "normalize", "at": utcnow().isoformat()})
             save_resilience_checkpoint(
                 run_id,
                 "normalize",
@@ -713,9 +665,7 @@ def run_pipeline(config: dict[str, Any]):
                 log_event(logger, logging.INFO, "normalize_skipped", run_id=run_id)
 
         if should_run_stage("analyze", start_stage):
-            save_pipeline_checkpoint(
-                {"run_id": run_id, "stage": "analyze", "at": utcnow().isoformat()}
-            )
+            save_pipeline_checkpoint({"run_id": run_id, "stage": "analyze", "at": utcnow().isoformat()})
             save_resilience_checkpoint(
                 run_id,
                 "analyze",
@@ -732,15 +682,11 @@ def run_pipeline(config: dict[str, Any]):
 
         critical_anomalies = filter_critical_anomalies(anomalies, config)
         alerts = build_alerts(critical_anomalies, severity="CRITICAL")
-        (ANALYSIS_DIR / "alerts.json").write_text(
-            json.dumps(alerts, indent=2), encoding="utf-8"
-        )
+        (ANALYSIS_DIR / "alerts.json").write_text(json.dumps(alerts, indent=2), encoding="utf-8")
         emit_critical_alerts(critical_anomalies, config, run_id=run_id)
 
         if should_run_stage("report", start_stage):
-            save_pipeline_checkpoint(
-                {"run_id": run_id, "stage": "report", "at": utcnow().isoformat()}
-            )
+            save_pipeline_checkpoint({"run_id": run_id, "stage": "report", "at": utcnow().isoformat()})
             save_resilience_checkpoint(
                 run_id,
                 "report",
@@ -749,9 +695,7 @@ def run_pipeline(config: dict[str, Any]):
             )
             maybe_inject_chaos_failure("report", resilience_settings, chaos_rng)
             if should_generate_report(state, now):
-                run_command(
-                    [sys.executable, "scripts/summarize_findings.py"], "reportes"
-                )
+                run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
                 state["last_report_at"] = now.isoformat()
             else:
                 print("[i] Reporte omitido por cadencia")
@@ -822,11 +766,7 @@ def safe_run_pipeline(config: dict[str, Any]) -> bool:
             retry_on = auto_resume["retry_on"]
             retryable = retry_on in {"any", "network"}
             attempt += 1
-            if (
-                not auto_resume["enabled"]
-                or not retryable
-                or attempt >= auto_resume["max_attempts"]
-            ):
+            if not auto_resume["enabled"] or not retryable or attempt >= auto_resume["max_attempts"]:
                 return False
             delay = compute_backoff_delay(
                 attempt,
@@ -883,13 +823,9 @@ def run_polling_loop(config: dict[str, Any], *, run_once: bool, run_now: bool) -
         failure_threshold=int(breaker_settings.get("failure_threshold", 5)),
         failure_window_seconds=int(breaker_settings.get("failure_window_seconds", 600)),
         open_timeout_seconds=int(breaker_settings.get("open_timeout_seconds", 1800)),
-        half_open_after_seconds=int(
-            breaker_settings.get("half_open_after_seconds", 600)
-        ),
+        half_open_after_seconds=int(breaker_settings.get("half_open_after_seconds", 600)),
         success_threshold=int(breaker_settings.get("success_threshold", 2)),
-        open_log_interval_seconds=int(
-            breaker_settings.get("open_log_interval_seconds", 300)
-        ),
+        open_log_interval_seconds=int(breaker_settings.get("open_log_interval_seconds", 300)),
     )
 
     if run_once:
@@ -937,9 +873,7 @@ def run_polling_loop(config: dict[str, Any], *, run_once: bool, run_now: bool) -
 
 def _read_hashes_for_anchor(batch_size: int) -> list[str]:
     """/** Lee hashes recientes para anclaje en Arbitrum. / Read recent hashes for Arbitrum anchoring. **"""
-    hash_files = sorted(
-        HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True
-    )
+    hash_files = sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)
     selected = list(reversed(hash_files[:batch_size]))
     hashes: list[str] = []
     for hash_file in selected:
@@ -965,9 +899,7 @@ def _should_anchor(state: dict[str, Any], now: datetime, interval_minutes: int) 
     return now - last_dt >= timedelta(minutes=interval_minutes)
 
 
-def _anchor_if_due(
-    config: dict[str, Any], state: dict[str, Any], now: datetime
-) -> None:
+def _anchor_if_due(config: dict[str, Any], state: dict[str, Any], now: datetime) -> None:
     """/** Ejecuta anclaje de hashes si corresponde. / Execute hash anchoring when due. **"""
     arbitrum_config = config.get("arbitrum", {})
     if not arbitrum_config.get("enabled", False):
@@ -1005,9 +937,7 @@ def _anchor_if_due(
         "individual_hashes": hashes,
     }
     anchor_path = ANCHOR_LOG_DIR / f"anchor_{anchor_record['batch_id']}.json"
-    anchor_path.write_text(
-        json.dumps(anchor_record, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    anchor_path.write_text(json.dumps(anchor_record, indent=2, ensure_ascii=False), encoding="utf-8")
     state["last_anchor_at"] = result.get("timestamp")
 
 
@@ -1031,11 +961,7 @@ def _anchor_snapshot(
     current_payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
     snapshots = sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime)
     previous_snapshot = snapshots[-2] if len(snapshots) > 1 else None
-    previous_payload = (
-        json.loads(previous_snapshot.read_text(encoding="utf-8"))
-        if previous_snapshot
-        else None
-    )
+    previous_payload = json.loads(previous_snapshot.read_text(encoding="utf-8")) if previous_snapshot else None
 
     diff_summary = build_diff_summary(previous_payload, current_payload)
 
@@ -1079,9 +1005,7 @@ def _anchor_snapshot(
     }
 
     anchor_path = ANCHOR_LOG_DIR / f"anchor_snapshot_{snapshot_path.stem}.json"
-    anchor_path.write_text(
-        json.dumps(anchor_record, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    anchor_path.write_text(json.dumps(anchor_record, indent=2, ensure_ascii=False), encoding="utf-8")
     state["last_anchor_snapshot_at"] = anchor_result.get("timestamp")
 
     if rules_report_path.exists():
@@ -1093,14 +1017,10 @@ def _anchor_snapshot(
             "network": anchor_record["network"],
             "anchored_at": anchor_result.get("timestamp"),
         }
-        rules_report_path.write_text(
-            json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        rules_report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
     report_path = REPORTS_DIR / f"anchor_report_{snapshot_path.stem}.json"
-    report_path.write_text(
-        json.dumps(anchor_record, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    report_path.write_text(json.dumps(anchor_record, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def main():
@@ -1108,9 +1028,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Pipeline Proyecto C.E.N.T.I.N.E.L.: descarga → normaliza → hash → análisis → reportes → alertas"
     )
-    parser.add_argument(
-        "--once", action="store_true", help="Ejecuta una sola vez y sale"
-    )
+    parser.add_argument("--once", action="store_true", help="Ejecuta una sola vez y sale")
     parser.add_argument(
         "--run-now",
         action="store_true",
@@ -1145,14 +1063,18 @@ def main():
             if custody_report.overall_valid:
                 print(f"[+] Cadena de custodia válida ({custody_report.chain_result.verified_links} eslabones)")
                 log_event(
-                    logger, logging.INFO, "custody_verification_passed",
-                    links=custody_report.chain_result.verified_links if custody_report.chain_result else 0,
+                    logger,
+                    logging.INFO,
+                    "custody_verification_passed",
+                    links=(custody_report.chain_result.verified_links if custody_report.chain_result else 0),
                 )
             else:
                 print("[!] ADVERTENCIA: Cadena de custodia con inconsistencias")
                 log_event(
-                    logger, logging.WARNING, "custody_verification_warning",
-                    errors=custody_report.chain_result.errors if custody_report.chain_result else [],
+                    logger,
+                    logging.WARNING,
+                    "custody_verification_warning",
+                    errors=(custody_report.chain_result.errors if custody_report.chain_result else []),
                     sig_failures=custody_report.signature_failures,
                 )
         except Exception as exc:

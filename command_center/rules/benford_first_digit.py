@@ -78,11 +78,7 @@ def _first_digit(value: int) -> Optional[int]:
 def _collect_vote_counts(data: dict) -> List[int]:
     counts: List[int] = []
     national_data = (
-        data.get("nacional")
-        or data.get("national")
-        or data.get("NACIONAL")
-        or data.get("nivel_nacional")
-        or {}
+        data.get("nacional") or data.get("national") or data.get("NACIONAL") or data.get("nivel_nacional") or {}
     )
     counts.extend(_extract_candidates(national_data))
     for department in _extract_departments(data):
@@ -111,11 +107,7 @@ def check_benford_first_digit(data: dict) -> dict:
     min_samples = int(rule_config.get("min_samples", default_min_samples))
 
     vote_counts = _collect_vote_counts(data)
-    digits = [
-        digit
-        for digit in (_first_digit(value) for value in vote_counts)
-        if digit is not None
-    ]
+    digits = [digit for digit in (_first_digit(value) for value in vote_counts) if digit is not None]
 
     if len(digits) < min_samples:
         return {
@@ -129,10 +121,7 @@ def check_benford_first_digit(data: dict) -> dict:
                 "min_samples": min_samples,
                 "observed_samples": len(digits),
             },
-            "message": str(
-                rule_config.get("message")
-                or "No hay suficientes muestras para Benford."
-            ),
+            "message": str(rule_config.get("message") or "No hay suficientes muestras para Benford."),
         }
 
     observed_counts = np.array([digits.count(digit) for digit in range(1, 10)])
@@ -145,8 +134,8 @@ def check_benford_first_digit(data: dict) -> dict:
     passed = not alert
     severity = str(rule_config.get("severity", "critical" if alert else "info")).lower()
     default_message = (
-        "Distribución del primer dígito desvía de Benford."
-    )  # TODO: agregar mensaje a rules.yaml / command_center
+        "Distribución del primer dígito desvía de Benford."  # TODO: agregar mensaje a rules.yaml / command_center
+    )
     message = str(rule_config.get("message") or default_message)
 
     details = {

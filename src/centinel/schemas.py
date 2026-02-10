@@ -30,9 +30,7 @@ class ActaSchema(BaseModel):
     timestamp: datetime
     votos_totales: int = Field(ge=0)
 
-    @field_validator(
-        "acta_id", "junta_receptora", "departamento", "municipio", "centro_votacion"
-    )
+    @field_validator("acta_id", "junta_receptora", "departamento", "municipio", "centro_votacion")
     @classmethod
     def strip_text(cls, value: str) -> str:
         """Normaliza texto eliminando espacios y valida no vacío.
@@ -200,8 +198,7 @@ class TotalsSchema(BaseModel):
         """total_votes must not exceed registered_voters."""
         if self.total_votes > self.registered_voters:
             raise ValueError(
-                f"total_votes ({self.total_votes}) exceeds "
-                f"registered_voters ({self.registered_voters})"
+                f"total_votes ({self.total_votes}) exceeds " f"registered_voters ({self.registered_voters})"
             )
         return self
 

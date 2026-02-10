@@ -21,9 +21,7 @@ from sentinel.core.rules.registry import rule
     description="Detecta turnout <0% o >100% respecto al padrón.",
     config_key="turnout_impossible",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Detecta turnout imposible (negativo o mayor a 100%).
 

@@ -158,9 +158,7 @@ def _aggregate_national(entries: list[dict]) -> dict:
             votes = candidate.get("votes")
             if votes is None:
                 continue
-            totals_by_candidate[str(candidate_id)] = totals_by_candidate.get(
-                str(candidate_id), 0
-            ) + int(votes)
+            totals_by_candidate[str(candidate_id)] = totals_by_candidate.get(str(candidate_id), 0) + int(votes)
         entry_total = extract_total_votes(entry)
         if entry_total is not None:
             total_votes_sum += int(entry_total)
@@ -212,8 +210,7 @@ def _filter_presidential_snapshot(snapshot: dict, config: dict) -> dict:
         filtered.append(sanitized)
 
     if filtered and not any(
-        _normalize_department_label(str(entry.get("departamento", ""))) == "NACIONAL"
-        for entry in filtered
+        _normalize_department_label(str(entry.get("departamento", ""))) == "NACIONAL" for entry in filtered
     ):
         filtered.append(_aggregate_national(filtered))
 
@@ -258,11 +255,7 @@ def main() -> None:
         _load_snapshot(current_path),
         config,
     )
-    previous_data = (
-        _filter_presidential_snapshot(_load_snapshot(previous_path), config)
-        if previous_path
-        else None
-    )
+    previous_data = _filter_presidential_snapshot(_load_snapshot(previous_path), config) if previous_path else None
 
     log_path = ANALYSIS_DIR / "rules_log.jsonl"
     engine = RulesEngine(config=config, log_path=log_path)
@@ -274,17 +267,13 @@ def main() -> None:
     # ── verificar hashchain ──────────────────────────────────────────
     hashchain_path = _locate_hashchain(current_path)
     if hashchain_path and current_path.parent.name == "normalized":
-        tamper_alerts = RulesEngine.verify_hashchain(
-            current_path.parent, hashchain_path
-        )
+        tamper_alerts = RulesEngine.verify_hashchain(current_path.parent, hashchain_path)
         if tamper_alerts:
             result.alerts.extend(tamper_alerts)
             result.critical_alerts.extend(tamper_alerts)
 
     # ── generar reportes ─────────────────────────────────────────────
-    report_path = RulesEngine.write_report(
-        result, current_path, snapshot_id, ANALYSIS_DIR
-    )
+    report_path = RulesEngine.write_report(result, current_path, snapshot_id, ANALYSIS_DIR)
 
     print(f"[i] Reporte generado: {report_path}")
     if result.pause_snapshots:

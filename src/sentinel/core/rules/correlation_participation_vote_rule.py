@@ -23,9 +23,7 @@ from sentinel.core.rules.registry import rule
     description="Calcula correlación Pearson entre participación y voto líder.",
     config_key="participation_vote_correlation",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Evalúa correlación espuria entre participación y voto principal.
 

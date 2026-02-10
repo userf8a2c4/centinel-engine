@@ -50,7 +50,6 @@ else:
 
 from monitoring.alerts import dispatch_alert
 
-
 CheckpointState = Dict[str, Any]
 
 
@@ -166,9 +165,7 @@ class CheckpointManager:
                 "last_timestamp": state["last_timestamp"],
             },
         }
-        serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode(
-            "utf-8"
-        )
+        serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
 
         iv = os.urandom(16)
         fernet = self._derive_fernet(iv)
@@ -286,11 +283,7 @@ class CheckpointManager:
                     "key": key,
                     "timestamp": timestamp,
                     "size": entry.get("Size"),
-                    "last_modified": (
-                        entry.get("LastModified").isoformat()
-                        if entry.get("LastModified")
-                        else None
-                    ),
+                    "last_modified": (entry.get("LastModified").isoformat() if entry.get("LastModified") else None),
                 }
             )
         history.sort(key=lambda item: item.get("timestamp", ""), reverse=True)
@@ -370,9 +363,7 @@ class CheckpointManager:
         if self.alert_callback:
             self.alert_callback(code, payload)
         else:
-            self.logger.critical(
-                "Alerta crítica de checkpoint.", extra={"code": code, **payload}
-            )
+            self.logger.critical("Alerta crítica de checkpoint.", extra={"code": code, **payload})
             dispatch_alert(
                 "CRITICAL",
                 f"Fallo crítico en checkpoint: {code}",
@@ -393,9 +384,7 @@ class CheckpointManager:
         """
         missing = self.required_state_keys - set(state_dict.keys())
         if missing:
-            raise CheckpointValidationError(
-                f"checkpoint_missing_keys:{sorted(missing)}"
-            )
+            raise CheckpointValidationError(f"checkpoint_missing_keys:{sorted(missing)}")
         if not (state_dict.get("last_acta_id") or state_dict.get("last_hash")):
             raise CheckpointValidationError("checkpoint_missing_last_acta_or_hash")
         if not (state_dict.get("current_offset") or state_dict.get("batch_id")):
@@ -428,22 +417,12 @@ class CheckpointManager:
         English: Function _build_s3_client defined in src/centinel/checkpointing.py.
         """
         if boto3 is None or Config is None:
-            raise CheckpointStorageError(
-                "boto3 and botocore are required for checkpoint storage"
-            )
+            raise CheckpointStorageError("boto3 and botocore are required for checkpoint storage")
         endpoint = (
-            self.config.s3_endpoint_url
-            or os.environ.get("CENTINEL_S3_ENDPOINT")
-            or os.environ.get("S3_ENDPOINT_URL")
+            self.config.s3_endpoint_url or os.environ.get("CENTINEL_S3_ENDPOINT") or os.environ.get("S3_ENDPOINT_URL")
         )
-        region = (
-            self.config.s3_region
-            or os.environ.get("AWS_REGION")
-            or os.environ.get("CENTINEL_S3_REGION")
-        )
-        config = Config(
-            connect_timeout=self._timeout_seconds, read_timeout=self._timeout_seconds
-        )
+        region = self.config.s3_region or os.environ.get("AWS_REGION") or os.environ.get("CENTINEL_S3_REGION")
+        config = Config(connect_timeout=self._timeout_seconds, read_timeout=self._timeout_seconds)
         return boto3.client(
             "s3",
             endpoint_url=endpoint,
@@ -460,9 +439,7 @@ class CheckpointManager:
         """
         raw_key = os.environ.get(self.encryption_key_env, "")
         if not raw_key:
-            raise CheckpointValidationError(
-                f"Missing environment variable {self.encryption_key_env} for Fernet key."
-            )
+            raise CheckpointValidationError(f"Missing environment variable {self.encryption_key_env} for Fernet key.")
         try:
             decoded = base64.urlsafe_b64decode(raw_key.encode("utf-8"))
         except (ValueError, TypeError) as exc:
@@ -477,9 +454,7 @@ class CheckpointManager:
         English: Function _derive_fernet defined in src/centinel/checkpointing.py.
         """
         if Fernet is None or HKDF is None or hashes is None:
-            raise CheckpointStorageError(
-                "cryptography is required for checkpoint encryption"
-            )
+            raise CheckpointStorageError("cryptography is required for checkpoint encryption")
         hkdf = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
@@ -509,9 +484,7 @@ class CheckpointManager:
 def generate_checkpoint_key() -> str:
     """Genera una clave Fernet válida (32 bytes base64)."""
     if Fernet is None:
-        raise CheckpointStorageError(
-            "cryptography is required to generate checkpoint keys"
-        )
+        raise CheckpointStorageError("cryptography is required to generate checkpoint keys")
     return Fernet.generate_key().decode("utf-8")
 
 
@@ -520,15 +493,11 @@ if __name__ == "__main__":
 
     if not os.environ.get("CHECKPOINT_KEY"):
         key = generate_checkpoint_key()
-        logging.info(
-            "Generated CHECKPOINT_KEY. Export it before running: export CHECKPOINT_KEY='...'"
-        )
+        logging.info("Generated CHECKPOINT_KEY. Export it before running: export CHECKPOINT_KEY='...'")
         logging.debug("CHECKPOINT_KEY_VALUE=%s", key)
 
     manager = CheckpointManager(
-        bucket_name=os.environ.get(
-            "CENTINEL_CHECKPOINT_BUCKET", "centinel-checkpoints"
-        ),
+        bucket_name=os.environ.get("CENTINEL_CHECKPOINT_BUCKET", "centinel-checkpoints"),
         prefix="centinel/checkpoints",
         version="v1.0.0",
         run_id="run-2024-11-05-001",

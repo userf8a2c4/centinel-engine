@@ -46,9 +46,7 @@ def _build_candidate_map(data: dict) -> Dict[str, Dict[str, object]]:
     description="Valida consistencia aritmética y cambios básicos entre snapshots.",
     config_key="basic_diff",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Valida consistencia aritmética y cambios básicos entre snapshots.
 
@@ -106,9 +104,7 @@ def apply(
             }
         )
 
-    components = [
-        value for value in (valid_votes, null_votes, blank_votes) if value is not None
-    ]
+    components = [value for value in (valid_votes, null_votes, blank_votes) if value is not None]
     if total_votes is not None and components:
         sum_components = sum(components)
         if total_votes != sum_components:
@@ -147,9 +143,7 @@ def apply(
 
         previous_total = extract_total_votes(previous_data) or 0
         if previous_total > 0 and total_votes is not None:
-            relative_change_pct = (
-                (total_votes - previous_total) / previous_total
-            ) * 100
+            relative_change_pct = ((total_votes - previous_total) / previous_total) * 100
             threshold = float(config.get("relative_vote_change_pct", 15))
             if abs(relative_change_pct) >= threshold:
                 alerts.append(
@@ -166,9 +160,7 @@ def apply(
                 )
 
         actas_current = extract_actas_mesas_counts(current_data).get("actas_procesadas")
-        actas_previous = extract_actas_mesas_counts(previous_data).get(
-            "actas_procesadas"
-        )
+        actas_previous = extract_actas_mesas_counts(previous_data).get("actas_procesadas")
         if actas_current is not None and actas_previous is not None:
             delta_votes = (total_votes or 0) - (previous_total or 0)
             delta_actas = actas_current - actas_previous

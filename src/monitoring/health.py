@@ -48,9 +48,7 @@ class HealthcheckClient:
             httpx.post(f"{self._base_url}/fail", timeout=self._timeout)
             logger.warning("healthchecks_ping_fail uuid=%s", self._uuid)
         except httpx.HTTPError as exc:
-            logger.error(
-                "healthchecks_ping_fail_error uuid=%s error=%s", self._uuid, exc
-            )
+            logger.error("healthchecks_ping_fail_error uuid=%s error=%s", self._uuid, exc)
 
 
 class HealthcheckState:
@@ -161,9 +159,7 @@ def start_healthchecks_scheduler() -> None:
             )
 
     scheduler = BackgroundScheduler(timezone="UTC")
-    scheduler.add_job(
-        state._client.ping, "interval", minutes=interval_minutes, id="healthchecks"
-    )
+    scheduler.add_job(state._client.ping, "interval", minutes=interval_minutes, id="healthchecks")
     scheduler.start()
     _scheduler = scheduler
     logger.info("healthchecks_scheduler_started interval=%sm", interval_minutes)

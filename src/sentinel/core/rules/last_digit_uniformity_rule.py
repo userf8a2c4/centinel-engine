@@ -40,9 +40,7 @@ def _last_digit(number: int) -> Optional[int]:
     description="Prueba chi-cuadrado sobre últimos dígitos 0-9.",
     config_key="last_digit_uniformity",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Evalúa la uniformidad del último dígito en conteos de votos.
 
@@ -78,8 +76,7 @@ def apply(
     alerts: List[dict] = []
     department = extract_department(current_data)
     candidate_votes = extract_numeric_list(
-        candidate.get("votes")
-        for candidate in extract_candidate_votes(current_data).values()
+        candidate.get("votes") for candidate in extract_candidate_votes(current_data).values()
     )
     total_votes = extract_total_votes(current_data)
     if total_votes is not None:
@@ -89,11 +86,7 @@ def apply(
     if len(candidate_votes) < min_samples:
         return alerts
 
-    digits = [
-        digit
-        for digit in (_last_digit(value) for value in candidate_votes)
-        if digit is not None
-    ]
+    digits = [digit for digit in (_last_digit(value) for value in candidate_votes) if digit is not None]
     if len(digits) < min_samples:
         return alerts
 
@@ -108,10 +101,7 @@ def apply(
     if chi_result.pvalue >= critical_pvalue:
         return alerts
 
-    message = (
-        "El último dígito de los votos no es uniforme; p-value "
-        f"{chi_result.pvalue:.4f}."
-    )
+    message = "El último dígito de los votos no es uniforme; p-value " f"{chi_result.pvalue:.4f}."
     alerts.append(
         {
             "type": "Uniformidad Último Dígito",

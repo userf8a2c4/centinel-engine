@@ -33,9 +33,7 @@ def main() -> int:
     data = tomllib.loads(pyproject.read_text())
     dev_deps = data["tool"]["poetry"]["group"]["dev"]["dependencies"]
     requirements = [
-        formatted
-        for name, constraint in dev_deps.items()
-        if (formatted := _format_dependency(name, constraint))
+        formatted for name, constraint in dev_deps.items() if (formatted := _format_dependency(name, constraint))
     ]
     if not requirements:
         print("No dev dependencies found to install.")

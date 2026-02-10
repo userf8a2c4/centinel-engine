@@ -34,9 +34,7 @@ class ReportCanvas(reportlab_canvas.Canvas):
     English: ReportCanvas class defined in dashboard/centinel_pdf_report.py.
     """
 
-    def __init__(
-        self, *args, footer_data: dict[str, str] | None = None, **kwargs
-    ) -> None:
+    def __init__(self, *args, footer_data: dict[str, str] | None = None, **kwargs) -> None:
         """Español: Función __init__ del módulo dashboard/centinel_pdf_report.py.
 
         English: Function __init__ defined in dashboard/centinel_pdf_report.py.
@@ -115,12 +113,8 @@ class CentinelPDFReport:
         report_time = self._parse_timestamp(data.get("timestamp_utc"))
         root_hash = str(data.get("root_hash", "N/A"))
         status = str(data.get("status", "INTEGRAL")).upper()
-        status_color = (
-            self.palette["emerald"] if status == "INTEGRAL" else self.palette["alert"]
-        )
-        status_label = (
-            "STATUS: INTEGRAL" if status == "INTEGRAL" else "STATUS: COMPROMETIDO"
-        )
+        status_color = self.palette["emerald"] if status == "INTEGRAL" else self.palette["alert"]
+        status_label = "STATUS: INTEGRAL" if status == "INTEGRAL" else "STATUS: COMPROMETIDO"
 
         doc = SimpleDocTemplate(
             target,
@@ -156,13 +150,9 @@ class CentinelPDFReport:
         heatmap = self._render_heatmap(data.get("anomalies", []))
         if heatmap is not None:
             elements.append(Image(heatmap, width=doc.width, height=7 * cm))
-            elements.append(
-                Paragraph("Anomalías por departamento y hora.", styles["Body"])
-            )
+            elements.append(Paragraph("Anomalías por departamento y hora.", styles["Body"]))
         else:
-            elements.append(
-                Paragraph("No hay datos suficientes para el heatmap.", styles["Body"])
-            )
+            elements.append(Paragraph("No hay datos suficientes para el heatmap.", styles["Body"]))
 
         elements.append(Spacer(1, 12))
         elements.append(Paragraph("Análisis de Benford", styles["Heading"]))
@@ -176,9 +166,7 @@ class CentinelPDFReport:
                 )
             )
         else:
-            elements.append(
-                Paragraph("Sin datos suficientes para Benford.", styles["Body"])
-            )
+            elements.append(Paragraph("Sin datos suficientes para Benford.", styles["Body"]))
 
         elements.append(Spacer(1, 12))
         elements.append(Paragraph("Cadena de Bloques (Snapshots)", styles["Heading"]))
@@ -204,16 +192,12 @@ class CentinelPDFReport:
         qr_img = self._render_qr(qr_payload)
         if qr_img is not None:
             elements.append(Image(qr_img, width=3.2 * cm, height=3.2 * cm))
-            elements.append(
-                Paragraph("Escanee para validar el hash raíz.", styles["Body"])
-            )
+            elements.append(Paragraph("Escanee para validar el hash raíz.", styles["Body"]))
 
         footer_data = {"root_hash": root_hash}
         doc.build(
             elements,
-            canvasmaker=lambda *args, **kwargs: ReportCanvas(
-                *args, footer_data=footer_data, **kwargs
-            ),
+            canvasmaker=lambda *args, **kwargs: ReportCanvas(*args, footer_data=footer_data, **kwargs),
         )
 
     def _build_styles(self) -> dict[str, ParagraphStyle]:
@@ -324,9 +308,7 @@ class CentinelPDFReport:
                 ]
             )
         )
-        header_table = Table(
-            [[title, badge], [meta_table, ""]], colWidths=[12 * cm, 5 * cm]
-        )
+        header_table = Table([[title, badge], [meta_table, ""]], colWidths=[12 * cm, 5 * cm])
         header_table.setStyle(
             TableStyle(
                 [
@@ -338,16 +320,12 @@ class CentinelPDFReport:
         )
         return [header_table]
 
-    def _build_topology_section(
-        self, styles: dict[str, ParagraphStyle], topology: dict[str, Any]
-    ) -> Any:
+    def _build_topology_section(self, styles: dict[str, ParagraphStyle], topology: dict[str, Any]) -> Any:
         """Español: Función _build_topology_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_topology_section defined in dashboard/centinel_pdf_report.py.
         """
-        national_total = float(
-            topology.get("total_national", topology.get("national_total", 0))
-        )
+        national_total = float(topology.get("total_national", topology.get("national_total", 0)))
         dept_total = float(topology.get("department_total", 0))
         delta = national_total - dept_total
         is_match = topology.get("is_match", national_total == dept_total)
@@ -366,9 +344,7 @@ class CentinelPDFReport:
                 items.append(Image(waterfall, width=12 * cm, height=5.5 * cm))
         return Table([[item] for item in items], colWidths=[16.5 * cm])
 
-    def _build_executive_section(
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
+    def _build_executive_section(self, styles: dict[str, ParagraphStyle], data: dict[str, Any]) -> list[Any]:
         """Español: Función _build_executive_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_executive_section defined in dashboard/centinel_pdf_report.py.
@@ -385,21 +361,15 @@ class CentinelPDFReport:
         if kpi_rows:
             elements.append(Spacer(1, 6))
             elements.append(Paragraph("Indicadores Clave", styles["Heading"]))
-            elements.append(
-                self._build_table(styles, kpi_rows, row_background="#F1F5F9")
-            )
+            elements.append(self._build_table(styles, kpi_rows, row_background="#F1F5F9"))
         anomaly_rows = data.get("anomaly_rows")
         if anomaly_rows:
             elements.append(Spacer(1, 8))
             elements.append(Paragraph("Anomalías Detectadas", styles["Heading"]))
-            elements.append(
-                self._build_table(styles, anomaly_rows, row_background="#FEF2F2")
-            )
+            elements.append(self._build_table(styles, anomaly_rows, row_background="#FEF2F2"))
         return elements
 
-    def _build_snapshot_section(
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
+    def _build_snapshot_section(self, styles: dict[str, ParagraphStyle], data: dict[str, Any]) -> list[Any]:
         """Español: Función _build_snapshot_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_snapshot_section defined in dashboard/centinel_pdf_report.py.
@@ -412,9 +382,7 @@ class CentinelPDFReport:
             self._build_table(styles, snapshot_rows, row_background="#F8FAFC"),
         ]
 
-    def _build_rules_section(
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
+    def _build_rules_section(self, styles: dict[str, ParagraphStyle], data: dict[str, Any]) -> list[Any]:
         """Español: Función _build_rules_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_rules_section defined in dashboard/centinel_pdf_report.py.
@@ -427,9 +395,7 @@ class CentinelPDFReport:
             elements.append(Paragraph(f"• {rule}", styles["Body"]))
         return elements
 
-    def _build_crypto_section(
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
+    def _build_crypto_section(self, styles: dict[str, ParagraphStyle], data: dict[str, Any]) -> list[Any]:
         """Español: Función _build_crypto_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_crypto_section defined in dashboard/centinel_pdf_report.py.
@@ -442,9 +408,7 @@ class CentinelPDFReport:
             Paragraph(str(crypto_text), styles["Body"]),
         ]
 
-    def _build_governance_section(
-        self, styles: dict[str, ParagraphStyle], data: dict[str, Any]
-    ) -> list[Any]:
+    def _build_governance_section(self, styles: dict[str, ParagraphStyle], data: dict[str, Any]) -> list[Any]:
         """Español: Función _build_governance_section del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _build_governance_section defined in dashboard/centinel_pdf_report.py.
@@ -471,10 +435,7 @@ class CentinelPDFReport:
         English: Function _build_table defined in dashboard/centinel_pdf_report.py.
         """
         header = [Paragraph(str(cell), styles["TableHeader"]) for cell in rows[0]]
-        body = [
-            [Paragraph(str(cell), styles["TableCell"]) for cell in row]
-            for row in rows[1:]
-        ]
+        body = [[Paragraph(str(cell), styles["TableCell"]) for cell in row] for row in rows[1:]]
         table = Table([header] + body, repeatRows=1)
         table.setStyle(
             TableStyle(
@@ -493,9 +454,7 @@ class CentinelPDFReport:
         )
         return table
 
-    def _render_waterfall(
-        self, dept_total: float, national_total: float
-    ) -> io.BytesIO | None:
+    def _render_waterfall(self, dept_total: float, national_total: float) -> io.BytesIO | None:
         """Español: Función _render_waterfall del módulo dashboard/centinel_pdf_report.py.
 
         English: Function _render_waterfall defined in dashboard/centinel_pdf_report.py.
@@ -580,9 +539,7 @@ class CentinelPDFReport:
         fig, ax = plt.subplots(figsize=(7, 3))
         bars = ax.bar(digits, observed, color="#1F77B4", alpha=0.85)
         ax.plot(digits, expected, color="#10B981", marker="o", label="Esperado")
-        ax.fill_between(
-            digits, lower, upper, color="#94A3B8", alpha=0.3, label="95% CI"
-        )
+        ax.fill_between(digits, lower, upper, color="#94A3B8", alpha=0.3, label="95% CI")
         for idx, bar in enumerate(bars):
             if observed[idx] < lower[idx] or observed[idx] > upper[idx]:
                 bar.set_color("#D62728")
