@@ -95,7 +95,9 @@ def test_proxy_rotator_round_robin_and_fallback_to_direct(
     assert "proxy_fallback_direct" in caplog.text
 
 
-def test_proxy_rotator_refreshes_pool_when_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_proxy_rotator_refreshes_pool_when_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Español: Asegura refresco de pool y recuperación cuando hay proxies válidos.
 
     English: Ensure pool refresh and recovery when valid proxies are available.

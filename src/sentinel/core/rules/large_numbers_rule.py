@@ -31,9 +31,7 @@ def _extract_mesa_votes(mesa: dict) -> Dict[str, int]:
         Dictionary with votes per candidate.
     """
     votes_by_candidate: Dict[str, int] = {}
-    entries = (
-        mesa.get("votos") or mesa.get("candidates") or mesa.get("candidatos") or []
-    )
+    entries = mesa.get("votos") or mesa.get("candidates") or mesa.get("candidatos") or []
     if not isinstance(entries, list):
         return votes_by_candidate
 
@@ -90,12 +88,7 @@ def _aggregate_mesas(
             continue
         for candidate_id, votes in mesa_votes.items():
             totals[candidate_id] = totals.get(candidate_id, 0) + votes
-        proportions.append(
-            {
-                candidate_id: votes / mesa_total
-                for candidate_id, votes in mesa_votes.items()
-            }
-        )
+        proportions.append({candidate_id: votes / mesa_total for candidate_id, votes in mesa_votes.items()})
 
     return totals, proportions
 
@@ -106,9 +99,7 @@ def _aggregate_mesas(
     description="Evalúa la convergencia de proporciones por mesa hacia el promedio global.",
     config_key="large_numbers_convergence",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Verifica convergencia de proporciones por mesa usando la Ley de Grandes Números.
 
@@ -161,11 +152,7 @@ def apply(
     department = extract_department(current_data)
 
     for candidate_id, total_votes in totals.items():
-        sample_values = [
-            mesa_props.get(candidate_id)
-            for mesa_props in proportions
-            if candidate_id in mesa_props
-        ]
+        sample_values = [mesa_props.get(candidate_id) for mesa_props in proportions if candidate_id in mesa_props]
         if len(sample_values) < min_samples:
             continue
         sample_mean = sum(sample_values) / len(sample_values)

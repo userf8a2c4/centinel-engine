@@ -75,18 +75,14 @@ def apply_benford_law(votes_list: list[int]) -> dict:
         _get_rule_param(
             config,
             "benford_p_threshold",
-            default=benford_config.get(
-                "p_threshold", _DEFAULT_RULES_CONFIG["benford_law"]["p_threshold"]
-            ),
+            default=benford_config.get("p_threshold", _DEFAULT_RULES_CONFIG["benford_law"]["p_threshold"]),
         )
     )
     min_samples = int(
         _get_rule_param(
             config,
             "benford_min_samples",
-            default=benford_config.get(
-                "min_samples", _DEFAULT_RULES_CONFIG["benford_law"]["min_samples"]
-            ),
+            default=benford_config.get("min_samples", _DEFAULT_RULES_CONFIG["benford_law"]["min_samples"]),
         )
     )
     min_required = max(10, min_samples)
@@ -109,12 +105,7 @@ def apply_benford_law(votes_list: list[int]) -> dict:
             "detalle": "No hay suficientes votos para análisis",
         }
 
-    observed_counts = (
-        pd.Series(digits)
-        .value_counts()
-        .reindex(range(1, 10), fill_value=0)
-        .sort_index()
-    )
+    observed_counts = pd.Series(digits).value_counts().reindex(range(1, 10), fill_value=0).sort_index()
     total_observed_count = observed_counts.sum()
     if total_observed_count == 0:
         return {
@@ -123,17 +114,10 @@ def apply_benford_law(votes_list: list[int]) -> dict:
             "detalle": "Total de votos igual a cero; Benford omitido.",
         }
     # Benford distribution: P(d) = log10(1 + 1/d). (Distribución Benford: P(d) = log10(1 + 1/d).)
-    expected_probabilities = np.array(
-        [math.log10(1 + 1 / digit_value) for digit_value in range(1, 10)]
-    )
+    expected_probabilities = np.array([math.log10(1 + 1 / digit_value) for digit_value in range(1, 10)])
     expected_counts = expected_probabilities * total_observed_count
-    observed_freq = {
-        str(k): float(v) for k, v in (observed_counts / total_observed_count).items()
-    }
-    expected_freq = {
-        str(digit_index + 1): float(value)
-        for digit_index, value in enumerate(expected_probabilities)
-    }
+    observed_freq = {str(k): float(v) for k, v in (observed_counts / total_observed_count).items()}
+    expected_freq = {str(digit_index + 1): float(value) for digit_index, value in enumerate(expected_probabilities)}
 
     try:
         # Chi-square = Σ((O - E)^2 / E). (Chi-cuadrado = Σ((O - E)^2 / E).)
@@ -180,24 +164,12 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
         _get_rule_param(
             config,
             "chi2_p_critical",
-            default=dist_config.get(
-                "p_threshold", _DEFAULT_RULES_CONFIG["distribution_chi2"]["p_threshold"]
-            ),
+            default=dist_config.get("p_threshold", _DEFAULT_RULES_CONFIG["distribution_chi2"]["p_threshold"]),
         )
     )
-    min_groups = int(
-        dist_config.get(
-            "min_groups", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_groups"]
-        )
-    )
-    min_expected = float(
-        dist_config.get(
-            "min_expected", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_expected"]
-        )
-    )
-    expected_basis = dist_config.get(
-        "expected_basis", _DEFAULT_RULES_CONFIG["distribution_chi2"]["expected_basis"]
-    )
+    min_groups = int(dist_config.get("min_groups", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_groups"]))
+    min_expected = float(dist_config.get("min_expected", _DEFAULT_RULES_CONFIG["distribution_chi2"]["min_expected"]))
+    expected_basis = dist_config.get("expected_basis", _DEFAULT_RULES_CONFIG["distribution_chi2"]["expected_basis"])
     historical_shares = dist_config.get(
         "historical_shares",
         _DEFAULT_RULES_CONFIG["distribution_chi2"]["historical_shares"],
@@ -208,19 +180,11 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
         None,
     )
     party_col = next(
-        (
-            col
-            for col in ["partido", "party", "candidate_name", "candidate_id"]
-            if col in df_normalized
-        ),
+        (col for col in ["partido", "party", "candidate_name", "candidate_id"] if col in df_normalized),
         None,
     )
     votes_col = next(
-        (
-            col
-            for col in ["votos", "votes", "vote_total", "total_votes"]
-            if col in df_normalized
-        ),
+        (col for col in ["votos", "votes", "vote_total", "total_votes"] if col in df_normalized),
         None,
     )
 
@@ -234,9 +198,7 @@ def check_distribution_chi2(df_normalized: pd.DataFrame) -> dict:
         }
 
     grouped_votes_frame = df_normalized[[group_col, votes_col]].copy()
-    grouped_votes_frame[votes_col] = pd.to_numeric(
-        grouped_votes_frame[votes_col], errors="coerce"
-    ).fillna(0)
+    grouped_votes_frame[votes_col] = pd.to_numeric(grouped_votes_frame[votes_col], errors="coerce").fillna(0)
     grouped_votes_frame = grouped_votes_frame[grouped_votes_frame[votes_col] >= 0]
     votes_list = grouped_votes_frame[votes_col].tolist()
     if not votes_list or len(votes_list) < 10:
@@ -344,6 +306,4 @@ if __name__ == "__main__":
             "votos": [1200, 800, 2400, 1600],
         }
     )
-    logger.info(
-        "chi2_sample_result %s", check_distribution_chi2(sample_votes_frame)
-    )
+    logger.info("chi2_sample_result %s", check_distribution_chi2(sample_votes_frame))

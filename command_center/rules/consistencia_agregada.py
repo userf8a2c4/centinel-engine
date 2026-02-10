@@ -106,11 +106,7 @@ def check_consistencia_agregada(data: dict) -> dict:
     tolerance = float(rule_config.get("tolerance", default_tolerance))
 
     national_data = (
-        data.get("nacional")
-        or data.get("national")
-        or data.get("NACIONAL")
-        or data.get("nivel_nacional")
-        or {}
+        data.get("nacional") or data.get("national") or data.get("NACIONAL") or data.get("nivel_nacional") or {}
     )
     national_candidates = _extract_candidates(national_data)
 
@@ -138,13 +134,9 @@ def check_consistencia_agregada(data: dict) -> dict:
 
     passed = mismatches == 0
     alert = not passed
-    default_message = (
-        "Diferencias detectadas entre la suma departamental y el total nacional."
-    )  # TODO: agregar mensaje a rules.yaml / command_center
+    default_message = "Diferencias detectadas entre la suma departamental y el total nacional."  # TODO: agregar mensaje a rules.yaml / command_center
     message = str(rule_config.get("message") or default_message)
-    severity = str(
-        rule_config.get("severity", "warning" if alert else "info")
-    ).lower()
+    severity = str(rule_config.get("severity", "warning" if alert else "info")).lower()
 
     details = {
         "tolerance": tolerance,

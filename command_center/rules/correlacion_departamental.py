@@ -88,9 +88,7 @@ def _extract_candidate_votes(entry: dict) -> Dict[str, int]:
     return {}
 
 
-def _build_share_vector(
-    candidate_ids: List[str], votes: Dict[str, int]
-) -> Optional[List[float]]:
+def _build_share_vector(candidate_ids: List[str], votes: Dict[str, int]) -> Optional[List[float]]:
     total_votes = sum(votes.values())
     if total_votes <= 0:
         return None
@@ -149,10 +147,7 @@ def check_correlacion_departamental(data: dict) -> dict:
                 "departments_used": len(share_vectors),
                 "candidates": len(candidate_ids),
             },
-            "message": str(
-                rule_config.get("message")
-                or "No hay datos suficientes para correlación departamental."
-            ),
+            "message": str(rule_config.get("message") or "No hay datos suficientes para correlación departamental."),
         }
 
     matrix = np.corrcoef(np.array(share_vectors))
@@ -169,8 +164,8 @@ def check_correlacion_departamental(data: dict) -> dict:
     passed = not alert
     severity = str(rule_config.get("severity", "warning" if alert else "info")).lower()
     default_message = (
-        "Correlación baja detectada entre departamentos."
-    )  # TODO: agregar mensaje a rules.yaml / command_center
+        "Correlación baja detectada entre departamentos."  # TODO: agregar mensaje a rules.yaml / command_center
+    )
     message = str(rule_config.get("message") or default_message)
 
     details = {

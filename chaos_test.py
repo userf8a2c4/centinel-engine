@@ -13,7 +13,6 @@ from typing import Callable, Dict, List
 
 import pytest
 
-
 REPORT_DATA: Dict[str, Dict[str, str]] = {}
 REPORT_DETAILS: Dict[str, Dict[str, str]] = {}
 REPORT_PATH = Path(os.environ.get("CHAOS_REPORT_PATH", "chaos_report.md"))
@@ -61,9 +60,7 @@ class FakeBucket:
         if self.force_write_error:
             raise SimulatedBucketError("simulated_bucket_write_failure")
         self.base_dir.mkdir(parents=True, exist_ok=True)
-        (self.base_dir / "checkpoint.json").write_text(
-            json.dumps(payload, indent=2), encoding="utf-8"
-        )
+        (self.base_dir / "checkpoint.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     def corrupt_checkpoint(self) -> None:
         """Español: Función corrupt_checkpoint del módulo chaos_test.py.
@@ -151,9 +148,7 @@ class FakePipelineRunner:
             raise SimulatedDiskFullError("disk_full")
         payload = {"processed": self.state.processed, "hashes": self.state.hashes}
         self.checkpoint_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        self.checkpoint_backup_path.write_text(
-            json.dumps(payload, indent=2), encoding="utf-8"
-        )
+        self.checkpoint_backup_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         try:
             self.bucket.write_checkpoint(payload)
         except SimulatedBucketError as exc:
@@ -383,9 +378,7 @@ def report_context(request):
 
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=[s.name for s in SCENARIOS])
-def test_chaos_auto_resume(
-    scenario: ChaosScenario, pipeline_runner: FakePipelineRunner, report_context
-) -> None:
+def test_chaos_auto_resume(scenario: ChaosScenario, pipeline_runner: FakePipelineRunner, report_context) -> None:
     """Español: Función test_chaos_auto_resume del módulo chaos_test.py.
 
     English: Function test_chaos_auto_resume defined in chaos_test.py.

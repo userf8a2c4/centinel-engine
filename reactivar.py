@@ -84,9 +84,7 @@ def clear_panic_flag(user: str, timestamp: str) -> dict[str, Any]:
         "reason": "panic_cleared",
     }
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    PANIC_FLAG_PATH.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    PANIC_FLAG_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return payload
 
 
@@ -95,9 +93,7 @@ def build_s3_client() -> tuple[Any | None, str | None]:
 
     English: Function build_s3_client defined in reactivar.py.
     """
-    bucket = os.getenv("CENTINEL_PANIC_BUCKET") or os.getenv(
-        "CENTINEL_CHECKPOINT_BUCKET"
-    )
+    bucket = os.getenv("CENTINEL_PANIC_BUCKET") or os.getenv("CENTINEL_CHECKPOINT_BUCKET")
     if not bucket:
         return None, None
     session = boto3.session.Session()
@@ -130,9 +126,7 @@ def main() -> int:
 
     English: Function main defined in reactivar.py.
     """
-    parser = argparse.ArgumentParser(
-        description="Reactiva el pipeline tras modo pánico."
-    )
+    parser = argparse.ArgumentParser(description="Reactiva el pipeline tras modo pánico.")
     parser.add_argument("--user", help="Usuario que reactivó el sistema.")
     args = parser.parse_args()
 

@@ -120,18 +120,12 @@ def check_turnout_zscore(data: dict) -> dict:
     default_critical_z = 3.5  # TODO: agregar este umbral a rules.yaml / command_center
 
     z_threshold = float(rule_config.get("z_threshold", default_z_threshold))
-    critical_z_threshold = float(
-        rule_config.get("critical_z_threshold", default_critical_z)
-    )
+    critical_z_threshold = float(rule_config.get("critical_z_threshold", default_critical_z))
     turnout_min = float(rule_config.get("turnout_min", default_turnout_min))
     turnout_max = float(rule_config.get("turnout_max", default_turnout_max))
 
     national_data = (
-        data.get("nacional")
-        or data.get("national")
-        or data.get("NACIONAL")
-        or data.get("nivel_nacional")
-        or {}
+        data.get("nacional") or data.get("national") or data.get("NACIONAL") or data.get("nivel_nacional") or {}
     )
     national_turnout = _calculate_turnout(national_data)
 
@@ -172,9 +166,7 @@ def check_turnout_zscore(data: dict) -> dict:
     alert = bool(alerts)
     passed = not alert
 
-    default_message = (
-        "Turnout con Z-score fuera de umbral en uno o más departamentos."
-    )  # TODO: agregar mensaje a rules.yaml / command_center
+    default_message = "Turnout con Z-score fuera de umbral en uno o más departamentos."  # TODO: agregar mensaje a rules.yaml / command_center
     message = str(rule_config.get("message") or default_message)
     severity = str(
         rule_config.get(

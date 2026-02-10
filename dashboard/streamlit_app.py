@@ -18,15 +18,19 @@ from pathlib import Path
 from typing import Any
 
 import altair as alt
+
 try:
     import boto3
+
     BOTO3_AVAILABLE = True
 except ImportError:  # pragma: no cover - optional dependency for S3 checks
     boto3 = None
     BOTO3_AVAILABLE = False
 import pandas as pd
+
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:  # pragma: no cover - optional dependency for system metrics
     psutil = None
@@ -185,9 +189,7 @@ def load_blockchain_anchor() -> BlockchainAnchor:
     record = _load_latest_anchor_record()
     if record:
         tx_hash = record.get("tx_hash", "")
-        tx_url = record.get("tx_url") or (
-            f"https://arbiscan.io/tx/{tx_hash}" if tx_hash else ""
-        )
+        tx_url = record.get("tx_url") or (f"https://arbiscan.io/tx/{tx_hash}" if tx_hash else "")
         return BlockchainAnchor(
             root_hash=record.get("root_hash", record.get("root", "0x")),
             network=record.get("network", "Arbitrum L2"),
@@ -396,9 +398,7 @@ def render_admin_gate() -> bool:
 
     English: Function render_admin_gate defined in dashboard/streamlit_app.py.
     """
-    expected_user = _get_secret_value("admin_user") or _get_secret_value(
-        "admin_username"
-    )
+    expected_user = _get_secret_value("admin_user") or _get_secret_value("admin_username")
     expected_password = _get_secret_value("admin_password")
     token = _get_secret_value("admin_token")
     query_token = _get_query_param("admin")
@@ -407,9 +407,7 @@ def render_admin_gate() -> bool:
         return True
 
     if not expected_user or not expected_password:
-        st.error(
-            "Autenticación no configurada. Define admin_user y admin_password en st.secrets."
-        )
+        st.error("Autenticación no configurada. Define admin_user y admin_password en st.secrets.")
         return False
 
     if st.session_state.get("admin_authenticated"):
@@ -497,9 +495,7 @@ def _pick_latest_snapshot(snapshot_files: list[dict[str, Any]]) -> dict[str, Any
         if timestamp:
             return timestamp
         try:
-            return dt.datetime.fromtimestamp(
-                entry["path"].stat().st_mtime, tz=dt.timezone.utc
-            )
+            return dt.datetime.fromtimestamp(entry["path"].stat().st_mtime, tz=dt.timezone.utc)
         except OSError:
             return dt.datetime.min.replace(tzinfo=dt.timezone.utc)
 
@@ -526,9 +522,7 @@ def _resolve_latest_snapshot_info(
     latest_timestamp = _parse_timestamp(latest_snapshot.get("timestamp"))
     if latest_timestamp is None and latest_snapshot.get("path"):
         try:
-            latest_timestamp = dt.datetime.fromtimestamp(
-                latest_snapshot["path"].stat().st_mtime, tz=dt.timezone.utc
-            )
+            latest_timestamp = dt.datetime.fromtimestamp(latest_snapshot["path"].stat().st_mtime, tz=dt.timezone.utc)
         except OSError:
             latest_timestamp = None
     last_batch_label = (
@@ -583,11 +577,7 @@ def _count_rate_limit_retries(log_path: Path) -> int:
         lowered = line.lower()
         if "rate" not in lowered and "429" not in lowered:
             continue
-        if (
-            "limit" not in lowered
-            and "too many requests" not in lowered
-            and "429" not in lowered
-        ):
+        if "limit" not in lowered and "too many requests" not in lowered and "429" not in lowered:
             continue
         timestamp = _parse_timestamp(line.split(" ", 1)[0])
         if timestamp is None or timestamp >= cutoff:
@@ -688,12 +678,7 @@ def load_snapshot_files(
                 timestamp = path.stem.replace("snapshot_", "").replace("_", " ")
             except ValueError:
                 timestamp = ""
-        source_value = str(
-            payload.get("source")
-            or payload.get("source_url")
-            or payload.get("fuente")
-            or ""
-        ).upper()
+        source_value = str(payload.get("source") or payload.get("source_url") or payload.get("fuente") or "").upper()
         parsed_ts = None
         if timestamp:
             try:
@@ -844,14 +829,8 @@ def build_heatmap(anomalies: pd.DataFrame) -> pd.DataFrame:
     if anomalies.empty:
         return pd.DataFrame()
     anomalies = anomalies.copy()
-    anomalies["hour"] = pd.to_datetime(
-        anomalies["timestamp"], errors="coerce", utc=True
-    ).dt.hour
-    heatmap = (
-        anomalies.groupby(["department", "hour"], dropna=False)
-        .size()
-        .reset_index(name="anomaly_count")
-    )
+    anomalies["hour"] = pd.to_datetime(anomalies["timestamp"], errors="coerce", utc=True).dt.hour
+    heatmap = anomalies.groupby(["department", "hour"], dropna=False).size().reset_index(name="anomaly_count")
     return heatmap
 
 
@@ -875,16 +854,9 @@ def compute_topology_integrity(
         df["timestamp_dt"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
     df = df.sort_values("timestamp_dt")
     dept_df = df[df["department"].isin(departments)]
-    latest_per_dept = (
-        dept_df.sort_values("timestamp_dt")
-        .groupby("department", as_index=False)
-        .tail(1)
-    )
+    latest_per_dept = dept_df.sort_values("timestamp_dt").groupby("department", as_index=False).tail(1)
     department_total = int(latest_per_dept["votes"].sum())
-    breakdown = [
-        {"department": row["department"], "votes": int(row["votes"])}
-        for _, row in latest_per_dept.iterrows()
-    ]
+    breakdown = [{"department": row["department"], "votes": int(row["votes"])} for _, row in latest_per_dept.iterrows()]
     national_df = df[~df["department"].isin(departments)]
     if not national_df.empty:
         national_total = int(national_df.iloc[-1]["votes"])
@@ -935,9 +907,7 @@ def build_latency_matrix(
         cell_styles.append({"row": row_idx, "col": col_idx, "stale": cell["stale"]})
     for row_start in range(0, len(cells), per_row):
         row_cells = cells[row_start : row_start + per_row]
-        rows.append(
-            [f"{cell['department']}\n{cell['last_update']}" for cell in row_cells]
-        )
+        rows.append([f"{cell['department']}\n{cell['last_update']}" for cell in row_cells])
     return rows, cell_styles
 
 
@@ -992,9 +962,7 @@ def build_rules_table(command_center_cfg: dict) -> pd.DataFrame:
             {
                 "rule": key.replace("_", " ").title(),
                 "enabled": "ON" if settings.get("enabled", True) else "OFF",
-                "thresholds": ", ".join(
-                    f"{k}: {v}" for k, v in settings.items() if k != "enabled"
-                ),
+                "thresholds": ", ".join(f"{k}: {v}" for k, v in settings.items() if k != "enabled"),
             }
         )
     return pd.DataFrame(rows)
@@ -1026,15 +994,9 @@ def run_rules_engine(snapshot_df: pd.DataFrame, config: dict) -> dict:
         return {"alerts": [], "critical": []}
     engine = RulesEngine(config=config)
     current = build_rules_engine_payload(snapshot_df.iloc[-1])
-    previous = (
-        build_rules_engine_payload(snapshot_df.iloc[-2])
-        if len(snapshot_df) > 1
-        else None
-    )
+    previous = build_rules_engine_payload(snapshot_df.iloc[-2]) if len(snapshot_df) > 1 else None
     try:
-        result = engine.run(
-            current, previous, snapshot_id=snapshot_df.iloc[-1]["timestamp"]
-        )
+        result = engine.run(current, previous, snapshot_id=snapshot_df.iloc[-1]["timestamp"])
     except Exception:  # noqa: BLE001
         return {"alerts": [], "critical": []}
     return {"alerts": result.alerts, "critical": result.critical_alerts}
@@ -1142,18 +1104,14 @@ def create_pdf_charts(
         chart_buffers["timeline"] = buf
 
     if not heatmap_df.empty:
-        heatmap_pivot = heatmap_df.pivot(
-            index="department", columns="hour", values="anomaly_count"
-        ).fillna(0)
+        heatmap_pivot = heatmap_df.pivot(index="department", columns="hour", values="anomaly_count").fillna(0)
         fig, ax = plt.subplots(figsize=(13.0, 3.4))
         ax.imshow(heatmap_pivot.values, aspect="auto", cmap="Reds")
         ax.set_title("Mapa de anomalías por departamento/hora")
         ax.set_yticks(range(len(heatmap_pivot.index)))
         ax.set_yticklabels(heatmap_pivot.index, fontsize=6)
         ax.set_xticks(range(len(heatmap_pivot.columns)))
-        ax.set_xticklabels(
-            [str(x) for x in heatmap_pivot.columns], fontsize=6, rotation=45
-        )
+        ax.set_xticklabels([str(x) for x in heatmap_pivot.columns], fontsize=6, rotation=45)
         buf = io.BytesIO()
         fig.tight_layout()
         fig.savefig(buf, format="png", dpi=300)
@@ -1321,9 +1279,7 @@ if REPORTLAB_AVAILABLE:
             for state in self._saved_page_states:
                 self.__dict__.update(state)
                 page = self.getPageNumber()
-                current_hash = hashlib.sha256(
-                    f"{prev_hash}|{page}".encode("utf-8")
-                ).hexdigest()[:12]
+                current_hash = hashlib.sha256(f"{prev_hash}|{page}".encode("utf-8")).hexdigest()[:12]
                 self.draw_page_number(total_pages, current_hash)
                 prev_hash = current_hash
                 super().showPage()
@@ -1456,10 +1412,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         English: Function build_table defined in dashboard/streamlit_app.py.
         """
         header = [as_paragraph(cell, styles["TableHeader"]) for cell in rows[0]]
-        body = [
-            [as_paragraph(cell, styles["TableCell"]) for cell in row]
-            for row in rows[1:]
-        ]
+        body = [[as_paragraph(cell, styles["TableCell"]) for cell in row] for row in rows[1:]]
         table = Table([header] + body, colWidths=col_widths, repeatRows=1)
         table.setStyle(
             TableStyle(
@@ -1480,9 +1433,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     qr_cell = Spacer(1, 1)
     if data.get("qr"):
         qr_cell = Image(data["qr"], width=2.2 * cm, height=2.2 * cm)
-    header_table = Table(
-        [[header_title, qr_cell]], colWidths=[doc.width * 0.75, doc.width * 0.25]
-    )
+    header_table = Table([[header_title, qr_cell]], colWidths=[doc.width * 0.75, doc.width * 0.25])
     header_table.setStyle(
         TableStyle(
             [
@@ -1505,9 +1456,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     badge_info = data.get("status_badge", {})
     if badge_info:
         badge_color = colors.HexColor(badge_info.get("color", "#008000"))
-        badge_table = Table(
-            [[badge_info.get("label", "")]], colWidths=[doc.width * 0.4]
-        )
+        badge_table = Table([[badge_info.get("label", "")]], colWidths=[doc.width * 0.4])
         badge_table.setStyle(
             TableStyle(
                 [
@@ -1553,9 +1502,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(topology_table)
     if "waterfall" in chart_buffers:
         elements.append(Spacer(1, 4))
-        elements.append(
-            Image(chart_buffers["waterfall"], width=doc.width * 0.6, height=4.2 * cm)
-        )
+        elements.append(Image(chart_buffers["waterfall"], width=doc.width * 0.6, height=4.2 * cm))
         if data.get("topology_alert"):
             elements.append(Paragraph(data["topology_alert"], styles["AlertText"]))
     elements.append(Spacer(1, 8))
@@ -1606,16 +1553,12 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         elements.append(latency_table)
         if "load_heatmap" in chart_buffers:
             elements.append(Spacer(1, 4))
-            elements.append(
-                Image(chart_buffers["load_heatmap"], width=doc.width, height=4.6 * cm)
-            )
+            elements.append(Image(chart_buffers["load_heatmap"], width=doc.width, height=4.6 * cm))
     else:
         elements.append(Paragraph("Sin datos de latencia disponibles.", styles["Body"]))
     elements.append(Spacer(1, 8))
 
-    elements.append(
-        Paragraph("Sección 2 · Anomalías Detectadas", styles["HeadingSecondary"])
-    )
+    elements.append(Paragraph("Sección 2 · Anomalías Detectadas", styles["HeadingSecondary"]))
     anomaly_rows = data["anomaly_rows"]
     anomaly_col_widths = [
         doc.width * 0.14,
@@ -1641,20 +1584,12 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         except ValueError:
             delta_pct_val = 0.0
         if "ROLLBACK / ELIMINACIÓN DE DATOS" in str(row[5]):
-            table_style.append(
-                ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#FADBD8"))
-            )
+            table_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#FADBD8")))
         elif "OUTLIER" in str(row[5]).upper():
-            table_style.append(
-                ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#FCF3CF"))
-            )
+            table_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#FCF3CF")))
         elif delta_pct_val <= -1.0:
-            table_style.append(
-                ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#fdecea"))
-            )
-            table_style.append(
-                ("TEXTCOLOR", (1, row_idx), (2, row_idx), colors.HexColor("#D62728"))
-            )
+            table_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#fdecea")))
+            table_style.append(("TEXTCOLOR", (1, row_idx), (2, row_idx), colors.HexColor("#D62728")))
     table_style.append(("FONTNAME", (4, 1), (4, -1), "Courier"))
     table_style.append(("FONTSIZE", (4, 1), (4, -1), 7))
     table_style.append(("LEADING", (4, 1), (4, -1), 8))
@@ -1662,9 +1597,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     elements.append(anomaly_table)
     elements.append(Spacer(1, 8))
 
-    elements.append(
-        Paragraph("Sección 3 · Gráficos Avanzados", styles["HeadingSecondary"])
-    )
+    elements.append(Paragraph("Sección 3 · Gráficos Avanzados", styles["HeadingSecondary"]))
     for key, caption in data["chart_captions"].items():
         buf = chart_buffers.get(key)
         if buf:
@@ -1675,18 +1608,14 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
             elements.append(Paragraph(caption, styles["Body"]))
             elements.append(Spacer(1, 4))
     elements.append(PageBreak())
-    elements.append(
-        Paragraph("Cadena de Bloques (Snapshots)", styles["HeadingSecondary"])
-    )
+    elements.append(Paragraph("Cadena de Bloques (Snapshots)", styles["HeadingSecondary"]))
     chain_buf = chart_buffers.get("chain")
     if chain_buf:
         elements.append(Image(chain_buf, width=doc.width * 0.7, height=3.5 * cm))
         elements.append(Paragraph("Cadena de snapshots recientes.", styles["Body"]))
         elements.append(Spacer(1, 4))
 
-    elements.append(
-        Paragraph("Sección 4 · Snapshots Recientes", styles["HeadingSecondary"])
-    )
+    elements.append(Paragraph("Sección 4 · Snapshots Recientes", styles["HeadingSecondary"]))
     snapshot_rows = data["snapshot_rows"]
     snapshot_col_widths = [
         doc.width * 0.24,
@@ -1716,19 +1645,13 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         elements.append(Paragraph(f"• {rule}", styles["Body"]))
     elements.append(Spacer(1, 6))
 
-    elements.append(
-        Paragraph("Sección 6 · Verificación Criptográfica", styles["HeadingSecondary"])
-    )
+    elements.append(Paragraph("Sección 6 · Verificación Criptográfica", styles["HeadingSecondary"]))
     elements.append(Paragraph(data["crypto_text"], styles["Body"]))
     if data.get("qr"):
         elements.append(Image(data["qr"], width=3.2 * cm, height=3.2 * cm))
     elements.append(Spacer(1, 8))
 
-    elements.append(
-        Paragraph(
-            "Sección 7 · Mapa de Riesgos y Gobernanza", styles["HeadingSecondary"]
-        )
-    )
+    elements.append(Paragraph("Sección 7 · Mapa de Riesgos y Gobernanza", styles["HeadingSecondary"]))
     elements.append(Paragraph(data["risk_text"], styles["Body"]))
     elements.append(Paragraph(data["governance_text"], styles["Body"]))
     elements.append(Spacer(1, 6))
@@ -1754,9 +1677,7 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
         elements,
         onFirstPage=draw_footer,
         onLaterPages=draw_footer,
-        canvasmaker=lambda *args, **kwargs: NumberedCanvas(
-            *args, root_hash=data.get("footer_root_hash", ""), **kwargs
-        ),
+        canvasmaker=lambda *args, **kwargs: NumberedCanvas(*args, root_hash=data.get("footer_root_hash", ""), **kwargs),
     )
     buffer.seek(0)
     return buffer.getvalue()
@@ -1851,10 +1772,7 @@ def generate_pdf_report(
         English: Build a table with a highlighted header row.
         """
         header = [as_paragraph(cell, styles["TableHeader"]) for cell in rows[0]]
-        body = [
-            [as_paragraph(cell, styles["TableCell"]) for cell in row]
-            for row in rows[1:]
-        ]
+        body = [[as_paragraph(cell, styles["TableCell"]) for cell in row] for row in rows[1:]]
         table = Table([header] + body, colWidths=col_widths, repeatRows=1)
         table.setStyle(
             TableStyle(
@@ -2022,11 +1940,7 @@ def build_pdf_export_payload(
     latest_ts = df["timestamp_dt"].max()
     latest_df = df[df["timestamp_dt"] == latest_ts]
     prev_df = df[df["timestamp_dt"] < latest_ts]
-    prev_latest = (
-        prev_df.sort_values("timestamp_dt")
-        .groupby("department", as_index=False)
-        .tail(1)
-    )
+    prev_latest = prev_df.sort_values("timestamp_dt").groupby("department", as_index=False).tail(1)
 
     dept_latest = (
         latest_df[latest_df["department"].isin(departments)]
@@ -2052,18 +1966,18 @@ def build_pdf_export_payload(
             diffs[dept] = f"{diff_value:+,}"
         else:
             diffs[dept] = "N/D"
-        data_departamentos.append(
-            {"departamento": dept, "total": f"{total:,}", "diff": diffs[dept]}
-        )
+        data_departamentos.append({"departamento": dept, "total": f"{total:,}", "diff": diffs[dept]})
 
     def _snapshot_payload(snapshot_df: pd.DataFrame) -> list[dict[str, Any]]:
         """Español: Construye payload serializable para hash de snapshot.
 
         English: Build a serializable payload for snapshot hashing.
         """
-        return snapshot_df[
-            ["timestamp", "department", "votes", "delta", "changes", "hash"]
-        ].fillna("").to_dict(orient="records")
+        return (
+            snapshot_df[["timestamp", "department", "votes", "delta", "changes", "hash"]]
+            .fillna("")
+            .to_dict(orient="records")
+        )
 
     payload = _snapshot_payload(latest_df)
     hash_snapshot = compute_report_hash(json.dumps(payload, sort_keys=True))
@@ -2072,9 +1986,7 @@ def build_pdf_export_payload(
         previous_ts = prev_df["timestamp_dt"].max()
         previous_df = prev_df[prev_df["timestamp_dt"] == previous_ts]
         previous_payload = _snapshot_payload(previous_df)
-        previous_hash = compute_report_hash(
-            json.dumps(previous_payload, sort_keys=True)
-        )
+        previous_hash = compute_report_hash(json.dumps(previous_payload, sort_keys=True))
 
     data_nacional = {
         "total_nacional": f"{total_nacional:,}",
@@ -2152,8 +2064,7 @@ snapshot_selector_options = ["Último snapshot (Latest)"]
 snapshot_lookup: dict[str, dict[str, Any]] = {}
 for snapshot in sorted(
     snapshot_files,
-    key=lambda item: _parse_timestamp(item.get("timestamp"))
-    or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
+    key=lambda item: _parse_timestamp(item.get("timestamp")) or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
     reverse=True,
 ):
     timestamp_label = snapshot.get("timestamp", "N/D")
@@ -2168,9 +2079,7 @@ selected_snapshot_label = st.sidebar.selectbox(
     index=0,
 )
 selected_snapshot = snapshot_lookup.get(selected_snapshot_label)
-selected_snapshot_timestamp = (
-    _parse_timestamp(selected_snapshot.get("timestamp")) if selected_snapshot else None
-)
+selected_snapshot_timestamp = _parse_timestamp(selected_snapshot.get("timestamp")) if selected_snapshot else None
 
 latest_snapshot = {}
 latest_timestamp = None
@@ -2184,10 +2093,7 @@ try:
         hash_accumulator,
     ) = _resolve_latest_snapshot_info(snapshot_files, anchor.root_hash)
 except Exception as exc:  # noqa: BLE001
-    st.warning(
-        "No se pudo determinar el último snapshot (Unable to resolve latest snapshot): "
-        f"{exc}"
-    )
+    st.warning("No se pudo determinar el último snapshot (Unable to resolve latest snapshot): " f"{exc}")
 
 snapshots_df = build_snapshot_metrics(snapshot_files)
 anomalies_df = build_anomalies(snapshots_df)
@@ -2200,20 +2106,13 @@ rules_engine_output = run_rules_engine(snapshots_df, command_center_cfg)
 failed_retries = 0
 rate_limit_failures = 0
 try:
-    log_path = Path(
-        command_center_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log")
-    )
+    log_path = Path(command_center_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log"))
     failed_retries = _count_failed_retries(log_path)
     rate_limit_failures = _count_rate_limit_retries(log_path)
 except Exception as exc:  # noqa: BLE001
-    st.warning(
-        "No se pudo leer el conteo de reintentos (Unable to read retry count): "
-        f"{exc}"
-    )
+    st.warning("No se pudo leer el conteo de reintentos (Unable to read retry count): " f"{exc}")
 
-time_since_last = (
-    dt.datetime.now(dt.timezone.utc) - latest_timestamp if latest_timestamp else None
-)
+time_since_last = dt.datetime.now(dt.timezone.utc) - latest_timestamp if latest_timestamp else None
 refresh_interval = st.session_state.get("refresh_interval_system", 45)
 polling_status = resolve_polling_status(
     rate_limit_failures,
@@ -2235,9 +2134,7 @@ with alerts_container:
             f"{refresh_interval} segundos (Connection lost – retrying in "
             f"{refresh_interval} seconds)."
         )
-    if latest_timestamp is None or (
-        time_since_last and time_since_last > dt.timedelta(minutes=45)
-    ):
+    if latest_timestamp is None or (time_since_last and time_since_last > dt.timedelta(minutes=45)):
         st.warning("No se encontraron snapshots recientes (No recent snapshots found).")
 
 if snapshots_df.empty:
@@ -2387,16 +2284,12 @@ departments = [
     "Yoro",
 ]
 
-selected_department = st.sidebar.selectbox(
-    "Departamento", ["Todos"] + departments, index=0
-)
+selected_department = st.sidebar.selectbox("Departamento", ["Todos"] + departments, index=0)
 show_only_alerts = st.sidebar.toggle("Mostrar solo anomalías", value=False)
 
 filtered_snapshots = snapshots_df.copy()
 if selected_department != "Todos":
-    filtered_snapshots = filtered_snapshots[
-        filtered_snapshots["department"] == selected_department
-    ]
+    filtered_snapshots = filtered_snapshots[filtered_snapshots["department"] == selected_department]
 
 if show_only_alerts:
     filtered_snapshots = filtered_snapshots[filtered_snapshots["status"] != "OK"]
@@ -2411,41 +2304,25 @@ critical_count = len(filtered_anomalies[filtered_anomalies["type"] == "Delta neg
     previous_snapshot_hash,
     snapshot_diffs,
 ) = build_pdf_export_payload(snapshots_df, departments, selected_snapshot_timestamp)
-current_snapshot_ts, previous_snapshot_ts = resolve_snapshot_context(
-    snapshots_df, selected_snapshot_timestamp
-)
+current_snapshot_ts, previous_snapshot_ts = resolve_snapshot_context(snapshots_df, selected_snapshot_timestamp)
 expected_streams = int(resilience_cfg.get("max_json_presidenciales", 19) or 19)
 alert_thresholds = derive_alert_thresholds(resilience_cfg, expected_streams)
 min_samples = alert_thresholds["min_samples"]
 observed_streams = 0
 if current_snapshot_ts is not None and not snapshots_df.empty:
-    snapshots_df["timestamp_dt"] = pd.to_datetime(
-        snapshots_df["timestamp"], errors="coerce", utc=True
-    )
+    snapshots_df["timestamp_dt"] = pd.to_datetime(snapshots_df["timestamp"], errors="coerce", utc=True)
     latest_rows = snapshots_df[snapshots_df["timestamp_dt"] == current_snapshot_ts]
     observed_streams = int(latest_rows["department"].nunique())
 
-negative_diffs = [
-    dept for dept, diff in snapshot_diffs.items() if str(diff).startswith("-")
-]
+negative_diffs = [dept for dept, diff in snapshot_diffs.items() if str(diff).startswith("-")]
 latest_timestamp = None
 if not snapshots_df.empty:
-    latest_timestamp = (
-        pd.to_datetime(snapshots_df["timestamp"], errors="coerce", utc=True)
-        .dropna()
-        .max()
-    )
-latest_label = (
-    latest_timestamp.strftime("%Y-%m-%d %H:%M UTC") if latest_timestamp else "Sin datos"
-)
+    latest_timestamp = pd.to_datetime(snapshots_df["timestamp"], errors="coerce", utc=True).dropna().max()
+latest_label = latest_timestamp.strftime("%Y-%m-%d %H:%M UTC") if latest_timestamp else "Sin datos"
 selected_snapshot_display = (
-    selected_snapshot_label
-    if selected_snapshot_label != "Último snapshot (Latest)"
-    else latest_label
+    selected_snapshot_label if selected_snapshot_label != "Último snapshot (Latest)" else latest_label
 )
-snapshot_hash_display = (
-    current_snapshot_hash[:12] + "…" if current_snapshot_hash != "N/D" else "N/D"
-)
+snapshot_hash_display = current_snapshot_hash[:12] + "…" if current_snapshot_hash != "N/D" else "N/D"
 
 hero_cols = st.columns([0.74, 0.26])
 with hero_cols[0]:
@@ -2492,18 +2369,14 @@ with hero_cols[1]:
 alert_focus_container = st.container()
 with alert_focus_container:
     if observed_streams and observed_streams < expected_streams:
-        st.error(
-            "Cobertura incompleta según rules.yaml: "
-            f"{observed_streams}/{expected_streams} streams observados."
-        )
+        st.error("Cobertura incompleta según rules.yaml: " f"{observed_streams}/{expected_streams} streams observados.")
         emit_toast(
             f"Cobertura incompleta: {observed_streams}/{expected_streams} streams.",
             icon="🚨",
         )
     if len(snapshots_df) < min_samples:
         st.warning(
-            "Muestras insuficientes según rules.yaml: "
-            f"{len(snapshots_df)}/{min_samples} snapshots disponibles."
+            "Muestras insuficientes según rules.yaml: " f"{len(snapshots_df)}/{min_samples} snapshots disponibles."
         )
     if negative_diffs:
         diff_label = ", ".join(negative_diffs[:5])
@@ -2519,16 +2392,10 @@ with alert_focus_container:
             st.warning(message)
             emit_toast(message, icon="⚠️")
     if rules_engine_output.get("critical"):
-        st.error(
-            "Alertas críticas del motor de reglas: "
-            f"{len(rules_engine_output['critical'])} eventos."
-        )
+        st.error("Alertas críticas del motor de reglas: " f"{len(rules_engine_output['critical'])} eventos.")
         emit_toast("Alertas críticas del motor de reglas activas.", icon="🚨")
     if rules_engine_output.get("alerts"):
-        st.warning(
-            "Alertas de reglas en revisión: "
-            f"{len(rules_engine_output['alerts'])} eventos."
-        )
+        st.warning("Alertas de reglas en revisión: " f"{len(rules_engine_output['alerts'])} eventos.")
 
 if not filtered_anomalies.empty:
     st.markdown("<div class='alert-bar'>", unsafe_allow_html=True)
@@ -2543,9 +2410,7 @@ if not filtered_anomalies.empty:
         st.warning(anomalies_message, icon="⚠️")
     st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown(
-    "<div class='section-title'>Resumen Ejecutivo</div>", unsafe_allow_html=True
-)
+st.markdown("<div class='section-title'>Resumen Ejecutivo</div>", unsafe_allow_html=True)
 st.markdown(
     "<div class='section-subtitle'>Indicadores clave de integridad, velocidad y cobertura operacional.</div>",
     unsafe_allow_html=True,
@@ -2591,9 +2456,7 @@ st.markdown(
     <p>Arbitrum · activo</p>
   </div>
 </div>
-    """.format(
-        alerts=len(filtered_anomalies)
-    ),
+    """.format(alerts=len(filtered_anomalies)),
     unsafe_allow_html=True,
 )
 
@@ -2653,13 +2516,9 @@ with tabs[0]:
         timeline_view = filtered_snapshots
     else:
         timeline_df = filtered_snapshots.copy()
-        timeline_df["timestamp_dt"] = pd.to_datetime(
-            timeline_df["timestamp"], errors="coerce", utc=True
-        )
+        timeline_df["timestamp_dt"] = pd.to_datetime(timeline_df["timestamp"], errors="coerce", utc=True)
         timeline_df = timeline_df.sort_values("timestamp_dt")
-        timeline_labels = timeline_df["timestamp_dt"].fillna(
-            pd.to_datetime(timeline_df["timestamp"], errors="coerce")
-        )
+        timeline_labels = timeline_df["timestamp_dt"].fillna(pd.to_datetime(timeline_df["timestamp"], errors="coerce"))
         timeline_labels = timeline_labels.dt.strftime("%Y-%m-%d %H:%M")
         timeline_labels = timeline_labels.fillna(timeline_df["timestamp"].astype(str))
         timeline_df["timeline_label"] = timeline_labels
@@ -2719,9 +2578,7 @@ with tabs[0]:
                 )
                 rerun_app()
         with play_cols[3]:
-            st.markdown(
-                f"**Tiempo actual:** {timeline_df.iloc[st.session_state.timeline_index]['timeline_label']}"
-            )
+            st.markdown(f"**Tiempo actual:** {timeline_df.iloc[st.session_state.timeline_index]['timeline_label']}")
 
         timeline_view = timeline_df.iloc[range_indices[0] : range_indices[1] + 1]
 
@@ -2748,9 +2605,7 @@ with tabs[0]:
                 y=alt.Y("value:Q", title="%"),
                 color=alt.Color(
                     "type:N",
-                    scale=alt.Scale(
-                        domain=["expected", "observed"], range=["#1F77B4", "#2CA02C"]
-                    ),
+                    scale=alt.Scale(domain=["expected", "observed"], range=["#1F77B4", "#2CA02C"]),
                     legend=alt.Legend(title="Serie"),
                 ),
                 tooltip=[
@@ -2787,11 +2642,7 @@ with tabs[1]:
             )
     else:
         dept_summary = next(
-            (
-                row
-                for row in data_departamentos
-                if row.get("departamento") == selected_department
-            ),
+            (row for row in data_departamentos if row.get("departamento") == selected_department),
             {},
         )
         metric_cols = st.columns(3)
@@ -2830,9 +2681,7 @@ with tabs[2]:
                 color=alt.Color("anomaly_count:Q", scale=alt.Scale(scheme="redblue")),
                 tooltip=["department", "hour", "anomaly_count"],
             )
-            .properties(
-                height=360, title="Mapa de riesgos (anomalías por departamento/hora)"
-            )
+            .properties(height=360, title="Mapa de riesgos (anomalías por departamento/hora)")
         )
         st.altair_chart(heatmap_chart, use_container_width=True)
 
@@ -2844,9 +2693,7 @@ with tabs[2]:
         ]
         if rules_engine_output["alerts"]:
             for alert in rules_engine_output["alerts"][:6]:
-                log_lines.append(
-                    f"Regla: {alert.get('rule')} · {alert.get('severity')} · {alert.get('message')}"
-                )
+                log_lines.append(f"Regla: {alert.get('rule')} · {alert.get('severity')} · {alert.get('message')}")
         st.code("\n".join(log_lines), language="yaml")
 
 with tabs[3]:
@@ -2915,9 +2762,7 @@ with tabs[5]:
         ["Timestamp", "Dept", "Δ", "Estado", "Hash"],
     ] + snapshots_real[
         ["timestamp", "department", "delta", "status", "hash"]
-    ].head(
-        10
-    ).values.tolist()
+    ].head(10).values.tolist()
 
     anomalies_sorted = filtered_anomalies.copy()
     if not anomalies_sorted.empty:
@@ -2936,9 +2781,7 @@ with tabs[5]:
         current_hash = str(row.get("hash") or "")
         chain_hash = ""
         if current_hash:
-            chain_hash = hashlib.sha256(
-                f"{prev_hash}|{current_hash}".encode("utf-8")
-            ).hexdigest()
+            chain_hash = hashlib.sha256(f"{prev_hash}|{current_hash}".encode("utf-8")).hexdigest()
         hash_cell = current_hash[:6] if current_hash else ""
         if current_hash:
             prev_short = prev_hash[:6] if prev_hash else "------"
@@ -2951,35 +2794,21 @@ with tabs[5]:
                 f"{row.get('delta_pct', 0):.2f}%",
                 row.get("hour") or "",
                 hash_cell,
-                (
-                    "ROLLBACK / ELIMINACIÓN DE DATOS"
-                    if row.get("type") == "Delta negativo"
-                    else row.get("type")
-                ),
+                ("ROLLBACK / ELIMINACIÓN DE DATOS" if row.get("type") == "Delta negativo" else row.get("type")),
             ]
         )
         prev_hash = chain_hash or current_hash
 
     topology = compute_topology_integrity(snapshots_df, departments)
-    latency_rows, latency_alert_cells = build_latency_matrix(
-        snapshots_df, departments, report_time_dt
-    )
+    latency_rows, latency_alert_cells = build_latency_matrix(snapshots_df, departments, report_time_dt)
     velocity_vpm = compute_ingestion_velocity(snapshots_df)
     db_inconsistencies = int(
-        (filtered_anomalies["type"] == "Delta negativo").sum()
-        if not filtered_anomalies.empty
-        else 0
+        (filtered_anomalies["type"] == "Delta negativo").sum() if not filtered_anomalies.empty else 0
     )
-    stat_deviations = int(
-        (filtered_anomalies["type"] != "Delta negativo").sum()
-        if not filtered_anomalies.empty
-        else 0
-    )
+    stat_deviations = int((filtered_anomalies["type"] != "Delta negativo").sum() if not filtered_anomalies.empty else 0)
 
     rules_list = (
-        rules_df.assign(
-            summary=rules_df["rule"] + " (" + rules_df["thresholds"].fillna("-") + ")"
-        )
+        rules_df.assign(summary=rules_df["rule"] + " (" + rules_df["thresholds"].fillna("-") + ")")
         .head(8)
         .get("summary", pd.Series(dtype=str))
         .tolist()
@@ -3039,11 +2868,7 @@ with tabs[5]:
             0.0,
             100.0 - (abs(topology["delta"]) / max(1, topology["national_total"])) * 100,
         )
-    deviation_std = (
-        float(filtered_snapshots["delta"].std())
-        if not filtered_snapshots.empty
-        else 0.0
-    )
+    deviation_std = float(filtered_snapshots["delta"].std()) if not filtered_snapshots.empty else 0.0
     forensic_summary = (
         f"Se han auditado {len(snapshot_files)} flujos de datos. "
         f"La integridad se ha mantenido en un {integrity_pct:0.2f}% "
@@ -3105,8 +2930,7 @@ with tabs[5]:
         "footer_right": f"Hash reporte: {report_hash[:16]}…",
         "footer_root_hash": anchor.root_hash,
         "footer_disclaimer": (
-            "Documento generado automáticamente por Centinel Engine. "
-            "Prohibida su alteración parcial."
+            "Documento generado automáticamente por Centinel Engine. " "Prohibida su alteración parcial."
         ),
     }
 
@@ -3132,11 +2956,7 @@ with tabs[5]:
                 **pdf_data,
                 "timestamp_utc": report_time_dt,
                 "root_hash": anchor.root_hash,
-                "status": (
-                    "COMPROMETIDO"
-                    if (not topology["is_match"] or critical_count > 0)
-                    else "INTEGRAL"
-                ),
+                "status": ("COMPROMETIDO" if (not topology["is_match"] or critical_count > 0) else "INTEGRAL"),
                 "source": pdf_data.get("input_source", "Endpoint JSON CNE"),
                 "topology_check": {
                     "total_national": topology["national_total"],
@@ -3152,11 +2972,7 @@ with tabs[5]:
                     for _, row in filtered_anomalies.iterrows()
                 ],
                 "benford": {
-                    "observed": (
-                        benford_df.sort_values("digit")["observed"].tolist()
-                        if not benford_df.empty
-                        else []
-                    ),
+                    "observed": (benford_df.sort_values("digit")["observed"].tolist() if not benford_df.empty else []),
                     "sample_size": max(len(filtered_snapshots), 1),
                 },
                 "time_series": {"values": filtered_snapshots["votes"].tolist()},
@@ -3168,9 +2984,7 @@ with tabs[5]:
             pdf_bytes = buffer.getvalue()
         else:
             pdf_bytes = build_pdf_report(pdf_data, chart_buffers)
-        dept_label = (
-            selected_department if selected_department != "Todos" else "nacional"
-        )
+        dept_label = selected_department if selected_department != "Todos" else "nacional"
         st.download_button(
             f"Descargar Informe PDF ({dept_label})",
             data=pdf_bytes,
@@ -3193,19 +3007,14 @@ with tabs[5]:
 
 with tabs[6]:
     st.markdown("### Estado del Sistema")
-    st.caption(
-        "Panel reservado para mantenimiento y salud operativa. "
-        "Requiere autenticación administrativa."
-    )
+    st.caption("Panel reservado para mantenimiento y salud operativa. " "Requiere autenticación administrativa.")
     access_granted = render_admin_gate()
     if not access_granted:
         st.info("Acceso restringido: autentícate para ver el estado del sistema.")
     else:
         refresh_cols = st.columns([0.4, 0.6])
         with refresh_cols[0]:
-            auto_refresh = st.checkbox(
-                "Auto-refrescar", value=True, key="auto_refresh_system"
-            )
+            auto_refresh = st.checkbox("Auto-refrescar", value=True, key="auto_refresh_system")
         with refresh_cols[1]:
             refresh_interval = st.select_slider(
                 "Intervalo de refresco (segundos)",
@@ -3214,17 +3023,9 @@ with tabs[6]:
                 key="refresh_interval_system",
             )
 
-        time_since_last = (
-            dt.datetime.now(dt.timezone.utc) - latest_timestamp
-            if latest_timestamp
-            else None
-        )
+        time_since_last = dt.datetime.now(dt.timezone.utc) - latest_timestamp if latest_timestamp else None
         time_since_label = _format_timedelta(time_since_last)
-        latest_checkpoint_label = (
-            latest_timestamp.strftime("%Y-%m-%d %H:%M UTC")
-            if latest_timestamp
-            else "Sin datos"
-        )
+        latest_checkpoint_label = latest_timestamp.strftime("%Y-%m-%d %H:%M UTC") if latest_timestamp else "Sin datos"
 
         health_ok = False
         health_message = "healthcheck_strict_no_data"
@@ -3237,9 +3038,7 @@ with tabs[6]:
                     health_message = "healthcheck_strict_ok"
                 else:
                     failures = diagnostics.get("failures", [])
-                    health_message = (
-                        "; ".join(failures) if failures else "healthcheck_strict_failed"
-                    )
+                    health_message = "; ".join(failures) if failures else "healthcheck_strict_failed"
             except Exception as exc:  # noqa: BLE001
                 health_ok = False
                 health_message = f"healthcheck_error: {exc}"
@@ -3252,16 +3051,10 @@ with tabs[6]:
 
         critical_alerts = filtered_anomalies.copy()
         if not critical_alerts.empty:
-            critical_alerts = critical_alerts[
-                critical_alerts["type"] == "Delta negativo"
-            ]
+            critical_alerts = critical_alerts[critical_alerts["type"] == "Delta negativo"]
         if not critical_alerts.empty:
-            critical_alerts["timestamp_dt"] = pd.to_datetime(
-                critical_alerts["timestamp"], errors="coerce", utc=True
-            )
-            critical_alerts = critical_alerts.sort_values(
-                "timestamp_dt", ascending=False
-            )
+            critical_alerts["timestamp_dt"] = pd.to_datetime(critical_alerts["timestamp"], errors="coerce", utc=True)
+            critical_alerts = critical_alerts.sort_values("timestamp_dt", ascending=False)
         critical_alerts = critical_alerts.head(5)
 
         pipeline_status = "Activo"
@@ -3286,9 +3079,7 @@ with tabs[6]:
             st.metric("Estado del pipeline", f"{status_emoji} {pipeline_status}")
         with header_cols[1]:
             st.metric("Último checkpoint", latest_checkpoint_label)
-            st.caption(
-                f"Lote: {last_batch_label} · Hash: {_format_short_hash(hash_accumulator)}"
-            )
+            st.caption(f"Lote: {last_batch_label} · Hash: {_format_short_hash(hash_accumulator)}")
         with header_cols[2]:
             st.metric("Tiempo desde último lote", time_since_label)
 
@@ -3341,9 +3132,7 @@ with tabs[6]:
         if critical_alerts.empty:
             st.success("Sin alertas críticas recientes.")
         else:
-            alert_table = critical_alerts[
-                ["timestamp", "department", "type", "delta", "hash"]
-            ].rename(
+            alert_table = critical_alerts[["timestamp", "department", "type", "delta", "hash"]].rename(
                 columns={
                     "timestamp": "Timestamp",
                     "department": "Departamento",
@@ -3361,10 +3150,7 @@ with tabs[6]:
                 manager = _build_checkpoint_manager()
                 if manager is None:
                     if not CHECKPOINTING_AVAILABLE:
-                        st.error(
-                            "Checkpoint deshabilitado: falta dependencia de cifrado "
-                            f"({CHECKPOINTING_ERROR})."
-                        )
+                        st.error("Checkpoint deshabilitado: falta dependencia de cifrado " f"({CHECKPOINTING_ERROR}).")
                     else:
                         st.error("Checkpoint no configurado: define CHECKPOINT_BUCKET.")
                 else:
@@ -3381,9 +3167,7 @@ with tabs[6]:
                 st.error(f"No se pudo guardar el checkpoint: {exc}")
 
         if auto_refresh:
-            st.caption(
-                f"Auto-refresco activo · próxima actualización en {refresh_interval}s."
-            )
+            st.caption(f"Auto-refresco activo · próxima actualización en {refresh_interval}s.")
             time.sleep(refresh_interval)
             rerun_app()
 

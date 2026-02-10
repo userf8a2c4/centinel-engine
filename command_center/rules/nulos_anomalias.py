@@ -129,9 +129,7 @@ def check_nulos_anomalias(data: dict) -> dict:
     default_max_percentage = 0.08  # TODO: agregar este umbral a rules.yaml / command_center
     default_residual_threshold = 0.05  # TODO: agregar este umbral a rules.yaml / command_center
     max_percentage = float(rule_config.get("max_percentage", default_max_percentage))
-    residual_threshold = float(
-        rule_config.get("residual_threshold", default_residual_threshold)
-    )
+    residual_threshold = float(rule_config.get("residual_threshold", default_residual_threshold))
 
     department_alerts: Dict[str, dict] = {}
     regression_points = []
@@ -171,9 +169,7 @@ def check_nulos_anomalias(data: dict) -> dict:
     alert = bool(department_alerts or regression_alerts)
     passed = not alert
     severity = str(rule_config.get("severity", "warning" if alert else "info")).lower()
-    default_message = (
-        "Porcentaje de votos nulos elevado o desviación atípica vs turnout."
-    )  # TODO: agregar mensaje a rules.yaml / command_center
+    default_message = "Porcentaje de votos nulos elevado o desviación atípica vs turnout."  # TODO: agregar mensaje a rules.yaml / command_center
     message = str(rule_config.get("message") or default_message)
 
     details = {
@@ -186,14 +182,10 @@ def check_nulos_anomalias(data: dict) -> dict:
 
     max_null_percentage = 0.0
     if department_alerts:
-        max_null_percentage = max(
-            alert_data["null_percentage"] for alert_data in department_alerts.values()
-        )
+        max_null_percentage = max(alert_data["null_percentage"] for alert_data in department_alerts.values())
     max_residual = 0.0
     if regression_alerts:
-        max_residual = max(
-            abs(alert_data["residual"]) for alert_data in regression_alerts.values()
-        )
+        max_residual = max(abs(alert_data["residual"]) for alert_data in regression_alerts.values())
     score = max(max_null_percentage, max_residual) if alert else None
 
     return {

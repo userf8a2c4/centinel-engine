@@ -43,9 +43,7 @@ def _calculate_scrutiny_percentage(current_data: dict) -> Optional[float]:
     description="Detecta anomalías de participación y escrutinio entre snapshots.",
     config_key="participation_anomaly",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Detecta anomalías de participación y escrutinio entre snapshots.
 

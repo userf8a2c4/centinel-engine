@@ -106,9 +106,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     if env_candidate_count:
         config["candidate_count"] = int(env_candidate_count)
     if env_required_keys:
-        config["required_keys"] = [
-            key.strip() for key in env_required_keys.split(",") if key.strip()
-        ]
+        config["required_keys"] = [key.strip() for key in env_required_keys.split(",") if key.strip()]
     if env_master_switch:
         config["master_switch"] = env_master_switch
     if env_retry_config:
@@ -160,9 +158,7 @@ def compute_hash(data: bytes) -> str:
 
 def chain_hash(previous_hash: str, current_data: bytes) -> str:
     """/** Genera hash encadenado. / Generate chained hash. **"""
-    combined = (previous_hash + current_data.decode("utf-8", errors="ignore")).encode(
-        "utf-8"
-    )
+    combined = (previous_hash + current_data.decode("utf-8", errors="ignore")).encode("utf-8")
     return compute_hash(combined)
 
 
@@ -243,9 +239,7 @@ def build_request_headers(
 ) -> dict[str, str]:
     """/** Construye headers por request (low-profile opcional). / Build per-request headers (low-profile optional). **/"""
     if not low_profile.get("enabled", False):
-        headers = (
-            config.get("headers", {}) if isinstance(config.get("headers"), dict) else {}
-        )
+        headers = config.get("headers", {}) if isinstance(config.get("headers"), dict) else {}
         if "Accept" not in headers:
             headers = {"Accept": "application/json", **headers}
         return headers
@@ -266,9 +260,7 @@ def build_request_headers(
     return headers
 
 
-def resolve_timeout_seconds(
-    config: dict[str, Any], low_profile: dict[str, Any]
-) -> float:
+def resolve_timeout_seconds(config: dict[str, Any], low_profile: dict[str, Any]) -> float:
     """/** Resuelve timeout efectivo. / Resolve effective timeout. **/"""
     if low_profile.get("enabled", False):
         timeout_value = low_profile.get("timeout_seconds")
@@ -369,9 +361,7 @@ def _validate_real_payload(payload: Any, endpoint: str, config: dict[str, Any]) 
         logger.error("Timestamp en el futuro detectado: %s", timestamp.isoformat())
         return False
     if age_hours > max_age_hours:
-        logger.error(
-            "Timestamp demasiado antiguo (%.1f h) para %s", age_hours, endpoint
-        )
+        logger.error("Timestamp demasiado antiguo (%.1f h) para %s", age_hours, endpoint)
         return False
     if not _payload_has_cne_source(payload):
         logger.warning("Payload sin fuente CNE explícita: %s", endpoint)
@@ -419,9 +409,7 @@ def process_sources(
         open_timeout_seconds=int(breaker_settings.get("open_timeout_seconds", 900)),
         half_open_after_seconds=int(breaker_settings.get("half_open_after_seconds", 300)),
         success_threshold=int(breaker_settings.get("success_threshold", 2)),
-        open_log_interval_seconds=int(
-            breaker_settings.get("open_log_interval_seconds", 120)
-        ),
+        open_log_interval_seconds=int(breaker_settings.get("open_log_interval_seconds", 120)),
     )
     session = requests.Session()
     had_errors = False
@@ -437,9 +425,7 @@ def process_sources(
                 logger.info("Fuente ya procesada en checkpoint: %s", source_label)
                 continue
             if should_skip_snapshot(data_dir, source_label, retry_config=retry_config):
-                logger.info(
-                    "Snapshot reciente detectado, se omite descarga: %s", source_label
-                )
+                logger.info("Snapshot reciente detectado, se omite descarga: %s", source_label)
                 continue
 
             now = datetime.now(timezone.utc)
@@ -570,9 +556,7 @@ def _persist_snapshot_payload(
 
     Español: Persiste snapshot y hash encadenado.
     """
-    snapshot_bytes = json.dumps(
-        snapshot_payload, ensure_ascii=False, indent=2
-    ).encode("utf-8")
+    snapshot_bytes = json.dumps(snapshot_payload, ensure_ascii=False, indent=2).encode("utf-8")
     current_hash = compute_hash(snapshot_bytes)
     chained_hash = chain_hash(previous_hash, snapshot_bytes)
 
@@ -597,9 +581,7 @@ def _persist_snapshot_payload(
     return chained_hash, current_hash, snapshot_file
 
 
-def _find_latest_snapshot_for_source(
-    data_dir: Path, source_label: str
-) -> tuple[Path | None, dict[str, Any] | None]:
+def _find_latest_snapshot_for_source(data_dir: Path, source_label: str) -> tuple[Path | None, dict[str, Any] | None]:
     """English: Find the latest valid snapshot for a source.
 
     Español: Busca el último snapshot válido para una fuente.
@@ -664,9 +646,7 @@ def _use_fallback_snapshot(
         hash_dir=hash_dir,
         previous_hash=previous_hash,
     )
-    logger.warning(
-        "fallback_snapshot_used source=%s reason=%s", source_label, reason
-    )
+    logger.warning("fallback_snapshot_used source=%s reason=%s", source_label, reason)
     return chained_hash
 
 
@@ -689,9 +669,7 @@ def _save_checkpoint(previous_hash: str, processed_sources: set[str]) -> None:
         "processed_sources": sorted(processed_sources),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    CHECKPOINT_PATH.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    CHECKPOINT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def _clear_checkpoint() -> None:

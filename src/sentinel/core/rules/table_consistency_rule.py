@@ -23,9 +23,7 @@ from sentinel.core.rules.registry import rule
     description="Valida válidos+nulos+blancos vs total y suma candidatos vs válidos.",
     config_key="table_consistency",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Verifica consistencia aritmética por mesa en votos válidos y total emitido.
 
@@ -78,11 +76,7 @@ def apply(
         candidate_votes = extract_mesa_candidate_votes(mesa)
         mesa_code = extract_mesa_code(mesa) or "SIN_CODIGO"
 
-        components = [
-            value
-            for value in (valid_votes, null_votes, blank_votes)
-            if value is not None
-        ]
+        components = [value for value in (valid_votes, null_votes, blank_votes) if value is not None]
         if total_votes is not None and components:
             if abs(total_votes - sum(components)) > tolerance:
                 total_mismatch.append(mesa_code)

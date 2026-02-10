@@ -9,9 +9,7 @@ from typing import Any
 
 def canonical_json_bytes(payload: Any) -> bytes:
     """Serializa JSON en forma canónica para hashing."""
-    return json.dumps(
-        payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-    ).encode("utf-8")
+    return json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
 def hash_bytes(payload: bytes) -> str:
@@ -19,9 +17,7 @@ def hash_bytes(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def _build_root_payload(
-    raw_bytes: bytes, diff_bytes: bytes, rules_bytes: bytes
-) -> bytes:
+def _build_root_payload(raw_bytes: bytes, diff_bytes: bytes, rules_bytes: bytes) -> bytes:
     parts = [
         b"sentinel-anchor-v1",
         b"raw",
@@ -54,9 +50,7 @@ def summarize_value(value: Any) -> dict[str, Any]:
     return {"type": type(value).__name__, "value": value}
 
 
-def build_diff_summary(
-    previous_payload: dict[str, Any] | None, current_payload: dict[str, Any]
-) -> dict[str, Any]:
+def build_diff_summary(previous_payload: dict[str, Any] | None, current_payload: dict[str, Any]) -> dict[str, Any]:
     """Genera un resumen de diffs entre snapshots."""
     if previous_payload is None:
         return {"change_count": 0, "changes": []}

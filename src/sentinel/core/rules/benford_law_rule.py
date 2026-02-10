@@ -71,9 +71,7 @@ def _collect_votes_by_candidate(data: dict) -> Dict[str, List[int]]:
     description="Analiza distribución del primer dígito por candidato con chi-cuadrado.",
     config_key="benford_law",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Analiza la distribución del primer dígito (Ley de Benford) en votos por candidato.
 
@@ -115,17 +113,13 @@ def apply(
     deviation_threshold = float(config.get("deviation_pct", 15))
     chi_square_threshold = float(config.get("chi_square_threshold", 0.05))
 
-    expected_distribution = {
-        digit: math.log10(1 + 1 / digit) * 100 for digit in range(1, 10)
-    }
+    expected_distribution = {digit: math.log10(1 + 1 / digit) * 100 for digit in range(1, 10)}
     department = extract_department(current_data)
 
     for candidate, votes in votes_by_candidate.items():
         if len(votes) < min_samples:
             continue
-        first_digits = [
-            int(str(vote)[0]) for vote in votes if vote and str(vote)[0].isdigit()
-        ]
+        first_digits = [int(str(vote)[0]) for vote in votes if vote and str(vote)[0].isdigit()]
         if len(first_digits) < min_samples:
             continue
         counts = collections.Counter(first_digits)
@@ -133,21 +127,11 @@ def apply(
         total = sum(observed_counts)
         if total <= 0:
             continue
-        expected_counts = [
-            expected_distribution[digit] / 100 * total for digit in range(1, 10)
-        ]
+        expected_counts = [expected_distribution[digit] / 100 * total for digit in range(1, 10)]
         chi_result = chisquare(observed_counts, f_exp=expected_counts)
-        observed_pct = {
-            digit: (counts.get(digit, 0) / total) * 100 for digit in range(1, 10)
-        }
-        deviation_pct = max(
-            abs(observed_pct[digit] - expected_distribution[digit])
-            for digit in range(1, 10)
-        )
-        if (
-            chi_result.pvalue >= chi_square_threshold
-            and deviation_pct < deviation_threshold
-        ):
+        observed_pct = {digit: (counts.get(digit, 0) / total) * 100 for digit in range(1, 10)}
+        deviation_pct = max(abs(observed_pct[digit] - expected_distribution[digit]) for digit in range(1, 10))
+        if chi_result.pvalue >= chi_square_threshold and deviation_pct < deviation_threshold:
             continue
 
         alerts.append(

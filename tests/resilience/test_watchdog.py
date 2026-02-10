@@ -47,7 +47,9 @@ def test_watchdog_heartbeat_miss_triggers_failure_and_recovery_log(
     assert "watchdog_recovered" in caplog.text
 
 
-def test_watchdog_grace_period_and_action_trigger(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_watchdog_grace_period_and_action_trigger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Español: Verifica respeto de grace_period y disparo posterior.
 
     English: Verify grace period is respected before action trigger.

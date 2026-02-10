@@ -20,9 +20,7 @@ from sentinel.core.rules.registry import rule
     description="Detecta porcentajes anómalos de votos nulos+blancos.",
     config_key="null_blank_votes",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Detecta porcentajes elevados de votos nulos y blancos.
 

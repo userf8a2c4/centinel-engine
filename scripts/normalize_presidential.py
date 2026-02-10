@@ -58,9 +58,7 @@ for index, file in enumerate(files[:max_files]):
         "totales": to_int(est["totalizacion_actas"]["actas_totales"]),
         "divulgadas": to_int(est["totalizacion_actas"]["actas_divulgadas"]),
         "correctas": to_int(est["estado_actas_divulgadas"]["actas_correctas"]),
-        "inconsistentes": to_int(
-            est["estado_actas_divulgadas"]["actas_inconsistentes"]
-        ),
+        "inconsistentes": to_int(est["estado_actas_divulgadas"]["actas_inconsistentes"]),
     }
 
     normalized["votos_totales"] = {

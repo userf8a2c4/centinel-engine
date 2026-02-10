@@ -96,9 +96,7 @@ def _canonical_json(snapshot_path: Path) -> str:
         payload = json.loads(text)
     except json.JSONDecodeError:
         return text
-    return json.dumps(
-        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    )
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def _validate_hash_dir(hashes_dir: Path, data_dir: Path) -> ValidationResult:
@@ -135,18 +133,14 @@ def _iter_sqlite_entries(connection: sqlite3.Connection) -> Iterable[dict]:
 
     English: Function _iter_sqlite_entries defined in scripts/validate_hashes.py.
     """
-    return connection.execute(
-        """
+    return connection.execute("""
         SELECT department_code, timestamp_utc, table_name, hash, previous_hash
         FROM snapshot_index
         ORDER BY department_code, timestamp_utc
-        """
-    ).fetchall()
+        """).fetchall()
 
 
-def _load_canonical_snapshot(
-    connection: sqlite3.Connection, table_name: str, snapshot_hash: str
-) -> str | None:
+def _load_canonical_snapshot(connection: sqlite3.Connection, table_name: str, snapshot_hash: str) -> str | None:
     """Español: Función _load_canonical_snapshot del módulo scripts/validate_hashes.py.
 
     English: Function _load_canonical_snapshot defined in scripts/validate_hashes.py.
@@ -190,9 +184,7 @@ def _validate_sqlite(sqlite_path: Path) -> ValidationResult:
             if expected_previous != previous_hash:
                 return ValidationResult(ok=False, error_snapshot=snapshot_hash)
 
-            canonical_json = _load_canonical_snapshot(
-                connection, table_name, snapshot_hash
-            )
+            canonical_json = _load_canonical_snapshot(connection, table_name, snapshot_hash)
             if canonical_json is None:
                 return ValidationResult(ok=False, error_snapshot=snapshot_hash)
 
@@ -218,9 +210,7 @@ def _find_anchor_record(anchor_dir: Path) -> dict | None:
     """
     if not anchor_dir.exists():
         return None
-    candidates = sorted(
-        anchor_dir.glob("anchor_snapshot_*.json"), key=lambda p: p.stat().st_mtime
-    )
+    candidates = sorted(anchor_dir.glob("anchor_snapshot_*.json"), key=lambda p: p.stat().st_mtime)
     if not candidates:
         return None
     latest = candidates[-1]
@@ -230,9 +220,7 @@ def _find_anchor_record(anchor_dir: Path) -> dict | None:
         return None
 
 
-def _verify_anchor(
-    root_hash: str | None, anchor_hash: str | None, anchor_dir: Path
-) -> AnchorResult:
+def _verify_anchor(root_hash: str | None, anchor_hash: str | None, anchor_dir: Path) -> AnchorResult:
     """Español: Función _verify_anchor del módulo scripts/validate_hashes.py.
 
     English: Function _verify_anchor defined in scripts/validate_hashes.py.
@@ -242,30 +230,19 @@ def _verify_anchor(
 
     if anchor_hash:
         if anchor_hash == root_hash:
-            return AnchorResult(
-                ok=True, message="Hash raíz coincide con el anclado (manual)."
-            )
-        return AnchorResult(
-            ok=False, message="Hash raíz NO coincide con el anclado (manual)."
-        )
+            return AnchorResult(ok=True, message="Hash raíz coincide con el anclado (manual).")
+        return AnchorResult(ok=False, message="Hash raíz NO coincide con el anclado (manual).")
 
     anchor_record = _find_anchor_record(anchor_dir)
     if anchor_record and anchor_record.get("root_hash"):
         anchored = anchor_record.get("root_hash")
         if anchored == root_hash:
-            return AnchorResult(
-                ok=True, message="Hash raíz coincide con el anclado en logs."
-            )
-        return AnchorResult(
-            ok=False, message="Hash raíz NO coincide con el anclado en logs."
-        )
+            return AnchorResult(ok=True, message="Hash raíz coincide con el anclado en logs.")
+        return AnchorResult(ok=False, message="Hash raíz NO coincide con el anclado en logs.")
 
     return AnchorResult(
         ok=True,
-        message=(
-            "Verificación de anclaje simulada (sin RPC/logs disponibles): "
-            f"root_hash={root_hash}"
-        ),
+        message=("Verificación de anclaje simulada (sin RPC/logs disponibles): " f"root_hash={root_hash}"),
     )
 
 
@@ -274,9 +251,7 @@ def main() -> None:
 
     English: Function main defined in scripts/validate_hashes.py.
     """
-    parser = argparse.ArgumentParser(
-        description="Valida la cadena de hashes usando hashes/ o SQLite."
-    )
+    parser = argparse.ArgumentParser(description="Valida la cadena de hashes usando hashes/ o SQLite.")
     parser.add_argument(
         "--hashes-dir",
         default="hashes",
@@ -314,9 +289,7 @@ def main() -> None:
         print(f"Rotura en snapshot {result.error_snapshot}")
         return
 
-    anchor_result = _verify_anchor(
-        result.root_hash, args.anchor_hash, Path(args.anchor_dir)
-    )
+    anchor_result = _verify_anchor(result.root_hash, args.anchor_hash, Path(args.anchor_dir))
     print(anchor_result.message)
     print("Cadena íntegra")
 

@@ -65,7 +65,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .download import write_atomic
 
-
 Acta = Dict[str, Any]
 
 
@@ -155,9 +154,7 @@ def load_data_source_settings(config_path: Optional[Path] = None) -> DataSourceS
         payload = {
             "DATA_SOURCES": raw.get("data_sources", []),
             "STORAGE_PATH": raw.get("storage_path", "data"),
-            "CHECKPOINT_FILENAME": raw.get(
-                "checkpoint_filename", "datasource_state.json"
-            ),
+            "CHECKPOINT_FILENAME": raw.get("checkpoint_filename", "datasource_state.json"),
         }
         try:
             return DataSourceSettings.model_validate(payload)
@@ -254,9 +251,7 @@ class DataSourceManager:
         self.logger.critical("datasource_exhausted", reason=reason)
         if self.alert_callback:
             self.alert_callback("datasource_exhausted", {"reason": reason})
-        raise DataSourceExhaustedError(
-            "All data sources failed; pausing pipeline and alerting."
-        )
+        raise DataSourceExhaustedError("All data sources failed; pausing pipeline and alerting.")
 
     def _starting_index(self) -> int:
         """Español: Función _starting_index del módulo src/centinel/data_sources.py.
@@ -297,9 +292,7 @@ class DataSourceManager:
                 if attempt < retries:
                     await asyncio.sleep(min(2**attempt, 6))
 
-        raise DataSourceError(
-            f"Source {source.source_id} failed after {retries} retries: {last_error}"
-        )
+        raise DataSourceError(f"Source {source.source_id} failed after {retries} retries: {last_error}")
 
     async def _fetch_from_source(self, source: DataSourceDefinition) -> List[Acta]:
         """Español: Función asíncrona _fetch_from_source del módulo src/centinel/data_sources.py.
@@ -327,9 +320,7 @@ class DataSourceManager:
         English: Async function _fetch_http_json defined in src/centinel/data_sources.py.
         """
         if not source.base_url:
-            raise DataSourceError(
-                f"Source {source.source_id} requires base_url for HTTP fetch."
-            )
+            raise DataSourceError(f"Source {source.source_id} requires base_url for HTTP fetch.")
         url = str(source.base_url)
         if source.batch_path:
             url = f"{url.rstrip('/')}/{source.batch_path.lstrip('/')}"
@@ -351,9 +342,7 @@ class DataSourceManager:
             elapsed_seconds=round(elapsed, 3),
         )
         if response.status_code >= 400:
-            raise DataSourceError(
-                f"HTTP {response.status_code} from {source.source_id} ({url})"
-            )
+            raise DataSourceError(f"HTTP {response.status_code} from {source.source_id} ({url})")
 
         payload = response.json()
         payload_type = type(payload).__name__
@@ -391,17 +380,11 @@ class DataSourceManager:
             elif "data" in payload:
                 batch = payload["data"]
             else:
-                raise DataSourceError(
-                    f"Unable to locate batch list in payload for {source.source_id}."
-                )
+                raise DataSourceError(f"Unable to locate batch list in payload for {source.source_id}.")
             if not isinstance(batch, list):
-                raise DataSourceError(
-                    f"Batch payload for {source.source_id} must be a list."
-                )
+                raise DataSourceError(f"Batch payload for {source.source_id} must be a list.")
             return batch
-        raise DataSourceError(
-            f"Unexpected payload type from {source.source_id}: {type(payload)}"
-        )
+        raise DataSourceError(f"Unexpected payload type from {source.source_id}: {type(payload)}")
 
     def _load_checkpoint(self) -> Optional[str]:
         """Español: Función _load_checkpoint del módulo src/centinel/data_sources.py.
@@ -427,8 +410,6 @@ class DataSourceManager:
             last_successful_source_id=source_id,
             updated_at=datetime.now(timezone.utc).isoformat(),
         )
-        data = json.dumps(payload.__dict__, ensure_ascii=False, indent=2).encode(
-            "utf-8"
-        )
+        data = json.dumps(payload.__dict__, ensure_ascii=False, indent=2).encode("utf-8")
         write_atomic(self.settings.checkpoint_path, data)
         self._last_successful_source_id = source_id

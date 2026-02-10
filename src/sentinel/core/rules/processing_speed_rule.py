@@ -21,9 +21,7 @@ from sentinel.core.rules.registry import rule
     description="Evalúa velocidad de procesamiento de actas en intervalos cortos.",
     config_key="processing_speed",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Evalúa la capacidad de procesamiento físico de actas en intervalos cortos.
 

@@ -201,9 +201,7 @@ def test_full_cycle(tmp_path, monkeypatch, mocker):
         responses.add(responses.GET, fail_endpoint, status=500)
         process_sources(sources, {"nacional": fail_endpoint})
 
-    assert any(
-        req.method == "POST" and req.url.path.endswith("/fail") for req in fail_requests
-    )
+    assert any(req.method == "POST" and req.url.path.endswith("/fail") for req in fail_requests)
 
     shutil.rmtree("data")
     shutil.rmtree("hashes")

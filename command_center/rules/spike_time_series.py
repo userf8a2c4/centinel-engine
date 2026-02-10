@@ -42,11 +42,7 @@ def detect_spike_in_time_series(
     spike_window_value_sum = 0
     for timestamp_value, value_increment in zip(timestamps, values):
         hour_of_day = int(timestamp_value.split(":")[0])
-        if (
-            int(suspicious_window_start.split(":")[0])
-            <= hour_of_day
-            < int(suspicious_window_end.split(":")[0])
-        ):
+        if int(suspicious_window_start.split(":")[0]) <= hour_of_day < int(suspicious_window_end.split(":")[0]):
             spike_window_value_sum += value_increment
 
     # Umbral temporal 30%.

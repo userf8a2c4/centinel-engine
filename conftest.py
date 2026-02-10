@@ -44,6 +44,4 @@ def block_network(monkeypatch: pytest.MonkeyPatch) -> None:
         raise RuntimeError("Network access is disabled during tests.")
 
     monkeypatch.setattr(socket.socket, "connect", guarded_connect, raising=True)
-    monkeypatch.setattr(
-        socket, "create_connection", guarded_create_connection, raising=True
-    )
+    monkeypatch.setattr(socket, "create_connection", guarded_create_connection, raising=True)

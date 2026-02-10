@@ -59,13 +59,9 @@ class AlertConfig:
             telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", "").strip(),
             min_level=os.getenv("ALERT_MIN_LEVEL", DEFAULT_MIN_LEVEL).strip().upper(),
             dashboard_url=os.getenv("CENTINEL_DASHBOARD_URL", "").strip(),
-            rate_limit_seconds=_env_float(
-                "ALERT_RATE_LIMIT_SECONDS", DEFAULT_RATE_LIMIT_SECONDS
-            ),
+            rate_limit_seconds=_env_float("ALERT_RATE_LIMIT_SECONDS", DEFAULT_RATE_LIMIT_SECONDS),
             max_retries=_env_int("ALERT_MAX_RETRIES", DEFAULT_MAX_RETRIES),
-            request_timeout=_env_float(
-                "ALERT_REQUEST_TIMEOUT", DEFAULT_REQUEST_TIMEOUT
-            ),
+            request_timeout=_env_float("ALERT_REQUEST_TIMEOUT", DEFAULT_REQUEST_TIMEOUT),
             hash_dir=os.getenv("CENTINEL_HASH_DIR", "hashes").strip() or "hashes",
         )
 
@@ -119,9 +115,7 @@ class AlertManager:
             logger.info("alert_not_configured level=%s", normalized)
             return False
         if not self.should_send(normalized):
-            logger.debug(
-                "alert_skipped level=%s min=%s", normalized, self._config.min_level
-            )
+            logger.debug("alert_skipped level=%s min=%s", normalized, self._config.min_level)
             return False
 
         payload = self._build_payload(normalized, message, context or {})
@@ -139,9 +133,7 @@ class AlertManager:
                         },
                     )
                 except httpx.RequestError as exc:
-                    logger.warning(
-                        "alert_request_failed attempt=%s error=%s", attempt, exc
-                    )
+                    logger.warning("alert_request_failed attempt=%s error=%s", attempt, exc)
                     await _sleep_backoff(attempt, base=1.0)
                     continue
 
@@ -194,13 +186,8 @@ class AlertManager:
         """
         timestamp = datetime.now(timezone.utc).isoformat()
         dashboard = context.get("dashboard_url") or self._config.dashboard_url
-        checkpoint_hash = context.get(
-            "checkpoint_hash"
-        ) or resolve_latest_checkpoint_hash(self._config.hash_dir)
-        base = (
-            f"[{level}] {timestamp} - {message}\n"
-            f"Contexto: {json.dumps(context, indent=2, ensure_ascii=False)}"
-        )
+        checkpoint_hash = context.get("checkpoint_hash") or resolve_latest_checkpoint_hash(self._config.hash_dir)
+        base = f"[{level}] {timestamp} - {message}\n" f"Contexto: {json.dumps(context, indent=2, ensure_ascii=False)}"
         if dashboard:
             base += f"\nDashboard: {dashboard}"
         if checkpoint_hash:

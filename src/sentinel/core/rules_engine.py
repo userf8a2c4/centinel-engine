@@ -128,9 +128,7 @@ class RulesEngine:
     # ── hashchain verification ───────────────────────────────────────────
 
     @staticmethod
-    def verify_hashchain(
-        normalized_dir: Path, hashchain_path: Path
-    ) -> list[dict]:
+    def verify_hashchain(normalized_dir: Path, hashchain_path: Path) -> list[dict]:
         """Verifica la integridad de la cadena de hashes de snapshots.
 
         English:
@@ -155,8 +153,7 @@ class RulesEngine:
                         "severity": "CRITICAL",
                         "snapshot": snapshot_name,
                         "justification": (
-                            "Falta el snapshot esperado en el directorio normalizado. "
-                            f"snapshot={snapshot_name}."
+                            "Falta el snapshot esperado en el directorio normalizado. " f"snapshot={snapshot_name}."
                         ),
                     }
                 )
@@ -203,9 +200,7 @@ class RulesEngine:
         English:
             Compute the canonical SHA-256 hash of a snapshot payload.
         """
-        canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode(
-            "utf-8"
-        )
+        canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
         return hashlib.sha256(canonical).hexdigest()
 
     @staticmethod

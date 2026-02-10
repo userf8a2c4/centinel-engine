@@ -44,9 +44,7 @@ def ensure_snapshot_metadata(
 
 def canonical_metadata_bytes(metadata: Dict[str, Any]) -> bytes:
     """Serialize metadata canonically for hashing. (Serializa metadatos en forma canónica para hashing.)"""
-    return json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
-        "utf-8"
-    )
+    return json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 def compute_snapshot_hash(

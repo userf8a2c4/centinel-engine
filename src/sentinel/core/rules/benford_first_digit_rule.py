@@ -43,9 +43,7 @@ def _first_digit(number: int) -> Optional[int]:
     description="Evalúa MAD y chi-cuadrado sobre primer dígito.",
     config_key="benford_first_digit",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Evalúa la Ley de Benford para primer dígito sobre votos por candidato.
 
@@ -83,8 +81,7 @@ def apply(
     alerts: List[dict] = []
     department = extract_department(current_data)
     candidate_votes = extract_numeric_list(
-        candidate.get("votes")
-        for candidate in extract_candidate_votes(current_data).values()
+        candidate.get("votes") for candidate in extract_candidate_votes(current_data).values()
     )
     total_votes = extract_total_votes(current_data)
     if total_votes is not None:
@@ -94,9 +91,7 @@ def apply(
     if len(candidate_votes) < min_samples:
         return alerts
 
-    digits = [
-        digit for digit in (_first_digit(value) for value in candidate_votes) if digit
-    ]
+    digits = [digit for digit in (_first_digit(value) for value in candidate_votes) if digit]
     if len(digits) < min_samples:
         return alerts
 

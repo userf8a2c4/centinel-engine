@@ -145,10 +145,7 @@ def _resolve_private_key(settings: dict[str, Any]) -> str | None:
     if not env_key:
         yaml_value = settings.get("private_key")
         if yaml_value and yaml_value not in {"", "0x...", "REPLACE_ME"}:
-            logger.warning(
-                "private_key found in config.yaml but ignored — "
-                "set ARBITRUM_PRIVATE_KEY env var instead"
-            )
+            logger.warning("private_key found in config.yaml but ignored — " "set ARBITRUM_PRIVATE_KEY env var instead")
         return None
     return env_key
 
@@ -208,9 +205,7 @@ def _build_anchor_transaction(
             "gasPrice": web3.eth.gas_price,
         }
     )
-    tx["gas"] = contract.functions.anchor(root_bytes).estimate_gas(
-        {"from": account.address}
-    )
+    tx["gas"] = contract.functions.anchor(root_bytes).estimate_gas({"from": account.address})
     return tx, checksum_address
 
 
@@ -261,9 +256,7 @@ def anchor_root(root_hash: str) -> Dict[str, Any]:
     contract_address = settings.get("contract_address")
 
     if not rpc_url or not contract_address:
-        raise ValueError(
-            "Configuración incompleta de Arbitrum en command_center/config.yaml."
-        )
+        raise ValueError("Configuración incompleta de Arbitrum en command_center/config.yaml.")
     if not private_key:
         raise ValueError("Missing private key for Arbitrum anchoring.")
 
@@ -346,9 +339,7 @@ def anchor_batch(hashes: List[str]) -> Dict[str, Any]:
     )
     tx_hash_hex = _send_anchor_transaction(web3=web3, tx=tx, private_key=private_key)
 
-    logger.info(
-        "anchor_batch_sent batch_id=%s tx_hash=%s root=%s", batch_id, tx_hash_hex, root
-    )
+    logger.info("anchor_batch_sent batch_id=%s tx_hash=%s root=%s", batch_id, tx_hash_hex, root)
 
     return {
         "tx_hash": tx_hash_hex,

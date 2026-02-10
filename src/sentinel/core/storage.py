@@ -53,9 +53,7 @@ class LocalSnapshotStore:
         """
         self._connection.close()
 
-    def store_snapshot(
-        self, snapshot: Snapshot, previous_hash: Optional[str] = None
-    ) -> str:
+    def store_snapshot(self, snapshot: Snapshot, previous_hash: Optional[str] = None) -> str:
         """Guarda un snapshot y actualiza su hash en la cadena.
 
         Args:
@@ -169,9 +167,7 @@ class LocalSnapshotStore:
 
         return snapshot_hash
 
-    def get_index_entries(
-        self, department_code: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    def get_index_entries(self, department_code: Optional[str] = None) -> List[Dict[str, Any]]:
         """Devuelve el índice de snapshots, filtrado por departamento si aplica.
 
         Args:
@@ -200,13 +196,11 @@ class LocalSnapshotStore:
                 (department_code,),
             ).fetchall()
         else:
-            rows = self._connection.execute(
-                """
+            rows = self._connection.execute("""
                 SELECT department_code, timestamp_utc, table_name, hash, previous_hash, tx_hash, ipfs_cid, ipfs_tx_hash
                 FROM snapshot_index
                 ORDER BY department_code, timestamp_utc
-                """
-            ).fetchall()
+                """).fetchall()
 
         return [dict(row) for row in rows]
 
@@ -315,8 +309,7 @@ class LocalSnapshotStore:
         English:
             Ensure the index table and optional columns exist.
         """
-        self._connection.execute(
-            """
+        self._connection.execute("""
             CREATE TABLE IF NOT EXISTS snapshot_index (
                 department_code TEXT NOT NULL,
                 timestamp_utc TEXT NOT NULL,
@@ -328,8 +321,7 @@ class LocalSnapshotStore:
                 ipfs_tx_hash TEXT,
                 PRIMARY KEY (department_code, timestamp_utc)
             )
-            """
-        )
+            """)
         self._ensure_column("snapshot_index", "tx_hash", "TEXT")
         self._ensure_column("snapshot_index", "ipfs_cid", "TEXT")
         self._ensure_column("snapshot_index", "ipfs_tx_hash", "TEXT")
@@ -387,9 +379,7 @@ class LocalSnapshotStore:
         """
         sanitized = "".join(char for char in department_code if char.isalnum())
         if not sanitized:
-            raise ValueError(
-                f"Invalid department_code produces empty table name: {department_code!r}"
-            )
+            raise ValueError(f"Invalid department_code produces empty table name: {department_code!r}")
         table_name = f"dept_{sanitized}_snapshots"
         if not cls._TABLE_NAME_RE.match(table_name):
             raise ValueError(f"Unsafe table name derived: {table_name!r}")
@@ -404,9 +394,7 @@ class LocalSnapshotStore:
             raise ValueError(f"Unsafe SQL {label}: {value!r}")
         return value
 
-    def _ensure_column(
-        self, table_name: str, column_name: str, column_type: str
-    ) -> None:
+    def _ensure_column(self, table_name: str, column_name: str, column_type: str) -> None:
         """Agrega una columna si no existe en la tabla indicada.
 
         English:

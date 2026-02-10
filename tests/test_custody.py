@@ -5,16 +5,11 @@ Tests for the verifiable custody chain — PHASE 2.
 
 import hashlib
 import json
-import os
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from sentinel.core.custody import (
-    ChainVerificationResult,
-    SignatureResult,
-    StartupVerificationReport,
     _compute_expected_hash,
     generate_operator_keypair,
     run_startup_verification,
@@ -26,10 +21,10 @@ from sentinel.core.custody import (
     verify_snapshot_signature,
 )
 
-
 # ---------------------------------------------------------------------------
 # verify_chain tests
 # ---------------------------------------------------------------------------
+
 
 class TestVerifyChain:
     """Pruebas de verify_chain."""
@@ -44,9 +39,7 @@ class TestVerifyChain:
     def test_single_link(self, tmp_path):
         """Un solo eslabón sin previous_hash es válido."""
         data_payload = {"hash": "abc123", "timestamp": "2026-01-01T00:00:00Z"}
-        data_bytes = json.dumps(
-            data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")
+        data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         expected = _compute_expected_hash(None, data_bytes)
 
         record = {**data_payload, "chained_hash": expected}
@@ -63,9 +56,9 @@ class TestVerifyChain:
         previous = None
         for i in range(3):
             data_payload = {"hash": f"data_{i}", "index": i}
-            data_bytes = json.dumps(
-                data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-            ).encode("utf-8")
+            data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
+                "utf-8"
+            )
             chained = _compute_expected_hash(previous, data_bytes)
 
             record = {**data_payload, "chained_hash": chained}
@@ -88,9 +81,9 @@ class TestVerifyChain:
         previous = None
         for i in range(3):
             data_payload = {"hash": f"data_{i}", "index": i}
-            data_bytes = json.dumps(
-                data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-            ).encode("utf-8")
+            data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
+                "utf-8"
+            )
             chained = _compute_expected_hash(previous, data_bytes)
 
             # Corromper el segundo eslabón
@@ -161,6 +154,7 @@ class TestVerifyChainFromEntries:
 # Ed25519 signature tests
 # ---------------------------------------------------------------------------
 
+
 class TestOperatorSignature:
     """Pruebas de firma Ed25519 del operador."""
 
@@ -177,23 +171,23 @@ class TestOperatorSignature:
         generate_operator_keypair(key_dir=tmp_path, operator_id="test-op")
         data = b'{"votes":100,"candidate":"Alice"}'
 
-        sig_result = sign_snapshot(
-            data, key_path=tmp_path / "operator_private.pem", operator_id="test-op"
-        )
+        sig_result = sign_snapshot(data, key_path=tmp_path / "operator_private.pem", operator_id="test-op")
         assert sig_result.operator_id == "test-op"
         assert sig_result.signature_hex
         assert sig_result.public_key_hex
 
         # Verificar con clave pública
         valid = verify_snapshot_signature(
-            data, sig_result.signature_hex,
+            data,
+            sig_result.signature_hex,
             public_key_path=tmp_path / "operator_public.pem",
         )
         assert valid is True
 
         # Verificar con hex directo
         valid_hex = verify_snapshot_signature(
-            data, sig_result.signature_hex,
+            data,
+            sig_result.signature_hex,
             public_key_hex=sig_result.public_key_hex,
         )
         assert valid_hex is True
@@ -203,27 +197,22 @@ class TestOperatorSignature:
         generate_operator_keypair(key_dir=tmp_path)
         data = b"original data"
 
-        sig_result = sign_snapshot(
-            data, key_path=tmp_path / "operator_private.pem"
-        )
+        sig_result = sign_snapshot(data, key_path=tmp_path / "operator_private.pem")
 
         # Manipular firma
         bad_sig = "00" * 64
-        valid = verify_snapshot_signature(
-            data, bad_sig, public_key_hex=sig_result.public_key_hex
-        )
+        valid = verify_snapshot_signature(data, bad_sig, public_key_hex=sig_result.public_key_hex)
         assert valid is False
 
     def test_different_data_fails(self, tmp_path):
         """Datos diferentes producen verificación fallida."""
         generate_operator_keypair(key_dir=tmp_path)
 
-        sig_result = sign_snapshot(
-            b"data A", key_path=tmp_path / "operator_private.pem"
-        )
+        sig_result = sign_snapshot(b"data A", key_path=tmp_path / "operator_private.pem")
 
         valid = verify_snapshot_signature(
-            b"data B", sig_result.signature_hex,
+            b"data B",
+            sig_result.signature_hex,
             public_key_hex=sig_result.public_key_hex,
         )
         assert valid is False
@@ -246,9 +235,7 @@ class TestHashRecordSignature:
             "timestamp": "2026-01-15T00:00:00Z",
         }
 
-        signed = sign_hash_record(
-            record, key_path=tmp_path / "operator_private.pem", operator_id="audit-op"
-        )
+        signed = sign_hash_record(record, key_path=tmp_path / "operator_private.pem", operator_id="audit-op")
         assert "operator_signature" in signed
         assert signed["operator_signature"]["algorithm"] == "Ed25519"
         assert signed["operator_signature"]["operator_id"] == "audit-op"
@@ -260,9 +247,7 @@ class TestHashRecordSignature:
         generate_operator_keypair(key_dir=tmp_path)
         record = {"hash": "aaa", "chained_hash": "bbb"}
 
-        signed = sign_hash_record(
-            record, key_path=tmp_path / "operator_private.pem"
-        )
+        signed = sign_hash_record(record, key_path=tmp_path / "operator_private.pem")
 
         signed["hash"] = "MANIPULATED"
         assert verify_hash_record_signature(signed) is False
@@ -276,6 +261,7 @@ class TestHashRecordSignature:
 # ---------------------------------------------------------------------------
 # _compute_expected_hash tests
 # ---------------------------------------------------------------------------
+
 
 class TestComputeExpectedHash:
     """Pruebas de _compute_expected_hash."""
@@ -305,6 +291,7 @@ class TestComputeExpectedHash:
 # ---------------------------------------------------------------------------
 # verify_anchor tests (mocked)
 # ---------------------------------------------------------------------------
+
 
 class TestVerifyAnchor:
     """Pruebas de verify_anchor con Web3 mockeado."""
@@ -351,11 +338,14 @@ class TestVerifyAnchor:
         with patch.dict(sys.modules, {"web3": mock_web3_mod}):
             # Re-import to pick up mock
             import sentinel.core.custody as custody_mod
+
             importlib.reload(custody_mod)
 
             result = custody_mod.verify_anchor(
-                "0xtx123", expected_root,
-                rpc_url="https://rpc", contract_address="0xcontract",
+                "0xtx123",
+                expected_root,
+                rpc_url="https://rpc",
+                contract_address="0xcontract",
             )
 
         assert result.valid is True
@@ -386,11 +376,14 @@ class TestVerifyAnchor:
 
         with patch.dict(sys.modules, {"web3": mock_web3_mod}):
             import sentinel.core.custody as custody_mod
+
             importlib.reload(custody_mod)
 
             result = custody_mod.verify_anchor(
-                "0xtx", "0x" + "dd" * 32,
-                rpc_url="https://rpc", contract_address="0xcontract",
+                "0xtx",
+                "0x" + "dd" * 32,
+                rpc_url="https://rpc",
+                contract_address="0xcontract",
             )
 
         assert result.valid is False
@@ -402,6 +395,7 @@ class TestVerifyAnchor:
 # ---------------------------------------------------------------------------
 # Startup verification tests
 # ---------------------------------------------------------------------------
+
 
 class TestStartupVerification:
     """Pruebas de verificación al arranque."""
@@ -423,16 +417,14 @@ class TestStartupVerification:
         previous = None
         for i in range(3):
             data_payload = {"hash": f"h{i}", "idx": i}
-            data_bytes = json.dumps(
-                data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-            ).encode("utf-8")
+            data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
+                "utf-8"
+            )
             chained = _compute_expected_hash(previous, data_bytes)
             record = {**data_payload, "chained_hash": chained}
             if previous:
                 record["previous_hash"] = previous
-            (hash_dir / f"link_{i:03d}.sha256").write_text(
-                json.dumps(record, sort_keys=True), encoding="utf-8"
-            )
+            (hash_dir / f"link_{i:03d}.sha256").write_text(json.dumps(record, sort_keys=True), encoding="utf-8")
             previous = chained
 
         report = run_startup_verification(
@@ -462,9 +454,7 @@ class TestStartupVerification:
         generate_operator_keypair(key_dir=key_dir, operator_id="startup-op")
 
         data_payload = {"hash": "test", "idx": 0}
-        data_bytes = json.dumps(
-            data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")
+        data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         chained = _compute_expected_hash(None, data_bytes)
 
         record = {**data_payload, "chained_hash": chained}
@@ -473,9 +463,7 @@ class TestStartupVerification:
             key_path=key_dir / "operator_private.pem",
             operator_id="startup-op",
         )
-        (hash_dir / "link_000.sha256").write_text(
-            json.dumps(record, sort_keys=True), encoding="utf-8"
-        )
+        (hash_dir / "link_000.sha256").write_text(json.dumps(record, sort_keys=True), encoding="utf-8")
 
         report = run_startup_verification(
             hash_dir=hash_dir,

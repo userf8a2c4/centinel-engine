@@ -53,16 +53,12 @@ class RetryPolicy:
 
         English: Exponential delay with randomized jitter for backoff.
         """
-        exponential = self.backoff_base * (
-            self.backoff_multiplier ** (attempt_number - 1)
-        )
+        exponential = self.backoff_base * (self.backoff_multiplier ** (attempt_number - 1))
         capped = min(exponential, self.max_delay)
         if self.jitter_max <= 0:
             return capped
         jitter_fraction = _secure_random.uniform(self.jitter_min, self.jitter_max)
-        jitter_multiplier = _secure_random.uniform(
-            1.0 - jitter_fraction, 1.0 + jitter_fraction
-        )
+        jitter_multiplier = _secure_random.uniform(1.0 - jitter_fraction, 1.0 + jitter_fraction)
         return max(0.0, capped * jitter_multiplier)
 
 
@@ -302,9 +298,7 @@ def _parse_policy(raw: Mapping[str, Any], fallback: RetryPolicy) -> RetryPolicy:
     return RetryPolicy(
         max_attempts=int(raw.get("max_attempts", fallback.max_attempts)),
         backoff_base=float(raw.get("backoff_base", fallback.backoff_base)),
-        backoff_multiplier=float(
-            raw.get("backoff_multiplier", fallback.backoff_multiplier)
-        ),
+        backoff_multiplier=float(raw.get("backoff_multiplier", fallback.backoff_multiplier)),
         max_delay=float(raw.get("max_delay", fallback.max_delay)),
         jitter_min=jitter_min,
         jitter_max=jitter_max,
@@ -343,9 +337,7 @@ def load_retry_config(path: str | Path | None = None) -> RetryConfig:
         other_status = _parse_policy(payload["other_status"], default_policy)
 
     timeout_seconds = float(payload.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS))
-    failed_requests_path = Path(
-        payload.get("failed_requests_path", DEFAULT_FAILED_REQUESTS_PATH)
-    )
+    failed_requests_path = Path(payload.get("failed_requests_path", DEFAULT_FAILED_REQUESTS_PATH))
     recent_snapshot_seconds = int(payload.get("recent_snapshot_seconds", 0))
     idempotency_mode = str(payload.get("idempotency_mode", "timestamp"))
     log_payload_bytes = int(payload.get("log_payload_bytes", 2_000))
@@ -403,9 +395,7 @@ def _build_failed_payload(
     }
 
 
-def _extract_response_text(
-    response: requests.Response | None, limit: int
-) -> str | None:
+def _extract_response_text(response: requests.Response | None, limit: int) -> str | None:
     """Safely extract a bounded response body for logs."""
     if response is None:
         return None
@@ -543,9 +533,7 @@ def _request_with_retry(
                         payload = response.json()
                     except (json.JSONDecodeError, ValueError) as exc:
                         policy = retry_config.policy_for_exception(exc)
-                        response_text = _extract_response_text(
-                            response, retry_config.log_payload_bytes
-                        )
+                        response_text = _extract_response_text(response, retry_config.log_payload_bytes)
                         logger.warning(
                             "json_parse_error",
                             url=url,
@@ -655,9 +643,7 @@ def request_with_retry(
     return response
 
 
-def should_skip_snapshot(
-    data_dir: Path, source_id: str, *, retry_config: RetryConfig
-) -> bool:
+def should_skip_snapshot(data_dir: Path, source_id: str, *, retry_config: RetryConfig) -> bool:
     """Check idempotency rules to avoid duplicate downloads.
 
     English: Skips if a recent snapshot already exists for the source.
@@ -665,18 +651,13 @@ def should_skip_snapshot(
     if retry_config.recent_snapshot_seconds <= 0:
         return False
     pattern = f"snapshot_*_{source_id}.json"
-    candidates = sorted(
-        data_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True
-    )
+    candidates = sorted(data_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
     if not candidates:
         return False
     latest = candidates[0]
     age_seconds = max(
         0.0,
-        (
-            datetime.now(timezone.utc)
-            - datetime.fromtimestamp(latest.stat().st_mtime, tz=timezone.utc)
-        ).total_seconds(),
+        (datetime.now(timezone.utc) - datetime.fromtimestamp(latest.stat().st_mtime, tz=timezone.utc)).total_seconds(),
     )
     return age_seconds <= retry_config.recent_snapshot_seconds
 

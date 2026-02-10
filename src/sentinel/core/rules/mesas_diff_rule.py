@@ -17,9 +17,7 @@ from sentinel.core.rules.registry import rule
     description="Compara sets de mesas entre snapshots.",
     config_key="mesas_diff",
 )
-def apply(
-    current_data: dict, previous_data: Optional[dict], config: dict
-) -> List[dict]:
+def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> List[dict]:
     """
     Compara mesas presentes entre snapshots consecutivos.
 
@@ -54,16 +52,8 @@ def apply(
     if not previous_data:
         return alerts
 
-    current_codes = {
-        code
-        for code in (extract_mesa_code(m) for m in extract_mesas(current_data))
-        if code
-    }
-    previous_codes = {
-        code
-        for code in (extract_mesa_code(m) for m in extract_mesas(previous_data))
-        if code
-    }
+    current_codes = {code for code in (extract_mesa_code(m) for m in extract_mesas(current_data)) if code}
+    previous_codes = {code for code in (extract_mesa_code(m) for m in extract_mesas(previous_data)) if code}
     if not current_codes or not previous_codes:
         return alerts
 

@@ -135,9 +135,7 @@ def _compute_payload_hash(raw: Any) -> str:
         elif isinstance(raw, str):
             encoded = raw.encode("utf-8")
         else:
-            encoded = json.dumps(raw, sort_keys=True, ensure_ascii=False).encode(
-                "utf-8"
-            )
+            encoded = json.dumps(raw, sort_keys=True, ensure_ascii=False).encode("utf-8")
     except (TypeError, ValueError):
         encoded = str(raw).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
@@ -186,9 +184,7 @@ def _first_value(payload: Dict[str, Any], keys: Iterable[str]) -> Any:
     return None
 
 
-def _extract_candidates_root(
-    raw: Dict[str, Any], candidate_roots: Iterable[str]
-) -> Any:
+def _extract_candidates_root(raw: Dict[str, Any], candidate_roots: Iterable[str]) -> Any:
     """/** Localiza el contenedor de candidatos dentro del JSON crudo. / Locate the candidate container within the raw JSON. **/"""
     for key in candidate_roots:
         value = _get_nested_value(raw, key) if "." in key else raw.get(key)
@@ -212,9 +208,7 @@ def _iter_candidates(
             yield CandidateResult(
                 slot=_safe_int(item.get("posicion") or item.get("orden") or idx),
                 votes=_safe_int(item.get("votos") or item.get("votes")),
-                candidate_id=(
-                    str(item.get("id")) if item.get("id") is not None else None
-                ),
+                candidate_id=(str(item.get("id")) if item.get("id") is not None else None),
                 name=item.get("candidato") or item.get("nombre") or item.get("name"),
                 party=item.get("partido") or item.get("party"),
             )
@@ -228,12 +222,8 @@ def _iter_candidates(
                 yield CandidateResult(
                     slot=idx,
                     votes=_safe_int(value.get("votos") or value.get("votes")),
-                    candidate_id=(
-                        str(value.get("id")) if value.get("id") is not None else None
-                    ),
-                    name=value.get("candidato")
-                    or value.get("nombre")
-                    or value.get("name"),
+                    candidate_id=(str(value.get("id")) if value.get("id") is not None else None),
+                    name=value.get("candidato") or value.get("nombre") or value.get("name"),
                     party=value.get("partido") or value.get("party"),
                 )
             else:
@@ -263,9 +253,7 @@ def normalize_snapshot(
         return None
     if not _validate_presidential_acta(raw, payload_hash):
         return None
-    resolved_department_code = department_code or DEPARTMENT_CODES.get(
-        department_name, "00"
-    )
+    resolved_department_code = department_code or DEPARTMENT_CODES.get(department_name, "00")
 
     meta = Meta(
         election="HN-PRESIDENTIAL",
@@ -278,24 +266,18 @@ def normalize_snapshot(
 
     field_map = field_map or {}
     totals_map = field_map.get("totals", {})
-    candidate_roots = field_map.get(
-        "candidate_roots", ["candidatos", "candidates", "resultados", "partidos"]
-    )
+    candidate_roots = field_map.get("candidate_roots", ["candidatos", "candidates", "resultados", "partidos"])
 
     registered_voters = _safe_int(
         _first_value(
             raw,
-            totals_map.get(
-                "registered_voters", ["registered_voters", "inscritos", "padron"]
-            ),
+            totals_map.get("registered_voters", ["registered_voters", "inscritos", "padron"]),
         )
     )
     total_votes = _safe_int(
         _first_value(
             raw,
-            totals_map.get(
-                "total_votes", ["total_votes", "total_votos", "votos_emitidos"]
-            ),
+            totals_map.get("total_votes", ["total_votes", "total_votos", "votos_emitidos"]),
         )
     )
     valid_votes = _safe_int(
@@ -304,11 +286,7 @@ def normalize_snapshot(
             totals_map.get("valid_votes", ["valid_votes", "votos_validos", "validos"]),
         )
     )
-    null_votes = _safe_int(
-        _first_value(
-            raw, totals_map.get("null_votes", ["null_votes", "votos_nulos", "nulos"])
-        )
-    )
+    null_votes = _safe_int(_first_value(raw, totals_map.get("null_votes", ["null_votes", "votos_nulos", "nulos"])))
     blank_votes = _safe_int(
         _first_value(
             raw,
@@ -330,9 +308,7 @@ def normalize_snapshot(
     raw_candidates = _extract_candidates_root(raw, candidate_roots)
     if isinstance(raw_candidates, list):
         candidate_count = max(candidate_count, len(raw_candidates))
-    candidates: List[CandidateResult] = list(
-        _iter_candidates(raw, candidate_count, candidate_roots)
-    )
+    candidates: List[CandidateResult] = list(_iter_candidates(raw, candidate_count, candidate_roots))
 
     return Snapshot(
         meta=meta,

@@ -94,9 +94,7 @@ def _scrub_fields(fields: dict[str, Any]) -> dict[str, Any]:
     sanitized: dict[str, Any] = {}
     for key, value in fields.items():
         normalized_key = key.lower()
-        if normalized_key in SENSITIVE_FIELDS or any(
-            token in normalized_key for token in ("secret", "key", "token")
-        ):
+        if normalized_key in SENSITIVE_FIELDS or any(token in normalized_key for token in ("secret", "key", "token")):
             # Seguridad: evita exposición de datos sensibles. / Security: avoid exposure of sensitive data.
             sanitized[key] = {"hash": _hash_value(value)}
         else:
@@ -170,24 +168,16 @@ def _load_security_settings() -> dict[str, Any]:
     try:
         parsed = yaml.safe_load(rules_path.read_text(encoding="utf-8")) or {}
         if isinstance(parsed, dict):
-            return (
-                parsed.get("security", {})
-                if isinstance(parsed.get("security"), dict)
-                else {}
-            )
+            return parsed.get("security", {}) if isinstance(parsed.get("security"), dict) else {}
     except Exception:
         return {}
     return {}
 
 
-def configure_logging(
-    logger_name: str, log_file: str | None = None, level: int | None = None
-) -> logging.Logger:
+def configure_logging(logger_name: str, log_file: str | None = None, level: int | None = None) -> logging.Logger:
     """/** Configura logging seguro con rotación y salida JSONL. / Configure secure logging with rotation and JSONL output. **/"""
     log_path = log_file or os.getenv("LOG_FILE", "logs/centinel.jsonl")
-    log_level = level or getattr(
-        logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO
-    )
+    log_level = level or getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
 
     logger = logging.getLogger(logger_name)
     logger.setLevel(log_level)
@@ -203,9 +193,7 @@ def configure_logging(
     security_settings = _load_security_settings()
     log_sensitive = bool(security_settings.get("log_sensitive", False))
 
-    file_handler = RotatingFileHandler(
-        log_path, maxBytes=10_000_000, backupCount=5, encoding="utf-8"
-    )
+    file_handler = RotatingFileHandler(log_path, maxBytes=10_000_000, backupCount=5, encoding="utf-8")
     file_handler.setLevel(log_level)
     file_handler.setFormatter(formatter)
     file_handler.addFilter(redact_filter)
