@@ -13,6 +13,9 @@ analysis_results.json
 analysis_results.parquet
 anomalies_report.json
 
+# Config history (auto-archived by config_loader)
+command_center/configs/history/
+
 # Archivos temporales
 *.log
 *.tmp
