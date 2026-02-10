@@ -202,6 +202,7 @@ class HashChainLogger:
 # Encrypted persistence (Persistencia encriptada)
 # ---------------------------------------------------------------------------
 
+
 def _get_fernet_key(env_var: str = "CENTINEL_LOG_KEY") -> bytes | None:
     """Load a Fernet key from the environment.
     (Carga una clave Fernet del entorno.)
@@ -301,6 +302,7 @@ def decrypt_log_file(
 # Factory — convenience constructor from config.yaml
 # (Fábrica — constructor conveniente desde config.yaml)
 # ---------------------------------------------------------------------------
+
 
 def create_integrity_logger(
     log_path: str | Path = "logs/integrity.jsonl",

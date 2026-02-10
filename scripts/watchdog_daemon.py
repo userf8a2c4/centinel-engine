@@ -43,16 +43,11 @@ systemd unit example (ejemplo de unidad systemd):
 from __future__ import annotations
 
 import argparse
-import hashlib
-import json
 import logging
-import os
-import shutil
 import signal
 import subprocess
-import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -186,11 +181,13 @@ def _load_daemon_config() -> DaemonConfig:
 # Diagnostic checks (Chequeos de diagnóstico)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DiagnosticResult:
     """Result of a single diagnostic check.
     (Resultado de un chequeo de diagnóstico individual.)
     """
+
     name: str
     ok: bool
     detail: str
@@ -275,6 +272,7 @@ def run_all_diagnostics(cfg: DaemonConfig) -> list[DiagnosticResult]:
 # ---------------------------------------------------------------------------
 # Corrective actions (Acciones correctivas)
 # ---------------------------------------------------------------------------
+
 
 def reset_proxy_state(cfg: DaemonConfig) -> None:
     """Clear stale proxy state to force rotation.
@@ -392,11 +390,13 @@ def execute_healing(cfg: DaemonConfig, failures: list[DiagnosticResult]) -> None
 # Daemon state (Estado del daemon)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DaemonState:
     """Tracks consecutive failures and cooldown timing.
     (Rastrea fallos consecutivos y timing de cooldown.)
     """
+
     consecutive_failures: int = 0
     last_action_ts: float = 0.0
     total_healings: int = 0
@@ -420,6 +420,7 @@ class DaemonState:
 # ---------------------------------------------------------------------------
 # DoS simulation (Simulación DoS)
 # ---------------------------------------------------------------------------
+
 
 def simulate_dos(cfg: DaemonConfig) -> None:
     """Simulate high resource usage to test the healing pipeline.
@@ -457,6 +458,7 @@ def simulate_dos(cfg: DaemonConfig) -> None:
 # ---------------------------------------------------------------------------
 # Telegram integration (Integración Telegram)
 # ---------------------------------------------------------------------------
+
 
 def _try_send_telegram_alert(
     failures: list[DiagnosticResult],
@@ -579,6 +581,7 @@ def daemon_loop(cfg: DaemonConfig) -> None:
 # ---------------------------------------------------------------------------
 # CLI entry point (Punto de entrada CLI)
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     """Entry point for the watchdog daemon.

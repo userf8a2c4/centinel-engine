@@ -66,6 +66,7 @@ def _load_security_config() -> dict[str, Any]:
 # (NOTA: Intencionalmente simple y en memoria.  Para escalado horizontal
 # reemplazar con contadores respaldados por Redis.)
 
+
 class _SlidingWindowLimiter:
     """Per-IP sliding window rate limiter.
     (Rate limiter de ventana deslizante por IP.)
@@ -101,6 +102,7 @@ class _SlidingWindowLimiter:
 # ---------------------------------------------------------------------------
 # IP blocklist helpers (Helpers de blocklist de IPs)
 # ---------------------------------------------------------------------------
+
 
 def _parse_blocklist(raw_list: list[str] | None) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
     """Parse a list of IPs/CIDRs into network objects.
@@ -141,6 +143,7 @@ def _ip_in_blocklist(
 # The middleware class (La clase de middleware)
 # ---------------------------------------------------------------------------
 
+
 class ZeroTrustMiddleware(BaseHTTPMiddleware):
     """FastAPI middleware enforcing Zero Trust principles on every request.
     (Middleware FastAPI que aplica principios Zero Trust en cada request.)
@@ -174,9 +177,7 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
 
         # Headers that should never appear in legitimate CNE polling traffic
         # (Headers que nunca deberían aparecer en tráfico legítimo de polling CNE)
-        self._blocked_headers: set[str] = set(
-            h.lower() for h in zt.get("blocked_headers", [])
-        )
+        self._blocked_headers: set[str] = set(h.lower() for h in zt.get("blocked_headers", []))
 
         if self._enabled:
             logger.info(
@@ -258,6 +259,7 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
 # Helpers (Funciones auxiliares)
 # ---------------------------------------------------------------------------
 
+
 def _extract_client_ip(request: Request) -> str:
     """Extract the real client IP respecting X-Forwarded-For behind a proxy.
     (Extrae la IP real del cliente respetando X-Forwarded-For detrás de proxy.)
@@ -278,6 +280,7 @@ def _extract_client_ip(request: Request) -> str:
 # ---------------------------------------------------------------------------
 # Registration helper (Helper de registro)
 # ---------------------------------------------------------------------------
+
 
 def install_zero_trust(app: FastAPI) -> None:
     """Install the Zero Trust middleware on a FastAPI app.
