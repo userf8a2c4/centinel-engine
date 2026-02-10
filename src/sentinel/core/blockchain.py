@@ -7,6 +7,7 @@ English:
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, TYPE_CHECKING, Dict
 
 from sentinel.utils.config_loader import load_config
@@ -42,27 +43,31 @@ def load_blockchain_config() -> Dict[str, Any]:
 
 
 def resolve_private_key(raw_value: str | None) -> str | None:
-    """Resuelve la clave privada desde valor directo en configuración.
+    """Resolve private key from the ``BLOCKCHAIN_PRIVATE_KEY`` env var.
+
+    The *raw_value* from YAML config is intentionally ignored to prevent
+    secrets from leaking into version-controlled files.  If a non-placeholder
+    value is found in the YAML, a warning is logged.
+
+    Resuelve la clave privada desde la variable de entorno
+    ``BLOCKCHAIN_PRIVATE_KEY``.  El valor en YAML se ignora
+    intencionalmente para evitar fugas de secretos.
 
     Args:
-        raw_value (str | None): Valor crudo en config.
-
-    Returns:
-        str | None: Clave privada resuelta o None.
-
-    English:
-        Resolves the private key from the raw config value.
-
-    Args:
-        raw_value (str | None): Raw value from config.
+        raw_value (str | None): Raw value from config (ignored, logged if set).
 
     Returns:
         str | None: Resolved private key or None.
     """
-    if raw_value is None:
-        return None
-    value = str(raw_value).strip()
-    return value or None
+    env_key = os.getenv("BLOCKCHAIN_PRIVATE_KEY", "").strip()
+    if env_key:
+        return env_key
+    if raw_value and str(raw_value).strip() not in {"", "0x...", "REPLACE_ME"}:
+        logger.warning(
+            "private_key found in config.yaml but ignored — "
+            "set BLOCKCHAIN_PRIVATE_KEY env var instead"
+        )
+    return None
 
 
 def is_blockchain_enabled(config: Dict[str, Any]) -> bool:

@@ -558,7 +558,7 @@ def _check_storage_write(s3_client, bucket: str) -> dict[str, Any]:
     English: Function _check_storage_write defined in src/monitoring/strict_health.py.
     """
     key = _get_write_test_key()
-    payload = f"healthcheck {datetime.utcnow().isoformat()}".encode("utf-8")
+    payload = f"healthcheck {datetime.now(timezone.utc).isoformat()}".encode("utf-8")
     try:
         s3_client.put_object(Bucket=bucket, Key=key, Body=payload)
     except Exception as exc:  # noqa: BLE001

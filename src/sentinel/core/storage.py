@@ -7,6 +7,7 @@ English:
 import csv
 import json
 import logging
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
@@ -103,6 +104,7 @@ class LocalSnapshotStore:
         )
 
         totals = snapshot.totals
+        self._assert_safe_identifier(table_name, "table_name")
         with self._connection:
             self._connection.execute(
                 f"""
@@ -122,7 +124,7 @@ class LocalSnapshotStore:
                     ipfs_tx_hash
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
+                """,  # nosec B608 - validated by _assert_safe_identifier.
                 (
                     snapshot.meta.timestamp_utc,
                     snapshot_hash,
@@ -285,6 +287,7 @@ class LocalSnapshotStore:
         """
         table_name = self._department_table_name(department_code)
         self._ensure_department_table(table_name)
+        self._assert_safe_identifier(table_name, "table_name")
         return self._connection.execute(
             f"""
             SELECT
@@ -303,7 +306,7 @@ class LocalSnapshotStore:
                 ipfs_tx_hash
             FROM {table_name}
             ORDER BY timestamp_utc
-            """,  # nosec B608 - table name derived from sanitized department code.
+            """,  # nosec B608 - validated by _assert_safe_identifier.
         ).fetchall()
 
     def _ensure_index_table(self) -> None:
@@ -341,6 +344,7 @@ class LocalSnapshotStore:
 
             Also ensures indexes and extra columns (tx/IPFS).
         """
+        self._assert_safe_identifier(table_name, "table_name")
         self._connection.execute(
             f"""
             CREATE TABLE IF NOT EXISTS {table_name} (
@@ -358,24 +362,47 @@ class LocalSnapshotStore:
                 ipfs_cid TEXT,
                 ipfs_tx_hash TEXT
             )
-            """,  # nosec B608 - table name derived from sanitized department code.
+            """,  # nosec B608 - validated by _assert_safe_identifier.
         )
+        idx_name = f"idx_{table_name}_timestamp"
+        self._assert_safe_identifier(idx_name, "index_name")
         self._connection.execute(
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_timestamp ON {table_name}(timestamp_utc)"  # nosec B608 - table name derived from sanitized department code.
+            f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name}(timestamp_utc)"  # nosec B608 - validated by _assert_safe_identifier.
         )
         self._ensure_column(table_name, "tx_hash", "TEXT")
         self._ensure_column(table_name, "ipfs_cid", "TEXT")
         self._ensure_column(table_name, "ipfs_tx_hash", "TEXT")
 
-    @staticmethod
-    def _department_table_name(department_code: str) -> str:
+    _TABLE_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
+
+    @classmethod
+    def _department_table_name(cls, department_code: str) -> str:
         """Normaliza el código de departamento y genera el nombre de tabla.
+
+        Raises ``ValueError`` if the sanitized code is empty or contains
+        characters outside ``[A-Za-z0-9_]``.
 
         English:
             Normalize the department code and build the table name.
         """
         sanitized = "".join(char for char in department_code if char.isalnum())
-        return f"dept_{sanitized}_snapshots"
+        if not sanitized:
+            raise ValueError(
+                f"Invalid department_code produces empty table name: {department_code!r}"
+            )
+        table_name = f"dept_{sanitized}_snapshots"
+        if not cls._TABLE_NAME_RE.match(table_name):
+            raise ValueError(f"Unsafe table name derived: {table_name!r}")
+        return table_name
+
+    _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+    @classmethod
+    def _assert_safe_identifier(cls, value: str, label: str = "identifier") -> str:
+        """Validate that *value* is a safe SQL identifier (alphanumeric + underscore)."""
+        if not cls._IDENTIFIER_RE.match(value):
+            raise ValueError(f"Unsafe SQL {label}: {value!r}")
+        return value
 
     def _ensure_column(
         self, table_name: str, column_name: str, column_type: str
@@ -385,12 +412,15 @@ class LocalSnapshotStore:
         English:
             Add a column if it does not exist in the specified table.
         """
+        self._assert_safe_identifier(table_name, "table_name")
+        self._assert_safe_identifier(column_name, "column_name")
+        self._assert_safe_identifier(column_type, "column_type")
         cursor = self._connection.execute(
-            f"PRAGMA table_info({table_name})"  # nosec B608 - table name derived from sanitized department code.
+            f"PRAGMA table_info({table_name})"  # nosec B608 - validated by _assert_safe_identifier.
         )
         columns = {row[1] for row in cursor.fetchall()}
         if column_name in columns:
             return
         self._connection.execute(
-            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"  # nosec B608 - table name derived from sanitized department code.
+            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"  # nosec B608 - validated by _assert_safe_identifier.
         )

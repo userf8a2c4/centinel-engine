@@ -132,14 +132,25 @@ def _load_arbitrum_settings() -> dict[str, Any]:
 
 
 def _resolve_private_key(settings: dict[str, Any]) -> str | None:
-    """/** Resuelve la private key desde config/env. / Resolve private key from config/env. **/"""
-    env_key = os.getenv("ARBITRUM_PRIVATE_KEY")
-    if env_key:
-        return env_key
-    private_key = settings.get("private_key")
-    if private_key in {"", None, "0x...", "REPLACE_ME"}:
+    """Resolve private key exclusively from environment variables.
+
+    YAML config values are intentionally ignored to prevent accidental
+    secret leakage in version-controlled files.
+
+    Resuelve la private key exclusivamente desde variables de entorno.
+    Los valores en YAML se ignoran intencionalmente para prevenir fuga
+    accidental de secretos en archivos versionados.
+    """
+    env_key = os.getenv("ARBITRUM_PRIVATE_KEY", "").strip()
+    if not env_key:
+        yaml_value = settings.get("private_key")
+        if yaml_value and yaml_value not in {"", "0x...", "REPLACE_ME"}:
+            logger.warning(
+                "private_key found in config.yaml but ignored — "
+                "set ARBITRUM_PRIVATE_KEY env var instead"
+            )
         return None
-    return private_key
+    return env_key
 
 
 def _build_web3_client(rpc_url: str) -> Web3:

@@ -6,10 +6,13 @@ Pydantic schemas to validate and normalize CNE data.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+
+logger = logging.getLogger(__name__)
 
 
 class ActaSchema(BaseModel):
@@ -160,3 +163,85 @@ def validate_and_normalize(data: dict | bytes, source_type: str) -> Dict[str, An
         return model.model_dump()
 
     raise ValueError(f"Unknown source_type: {source_type}")
+
+
+# ---------------------------------------------------------------------------
+# Snapshot schemas — validate the JSON structure consumed by the rules engine
+# ---------------------------------------------------------------------------
+
+
+class CandidateSchema(BaseModel):
+    """Schema for a single candidate entry inside a snapshot.
+
+    Esquema para una entrada de candidato dentro de un snapshot.
+    """
+
+    slot: int = Field(ge=0)
+    votes: int = Field(ge=0)
+    candidate_id: Optional[str] = None
+    name: Optional[str] = None
+    party: Optional[str] = None
+
+
+class TotalsSchema(BaseModel):
+    """Schema for aggregated vote totals.
+
+    Esquema para totales agregados de votos.
+    """
+
+    registered_voters: int = Field(ge=0)
+    total_votes: int = Field(ge=0)
+    valid_votes: int = Field(ge=0)
+    null_votes: int = Field(ge=0)
+    blank_votes: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def votes_do_not_exceed_registered(self) -> "TotalsSchema":
+        """total_votes must not exceed registered_voters."""
+        if self.total_votes > self.registered_voters:
+            raise ValueError(
+                f"total_votes ({self.total_votes}) exceeds "
+                f"registered_voters ({self.registered_voters})"
+            )
+        return self
+
+
+class MetaSchema(BaseModel):
+    """Schema for snapshot metadata.
+
+    Esquema para metadatos del snapshot.
+    """
+
+    election: str = Field(min_length=1)
+    year: int = Field(ge=2000, le=2100)
+    source: str = Field(min_length=1)
+    scope: str = Field(min_length=1)
+    department_code: str = Field(min_length=1)
+    timestamp_utc: str = Field(min_length=1)
+
+
+class SnapshotSchema(BaseModel):
+    """Full schema for a canonical CNE snapshot consumed by the rules engine.
+
+    Esquema completo para un snapshot canónico del CNE consumido por el motor de reglas.
+    """
+
+    meta: MetaSchema
+    totals: TotalsSchema
+    candidates: List[CandidateSchema] = Field(min_length=1)
+
+
+def validate_snapshot(data: dict | bytes) -> Dict[str, Any]:
+    """Validate a raw snapshot dict/bytes against ``SnapshotSchema``.
+
+    Returns the validated dict on success; raises ``ValueError`` on failure.
+
+    Valida un snapshot crudo contra ``SnapshotSchema``.
+    Retorna el dict validado en éxito; lanza ``ValueError`` en fallo.
+    """
+    payload = _parse_payload(data)
+    try:
+        model = SnapshotSchema.model_validate(payload)
+    except ValidationError as exc:
+        raise ValueError(f"Snapshot validation failed: {exc}") from exc
+    return model.model_dump()

@@ -2,16 +2,88 @@
 
 from __future__ import annotations
 
-import collections
 import logging
-from typing import Dict, List, Optional
+import os
+import sqlite3
+from typing import List, Optional
 
 from sentinel.core.rules.common import extract_department, extract_total_votes
 from sentinel.core.rules.registry import rule
 
-
-_HISTORY: Dict[str, List[float]] = collections.defaultdict(list)
 logger = logging.getLogger(__name__)
+
+_DEFAULT_DB_PATH = "reports/ml_outliers_history.db"
+
+
+class _HistoryStore:
+    """SQLite-backed history store for ML outlier detection.
+
+    Replaces the previous in-memory ``_HISTORY`` dict so that data
+    survives process restarts.
+
+    Almacén de historial respaldado por SQLite para detección de outliers ML.
+    Reemplaza el diccionario en memoria ``_HISTORY`` para que los datos
+    sobrevivan reinicios del proceso.
+    """
+
+    def __init__(self, db_path: str) -> None:
+        os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
+        self._conn = sqlite3.connect(db_path)
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ml_history (
+                department TEXT NOT NULL,
+                seq INTEGER NOT NULL,
+                value REAL NOT NULL,
+                PRIMARY KEY (department, seq)
+            )
+            """
+        )
+        self._conn.commit()
+
+    def append(self, department: str, value: float, max_history: int) -> List[float]:
+        """Append a value and return the trimmed history for *department*."""
+        cursor = self._conn.execute(
+            "SELECT COALESCE(MAX(seq), -1) FROM ml_history WHERE department = ?",
+            (department,),
+        )
+        next_seq = cursor.fetchone()[0] + 1
+
+        self._conn.execute(
+            "INSERT INTO ml_history (department, seq, value) VALUES (?, ?, ?)",
+            (department, next_seq, value),
+        )
+
+        # Trim old entries beyond max_history
+        self._conn.execute(
+            """
+            DELETE FROM ml_history
+            WHERE department = ? AND seq <= (
+                SELECT MAX(seq) - ? FROM ml_history WHERE department = ?
+            )
+            """,
+            (department, max_history, department),
+        )
+        self._conn.commit()
+
+        rows = self._conn.execute(
+            "SELECT value FROM ml_history WHERE department = ? ORDER BY seq",
+            (department,),
+        ).fetchall()
+        return [r[0] for r in rows]
+
+    def close(self) -> None:
+        self._conn.close()
+
+
+_store: Optional[_HistoryStore] = None
+
+
+def _get_store(db_path: str) -> _HistoryStore:
+    global _store
+    if _store is None:
+        _store = _HistoryStore(db_path)
+    return _store
 
 
 @rule(
@@ -57,12 +129,11 @@ def apply(
 
     relative_change_pct = ((current_total - previous_total) / previous_total) * 100
     department = extract_department(current_data)
-    history = _HISTORY[department]
-    history.append(relative_change_pct)
 
     max_history = int(config.get("max_history", 200))
-    if len(history) > max_history:
-        del history[:-max_history]
+    db_path = config.get("history_db_path", _DEFAULT_DB_PATH)
+    store = _get_store(db_path)
+    history = store.append(department, relative_change_pct, max_history)
 
     min_samples = int(config.get("min_samples", 5))
     if len(history) < min_samples:
