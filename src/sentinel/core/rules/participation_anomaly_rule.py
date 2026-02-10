@@ -12,6 +12,7 @@ from sentinel.core.rules.common import (
     extract_department,
     extract_porcentaje_escrutado,
 )
+from sentinel.core.rules.registry import rule
 
 
 def _calculate_scrutiny_percentage(current_data: dict) -> Optional[float]:
@@ -36,6 +37,12 @@ def _calculate_scrutiny_percentage(current_data: dict) -> Optional[float]:
     return None
 
 
+@rule(
+    name="Anomalía de Participación",
+    severity="High",
+    description="Detecta anomalías de participación y escrutinio entre snapshots.",
+    config_key="participation_anomaly",
+)
 def apply(
     current_data: dict, previous_data: Optional[dict], config: dict
 ) -> List[dict]:

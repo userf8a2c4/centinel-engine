@@ -12,6 +12,7 @@ from typing import Dict, List, Optional
 from scipy.stats import chisquare
 
 from sentinel.core.rules.common import extract_department, safe_int_or_none
+from sentinel.core.rules.registry import rule
 
 
 def _collect_votes_by_candidate(data: dict) -> Dict[str, List[int]]:
@@ -64,6 +65,12 @@ def _collect_votes_by_candidate(data: dict) -> Dict[str, List[int]]:
     return votes_by_candidate
 
 
+@rule(
+    name="Ley de Benford (alternativa)",
+    severity="Medium",
+    description="Analiza distribución del primer dígito por candidato con chi-cuadrado.",
+    config_key="benford_law",
+)
 def apply(
     current_data: dict, previous_data: Optional[dict], config: dict
 ) -> List[dict]:

@@ -12,6 +12,7 @@ from sentinel.core.rules.common import (
     extract_department,
     parse_timestamp,
 )
+from sentinel.core.rules.registry import rule
 
 
 def _compute_percentages(votes: Dict[str, Dict[str, object]]) -> Dict[str, float]:
@@ -33,6 +34,12 @@ def _compute_percentages(votes: Dict[str, Dict[str, object]]) -> Dict[str, float
     }
 
 
+@rule(
+    name="Desviación de Tendencia",
+    severity="High",
+    description="Detecta cambios de tendencia en votos por candidato entre snapshots.",
+    config_key="trend_shift",
+)
 def apply(
     current_data: dict, previous_data: Optional[dict], config: dict
 ) -> List[dict]:

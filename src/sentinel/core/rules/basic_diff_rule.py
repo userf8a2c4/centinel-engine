@@ -14,6 +14,7 @@ from sentinel.core.rules.common import (
     extract_total_votes,
     extract_vote_breakdown,
 )
+from sentinel.core.rules.registry import rule
 
 
 def _build_candidate_map(data: dict) -> Dict[str, Dict[str, object]]:
@@ -39,6 +40,12 @@ def _build_candidate_map(data: dict) -> Dict[str, Dict[str, object]]:
     }
 
 
+@rule(
+    name="Consistencia Aritmética Básica",
+    severity="High",
+    description="Valida consistencia aritmética y cambios básicos entre snapshots.",
+    config_key="basic_diff",
+)
 def apply(
     current_data: dict, previous_data: Optional[dict], config: dict
 ) -> List[dict]:
