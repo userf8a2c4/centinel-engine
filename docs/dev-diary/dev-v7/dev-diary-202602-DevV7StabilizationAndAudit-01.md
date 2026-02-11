@@ -158,6 +158,8 @@ The most relevant systems effect is that behavior in degraded scenarios improved
 
 Taken together, the period since the last diary entry should be read as an engineering-hardening phase: less fragility, clearer operational diagnostics, improved trust model around data integrity, and reduced long-term maintenance burden after dead-code removal.
 
+Finally, an academic collaboration was initiated with UPNFM to refine the system's mathematical rules, opening possibilities for external expert review and student research projects, which could further strengthen the project's methodology and public traceability.
+
 ---
 
 ## Cierre de entrada
