@@ -1,43 +1,55 @@
 # CI/CD (Bilingüe / Bilingual)
 
 ## Objetivo / Objective
-Este documento describe el CI actual de C.E.N.T.I.N.E.L. con un flujo único, reproducible y mantenible.
-This document describes the current CI setup for C.E.N.T.I.N.E.L. with a single, reproducible, maintainable workflow.
+Este documento describe el CI para C.E.N.T.I.N.E.L., con foco en reproducibilidad, trazabilidad y confiabilidad frente a auditorías externas (matemáticos, ingenieros, OEA, Carter Center). Cada workflow separa responsabilidades y reporta resultados claros. 
+This document describes the CI for C.E.N.T.I.N.E.L., focused on reproducibility, traceability, and reliability for external audits (mathematicians, engineers, OEA, Carter Center). Each workflow separates responsibilities and reports clear results.
 
-## Diseño actual / Current design
-- **Workflow principal:** `.github/workflows/ci.yml`.
-- **Jobs obligatorios:** `lint`, `tests`, `coverage`, `security`.
-- **Gatillos:** `push` (`main`, `work`, `dev-v*`), `pull_request` y `workflow_dispatch`.
-- **Concurrencia:** cancela ejecuciones previas del mismo branch/PR para evitar colas innecesarias.
-- **Sin saltos por dependencia de jobs:** los jobs principales no dependen entre sí, por lo que un fallo en uno no provoca que los demás queden en estado `skipped`.
-- **Instalación consistente:** tests y coverage usan Poetry en CI (`poetry install --with dev`) para coincidir con `pyproject.toml` y el flujo local.
+## Resumen de workflows / Workflow summary
+- **Lint (push)**: `flake8` + `black --check`. Rápido y determinista. 
+  **Lint (push)**: `flake8` + `black --check`. Fast and deterministic.
+- **CI (push/pull_request)**: jobs `Lint` + `Tests` (matriz Python 3.10–3.11) con foco en estabilidad operativa.
+  **CI (push/pull_request)**: `Lint` + `Tests` jobs (Python 3.10–3.11 matrix) focused on operational stability.
+- **Security (push/pull_request)**: `bandit` con exclusiones razonables para reducir falsos positivos. 
+  **Security (push/pull_request)**: `bandit` with reasonable exclusions to reduce false positives.
+- **Chaos (pull_request, opcional)**: ejecuta `scripts/chaos_test.py` en modo ligero. 
+  **Chaos (pull_request, optional)**: runs `scripts/chaos_test.py` in light mode.
 
-## Qué valida CI / What CI validates
-1. **Lint (Python 3.11)**
-   - `flake8 .`
-   - `black --check .`
-2. **Tests (matriz Python 3.10 y 3.11)**
-   - `pytest` para validación funcional general.
-   - Excluye suites no deterministas/pesadas en el job principal (`tests/chaos`, `tests/integration`).
-   - Ejecuta además `tests/resilience/`.
-3. **Coverage (Python 3.11)**
-   - Ejecuta tests con cobertura (`--cov=centinel`) y sube `coverage.xml` a Codecov.
-4. **Security (Python 3.11)**
-   - `bandit -r src -c pyproject.toml`
+## Reproducibilidad y credibilidad / Reproducibility and credibility
+- Se fija la matriz de versiones de Python y se usa Poetry con `--no-root --no-interaction --no-ansi`. 
+  Python versions are pinned in a matrix and Poetry uses `--no-root --no-interaction --no-ansi`.
+- Se cachea `.venv` y `~/.cache/pypoetry` para mejorar velocidad y estabilidad. 
+  `.venv` and `~/.cache/pypoetry` are cached to improve speed and stability.
+- `pytest` usa `--import-mode=importlib` y `PYTHONPATH=src` para evitar fallas de discovery. 
+  `pytest` uses `--import-mode=importlib` and `PYTHONPATH=src` to avoid discovery failures.
 
-## Cambios respecto al esquema anterior / Changes vs previous setup
-- Se eliminaron workflows redundantes de CI (`lint.yml`, `security.yml`, `chaos.yml`, `sentinel-pipeline.yml`, `format.yml`).
-- `ci.yml` pasa a ser la única fuente de verdad para calidad, pruebas y seguridad.
-- Se mantuvo una estrategia consistente con Poetry para desarrollo local y colaboración.
+## Configuración clave / Key configuration
+- **Coverage**: `.coveragerc` excluye `tests/` y `chaos_test.py`. 
+  **Coverage**: `.coveragerc` excludes `tests/` and `chaos_test.py`.
+- **Pytest**: `pyproject.toml` define `testpaths`, `pythonpath` y `--import-mode=importlib`. 
+  **Pytest**: `pyproject.toml` defines `testpaths`, `pythonpath`, and `--import-mode=importlib`.
+- **Bandit**: `pyproject.toml` excluye `tests/` y `chaos_test.py`, y evita falsos positivos comunes (`B101`). 
+  **Bandit**: `pyproject.toml` excludes `tests/` and `chaos_test.py`, and avoids common false positives (`B101`).
 
-## Ejecutar localmente / Run locally
-Requiere Python 3.10+ y Poetry.
+## Cómo ejecutar localmente / How to run locally
+Requiere Python 3.10+ y Poetry. 
+Requires Python 3.10+ and Poetry.
 
 ```bash
 poetry install --with dev
-poetry run flake8 .
-poetry run black --check .
-poetry run pytest --cov=centinel --cov-report=xml --cov-report=term-missing --ignore=tests/chaos --ignore=tests/integration
+```
+
+### Lint / Lint
+```bash
+make lint
+```
+
+### Tests / Pruebas
+```bash
+poetry run pytest --ignore=tests/chaos --ignore=tests/integration --ignore=tests/test_failure_injection.py --ignore=tests/test_failure_resilience.py --ignore=tests/test_stress.py
+```
+
+### Bandit / Bandit
+```bash
 poetry run bandit -r src -c pyproject.toml
 ```
 
