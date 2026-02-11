@@ -37,8 +37,6 @@ Requiere Python 3.10+ y Poetry.
 poetry install --with dev
 poetry run flake8 .
 poetry run black --check .
-poetry run pytest --ignore=tests/chaos --ignore=tests/integration
-poetry run pytest tests/resilience/ -v
 poetry run pytest --cov=centinel --cov-report=xml --cov-report=term-missing --ignore=tests/chaos --ignore=tests/integration
 poetry run bandit -r src -c pyproject.toml
 ```
