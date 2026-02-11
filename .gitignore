@@ -5,7 +5,6 @@
 /data/
 /hashes/
 !/hashes/
-!/hashes/merkle_tree.py
 /reports/
 /plots/
 /diffs/
