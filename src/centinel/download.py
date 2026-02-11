@@ -62,7 +62,6 @@ async def fetch_content(
     proxy_url = proxy_rotator.get_proxy_for_request() if proxy_rotator else None
     request_kwargs = {}
     if proxy_url:
-        request_kwargs["proxies"] = proxy_url
         request_kwargs["timeout"] = httpx.Timeout(proxy_rotator.proxy_timeout_seconds)
 
     start = time.monotonic()
@@ -74,7 +73,11 @@ async def fetch_content(
         if_modified_since=bool(if_modified_since),
     )
     try:
-        response = await client.get(url, headers=headers, **request_kwargs)
+        if proxy_url:
+            async with httpx.AsyncClient(proxy=proxy_url, **request_kwargs) as proxy_client:
+                response = await proxy_client.get(url, headers=headers)
+        else:
+            response = await client.get(url, headers=headers, **request_kwargs)
     except httpx.RequestError as exc:
         elapsed = time.monotonic() - start
         if proxy_rotator and proxy_url:
