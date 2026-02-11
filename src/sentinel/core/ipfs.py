@@ -38,7 +38,6 @@ def upload_snapshot_to_ipfs(json_data: Dict[str, Any]) -> str:
         return ""
     client = ipfshttpclient.connect(ipfs_addr)
     try:
-        payload = json.dumps(json_data, ensure_ascii=False)
-        return client.add_json(payload)
+        return client.add_json(json_data)
     finally:
         client.close()

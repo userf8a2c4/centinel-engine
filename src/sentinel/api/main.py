@@ -11,7 +11,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -24,7 +24,7 @@ from monitoring.strict_health import register_strict_health_endpoints
 from sentinel.api.middleware import install_zero_trust
 from sentinel.core.hashchain import compute_hash
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+BASE_DIR = Path(__file__).resolve().parents[3]
 DB_PATH = Path(os.getenv("SNAPSHOTS_DB_PATH", BASE_DIR / "data" / "snapshots.db"))
 ALERTS_JSON = BASE_DIR / "data" / "alerts.json"
 ALERTS_LOG = BASE_DIR / "alerts.log"
@@ -371,7 +371,7 @@ def get_snapshot(snapshot_id: str) -> dict:
 
 @app.get("/hashchain/verify")
 @limiter.limit(f"{rate_limit_per_minute}/minute")
-def verify_hash(hash_value: str = Query(..., alias="hash")) -> dict:
+def verify_hash(request: Request, hash_value: str = Query(..., alias="hash")) -> dict:
     """Endpoint de verificación de hash encadenado.
 
     Args:
@@ -415,14 +415,14 @@ def get_alerts() -> list[dict]:
 
 @app.get("/api/health")
 @limiter.limit(f"{rate_limit_per_minute}/minute")
-def api_health() -> dict:
+def api_health(request: Request) -> dict:
     """/** Endpoint de salud protegido por rate limiting. / Health endpoint protected by rate limiting. **/"""
     return {"status": "ok"}
 
 
 @app.get("/api/summaries")
 @limiter.limit(f"{rate_limit_per_minute}/minute")
-def api_summaries() -> dict:
+def api_summaries(request: Request) -> dict:
     """/** Endpoint de summaries protegido por rate limiting. / Summaries endpoint protected by rate limiting. **/"""
     return load_summaries_payload()
 
