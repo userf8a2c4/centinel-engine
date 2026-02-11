@@ -66,9 +66,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
 
       - name: Install project dependencies
         run: |
@@ -109,7 +106,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          python -m pytest \
+          poetry run pytest \
             --cov=centinel \
             --cov-report=xml \
             --cov-report=term-missing \
