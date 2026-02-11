@@ -54,32 +54,7 @@ poetry run pytest --ignore=tests/chaos --ignore=tests/integration
 poetry run bandit -r src -c pyproject.toml
 ```
 
-### Chaos (ligero) / Chaos (light)
-```bash
-poetry run python scripts/chaos_test.py --config chaos_config.yaml.example --level low --duration-minutes 0.1
-```
-
-## Troubleshooting / Resolución de problemas
-### Poetry lock / poetry.lock
-Si el CI falla por dependencias, actualiza el lockfile con: 
-If CI fails due to dependencies, update the lockfile with:
-
-```bash
-poetry lock --no-update
-```
-
-### Pytest discovery / Descubrimiento de pytest
-Si `pytest` no encuentra módulos, verifica que `PYTHONPATH=src` y `--import-mode=importlib` estén activos. 
-If `pytest` does not find modules, ensure `PYTHONPATH=src` and `--import-mode=importlib` are active.
-
-### Bandit falsos positivos / Bandit false positives
-Bandit puede reportar `B101` (asserts) en tests o utilidades. Esto se excluye para evitar ruido, pero se recomienda revisar cualquier reporte nuevo. 
-Bandit may report `B101` (asserts) in tests or utilities. This is excluded to avoid noise, but any new report should be reviewed.
-
-## Políticas de contribución CI / CI contribution policy
-- Mantener tests deterministas y reproducibles. 
-  Keep tests deterministic and reproducible.
-- Evitar dependencias de red en pruebas unitarias. 
-  Avoid network dependencies in unit tests.
-- Agregar cobertura cuando se añade lógica nueva. 
-  Add coverage when new logic is introduced.
+## Buenas prácticas para contribuir / Contribution guidelines
+- Mantener pruebas deterministas en `tests/`.
+- Evitar dependencias de red en unit tests.
+- Si agregas nueva lógica, añade cobertura y actualiza este documento si cambias CI.
