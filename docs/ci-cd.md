@@ -1,85 +1,44 @@
 # CI/CD (Bilingüe / Bilingual)
 
 ## Objetivo / Objective
-Este documento describe el CI para C.E.N.T.I.N.E.L., con foco en reproducibilidad, trazabilidad y confiabilidad frente a auditorías externas (matemáticos, ingenieros, OEA, Carter Center). Cada workflow separa responsabilidades y reporta resultados claros. 
-This document describes the CI for C.E.N.T.I.N.E.L., focused on reproducibility, traceability, and reliability for external audits (mathematicians, engineers, OEA, Carter Center). Each workflow separates responsibilities and reports clear results.
+Este documento describe el CI actual de C.E.N.T.I.N.E.L. con un flujo único, reproducible y mantenible.
+This document describes the current CI setup for C.E.N.T.I.N.E.L. with a single, reproducible, maintainable workflow.
 
-## Resumen de workflows / Workflow summary
-- **Lint (push)**: `flake8` + `black --check`. Rápido y determinista. 
-  **Lint (push)**: `flake8` + `black --check`. Fast and deterministic.
-- **Test (pull_request)**: `pytest` con `pytest-cov` y matriz Python 3.10–3.12. Publica `coverage.xml` como artefacto y reporta a Codecov. 
-  **Test (pull_request)**: `pytest` with `pytest-cov` and Python 3.10–3.12 matrix. Publishes `coverage.xml` as artifact and reports to Codecov.
-- **Security (push/pull_request)**: `bandit` con exclusiones razonables para reducir falsos positivos. 
-  **Security (push/pull_request)**: `bandit` with reasonable exclusions to reduce false positives.
-- **Chaos (pull_request, opcional)**: ejecuta `scripts/chaos_test.py` en modo ligero. 
-  **Chaos (pull_request, optional)**: runs `scripts/chaos_test.py` in light mode.
+## Diseño actual / Current design
+- **Workflow principal:** `.github/workflows/ci.yml`.
+- **Jobs obligatorios:** `lint`, `tests`, `security`.
+- **Gatillos:** `push` (`main`, `work`, `dev-v*`), `pull_request` y `workflow_dispatch`.
+- **Concurrencia:** cancela ejecuciones previas del mismo branch/PR para evitar colas innecesarias.
 
-## Reproducibilidad y credibilidad / Reproducibility and credibility
-- Se fija la matriz de versiones de Python y se usa Poetry con `--no-root --no-interaction --no-ansi`. 
-  Python versions are pinned in a matrix and Poetry uses `--no-root --no-interaction --no-ansi`.
-- Se cachea `.venv` y `~/.cache/pypoetry` para mejorar velocidad y estabilidad. 
-  `.venv` and `~/.cache/pypoetry` are cached to improve speed and stability.
-- `pytest` usa `--import-mode=importlib` y `PYTHONPATH=src` para evitar fallas de discovery. 
-  `pytest` uses `--import-mode=importlib` and `PYTHONPATH=src` to avoid discovery failures.
+## Qué valida CI / What CI validates
+1. **Lint (Python 3.11)**
+   - `flake8 .`
+   - `black --check .`
+2. **Tests (matriz Python 3.10 y 3.11)**
+   - `pytest` con cobertura (`--cov=centinel`).
+   - Excluye suites no deterministas/pesadas en el job principal (`tests/chaos`, `tests/integration`).
+   - Ejecuta además `tests/resilience/` con cobertura de `scripts`.
+3. **Security (Python 3.11)**
+   - `bandit -r src -c pyproject.toml`
 
-## Configuración clave / Key configuration
-- **Coverage**: `.coveragerc` excluye `tests/` y `chaos_test.py`. 
-  **Coverage**: `.coveragerc` excludes `tests/` and `chaos_test.py`.
-- **Pytest**: `pyproject.toml` define `testpaths`, `pythonpath` y `--import-mode=importlib`. 
-  **Pytest**: `pyproject.toml` defines `testpaths`, `pythonpath`, and `--import-mode=importlib`.
-- **Bandit**: `pyproject.toml` excluye `tests/` y `chaos_test.py`, y evita falsos positivos comunes (`B101`). 
-  **Bandit**: `pyproject.toml` excludes `tests/` and `chaos_test.py`, and avoids common false positives (`B101`).
+## Cambios respecto al esquema anterior / Changes vs previous setup
+- Se eliminaron workflows redundantes de CI (`lint.yml`, `security.yml`, `chaos.yml`, `sentinel-pipeline.yml`).
+- `ci.yml` pasa a ser la única fuente de verdad para calidad, pruebas y seguridad.
+- Se normalizan versiones de Python y criterios de ejecución para reducir drift documental.
 
-## Cómo ejecutar localmente / How to run locally
-Requiere Python 3.10+ y Poetry. 
-Requires Python 3.10+ and Poetry.
+## Ejecutar localmente / Run locally
+Requiere Python 3.10+.
 
 ```bash
-poetry install --with dev
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m flake8 .
+python -m black --check .
+python -m pytest --cov=centinel --cov-report=xml --cov-report=term-missing --ignore=tests/chaos --ignore=tests/integration
+python -m pytest tests/resilience/ -v --cov=scripts
+python -m bandit -r src -c pyproject.toml
 ```
 
-### Lint / Lint
-```bash
-make lint
-```
-
-### Tests + Coverage / Pruebas + Cobertura
-```bash
-make test
-poetry run pytest --cov=centinel --cov-report=xml --cov-report=term-missing
-```
-
-### Bandit / Bandit
-```bash
-poetry run bandit -r src -c pyproject.toml
-```
-
-### Chaos (ligero) / Chaos (light)
-```bash
-poetry run python scripts/chaos_test.py --config chaos_config.yaml.example --level low --duration-minutes 0.1
-```
-
-## Troubleshooting / Resolución de problemas
-### Poetry lock / poetry.lock
-Si el CI falla por dependencias, actualiza el lockfile con: 
-If CI fails due to dependencies, update the lockfile with:
-
-```bash
-poetry lock --no-update
-```
-
-### Pytest discovery / Descubrimiento de pytest
-Si `pytest` no encuentra módulos, verifica que `PYTHONPATH=src` y `--import-mode=importlib` estén activos. 
-If `pytest` does not find modules, ensure `PYTHONPATH=src` and `--import-mode=importlib` are active.
-
-### Bandit falsos positivos / Bandit false positives
-Bandit puede reportar `B101` (asserts) en tests o utilidades. Esto se excluye para evitar ruido, pero se recomienda revisar cualquier reporte nuevo. 
-Bandit may report `B101` (asserts) in tests or utilities. This is excluded to avoid noise, but any new report should be reviewed.
-
-## Políticas de contribución CI / CI contribution policy
-- Mantener tests deterministas y reproducibles. 
-  Keep tests deterministic and reproducible.
-- Evitar dependencias de red en pruebas unitarias. 
-  Avoid network dependencies in unit tests.
-- Agregar cobertura cuando se añade lógica nueva. 
-  Add coverage when new logic is introduced.
+## Buenas prácticas para contribuir / Contribution guidelines
+- Mantener pruebas deterministas en `tests/`.
+- Evitar dependencias de red en unit tests.
+- Si agregas nueva lógica, añade cobertura y actualiza este documento si cambias CI.
