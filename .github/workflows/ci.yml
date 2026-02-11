@@ -19,6 +19,7 @@ concurrency:
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: '1'
   PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONPATH: src
 
 jobs:
   lint:
@@ -91,6 +92,7 @@ jobs:
         run: python -m pytest tests/resilience/ -v --cov=scripts
 
       - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml

@@ -22,7 +22,7 @@ This document describes the current CI setup for C.E.N.T.I.N.E.L. with a single,
    - `bandit -r src -c pyproject.toml`
 
 ## Cambios respecto al esquema anterior / Changes vs previous setup
-- Se eliminaron workflows redundantes de CI (`lint.yml`, `security.yml`, `chaos.yml`, `sentinel-pipeline.yml`).
+- Se eliminaron workflows redundantes de CI (`lint.yml`, `security.yml`, `chaos.yml`, `sentinel-pipeline.yml`, `format.yml`).
 - `ci.yml` pasa a ser la única fuente de verdad para calidad, pruebas y seguridad.
 - Se normalizan versiones de Python y criterios de ejecución para reducir drift documental.
 
