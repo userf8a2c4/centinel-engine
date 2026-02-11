@@ -1,60 +1,53 @@
 # CI/CD (Bilingüe / Bilingual)
 
 ## Objetivo / Objective
-Este documento describe el CI para C.E.N.T.I.N.E.L., con foco en reproducibilidad, trazabilidad y confiabilidad frente a auditorías externas (matemáticos, ingenieros, OEA, Carter Center). Cada workflow separa responsabilidades y reporta resultados claros. 
-This document describes the CI for C.E.N.T.I.N.E.L., focused on reproducibility, traceability, and reliability for external audits (mathematicians, engineers, OEA, Carter Center). Each workflow separates responsibilities and reports clear results.
+Este documento describe el CI/CD vigente de C.E.N.T.I.N.E.L., con foco en reproducibilidad, trazabilidad y confiabilidad frente a auditorías externas.
+This document describes the active C.E.N.T.I.N.E.L. CI/CD setup, focused on reproducibility, traceability, and reliability for external audits.
 
-## Resumen de workflows / Workflow summary
-- **Lint (push)**: `flake8` + `black --check`. Rápido y determinista. 
-  **Lint (push)**: `flake8` + `black --check`. Fast and deterministic.
-- **CI (push/pull_request)**: jobs `Lint` + `Tests` (matriz Python 3.10–3.11) con foco en estabilidad operativa.
-  **CI (push/pull_request)**: `Lint` + `Tests` jobs (Python 3.10–3.11 matrix) focused on operational stability.
-- **Security (push/pull_request)**: `bandit` con exclusiones razonables para reducir falsos positivos. 
-  **Security (push/pull_request)**: `bandit` with reasonable exclusions to reduce false positives.
-- **Chaos (pull_request, opcional)**: ejecuta `scripts/chaos_test.py` en modo ligero. 
-  **Chaos (pull_request, optional)**: runs `scripts/chaos_test.py` in light mode.
+## Workflows activos / Active workflows
 
-## Reproducibilidad y credibilidad / Reproducibility and credibility
-- Se fija la matriz de versiones de Python y se usa Poetry con `--no-root --no-interaction --no-ansi`. 
-  Python versions are pinned in a matrix and Poetry uses `--no-root --no-interaction --no-ansi`.
-- Se cachea `.venv` y `~/.cache/pypoetry` para mejorar velocidad y estabilidad. 
-  `.venv` and `~/.cache/pypoetry` are cached to improve speed and stability.
-- `pytest` usa `--import-mode=importlib` y `PYTHONPATH=src` para evitar fallas de discovery. 
-  `pytest` uses `--import-mode=importlib` and `PYTHONPATH=src` to avoid discovery failures.
+- **CI (`.github/workflows/ci.yml`)**
+  - **Trigger:** `push` (`main`, `work`, `dev-v*`), `pull_request`, `workflow_dispatch`.
+  - **Jobs:** `lint` (flake8 crítico) + `tests` (smoke suite en Python 3.10/3.11).
 
-## Configuración clave / Key configuration
-- **Coverage**: `.coveragerc` excluye `tests/` y `chaos_test.py`. 
-  **Coverage**: `.coveragerc` excludes `tests/` and `chaos_test.py`.
-- **Pytest**: `pyproject.toml` define `testpaths`, `pythonpath` y `--import-mode=importlib`. 
-  **Pytest**: `pyproject.toml` defines `testpaths`, `pythonpath`, and `--import-mode=importlib`.
-- **Bandit**: `pyproject.toml` excluye `tests/` y `chaos_test.py`, y evita falsos positivos comunes (`B101`). 
-  **Bandit**: `pyproject.toml` excludes `tests/` and `chaos_test.py`, and avoids common false positives (`B101`).
+- **CodeQL (`.github/workflows/codeql.yml`)**
+  - **Trigger:** `push`/`pull_request` sobre `main` + ejecución semanal programada.
+  - **Objetivo:** análisis estático de seguridad para `python` y `actions`.
 
-## Cómo ejecutar localmente / How to run locally
-Requiere Python 3.10+ y Poetry. 
-Requires Python 3.10+ and Poetry.
+- **Scheduler de captura (`.github/workflows/scheduler.yml`)**
+  - **Trigger:** `schedule` cada 15 minutos + ejecución manual.
+  - **Objetivo:** ejecutar `python -m scripts.download_and_hash`, persistir snapshots y commitear evidencia.
+
+- **Deploy Dashboard (`.github/workflows/deploy-dashboard.yml`)**
+  - **Trigger:** `push` en ramas de despliegue configuradas.
+  - **Objetivo:** desplegar `dashboard.py` en Streamlit Community Cloud.
+
+> Nota: ver diagnóstico de legado y obsolescencia en [`docs/workflows-audit.md`](workflows-audit.md).
+
+## Cómo ejecutar validaciones localmente / Local validation
+
+Requiere Python 3.10+.
+Requires Python 3.10+.
 
 ```bash
-poetry install --with dev
+python -m pip install -U pip
+python -m pip install pytest==8.3.3 python-dateutil "flake8>=7,<8"
 ```
 
-### Lint / Lint
+### Lint
+
 ```bash
-make lint
+python -m flake8 . --select=E9,F63,F7,F82 --show-source --statistics
 ```
 
-### Tests / Pruebas
+### Tests (smoke suite)
+
 ```bash
-make test
-poetry run pytest -q tests/test_hashchain.py tests/test_turnout_impossible_rule.py
+python -m pytest -q tests/test_hashchain.py tests/test_turnout_impossible_rule.py
 ```
 
-### Bandit / Bandit
-```bash
-poetry run bandit -r src -c pyproject.toml
-```
+## Buenas prácticas / Contribution guidelines
 
-## Buenas prácticas para contribuir / Contribution guidelines
 - Mantener pruebas deterministas en `tests/`.
 - Evitar dependencias de red en unit tests.
-- Si agregas nueva lógica, añade cobertura y actualiza este documento si cambias CI.
+- Si cambias workflows, actualiza este documento y la auditoría de workflows.
