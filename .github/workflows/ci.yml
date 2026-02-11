@@ -1,72 +1,142 @@
 name: CI
-# Single source of truth for tests (legacy Test workflow removed).
 
 on:
   push:
-    branches: ["main", "dev-v6"]
+    branches:
+      - main
+      - work
+      - 'dev-v*'
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONPATH: src
 
 jobs:
-  ci:
-    name: CI (Python ${{ matrix.python-version }})
+  lint:
+    name: Lint (Python 3.11)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install lint tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "flake8>=7.0.0,<8.0.0" "black>=24.0.0,<25.0.0"
+
+      - name: Run flake8
+        run: python -m flake8 .
+
+      - name: Run black --check
+        run: python -m black --check .
+
+  tests:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ['3.10', '3.11']
 
     steps:
-      # Checkout / Clonar repositorio
-      - name: Checkout repository / Clonar repositorio
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Setup Python / Configurar Python
-      - name: Set up Python ${{ matrix.python-version }} / Configurar Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
 
-      # Install dependencies / Instalar dependencias
-      - name: Install dependencies / Instalar dependencias
+      - name: Install Poetry
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt -r requirements-dev.txt
+          python -m pip install poetry
 
-      # Lint / Revisar estilo
-      - name: Lint (flake8 + black) / Lint (flake8 + black)
-        run: |
-          python -m flake8 .
-          python -m black --check .
+      - name: Install project dependencies (Poetry)
+        run: poetry install --with dev --no-interaction --no-ansi
 
-      # Test + coverage / Pruebas + cobertura
-      - name: Test with coverage / Pruebas con cobertura
+      - name: Run unit/regression tests
         run: |
-          python -m pytest \
+          poetry run pytest \
+            --ignore=tests/chaos \
+            --ignore=tests/integration
+
+      - name: Run resilience tests
+        run: poetry run pytest tests/resilience/ -v
+
+  coverage:
+    name: Coverage upload (Python 3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Poetry
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install poetry
+
+      - name: Install project dependencies (Poetry)
+        run: poetry install --with dev --no-interaction --no-ansi
+
+      - name: Run tests with coverage
+        run: |
+          poetry run pytest \
             --cov=centinel \
             --cov-report=xml \
             --cov-report=term-missing \
             --ignore=tests/chaos \
             --ignore=tests/integration
 
-      # Resilience tests / Pruebas de resiliencia
-      - name: Resilience tests / Pruebas de resiliencia
-        run: |
-          python -m pytest tests/resilience/ -v --cov=scripts
-
-      # Upload coverage / Subir cobertura
-      - name: Upload coverage to Codecov / Subir cobertura a Codecov
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
           fail_ci_if_error: false
 
-      # Security scan / Escaneo de seguridad
-      - name: Bandit security scan / Escaneo Bandit
-        run: |
-          python -m pip install bandit
-          python -m bandit -r src \
-            -x tests,docs,.venv,build,dist
+  security:
+    name: Security (Bandit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Bandit
+        run: python -m pip install --upgrade pip bandit
+
+      - name: Run Bandit scan
+        run: bandit -r src -c pyproject.toml
