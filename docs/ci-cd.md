@@ -7,8 +7,8 @@ This document describes the CI for C.E.N.T.I.N.E.L., focused on reproducibility,
 ## Resumen de workflows / Workflow summary
 - **Lint (push)**: `flake8` + `black --check`. Rápido y determinista. 
   **Lint (push)**: `flake8` + `black --check`. Fast and deterministic.
-- **Test (pull_request)**: `pytest` con `pytest-cov` y matriz Python 3.10–3.12. Publica `coverage.xml` como artefacto y reporta a Codecov. 
-  **Test (pull_request)**: `pytest` with `pytest-cov` and Python 3.10–3.12 matrix. Publishes `coverage.xml` as artifact and reports to Codecov.
+- **CI (push/pull_request)**: jobs `Lint` + `Tests` (matriz Python 3.10–3.11) con foco en estabilidad operativa.
+  **CI (push/pull_request)**: `Lint` + `Tests` jobs (Python 3.10–3.11 matrix) focused on operational stability.
 - **Security (push/pull_request)**: `bandit` con exclusiones razonables para reducir falsos positivos. 
   **Security (push/pull_request)**: `bandit` with reasonable exclusions to reduce false positives.
 - **Chaos (pull_request, opcional)**: ejecuta `scripts/chaos_test.py` en modo ligero. 
@@ -43,10 +43,10 @@ poetry install --with dev
 make lint
 ```
 
-### Tests + Coverage / Pruebas + Cobertura
+### Tests / Pruebas
 ```bash
 make test
-poetry run pytest --cov=centinel --cov-report=xml --cov-report=term-missing
+poetry run pytest -q tests/test_hashchain.py tests/test_turnout_impossible_rule.py
 ```
 
 ### Bandit / Bandit
