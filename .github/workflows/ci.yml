@@ -2,7 +2,10 @@ name: CI
 
 on:
   push:
-    branches: ["main", "dev-v6"]
+    branches:
+      - main
+      - work
+      - 'dev-v*'
   pull_request:
   workflow_dispatch:
 
