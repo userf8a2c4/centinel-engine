@@ -45,7 +45,8 @@ make lint
 
 ### Tests / Pruebas
 ```bash
-poetry run pytest --ignore=tests/chaos --ignore=tests/integration --ignore=tests/test_failure_injection.py --ignore=tests/test_failure_resilience.py --ignore=tests/test_stress.py
+make test
+poetry run pytest -q tests/test_config.py tests/test_centinel_schemas.py tests/test_hashchain.py tests/test_turnout_impossible_rule.py
 ```
 
 ### Bandit / Bandit
