@@ -55,10 +55,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install minimal test dependency
+      - name: Install minimal test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest==8.3.3
+          python -m pip install pytest==8.3.3 python-dateutil
 
       - name: Run tests (core smoke suite)
         run: |
