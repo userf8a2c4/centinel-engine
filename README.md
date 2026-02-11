@@ -8,7 +8,6 @@
 [![Lint](https://github.com/userf8a2c4/centinel-engine/actions/workflows/lint.yml/badge.svg?branch=dev-v6)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/lint.yml)
 [![Tests](https://github.com/userf8a2c4/centinel-engine/actions/workflows/test.yml/badge.svg?branch=dev-v6)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/test.yml)
 [![Security](https://github.com/userf8a2c4/centinel-engine/actions/workflows/security.yml/badge.svg?branch=dev-v6)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/security.yml)
-[![Coverage](https://codecov.io/gh/userf8a2c4/centinel-engine/branch/dev-v6/graph/badge.svg)](https://codecov.io/gh/userf8a2c4/centinel-engine)
 
 ## Descripción breve
 
