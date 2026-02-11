@@ -9,17 +9,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: read
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  PYTHONDONTWRITEBYTECODE: '1'
-  PYTHONPATH: src
-
 jobs:
   lint:
     name: Lint (Python 3.11)
@@ -69,42 +58,13 @@ jobs:
       - name: Install Poetry
         run: |
           python -m pip install --upgrade pip
-          python -m pip install poetry
+          python -m pip install --use-deprecated=legacy-resolver -r requirements.txt -r requirements-dev.txt
 
-      - name: Install project dependencies (Poetry)
-        run: poetry install --with dev --no-interaction --no-ansi
-
-      - name: Run unit/regression tests
+      # Lint / Revisar estilo
+      - name: Lint (flake8 critical + black) / Lint (flake8 crítico + black)
         run: |
-          poetry run pytest \
-            --ignore=tests/chaos \
-            --ignore=tests/integration
-
-      - name: Run resilience tests
-        run: poetry run pytest tests/resilience/ -v
-
-  coverage:
-    name: Coverage upload (Python 3.11)
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-
-      - name: Install Poetry
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install poetry
-
-      - name: Install project dependencies (Poetry)
-        run: poetry install --with dev --no-interaction --no-ansi
+          python -m flake8 . --select=E9,F63,F7,F82 --show-source --statistics
+          python -m black --check .
 
       - name: Run tests with coverage
         run: |
@@ -121,22 +81,8 @@ jobs:
           files: coverage.xml
           fail_ci_if_error: false
 
-  security:
-    name: Security (Bandit)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Bandit
-        run: python -m pip install --upgrade pip bandit
-
-      - name: Run Bandit scan
-        run: bandit -r src -c pyproject.toml
+      # Security scan / Escaneo de seguridad
+      - name: Bandit security scan / Escaneo Bandit
+        run: |
+          python -m pip install bandit
+          python -m bandit -r src -c pyproject.toml
