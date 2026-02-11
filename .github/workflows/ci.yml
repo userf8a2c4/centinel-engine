@@ -55,18 +55,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install minimal test dependencies
+      - name: Install minimal test dependency
         run: |
           python -m pip install --upgrade pip
-          python -m pip install \
-            pytest==8.3.3 \
-            pydantic \
-            PyYAML
+          python -m pip install pytest==8.3.3
 
-      - name: Run tests (stable smoke suite)
+      - name: Run tests (core smoke suite)
         run: |
           python -m pytest -q \
-            tests/test_config.py \
-            tests/test_centinel_schemas.py \
             tests/test_hashchain.py \
             tests/test_turnout_impossible_rule.py

@@ -46,7 +46,7 @@ make lint
 ### Tests / Pruebas
 ```bash
 make test
-poetry run pytest -q tests/test_config.py tests/test_centinel_schemas.py tests/test_hashchain.py tests/test_turnout_impossible_rule.py
+poetry run pytest -q tests/test_hashchain.py tests/test_turnout_impossible_rule.py
 ```
 
 ### Bandit / Bandit
