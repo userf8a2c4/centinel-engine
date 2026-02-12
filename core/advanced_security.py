@@ -19,6 +19,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -44,7 +46,7 @@ except Exception:  # noqa: BLE001
         def net_connections(kind: str = "inet"):
             return []
 
-    psutil = _PsutilFallback()
+# Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
 
 from core.http_compat import requests
 import yaml

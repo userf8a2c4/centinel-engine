@@ -16,6 +16,8 @@ import random
 import socket
 import threading
 import time
+import urllib.error
+import urllib.request
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -31,7 +33,7 @@ except Exception:  # noqa: BLE001
         @staticmethod
         def net_connections(kind: str = "inet"):
             return []
-
+# Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
     psutil = _PsutilFallback()
 from core.http_compat import requests
 import yaml
