@@ -29,3 +29,60 @@ We follow a coordinated responsible disclosure process. We request a reasonable 
 
 ## [EN] Public data disclaimer (CNE)
 This repository processes **public data** from the CNE. We do not store or request personal data. If sensitive data appears in public sources, it will be filtered, anonymized, or removed.
+
+---
+
+## Defensive Dead Man's Switch / Interruptor Defensivo de Hombre Muerto
+
+This repository now includes a passive **Defensive Mode** that can place the pipeline into controlled hibernation when hostile runtime conditions are detected.  
+Este repositorio ahora incluye un **Modo Defensivo** pasivo que puede llevar el pipeline a hibernación controlada cuando detecta condiciones hostiles.
+
+### Flow diagram / Diagrama de flujo
+
+```text
+[Normal polling]
+      |
+      v
+[Hostile trigger?] -- no --> [Continue]
+      |
+     yes
+      v
+[Pause jobs + collect safe state]
+      |
+      v
+[Close connections + write defensive flag]
+      |
+      v
+[Controlled shutdown]
+      |
+      v
+[Supervisor waits random cooldown 10-60 min]
+      |
+      v
+[Retry up to 5 times with exponential cooldown]
+      |
+      +--> [Recovered] --> [Return to polling]
+      |
+      +--> [Still failing] --> [Human admin alert]
+```
+
+### Defensive triggers / Disparadores defensivos
+
+- Sustained CPU pressure (`>90%` for `>60s`).
+- High memory pressure (`>85%`).
+- HTTP transient failure storms (`429`, `503`, timeout bursts).
+- Error log flooding bursts.
+- Graceful hostile signals (`SIGTERM`, `SIGINT`).
+- Optional suspicious listening-ports monitor.
+
+### Why this matters for electoral resilience / Por qué importa para resiliencia electoral
+
+- Reduces brittle behavior under DDoS and heavy platform stress.
+- Preserves forensic context (`data/safe_state/*`) for reproducible audits.
+- Avoids aggressive retry loops that could worsen upstream instability.
+- Escalates to humans only after bounded retries, limiting noise and alert fatigue.
+
+See:
+- `core/security.py`
+- `scripts/supervisor.py`
+- `command_center/security_config.yaml`

@@ -1,0 +1,31 @@
+# Defensive Dead Man's Switch config / Configuración del interruptor defensivo.
+cpu_threshold_percent: 90
+cpu_sustain_seconds: 60
+memory_threshold_percent: 85
+http_errors_limit: 10
+http_window_seconds: 300
+error_log_flood_limit: 50
+error_log_window_seconds: 60
+monitor_connections: false
+expected_ports: [443]
+suspicious_connections_limit: 2
+
+safe_state_dir: data/safe_state
+defensive_flag_file: data/safe_state/defensive_shutdown.flag
+
+max_reintentos: 5
+cooldown_min: 10
+cooldown_max: 60
+
+admin_email: example@domain.com
+webhook_url: ""
+smtp_settings:
+  server: smtp.example.com
+  port: 587
+  user: ""
+  password: ""
+
+honeypot:
+  enabled: false
+  host: 127.0.0.1
+  port: 8081

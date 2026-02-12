@@ -23,6 +23,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from anchor.arbitrum_anchor import anchor_batch, anchor_root
 from scripts.circuit_breaker import CircuitBreaker
+from core.security import DefensiveSecurityManager, DefensiveShutdown, SecurityConfig
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
 from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
@@ -42,6 +43,7 @@ PIPELINE_CHECKPOINT_PATH = TEMP_DIR / "pipeline_checkpoint.json"
 FAILURE_CHECKPOINT_PATH = TEMP_DIR / "checkpoint.json"
 HEARTBEAT_PATH = DATA_DIR / "heartbeat.json"
 RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
+SECURITY_CONFIG_PATH = Path("command_center") / "security_config.yaml"
 RESILIENCE_STAGE_ORDER = [
     "start",
     "healthcheck",
@@ -149,6 +151,25 @@ def collect_snapshot_index(limit: int = 19) -> list[dict[str, Any]]:
             }
         )
     return index
+
+
+def build_defensive_state_snapshot() -> dict[str, Any]:
+    """/** Construye estado persistible para shutdown defensivo. / Build persisted state for defensive shutdown. **/"""
+    latest_snapshot = next(iter(sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)), None)
+    recent_hashes = [p.name for p in sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)[:10]]
+    queued_urls: list[str] = []
+    config = load_config()
+    endpoints = config.get("endpoints", {}) if isinstance(config, dict) else {}
+    if isinstance(endpoints, dict):
+        queued_urls = [str(url) for url in endpoints.values()][:25]
+    return {
+        "latest_snapshot": latest_snapshot.name if latest_snapshot else None,
+        "recent_hash_files": recent_hashes,
+        "queued_urls": queued_urls,
+        "recent_snapshots": collect_snapshot_index(limit=10),
+        "checkpoint": load_pipeline_checkpoint(),
+        "heartbeat": json.loads(HEARTBEAT_PATH.read_text(encoding="utf-8")) if HEARTBEAT_PATH.exists() else {},
+    }
 
 
 def load_rules_thresholds() -> dict[str, Any]:
@@ -736,7 +757,7 @@ def run_pipeline(config: dict[str, Any]):
         raise
 
 
-def safe_run_pipeline(config: dict[str, Any]) -> bool:
+def safe_run_pipeline(config: dict[str, Any], security_manager: DefensiveSecurityManager | None = None) -> bool:
     """/** Ejecuta pipeline con protección contra fallas de red. / Run pipeline with protection against network failures. **"""
     resilience_settings = load_resilience_settings(config)
     auto_resume = build_auto_resume_settings(resilience_settings)
@@ -762,6 +783,9 @@ def safe_run_pipeline(config: dict[str, Any]) -> bool:
                 stage=stage or "unknown",
                 error=str(exc),
             )
+            if security_manager:
+                security_manager.record_http_error(timeout=True)
+                security_manager.record_log_error()
             save_resilience_checkpoint(run_id, stage, error=str(exc))
             retry_on = auto_resume["retry_on"]
             retryable = retry_on in {"any", "network"}
@@ -794,6 +818,8 @@ def safe_run_pipeline(config: dict[str, Any]) -> bool:
                 stage=stage or "unknown",
                 error=str(exc),
             )
+            if security_manager:
+                security_manager.record_log_error()
             save_resilience_checkpoint(run_id, stage, error=str(exc))
             attempt += 1
             if not auto_resume["enabled"] or auto_resume["retry_on"] != "any":
@@ -1036,6 +1062,19 @@ def main():
     )
     args = parser.parse_args()
     config = load_config()
+    security_manager = DefensiveSecurityManager(SecurityConfig.from_yaml(SECURITY_CONFIG_PATH), logger=logger)
+    security_manager.register_signal_handlers()
+    security_manager.start_honeypot()
+
+    def _guarded_run() -> bool:
+        triggers = security_manager.detect_hostile_conditions()
+        if triggers:
+            security_manager.activate_defensive_mode(
+                triggers,
+                snapshot_state=build_defensive_state_snapshot(),
+            )
+        return safe_run_pipeline(config, security_manager=security_manager)
+
     master_status = normalize_master_switch(config.get("master_switch"))
     print(f"[i] MASTER SWITCH: {master_status}")
     if not is_master_switch_on(config):
@@ -1083,17 +1122,25 @@ def main():
 
     if args.once:
         update_heartbeat(status="manual_once")
-        safe_run_pipeline(config)
+        try:
+            _guarded_run()
+        except DefensiveShutdown:
+            update_heartbeat(status="defensive_shutdown")
+            raise SystemExit(0)
         update_heartbeat(status="manual_once_completed")
         return
 
     if args.run_now:
         update_heartbeat(status="manual_run_now")
-        safe_run_pipeline(config)
+        try:
+            _guarded_run()
+        except DefensiveShutdown:
+            update_heartbeat(status="defensive_shutdown")
+            raise SystemExit(0)
 
     scheduler = BlockingScheduler(timezone="UTC")
     scheduler.add_job(update_heartbeat, "interval", minutes=1)
-    scheduler.add_job(lambda: safe_run_pipeline(config), CronTrigger(minute=0))
+    scheduler.add_job(_guarded_run, CronTrigger(minute=0))
     print("[+] Scheduler activo: ejecución horaria en minuto 00 UTC")
     scheduler.start()
 
