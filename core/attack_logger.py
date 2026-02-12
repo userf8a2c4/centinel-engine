@@ -11,19 +11,38 @@ import json
 import os
 import queue
 import random
+import socket
 import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
-import psutil
+try:
+    import psutil
+except Exception:  # noqa: BLE001
+    class _PsutilFallback:
+        CONN_LISTEN = "LISTEN"
+
+        @staticmethod
+        def net_connections(kind: str = "inet"):
+            return []
+
+    psutil = _PsutilFallback()
 import requests
 import yaml
-from flask import Flask, Request, request
-from werkzeug.serving import make_server
+try:
+    from flask import Flask, Request, request
+    from werkzeug.serving import make_server
+except Exception:  # noqa: BLE001
+    Flask = None  # type: ignore[assignment]
+    Request = Any  # type: ignore[misc, assignment]
+    request = None
+
+    def make_server(*_args: Any, **_kwargs: Any):
+        raise RuntimeError("flask_not_installed")
 
 
 @dataclass
@@ -56,6 +75,8 @@ class AttackLogConfig:
     honeypot_port: int = 8080
     honeypot_routes: list[str] = field(default_factory=lambda: ["/debug", "/admin", "/api/internal"])
     monitor_unexpected_connections: bool = True
+    flood_log_sample_ratio: int = 10
+    geoip_city_db_path: str = ""
 
     @classmethod
     def from_yaml(cls, path: Path) -> "AttackLogConfig":
@@ -97,6 +118,8 @@ class AttackLogConfig:
             honeypot_port=int(honeypot.get("port", 8080)),
             honeypot_routes=list(honeypot.get("routes", cls().honeypot_routes)),
             monitor_unexpected_connections=bool(raw.get("monitor_unexpected_connections", True)),
+            flood_log_sample_ratio=max(1, int(raw.get("flood_log_sample_ratio", 10))),
+            geoip_city_db_path=str(raw.get("geoip_city_db_path", "")),
         )
 
 
@@ -106,7 +129,7 @@ class AttackForensicsLogbook:
     Registrador asíncrono de evidencia de ataques en JSONL.
     """
 
-    def __init__(self, config: AttackLogConfig) -> None:
+    def __init__(self, config: AttackLogConfig, event_callback: Callable[[dict[str, Any]], None] | None = None) -> None:
         self.config = config
         self.path = Path(config.log_path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -114,8 +137,19 @@ class AttackForensicsLogbook:
         self._writer_stop = threading.Event()
         self._writer_thread: threading.Thread | None = None
         self._last_rotation = time.time()
+        self._event_callback = event_callback
         self._per_ip_hits: dict[str, deque[float]] = defaultdict(deque)
         self._per_ip_routes: dict[str, deque[str]] = defaultdict(lambda: deque(maxlen=self.config.sequence_window_size))
+        self._per_ip_flood_counter: dict[str, int] = defaultdict(int)
+        self._geo_reader: Any = None
+
+        if self.config.geoip_city_db_path:
+            try:
+                import geoip2.database  # type: ignore[import-not-found]
+
+                self._geo_reader = geoip2.database.Reader(self.config.geoip_city_db_path)
+            except Exception:
+                self._geo_reader = None
 
     def start(self) -> None:
         """Start background writer thread.
@@ -230,7 +264,39 @@ class AttackForensicsLogbook:
             "sequence": list(routes),
             "classification": classification,
             "source": "honeypot_or_ingress",
+            "geo": self._resolve_geo(ip),
         }
+
+    def _resolve_geo(self, ip: str) -> dict[str, str]:
+        """Resolve geo data with offline DB if available.
+
+        Resuelve datos geo con base offline si está disponible.
+        """
+        private_prefixes = ("127.", "10.", "192.168.", "172.16.", "172.17.", "172.18.", "172.19.")
+        if ip.startswith(private_prefixes):
+            return {"country": "local", "city": "local"}
+
+        if self._geo_reader:
+            try:
+                record = self._geo_reader.city(ip)
+                return {
+                    "country": getattr(record.country, "iso_code", "unknown") or "unknown",
+                    "city": getattr(record.city, "name", "unknown") or "unknown",
+                }
+            except Exception:
+                return {"country": "unknown", "city": "unknown"}
+        return {"country": "unknown", "city": "unknown"}
+
+    def _should_enqueue(self, event: dict[str, Any]) -> bool:
+        """Sample flood events to prevent sustained log inflation.
+
+        Muestra eventos flood para prevenir inflado sostenido de bitácoras.
+        """
+        if event.get("classification") != "flood":
+            return True
+        ip = str(event.get("ip", "0.0.0.0"))
+        self._per_ip_flood_counter[ip] += 1
+        return self._per_ip_flood_counter[ip] % self.config.flood_log_sample_ratio == 0
 
     def log_http_request(self, *, ip: str, method: str, route: str, headers: dict[str, str], content_length: int = 0) -> dict[str, Any]:
         """Register suspicious inbound HTTP metadata.
@@ -238,8 +304,11 @@ class AttackForensicsLogbook:
         Registra metadatos HTTP de entrada sospechosa.
         """
         event = self._build_event(ip=ip, method=method, route=route, headers=headers, content_length=content_length)
-        self._events.put(event)
+        if self._should_enqueue(event):
+            self._events.put(event)
         self._maybe_send_summary(event)
+        if self._event_callback:
+            self._event_callback(event)
         return event
 
     def log_connection_snapshot(self) -> None:
@@ -334,6 +403,8 @@ class HoneypotServer:
     def __init__(self, config: AttackLogConfig, logbook: AttackForensicsLogbook) -> None:
         self.config = config
         self.logbook = logbook
+        if Flask is None:
+            raise RuntimeError("flask_not_installed")
         self.app = Flask("centinel_honeypot")
         self._server = None
         self._thread: threading.Thread | None = None
@@ -342,6 +413,41 @@ class HoneypotServer:
     def _install_routes(self) -> None:
         for route in self.config.honeypot_routes:
             self.app.add_url_rule(route, route, self._handle, methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+
+        @self.app.before_request
+        def _basic_firewall() -> tuple[str, int] | None:
+            remote_ip = request.remote_addr or "0.0.0.0"
+            if self._is_private_or_loopback(remote_ip):
+                return None
+            if self._is_dns_blackholed(remote_ip):
+                self.logbook.log_http_request(
+                    ip=remote_ip,
+                    method=request.method,
+                    route=request.path,
+                    headers=self._extract_headers(request),
+                    content_length=int(request.content_length or 0),
+                )
+                return ("Blocked", 403)
+            return None
+
+    def _is_private_or_loopback(self, ip: str) -> bool:
+        try:
+            packed = socket.inet_aton(ip)
+            first_octet = packed[0]
+            second_octet = packed[1]
+            return (
+                ip.startswith("127.")
+                or ip.startswith("10.")
+                or (first_octet == 192 and second_octet == 168)
+                or (first_octet == 172 and 16 <= second_octet <= 31)
+            )
+        except OSError:
+            return False
+
+    def _is_dns_blackholed(self, ip: str) -> bool:
+        deny_list = os.getenv("CENTINEL_HONEYPOT_DENYLIST", "")
+        denied = {entry.strip() for entry in deny_list.split(",") if entry.strip()}
+        return ip in denied
 
     def _extract_headers(self, req: Request) -> dict[str, str]:
         return {key: value for key, value in req.headers.items()}

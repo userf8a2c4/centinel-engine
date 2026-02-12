@@ -7,8 +7,10 @@ retention_days: 30
 frequency_window_seconds: 60
 sequence_window_size: 40
 max_requests_per_ip: 20
+flood_log_sample_ratio: 10
 monitor_unexpected_connections: true
-expected_listen_ports: [443]
+expected_listen_ports: [443, 8080, 8081]
+geoip_city_db_path: ""
 
 suspicious_user_agents:
   - sqlmap
@@ -26,7 +28,7 @@ brute_force_paths:
 tor_exit_nodes: []
 
 external_summary:
-  enabled: false
+  enabled: true
   critical_only: true
   channel: webhook
   anonymize: true
@@ -34,7 +36,7 @@ external_summary:
   telegram_chat_id: ""
 
 honeypot:
-  enabled: false
+  enabled: true
   host: 127.0.0.1
   port: 8080
   routes:

@@ -46,6 +46,9 @@ except Exception:  # noqa: BLE001
 
 import requests
 import yaml
+
+from core.attack_logger import AttackForensicsLogbook, AttackLogConfig
+from core.security import DefensiveSecurityManager, SecurityConfig
 try:
     from cryptography.fernet import Fernet
 except Exception:  # noqa: BLE001
@@ -98,6 +101,12 @@ class AdvancedSecurityConfig:
     rotate_every_min_polls: int = 10
     rotate_every_max_polls: int = 30
     proxy_list: list[str] = field(default_factory=list)
+    anomaly_consecutive_limit: int = 3
+    honeypot_flood_trigger_count: int = 5
+    honeypot_flood_window_seconds: int = 120
+    auto_backup_forensic_logs: bool = True
+    alert_escalation_failures: int = 3
+    integrity_max_established_connections: int = 100
 
     @classmethod
     def from_yaml(cls, path: Path) -> "AdvancedSecurityConfig":
@@ -126,6 +135,12 @@ class AdvancedSecurityConfig:
             rotate_every_min_polls=int(raw.get("rotate_every_min_polls", 10)),
             rotate_every_max_polls=int(raw.get("rotate_every_max_polls", 30)),
             proxy_list=[str(p) for p in raw.get("proxy_list", [])],
+            anomaly_consecutive_limit=int(raw.get("anomaly_consecutive_limit", 3)),
+            honeypot_flood_trigger_count=int(raw.get("honeypot_flood_trigger_count", 5)),
+            honeypot_flood_window_seconds=int(raw.get("honeypot_flood_window_seconds", 120)),
+            auto_backup_forensic_logs=bool(raw.get("auto_backup_forensic_logs", True)),
+            alert_escalation_failures=int(raw.get("alert_escalation_failures", 3)),
+            integrity_max_established_connections=int(raw.get("integrity_max_established_connections", 100)),
         )
 
 
@@ -371,12 +386,19 @@ class AdvancedSecurityManager:
         self._cpu_high_since: float | None = None
         self._stop_event = threading.Event()
         self._baseline_files = self._scan_files()
+        self._anomaly_consecutive = 0
+        self._alert_failures = 0
+        self._flood_events: list[float] = []
+        self.attack_logbook = AttackForensicsLogbook(AttackLogConfig.from_yaml(Path("command_center/attack_config.yaml")), self.on_attack_event)
+        self.runtime_security = DefensiveSecurityManager(SecurityConfig.from_yaml(Path("command_center/security_config.yaml")))
         atexit.register(self.shutdown)
 
     def start(self) -> None:
         if not self.config.enabled:
             return
+        self.attack_logbook.start()
         self.honeypot.start()
+        self.runtime_security.start_honeypot()
 
     def get_request_profile(self) -> tuple[dict[str, str], dict[str, str] | None]:
         return self.identity.next_headers(), self.identity.current_proxies()
@@ -405,21 +427,55 @@ class AdvancedSecurityManager:
             triggers.append(f"memory_high:{mem:.1f}")
         if self._scan_files() - self._baseline_files:
             triggers.append("new_file_detected")
+        triggers.extend(self.runtime_security.detect_hostile_conditions())
         return triggers
 
+    def on_attack_event(self, event: dict[str, Any]) -> None:
+        """Bridge attack logbook and dead-man switch thresholds.
+
+        Puente entre bitácora forense y umbrales del interruptor defensivo.
+        """
+        if event.get("classification") != "flood":
+            return
+        now = time.time()
+        self._flood_events.append(now)
+        window = self.config.honeypot_flood_window_seconds
+        self._flood_events = [stamp for stamp in self._flood_events if now - stamp <= window]
+        if len(self._flood_events) >= self.config.honeypot_flood_trigger_count:
+            self.alerts.send(2, "honeypot_flood_threshold", {"count": len(self._flood_events), "window_seconds": window})
+            self.air_gap("honeypot_flood_threshold")
+            self._flood_events.clear()
+
     def air_gap(self, reason: str) -> None:
-        self.alerts.send(3, "air_gap_enter", {"reason": reason})
+        self._safe_alert(3, "air_gap_enter", {"reason": reason})
         gc.collect()
         self.honeypot.stop()
+        self.runtime_security.stop_honeypot()
+        if self.config.auto_backup_forensic_logs:
+            self.backups.maybe_backup(force=True)
         sleep_seconds = random.randint(self.config.airgap_min_minutes * 60, self.config.airgap_max_minutes * 60)
         time.sleep(sleep_seconds)
         if self.verify_integrity():
             self.honeypot.start()
-            self.alerts.send(2, "air_gap_exit", {"slept_seconds": sleep_seconds})
+            self.runtime_security.start_honeypot()
+            self._safe_alert(2, "air_gap_exit", {"slept_seconds": sleep_seconds})
+
+    def _safe_alert(self, level: int, event: str, metrics: dict[str, Any]) -> None:
+        """Emit alerts with simple failure-based escalation.
+
+        Emite alertas con escalamiento simple basado en fallos.
+        """
+        try:
+            self.alerts.send(level, event, metrics)
+            self._alert_failures = 0
+        except Exception:  # noqa: BLE001
+            self._alert_failures += 1
+            if self._alert_failures >= self.config.alert_escalation_failures:
+                LOGGER.error("alert_delivery_repeated_failure event=%s count=%s", event, self._alert_failures)
 
     def verify_integrity(self) -> bool:
         suspicious = [p for p in psutil.net_connections(kind="inet") if getattr(p, "status", "") == psutil.CONN_ESTABLISHED]
-        if len(suspicious) > 100:
+        if len(suspicious) > self.config.integrity_max_established_connections:
             return False
         for pattern in self.config.integrity_paths:
             for file in Path(".").glob(pattern):
@@ -429,12 +485,20 @@ class AdvancedSecurityManager:
     def on_poll_cycle(self) -> None:
         triggers = self.detect_internal_anomalies()
         if triggers:
-            self.alerts.send(2, "internal_anomaly", {"triggers": triggers})
-            self.air_gap(",".join(triggers))
+            self._anomaly_consecutive += 1
+            self._safe_alert(2, "internal_anomaly", {"triggers": triggers, "consecutive_count": self._anomaly_consecutive})
+            if self._anomaly_consecutive >= self.config.anomaly_consecutive_limit:
+                self.air_gap(",".join(triggers))
+                self._anomaly_consecutive = 0
+        else:
+            self._anomaly_consecutive = 0
         self.backups.maybe_backup(force=False)
+        self.attack_logbook.log_connection_snapshot()
 
     def shutdown(self) -> None:
         self.backups.maybe_backup(force=True)
+        self.attack_logbook.stop()
+        self.runtime_security.stop_honeypot()
         self.honeypot.stop()
 
 

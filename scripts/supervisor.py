@@ -14,6 +14,8 @@ import sys
 import time
 from pathlib import Path
 
+import psutil
+
 from core.advanced_security import AlertManager
 from core.security import SecurityConfig, send_admin_alert
 
@@ -23,12 +25,32 @@ CLEAN_SHUTDOWN_FLAG = Path("/tmp/clean_shutdown.flag")
 
 
 def _host_still_hostile(config: SecurityConfig) -> bool:
-    return False
+    """Check coarse hostile signals before restart.
+
+    Verifica señales hostiles básicas antes de reiniciar.
+    """
+    cpu = psutil.cpu_percent(interval=0.1)
+    mem = psutil.virtual_memory().percent
+    return cpu > config.cpu_threshold_percent or mem > config.memory_threshold_percent
 
 
 def random_cooldown_seconds(min_minutes: int, max_minutes: int, multiplier: float = 1.0) -> int:
     base = random.uniform(min_minutes * 60, max_minutes * 60)
     return int(base * multiplier)
+
+
+def _too_many_python_workers(max_workers: int = 8) -> bool:
+    """Prevent restart storms with too many python worker processes.
+
+    Previene tormentas de reinicio con demasiados procesos python.
+    """
+    workers = 0
+    for proc in psutil.process_iter(attrs=["name", "cmdline"]):
+        cmdline = " ".join(proc.info.get("cmdline") or [])
+        name = (proc.info.get("name") or "").lower()
+        if "python" in name and "run_pipeline.py" in cmdline:
+            workers += 1
+    return workers >= max_workers
 
 
 def run_supervisor(command: list[str], logger: logging.Logger) -> int:
@@ -41,6 +63,12 @@ def run_supervisor(command: list[str], logger: logging.Logger) -> int:
     alerts = AlertManager()
 
     while retries < cfg.max_restart_attempts:
+        if _too_many_python_workers():
+            logger.error("supervisor_concurrency_guard_triggered")
+            alerts.send(3, "supervisor_concurrency_guard", {"max_workers": 8})
+            time.sleep(30)
+            continue
+
         logger.info("supervisor_launch command=%s", command)
         proc = subprocess.run(command, check=False)
         returncode = proc.returncode
