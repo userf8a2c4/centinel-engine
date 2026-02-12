@@ -13,11 +13,13 @@ import json
 import logging
 import os
 import random
+import signal
 import smtplib
 import subprocess
 import sys
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from email.message import EmailMessage
@@ -46,6 +48,27 @@ except Exception:  # noqa: BLE001
 
 import requests
 import yaml
+try:
+    from prometheus_client import Counter, Gauge, start_http_server
+except Exception:  # noqa: BLE001
+    class _Metric:
+        def labels(self, **_kwargs: Any) -> "_Metric":
+            return self
+
+        def inc(self, _value: float = 1.0) -> None:
+            return
+
+        def set(self, _value: float) -> None:
+            return
+
+    def Counter(*_args: Any, **_kwargs: Any) -> _Metric:  # type: ignore[misc]
+        return _Metric()
+
+    def Gauge(*_args: Any, **_kwargs: Any) -> _Metric:  # type: ignore[misc]
+        return _Metric()
+
+    def start_http_server(_port: int) -> None:
+        return
 
 from core.attack_logger import AttackForensicsLogbook, AttackLogConfig
 from core.security import DefensiveSecurityManager, SecurityConfig
@@ -107,6 +130,15 @@ class AdvancedSecurityConfig:
     auto_backup_forensic_logs: bool = True
     alert_escalation_failures: int = 3
     integrity_max_established_connections: int = 100
+    honeypot_threshold_per_minute: int = 100
+    prometheus_enabled: bool = True
+    prometheus_port: int = 8000
+    cpu_adaptive_margin_percent: float = 20.0
+    cpu_spike_grace_seconds: int = 15
+    cpu_baseline_window: int = 6
+    alert_sms_webhook: str = ""
+    solidity_contract_paths: list[str] = field(default_factory=lambda: ["contracts/**/*.sol"])
+    solidity_blocked_patterns: list[str] = field(default_factory=lambda: ["tx.origin", "delegatecall", "selfdestruct"])
 
     @classmethod
     def from_yaml(cls, path: Path) -> "AdvancedSecurityConfig":
@@ -141,7 +173,22 @@ class AdvancedSecurityConfig:
             auto_backup_forensic_logs=bool(raw.get("auto_backup_forensic_logs", True)),
             alert_escalation_failures=int(raw.get("alert_escalation_failures", 3)),
             integrity_max_established_connections=int(raw.get("integrity_max_established_connections", 100)),
+            honeypot_threshold_per_minute=int(raw.get("honeypot_threshold_per_minute", 100)),
+            prometheus_enabled=bool(raw.get("prometheus_enabled", True)),
+            prometheus_port=int(raw.get("prometheus_port", 8000)),
+            cpu_adaptive_margin_percent=float(raw.get("cpu_adaptive_margin_percent", 20)),
+            cpu_spike_grace_seconds=int(raw.get("cpu_spike_grace_seconds", 15)),
+            cpu_baseline_window=int(raw.get("cpu_baseline_window", 6)),
+            alert_sms_webhook=str(raw.get("alert_sms_webhook", "")),
+            solidity_contract_paths=[str(p) for p in raw.get("solidity_contract_paths", ["contracts/**/*.sol"])],
+            solidity_blocked_patterns=[str(p) for p in raw.get("solidity_blocked_patterns", ["tx.origin", "delegatecall", "selfdestruct"])],
         )
+
+
+ANOMALY_COUNTER = Counter("centinel_security_anomalies_total", "Detected security anomalies", ["type"])
+ALERT_COUNTER = Counter("centinel_security_alerts_total", "Security alerts emitted", ["event", "level"])
+CPU_GAUGE = Gauge("centinel_security_cpu_percent", "Current host CPU percent")
+LOG_SIZE_GAUGE = Gauge("centinel_attack_log_size_bytes", "Attack log current size")
 
 
 class IdentityRotator:
@@ -249,6 +296,10 @@ class AlertManager:
     """
 
     def send(self, level: int, event: str, metrics: dict[str, Any] | None = None) -> None:
+        """Send staged alerts over local log + external channels.
+
+        Envía alertas escalonadas por log local + canales externos.
+        """
         payload = {
             "timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "level": level,
@@ -256,11 +307,15 @@ class AlertManager:
             "metrics": metrics or {},
         }
         LOGGER.warning("security_alert %s", payload)
+        ALERT_COUNTER.labels(event=event, level=str(level)).inc()
         if level == 1:
             return
         if level >= 3 and self._send_telegram(payload):
+            self._send_sms_webhook(payload)
             return
         self._send_email(payload)
+        if level >= 2:
+            self._send_sms_webhook(payload)
 
     def _send_email(self, payload: dict[str, Any]) -> None:
         server = os.getenv("SMTP_SERVER", "")
@@ -293,6 +348,13 @@ class AlertManager:
         )
         return resp.status_code < 300
 
+    def _send_sms_webhook(self, payload: dict[str, Any]) -> bool:
+        endpoint = os.getenv("SMS_WEBHOOK_URL", "")
+        if not endpoint:
+            return False
+        resp = requests.post(endpoint, timeout=10, json=payload)
+        return resp.status_code < 300
+
 
 class BackupManager:
     """Encrypted snapshot/hash backups to off-site targets.
@@ -303,6 +365,7 @@ class BackupManager:
     def __init__(self, config: AdvancedSecurityConfig) -> None:
         self.config = config
         self.last_backup_at = 0.0
+        self._persist_path = Path("data/backups/pre_oom_snapshot.json")
 
     def _build_archive(self) -> Path:
         backup_dir = Path("data/backups")
@@ -310,7 +373,8 @@ class BackupManager:
         out = backup_dir / f"advanced_backup_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
         payload: dict[str, str] = {}
         for pattern in self.config.backup_paths:
-            for file in Path(".").glob(pattern):
+            for candidate in glob.glob(pattern, recursive=True):
+                file = Path(candidate)
                 if file.is_file():
                     payload[str(file)] = file.read_text(encoding="utf-8", errors="ignore")
         out.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
@@ -337,6 +401,20 @@ class BackupManager:
             self.last_backup_at = now
         finally:
             self._rotate_local_retention()
+
+    def persist_before_kill(self, reason: str) -> None:
+        """Persist minimal backup metadata before OOM/forced termination.
+
+        Persiste metadata mínima antes de OOM/terminación forzada.
+        """
+        self._persist_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "reason": reason,
+            "backup_provider": self.config.backup_provider,
+        }
+        self._persist_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        self.maybe_backup(force=True)
 
     def _upload(self, archive: Path) -> None:
         provider = self.config.backup_provider.lower()
@@ -389,14 +467,30 @@ class AdvancedSecurityManager:
         self._anomaly_consecutive = 0
         self._alert_failures = 0
         self._flood_events: list[float] = []
+        self._cpu_samples: deque[float] = deque(maxlen=max(3, config.cpu_baseline_window))
+        self._metrics_started = False
+        self._honeypot_events_per_minute: deque[float] = deque(maxlen=500)
         self.attack_logbook = AttackForensicsLogbook(AttackLogConfig.from_yaml(Path("command_center/attack_config.yaml")), self.on_attack_event)
         self.runtime_security = DefensiveSecurityManager(SecurityConfig.from_yaml(Path("command_center/security_config.yaml")))
+        self._register_signal_handlers()
         atexit.register(self.shutdown)
+
+    def _register_signal_handlers(self) -> None:
+        for sig in (getattr(signal, "SIGTERM", None), getattr(signal, "SIGINT", None), getattr(signal, "SIGUSR1", None)):
+            if sig is None:
+                continue
+            signal.signal(sig, self._handle_oom_like_signal)
+
+    def _handle_oom_like_signal(self, signum: int, _frame: Any) -> None:
+        self.backups.persist_before_kill(reason=f"signal_{signum}")
 
     def start(self) -> None:
         if not self.config.enabled:
             return
         self.attack_logbook.start()
+        if self.config.prometheus_enabled and not self._metrics_started:
+            start_http_server(self.config.prometheus_port)
+            self._metrics_started = True
         self.honeypot.start()
         self.runtime_security.start_honeypot()
 
@@ -416,10 +510,17 @@ class AdvancedSecurityManager:
         triggers: list[str] = []
         cpu = psutil.cpu_percent(interval=0.1)
         mem = psutil.virtual_memory().percent
+        CPU_GAUGE.set(cpu)
+        if self.attack_logbook.path.exists():
+            LOG_SIZE_GAUGE.set(self.attack_logbook.path.stat().st_size)
         now = time.time()
-        if cpu > self.config.cpu_threshold_percent:
+        self._cpu_samples.append(cpu)
+        baseline = sum(self._cpu_samples) / max(1, len(self._cpu_samples))
+        adaptive_cpu_threshold = min(99.0, max(self.config.cpu_threshold_percent, baseline + self.config.cpu_adaptive_margin_percent))
+        if cpu > adaptive_cpu_threshold:
             self._cpu_high_since = self._cpu_high_since or now
-            if now - self._cpu_high_since >= self.config.cpu_sustain_seconds:
+            sustained_for = now - self._cpu_high_since
+            if sustained_for >= max(self.config.cpu_spike_grace_seconds, self.config.cpu_sustain_seconds):
                 triggers.append(f"cpu_sustained:{cpu:.1f}")
         else:
             self._cpu_high_since = None
@@ -427,8 +528,27 @@ class AdvancedSecurityManager:
             triggers.append(f"memory_high:{mem:.1f}")
         if self._scan_files() - self._baseline_files:
             triggers.append("new_file_detected")
+        triggers.extend(self._validate_solidity_runtime())
         triggers.extend(self.runtime_security.detect_hostile_conditions())
+        for trigger in triggers:
+            ANOMALY_COUNTER.labels(type=trigger.split(":", 1)[0]).inc()
         return triggers
+
+    def _validate_solidity_runtime(self) -> list[str]:
+        findings: list[str] = []
+        for pattern in self.config.solidity_contract_paths:
+            for candidate in glob.glob(pattern, recursive=True):
+                contract = Path(candidate)
+                if not contract.is_file():
+                    continue
+                content = contract.read_text(encoding="utf-8", errors="ignore")
+                if "pragma solidity" not in content:
+                    findings.append(f"solidity_missing_pragma:{contract}")
+                    continue
+                for blocked in self.config.solidity_blocked_patterns:
+                    if blocked in content:
+                        findings.append(f"solidity_blocked_pattern:{blocked}")
+        return findings
 
     def on_attack_event(self, event: dict[str, Any]) -> None:
         """Bridge attack logbook and dead-man switch thresholds.
@@ -439,12 +559,21 @@ class AdvancedSecurityManager:
             return
         now = time.time()
         self._flood_events.append(now)
+        self._honeypot_events_per_minute.append(now)
         window = self.config.honeypot_flood_window_seconds
         self._flood_events = [stamp for stamp in self._flood_events if now - stamp <= window]
+        self._honeypot_events_per_minute = deque(
+            [stamp for stamp in self._honeypot_events_per_minute if now - stamp <= 60],
+            maxlen=500,
+        )
         if len(self._flood_events) >= self.config.honeypot_flood_trigger_count:
             self._safe_alert(2, "honeypot_flood_threshold", {"count": len(self._flood_events), "window_seconds": window})
             self.air_gap("honeypot_flood_threshold")
             self._flood_events.clear()
+        if len(self._honeypot_events_per_minute) >= self.config.honeypot_threshold_per_minute:
+            self._safe_alert(3, "honeypot_rate_limit_deadman", {"rpm": len(self._honeypot_events_per_minute)})
+            self.air_gap("honeypot_rate_limit_deadman")
+            self._honeypot_events_per_minute.clear()
 
     def air_gap(self, reason: str) -> None:
         self._safe_alert(3, "air_gap_enter", {"reason": reason})

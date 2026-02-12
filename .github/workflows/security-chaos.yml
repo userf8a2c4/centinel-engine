@@ -1,0 +1,35 @@
+name: Security Chaos and Observability
+
+on:
+  push:
+    branches:
+      - main
+      - work
+      - 'dev-v*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  security-chaos:
+    name: Security + Chaos + Metrics
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest==8.3.3 psutil pyyaml flask requests prometheus-client
+
+      - name: Run integrated security suites
+        run: |
+          make test-security-all

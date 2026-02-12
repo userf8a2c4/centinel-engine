@@ -38,3 +38,17 @@ def test_chaos_integrity_tampering_detected(tmp_path: Path) -> None:
     triggers = manager.detect_internal_anomalies()
 
     assert "new_file_detected" in triggers
+
+
+def test_chaos_oom_signal_persists_backup(monkeypatch) -> None:
+    """OOM-like signal should persist backup metadata before shutdown.
+
+    Señal tipo OOM debe persistir metadata de backup antes de apagar.
+    """
+    manager = AdvancedSecurityManager(AdvancedSecurityConfig())
+    calls: list[str] = []
+    monkeypatch.setattr(manager.backups, "maybe_backup", lambda force=False: calls.append(f"backup:{force}"))
+
+    manager._handle_oom_like_signal(15, None)
+
+    assert "backup:True" in calls

@@ -18,6 +18,7 @@ cooldown_min_minutes: 10
 cooldown_max_minutes: 60
 
 admin_email: example@domain.com
+alert_email: admin@example.com
 webhook_url: ""
 smtp_settings:
   server: smtp.example.com
@@ -34,3 +35,10 @@ honeypot:
   enabled: true
   host: 127.0.0.1
   port: 8081
+  honeypot_threshold: 100
+
+observability:
+  prometheus_port: 8000
+
+forensics:
+  log_rotation_days: 7
