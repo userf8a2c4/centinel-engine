@@ -439,6 +439,7 @@ class AdvancedSecurityManager:
 
 
 _MANAGER: AdvancedSecurityManager | None = None
+_MANAGER_LOCK = threading.Lock()
 
 
 def load_manager(config_path: Path = Path("command_center/advanced_security_config.yaml")) -> AdvancedSecurityManager:
