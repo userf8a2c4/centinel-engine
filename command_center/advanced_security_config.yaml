@@ -1,5 +1,5 @@
 enabled: true
-honeypot_enabled: false
+honeypot_enabled: true
 honeypot_host: "127.0.0.1"
 honeypot_port: 8081
 honeypot_endpoints:
@@ -9,18 +9,24 @@ honeypot_endpoints:
   - "/debug"
 
 airgap_min_minutes: 5
-airgap_max_minutes: 30
+airgap_max_minutes: 20
 
 cpu_threshold_percent: 85
 cpu_sustain_seconds: 120
 memory_threshold_percent: 80
+anomaly_consecutive_limit: 3
+honeypot_flood_trigger_count: 5
+honeypot_flood_window_seconds: 120
+integrity_max_established_connections: 100
 
 backup_provider: "s3"
 backup_interval: 1800
+auto_backup_forensic_logs: true
 backup_retention_days: 7
 backup_paths:
   - "hashes/*.sha256"
   - "data/snapshot_*.json"
+  - "logs/attack_log*.jsonl*"
 integrity_paths:
   - "core/*.py"
   - "scripts/run_pipeline.py"
@@ -34,7 +40,4 @@ rotate_every_min_polls: 10
 rotate_every_max_polls: 30
 
 proxy_list: []
-alert_levels:
-  level_1: "internal_log"
-  level_2: "email"
-  level_3: "telegram_primary_email_fallback"
+alert_escalation_failures: 3

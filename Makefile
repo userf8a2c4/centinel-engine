@@ -1,4 +1,4 @@
-.PHONY: init snapshot analyze summary pipeline test-stress security-scan test lint
+.PHONY: init snapshot analyze summary pipeline test-stress security-scan test lint test-security test-security-chaos
 
 PYTHON_COMMAND ?= python
 
@@ -30,3 +30,10 @@ lint:
 security-scan:
 	$(PYTHON_COMMAND) -m bandit -r .
 	$(PYTHON_COMMAND) -m safety check --full-report -r requirements.txt
+
+
+test-security:
+	$(PYTHON_COMMAND) -m pytest tests/test_attack_logger.py tests/test_advanced_security.py tests/test_security_ecosystem.py
+
+test-security-chaos:
+	$(PYTHON_COMMAND) -m pytest tests/chaos/test_security_chaos.py
