@@ -159,7 +159,7 @@ def build_defensive_state_snapshot() -> dict[str, Any]:
     recent_hashes = [p.name for p in sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)[:10]]
     queued_urls: list[str] = []
     config = load_config()
-    endpoints = config.get("endpoints", {}) if isinstance(config, dict) else {}
+    endpoints = config.get("endpoints") if isinstance(config, dict) else None
     if isinstance(endpoints, dict):
         queued_urls = [str(url) for url in endpoints.values()][:25]
     return {
