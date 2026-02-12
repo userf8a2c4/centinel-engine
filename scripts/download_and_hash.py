@@ -247,8 +247,8 @@ def build_request_headers(
         try:
             secure_headers, _ = build_rotating_request_profile()
             headers = {**headers, **secure_headers}
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("failed_to_build_rotating_profile error=%s", exc)
         return headers
 
     user_agents = low_profile.get("user_agents", []) or []
