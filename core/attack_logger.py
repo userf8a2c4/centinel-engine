@@ -16,6 +16,8 @@ import random
 import socket
 import threading
 import time
+import urllib.error
+import urllib.request
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -33,19 +35,38 @@ except Exception:  # noqa: BLE001
             return []
 
     psutil = _PsutilFallback()
-try:
-    import requests
-except Exception:  # noqa: BLE001
-    class _RequestsFallback:
-        @staticmethod
-        def post(*_args: Any, **_kwargs: Any):
-            class _Resp:
-                status_code = 503
-                text = "requests_unavailable"
 
-            return _Resp()
+class _HttpResponse:
+    def __init__(self, status_code: int, text: str = "") -> None:
+        self.status_code = int(status_code)
+        self.text = text
 
-    requests = _RequestsFallback()
+
+class _RequestsCompat:
+    @staticmethod
+    def post(url: str, json: dict[str, Any] | None = None, timeout: int = 5) -> _HttpResponse:  # noqa: A002
+        body = b""
+        if json is not None:
+            body = json_module.dumps(json, ensure_ascii=False).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                payload = resp.read().decode("utf-8", errors="ignore")
+                return _HttpResponse(getattr(resp, "status", 200), payload)
+        except urllib.error.HTTPError as exc:
+            text = exc.read().decode("utf-8", errors="ignore") if hasattr(exc, "read") else str(exc)
+            return _HttpResponse(exc.code, text)
+        except Exception:  # noqa: BLE001
+            return _HttpResponse(503, "http_post_failed")
+
+
+requests = _RequestsCompat()
+json_module = json
 import yaml
 try:
     from flask import Flask, Request, request
