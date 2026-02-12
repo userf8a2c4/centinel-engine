@@ -1,0 +1,62 @@
+"""Tests for integrated advanced security module.
+
+Pruebas para módulo integrado de seguridad avanzada.
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from core.advanced_security import (
+    AdvancedSecurityConfig,
+    AdvancedSecurityManager,
+    AlertManager,
+    HoneypotService,
+)
+
+
+def test_identity_rotator_uses_v1_user_agents(tmp_path: Path) -> None:
+    cfg = AdvancedSecurityConfig(
+        user_agents_list=[
+            "Mozilla/5.0 (compatible; Centinel-Engine/1.0)",
+            "Centinel-AuditoriaHN/1.0 bot",
+        ]
+    )
+    manager = AdvancedSecurityManager(cfg)
+    headers, _ = manager.get_request_profile()
+    assert "/1.0" in headers["User-Agent"]
+
+
+def test_honeypot_logs_request_metadata(tmp_path: Path) -> None:
+    pytest.importorskip("flask")
+    cfg = AdvancedSecurityConfig(honeypot_enabled=True, honeypot_endpoints=["/admin"])
+    honeypot = HoneypotService(cfg)
+    honeypot.events_path = tmp_path / "honeypot.jsonl"
+    client = honeypot.app.test_client()
+    response = client.get("/admin", headers={"User-Agent": "scanner"})
+    assert response.status_code in {403, 404, 500}
+    payload = json.loads(honeypot.events_path.read_text(encoding="utf-8").strip())
+    assert payload["route"] == "/admin"
+    assert payload["user_agent"] == "scanner"
+
+
+def test_alert_level_1_does_not_call_external(monkeypatch: pytest.MonkeyPatch) -> None:
+    manager = AlertManager()
+    called = {"email": 0, "tg": 0}
+
+    monkeypatch.setattr(manager, "_send_email", lambda payload: called.__setitem__("email", called["email"] + 1))
+    monkeypatch.setattr(manager, "_send_telegram", lambda payload: called.__setitem__("tg", called["tg"] + 1) or True)
+
+    manager.send(1, "minor_event")
+    assert called == {"email": 0, "tg": 0}
+
+
+def test_detect_internal_anomalies_new_file(tmp_path: Path) -> None:
+    cfg = AdvancedSecurityConfig(integrity_paths=[str(tmp_path / "*.py")])
+    manager = AdvancedSecurityManager(cfg)
+    (tmp_path / "new.py").write_text("print('x')", encoding="utf-8")
+    triggers = manager.detect_internal_anomalies()
+    assert "new_file_detected" in triggers

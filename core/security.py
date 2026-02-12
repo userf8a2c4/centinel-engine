@@ -23,8 +23,28 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib import request
 
-import psutil
 import yaml
+
+try:
+    import psutil
+except Exception:  # noqa: BLE001
+    class _PsutilFallback:
+        CONN_LISTEN = "LISTEN"
+        CONN_ESTABLISHED = "ESTABLISHED"
+
+        @staticmethod
+        def cpu_percent(interval: float = 0.1) -> float:
+            return 0.0
+
+        @staticmethod
+        def virtual_memory():
+            return type("_VMem", (), {"percent": 0.0})()
+
+        @staticmethod
+        def net_connections(kind: str = "inet"):
+            return []
+
+    psutil = _PsutilFallback()
 
 
 class DefensiveShutdown(RuntimeError):

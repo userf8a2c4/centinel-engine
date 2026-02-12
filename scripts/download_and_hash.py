@@ -48,6 +48,8 @@ from centinel.downloader import (
     should_skip_snapshot,
 )
 from scripts.circuit_breaker import CircuitBreaker
+from core.fetcher import build_rotating_request_profile
+from core.hasher import trigger_post_hash_backup
 
 from monitoring.health import get_health_state
 from scripts.logging_utils import configure_logging, log_event
@@ -242,6 +244,11 @@ def build_request_headers(
         headers = config.get("headers", {}) if isinstance(config.get("headers"), dict) else {}
         if "Accept" not in headers:
             headers = {"Accept": "application/json", **headers}
+        try:
+            secure_headers, _ = build_rotating_request_profile()
+            headers = {**headers, **secure_headers}
+        except Exception as exc:
+            logger.warning("failed_to_build_rotating_profile error=%s", exc)
         return headers
 
     user_agents = low_profile.get("user_agents", []) or []
@@ -578,6 +585,7 @@ def _persist_snapshot_payload(
         json.dumps(hash_record, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    trigger_post_hash_backup(snapshot_file, hash_file)
     return chained_hash, current_hash, snapshot_file
 
 
