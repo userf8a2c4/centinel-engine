@@ -46,7 +46,7 @@ except Exception:  # noqa: BLE001
         def net_connections(kind: str = "inet"):
             return []
 
-    psutil = _PsutilFallback()
+# Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
 
 # Keep direct requests import: this path is the last known green baseline for CI security suites.
 import requests
