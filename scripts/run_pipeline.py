@@ -22,6 +22,8 @@ import yaml
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from anchor.arbitrum_anchor import anchor_batch, anchor_root
+from core import logger as core_logger
+from core.attack_logger import AttackForensicsLogbook, AttackLogConfig, HoneypotServer
 from scripts.circuit_breaker import CircuitBreaker
 from core.security import DefensiveSecurityManager, DefensiveShutdown, SecurityConfig
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
@@ -44,6 +46,7 @@ FAILURE_CHECKPOINT_PATH = TEMP_DIR / "checkpoint.json"
 HEARTBEAT_PATH = DATA_DIR / "heartbeat.json"
 RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
 SECURITY_CONFIG_PATH = Path("command_center") / "security_config.yaml"
+ATTACK_CONFIG_PATH = Path("command_center") / "attack_config.yaml"
 RESILIENCE_STAGE_ORDER = [
     "start",
     "healthcheck",
@@ -1062,11 +1065,18 @@ def main():
     )
     args = parser.parse_args()
     config = load_config()
+    attack_config = AttackLogConfig.from_yaml(ATTACK_CONFIG_PATH)
+    attack_logbook = AttackForensicsLogbook(attack_config)
+    attack_logbook.start()
+    honeypot = HoneypotServer(attack_config, attack_logbook)
+    honeypot.start()
+    core_logger.register_attack_logbook(attack_logbook)
     security_manager = DefensiveSecurityManager(SecurityConfig.from_yaml(SECURITY_CONFIG_PATH), logger=logger)
     security_manager.register_signal_handlers()
     security_manager.start_honeypot()
 
     def _guarded_run() -> bool:
+        attack_logbook.log_connection_snapshot()
         triggers = security_manager.detect_hostile_conditions()
         if triggers:
             security_manager.activate_defensive_mode(
@@ -1075,74 +1085,78 @@ def main():
             )
         return safe_run_pipeline(config, security_manager=security_manager)
 
-    master_status = normalize_master_switch(config.get("master_switch"))
-    print(f"[i] MASTER SWITCH: {master_status}")
-    if not is_master_switch_on(config):
-        print("[!] Ejecución detenida por switch maestro (OFF)")
-        return
+    try:
+        master_status = normalize_master_switch(config.get("master_switch"))
+        print(f"[i] MASTER SWITCH: {master_status}")
+        if not is_master_switch_on(config):
+            print("[!] Ejecución detenida por switch maestro (OFF)")
+            return
 
-    # --- FASE 2: Verificación de cadena de custodia al arranque ---
-    custody_config = config.get("custody", {})
-    if custody_config.get("verify_on_startup", False):
-        print("[+] Verificando cadena de custodia al arranque...")
-        log_event(logger, logging.INFO, "custody_verification_start")
-        try:
-            custody_report = run_startup_verification(
-                hash_dir=HASH_DIR,
-                anchor_log_dir=ANCHOR_LOG_DIR,
-                verify_anchors=custody_config.get("verify_anchors_on_startup", False),
-                verify_signatures=custody_config.get("verify_signatures", True),
-                max_anchor_checks=int(custody_config.get("max_anchor_checks", 5)),
-            )
-            report_path = DATA_DIR / "custody_verification.json"
-            report_path.write_text(
-                json.dumps(custody_report.to_dict(), indent=2, ensure_ascii=False),
-                encoding="utf-8",
-            )
-            if custody_report.overall_valid:
-                print(f"[+] Cadena de custodia válida ({custody_report.chain_result.verified_links} eslabones)")
-                log_event(
-                    logger,
-                    logging.INFO,
-                    "custody_verification_passed",
-                    links=(custody_report.chain_result.verified_links if custody_report.chain_result else 0),
+        # --- FASE 2: Verificación de cadena de custodia al arranque ---
+        custody_config = config.get("custody", {})
+        if custody_config.get("verify_on_startup", False):
+            print("[+] Verificando cadena de custodia al arranque...")
+            log_event(logger, logging.INFO, "custody_verification_start")
+            try:
+                custody_report = run_startup_verification(
+                    hash_dir=HASH_DIR,
+                    anchor_log_dir=ANCHOR_LOG_DIR,
+                    verify_anchors=custody_config.get("verify_anchors_on_startup", False),
+                    verify_signatures=custody_config.get("verify_signatures", True),
+                    max_anchor_checks=int(custody_config.get("max_anchor_checks", 5)),
                 )
-            else:
-                print("[!] ADVERTENCIA: Cadena de custodia con inconsistencias")
-                log_event(
-                    logger,
-                    logging.WARNING,
-                    "custody_verification_warning",
-                    errors=(custody_report.chain_result.errors if custody_report.chain_result else []),
-                    sig_failures=custody_report.signature_failures,
+                report_path = DATA_DIR / "custody_verification.json"
+                report_path.write_text(
+                    json.dumps(custody_report.to_dict(), indent=2, ensure_ascii=False),
+                    encoding="utf-8",
                 )
-        except Exception as exc:
-            print(f"[!] Error en verificación de custodia: {exc}")
-            log_event(logger, logging.ERROR, "custody_verification_failed", error=str(exc))
+                if custody_report.overall_valid:
+                    print(f"[+] Cadena de custodia válida ({custody_report.chain_result.verified_links} eslabones)")
+                    log_event(
+                        logger,
+                        logging.INFO,
+                        "custody_verification_passed",
+                        links=(custody_report.chain_result.verified_links if custody_report.chain_result else 0),
+                    )
+                else:
+                    print("[!] ADVERTENCIA: Cadena de custodia con inconsistencias")
+                    log_event(
+                        logger,
+                        logging.WARNING,
+                        "custody_verification_warning",
+                        errors=(custody_report.chain_result.errors if custody_report.chain_result else []),
+                        sig_failures=custody_report.signature_failures,
+                    )
+            except Exception as exc:
+                print(f"[!] Error en verificación de custodia: {exc}")
+                log_event(logger, logging.ERROR, "custody_verification_failed", error=str(exc))
 
-    if args.once:
-        update_heartbeat(status="manual_once")
-        try:
-            _guarded_run()
-        except DefensiveShutdown:
-            update_heartbeat(status="defensive_shutdown")
-            raise SystemExit(0)
-        update_heartbeat(status="manual_once_completed")
-        return
+        if args.once:
+            update_heartbeat(status="manual_once")
+            try:
+                _guarded_run()
+            except DefensiveShutdown:
+                update_heartbeat(status="defensive_shutdown")
+                raise SystemExit(0)
+            update_heartbeat(status="manual_once_completed")
+            return
 
-    if args.run_now:
-        update_heartbeat(status="manual_run_now")
-        try:
-            _guarded_run()
-        except DefensiveShutdown:
-            update_heartbeat(status="defensive_shutdown")
-            raise SystemExit(0)
+        if args.run_now:
+            update_heartbeat(status="manual_run_now")
+            try:
+                _guarded_run()
+            except DefensiveShutdown:
+                update_heartbeat(status="defensive_shutdown")
+                raise SystemExit(0)
 
-    scheduler = BlockingScheduler(timezone="UTC")
-    scheduler.add_job(update_heartbeat, "interval", minutes=1)
-    scheduler.add_job(_guarded_run, CronTrigger(minute=0))
-    print("[+] Scheduler activo: ejecución horaria en minuto 00 UTC")
-    scheduler.start()
+        scheduler = BlockingScheduler(timezone="UTC")
+        scheduler.add_job(update_heartbeat, "interval", minutes=1)
+        scheduler.add_job(_guarded_run, CronTrigger(minute=0))
+        print("[+] Scheduler activo: ejecución horaria en minuto 00 UTC")
+        scheduler.start()
+    finally:
+        honeypot.stop()
+        attack_logbook.stop()
 
 
 if __name__ == "__main__":
