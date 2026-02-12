@@ -448,7 +448,9 @@ def load_manager(config_path: Path = Path("command_center/advanced_security_conf
     """
     global _MANAGER
     if _MANAGER is None:
-        _MANAGER = AdvancedSecurityManager(AdvancedSecurityConfig.from_yaml(config_path))
+        with _MANAGER_LOCK:
+            if _MANAGER is None:
+                _MANAGER = AdvancedSecurityManager(AdvancedSecurityConfig.from_yaml(config_path))
     return _MANAGER
 
 
