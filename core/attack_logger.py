@@ -286,6 +286,24 @@ class AttackForensicsLogbook:
                 return {"country": "unknown", "city": "unknown"}
         return {"country": "unknown", "city": "unknown"}
 
+    def _is_private_or_loopback(self, ip: str) -> bool:
+        """Detect RFC1918/private and loopback IPv4 addresses.
+
+        Detecta direcciones IPv4 privadas (RFC1918) y loopback.
+        """
+        try:
+            packed = socket.inet_aton(ip)
+            first_octet = packed[0]
+            second_octet = packed[1]
+            return (
+                ip.startswith("127.")
+                or ip.startswith("10.")
+                or (first_octet == 192 and second_octet == 168)
+                or (first_octet == 172 and 16 <= second_octet <= 31)
+            )
+        except OSError:
+            return False
+
     def _should_enqueue(self, event: dict[str, Any]) -> bool:
         """Sample flood events to prevent sustained log inflation.
 
