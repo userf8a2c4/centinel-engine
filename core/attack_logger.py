@@ -272,8 +272,7 @@ class AttackForensicsLogbook:
 
         Resuelve datos geo con base offline si está disponible.
         """
-        private_prefixes = ("127.", "10.", "192.168.", "172.16.", "172.17.", "172.18.", "172.19.")
-        if ip.startswith(private_prefixes):
+        if self._is_private_or_loopback(ip):
             return {"country": "local", "city": "local"}
 
         if self._geo_reader:
