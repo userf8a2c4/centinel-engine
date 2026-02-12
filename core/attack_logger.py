@@ -218,7 +218,7 @@ class AttackForensicsLogbook:
         ua = headers.get("User-Agent", "")
         classification = self._classify(route=route, frequency=frequency, ua=ua, headers=headers, ip=ip)
         return {
-            "timestamp_utc": datetime.utcnow().isoformat(),
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "ip": ip,
             "user_agent": ua,
             "http_method": method,
