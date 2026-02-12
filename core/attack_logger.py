@@ -33,6 +33,7 @@ except Exception:  # noqa: BLE001
             return []
 
     psutil = _PsutilFallback()
+# Keep direct requests import: this path is the last known green baseline for CI security suites.
 import requests
 import yaml
 try:
