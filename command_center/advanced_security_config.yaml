@@ -41,3 +41,16 @@ rotate_every_max_polls: 30
 
 proxy_list: []
 alert_escalation_failures: 3
+honeypot_threshold_per_minute: 100
+prometheus_enabled: true
+prometheus_port: 8000
+cpu_adaptive_margin_percent: 20
+cpu_spike_grace_seconds: 15
+cpu_baseline_window: 6
+alert_sms_webhook: ""
+solidity_contract_paths:
+  - "contracts/**/*.sol"
+solidity_blocked_patterns:
+  - "tx.origin"
+  - "delegatecall"
+  - "selfdestruct"

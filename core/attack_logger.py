@@ -8,6 +8,8 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import logging
+from logging.handlers import TimedRotatingFileHandler
 import os
 import queue
 import random
@@ -57,6 +59,7 @@ class AttackLogConfig:
     rotation_interval_seconds: int = 86_400
     max_file_size_mb: int = 10
     retention_days: int = 30
+    log_rotation_days: int = 7
     frequency_window_seconds: int = 60
     sequence_window_size: int = 40
     max_requests_per_ip: int = 20
@@ -74,6 +77,8 @@ class AttackLogConfig:
     honeypot_host: str = "127.0.0.1"
     honeypot_port: int = 8080
     honeypot_routes: list[str] = field(default_factory=lambda: ["/debug", "/admin", "/api/internal"])
+    honeypot_firewall_default_deny: bool = True
+    honeypot_allowlist: list[str] = field(default_factory=lambda: ["127.0.0.1", "::1"])
     monitor_unexpected_connections: bool = True
     flood_log_sample_ratio: int = 10
     geoip_city_db_path: str = ""
@@ -100,6 +105,7 @@ class AttackLogConfig:
             rotation_interval_seconds=int(raw.get("rotation_interval", 86_400)),
             max_file_size_mb=int(raw.get("max_file_size_mb", 10)),
             retention_days=int(raw.get("retention_days", 30)),
+            log_rotation_days=int(raw.get("log_rotation_days", 7)),
             frequency_window_seconds=int(raw.get("frequency_window_seconds", 60)),
             sequence_window_size=int(raw.get("sequence_window_size", 40)),
             max_requests_per_ip=int(raw.get("max_requests_per_ip", 20)),
@@ -117,6 +123,8 @@ class AttackLogConfig:
             honeypot_host=str(honeypot.get("host", "127.0.0.1")),
             honeypot_port=int(honeypot.get("port", 8080)),
             honeypot_routes=list(honeypot.get("routes", cls().honeypot_routes)),
+            honeypot_firewall_default_deny=bool(honeypot.get("firewall_default_deny", True)),
+            honeypot_allowlist=list(honeypot.get("allowlist", ["127.0.0.1", "::1"])),
             monitor_unexpected_connections=bool(raw.get("monitor_unexpected_connections", True)),
             flood_log_sample_ratio=max(1, int(raw.get("flood_log_sample_ratio", 10))),
             geoip_city_db_path=str(raw.get("geoip_city_db_path", "")),
@@ -137,6 +145,7 @@ class AttackForensicsLogbook:
         self._writer_stop = threading.Event()
         self._writer_thread: threading.Thread | None = None
         self._last_rotation = time.time()
+        self._handler: TimedRotatingFileHandler | None = None
         self._event_callback = event_callback
         self._per_ip_hits: dict[str, deque[float]] = defaultdict(deque)
         self._per_ip_routes: dict[str, deque[str]] = defaultdict(lambda: deque(maxlen=self.config.sequence_window_size))
@@ -158,6 +167,7 @@ class AttackForensicsLogbook:
         """
         if self._writer_thread and self._writer_thread.is_alive():
             return
+        self._ensure_handler()
         self._writer_stop.clear()
         self._writer_thread = threading.Thread(target=self._writer_loop, name="attack-log-writer", daemon=True)
         self._writer_thread.start()
@@ -171,6 +181,36 @@ class AttackForensicsLogbook:
             self._events.put(None)
             self._writer_stop.set()
             self._writer_thread.join(timeout=3)
+        if self._handler:
+            self._handler.close()
+            self._handler = None
+
+    def _ensure_handler(self) -> None:
+        """Create compressed daily rotating handler for JSON logs.
+
+        Crea handler rotativo diario comprimido para logs JSON.
+        """
+        if self._handler is not None:
+            return
+        self._handler = TimedRotatingFileHandler(
+            filename=str(self.path),
+            when="midnight",
+            interval=1,
+            backupCount=max(self.config.retention_days, self.config.log_rotation_days),
+            encoding="utf-8",
+            utc=True,
+        )
+
+        def _namer(name: str) -> str:
+            return f"{name}.gz"
+
+        def _rotator(source: str, dest: str) -> None:
+            with open(source, "rb") as src, gzip.open(dest, "wb") as dst:
+                dst.write(src.read())
+            Path(source).unlink(missing_ok=True)
+
+        self._handler.namer = _namer
+        self._handler.rotator = _rotator
 
     def flush(self, timeout: float = 2.0) -> None:
         """Best-effort queue flush helper for tests and shutdown.
@@ -188,8 +228,10 @@ class AttackForensicsLogbook:
                 if payload is None:
                     return
                 self._rotate_if_needed()
-                with self.path.open("a", encoding="utf-8") as handle:
-                    handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+                if self._handler is None:
+                    self._ensure_handler()
+                if self._handler:
+                    self._handler.emit(logging.makeLogRecord({"msg": json.dumps(payload, ensure_ascii=False)}))
             finally:
                 self._events.task_done()
 
@@ -202,6 +244,12 @@ class AttackForensicsLogbook:
         if now - self._last_rotation >= self.config.rotation_interval_seconds and self.path.exists():
             should_rotate = True
         if not should_rotate:
+            return
+
+        if self._handler:
+            self._handler.doRollover()
+            self._last_rotation = now
+            self._cleanup_old_files()
             return
 
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
@@ -218,7 +266,7 @@ class AttackForensicsLogbook:
 
     def _cleanup_old_files(self) -> None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=self.config.retention_days)
-        for candidate in self.path.parent.glob("attack_log-*.jsonl.gz"):
+        for candidate in self.path.parent.glob("attack_log*.gz"):
             modified = datetime.fromtimestamp(candidate.stat().st_mtime, tz=timezone.utc)
             if modified < cutoff:
                 candidate.unlink(missing_ok=True)
@@ -434,8 +482,19 @@ class HoneypotServer:
         @self.app.before_request
         def _basic_firewall() -> tuple[str, int] | None:
             remote_ip = request.remote_addr or "0.0.0.0"
+            if remote_ip in self.config.honeypot_allowlist:
+                return None
             if self._is_private_or_loopback(remote_ip):
                 return None
+            if self.config.honeypot_firewall_default_deny:
+                self.logbook.log_http_request(
+                    ip=remote_ip,
+                    method=request.method,
+                    route=request.path,
+                    headers=self._extract_headers(request),
+                    content_length=int(request.content_length or 0),
+                )
+                return ("Blocked", 403)
             if self._is_dns_blackholed(remote_ip):
                 self.logbook.log_http_request(
                     ip=remote_ip,

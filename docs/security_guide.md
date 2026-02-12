@@ -1,72 +1,87 @@
 # Security Integration Guide / Guía de Integración de Seguridad
 
-## Integración de Sistemas
+## Resolución de Críticas y Flujo Integrado
 
-Centinel-Engine integra los componentes defensivos en este flujo:
+Plan paso a paso (operativo y reproducible):
+
+1. **Rotación forense anti-inflado**: activar rotación diaria JSONL con compresión `.gz`, retención configurable y escritura asíncrona para minimizar overhead bajo ataques sostenidos.
+2. **Umbrales adaptativos**: usar baseline de CPU con ventana móvil + margen adaptativo para ignorar picos breves de VPS y reducir falsos positivos del dead-man.
+3. **Integración honeypot → dead-man**: disparar air-gap automático si se supera `honeypot_threshold_per_minute` (ej. `>100 req/min`) o flood sostenido.
+4. **Persistencia pre-OOM**: al recibir señales de terminación/OOM-like, persistir snapshot mínimo en disco y forzar backup cifrado antes de salir.
+5. **Alertas escalonadas**: nivel 1 (solo log), nivel 2 (email + webhook SMS), nivel 3 (Telegram + fallback).
+6. **Seguridad Solidity + Python**: chequeos runtime de contratos (`pragma`, patrones bloqueados como `delegatecall`/`tx.origin`) antes de anclaje.
+7. **Métricas Prometheus**: exponer CPU, tamaño de logs, anomalías y alertas en endpoint para monitoreo continuo.
+8. **Pruebas integradas y chaos**: validar cadena completa detección → logging → dead-man → backup, incluyendo DDoS + tampering + OOM.
+
+## Flujo defensivo consolidado
 
 ```text
-Honeypot detecta tráfico sospechoso
-  -> Attack Forensics Logbook clasifica y rota logs JSON diarios comprimidos
-  -> callback de flood evalúa umbrales anti-DDoS
-  -> Dead Man's Switch evalúa señales internas (CPU/Mem/errores/conexiones)
-  -> si supera umbral consecutivo activa air-gap controlado
-  -> Supervisor reinicia con backoff exponencial y guardas de concurrencia
-  -> Backup manager cifra y envía hashes/logs a air-gap off-site
-  -> Verificación de integridad antes de reanudar polling
+Tráfico sospechoso (honeypot/ingress)
+  -> Attack Forensics Logbook (JSONL async + rotación diaria + gzip)
+  -> Clasificación (scan/brute/flood/proxy_suspect)
+  -> Umbral adaptive + dead-man switch
+  -> Air-gap controlado
+  -> Persistencia pre-OOM + backup cifrado off-site
+  -> Supervisor con backoff exponencial y guardas de concurrencia
+  -> Verificación de integridad (archivos + contratos Solidity)
+  -> Reanudación segura de polling GET-only
 ```
 
-## Principios operativos
+## Configuraciones clave
 
-- Solo tráfico de auditoría pública con métodos GET para fuentes CNE.
-- Neutralidad cívica: no inferir preferencias políticas ni alterar datos.
-- Reproducibilidad: logs estructurados JSONL y config YAML versionable.
+### `command_center/security_config.yaml`
 
-## Configuración recomendada
+- `forensics.log_rotation_days`: días de retención de rotación comprimida.
+- `honeypot.honeypot_threshold`: req/min para activar dead-man.
+- `observability.prometheus_port`: puerto del endpoint de métricas.
+- `alert_email`: destino primario de escalamiento.
 
-Archivo principal: `command_center/security_config.yaml`
+### `command_center/advanced_security_config.yaml`
 
-- `max_restart_attempts`, `cooldown_min_minutes`, `cooldown_max_minutes` para resiliencia.
-- `alerts.channels` para escalamiento (email/telegram/sms_webhook).
-- `honeypot.enabled` para activar captura controlada de scans.
+- `cpu_adaptive_margin_percent`, `cpu_spike_grace_seconds`, `cpu_baseline_window`.
+- `honeypot_threshold_per_minute`.
+- `prometheus_enabled`, `prometheus_port`.
+- `solidity_contract_paths`, `solidity_blocked_patterns`.
 
-Archivo integrado: `command_center/advanced_security_config.yaml`
+### `command_center/attack_config.yaml`
 
-- `anomaly_consecutive_limit` reduce falsos positivos.
-- `honeypot_flood_trigger_count` + `honeypot_flood_window_seconds` enlaza honeypot y dead-man switch.
-- `auto_backup_forensic_logs` respalda evidencia forense automáticamente.
+- `log_rotation_days`.
+- `honeypot.firewall_default_deny` + `honeypot.allowlist`.
+- `flood_log_sample_ratio` para ataques sostenidos.
 
-Archivo forense: `command_center/attack_config.yaml`
+## Firewall para honeypot
 
-- `flood_log_sample_ratio` minimiza inflado en ataques sostenidos.
-- `rotation_interval` + `retention_days` controlan ciclo de vida de logs.
-- `geoip_city_db_path` habilita geolocalización offline si hay base MaxMind.
+- Default deny para IP pública fuera de allowlist local.
+- Recomendación host-level:
 
-## Ejemplo de evento forense
+```bash
+# UFW ejemplo mínimo
+ufw default deny incoming
+ufw allow 22/tcp
+ufw allow from 127.0.0.1 to any port 8080 proto tcp
+```
+
+- En Docker, replicar con reglas de red bridge + puertos explícitos.
+
+## Ejemplo de alerta y evento
 
 ```json
-{
-  "timestamp_utc": "2026-02-12T03:11:04.901324+00:00",
-  "ip": "198.51.100.10",
-  "route": "/admin",
-  "classification": "flood",
-  "frequency_count": 42,
-  "geo": {"country": "HN", "city": "Tegucigalpa"}
-}
+{"level":3,"event":"honeypot_rate_limit_deadman","metrics":{"rpm":132}}
 ```
 
-## Troubleshooting
-
-- **Falsos positivos de air-gap**: subir `anomaly_consecutive_limit` o `cpu_sustain_seconds`.
-- **Logs crecen rápido**: aumentar `flood_log_sample_ratio` y revisar `max_requests_per_ip`.
-- **No llegan alertas**: validar variables `SMTP_*`, `TELEGRAM_*`, y webhook.
-- **Reinicios frecuentes**: revisar `supervisor_concurrency_guard_triggered` en logs.
-
-## Diagramas de decisión de alertas
-
-```text
-Evento detectado
-  -> nivel 1: solo log interno
-  -> nivel 2: email/webhook
-  -> nivel 3: telegram + fallback email
-  -> si fallan N envíos: error crítico de canal
+```json
+{"classification":"flood","ip":"198.51.100.10","route":"/admin","frequency_count":42}
 ```
+
+## Troubleshooting rápido
+
+- **Falsos positivos CPU**: subir `cpu_spike_grace_seconds` o `cpu_adaptive_margin_percent`.
+- **Logs inflados**: revisar `flood_log_sample_ratio`, `log_rotation_days` y endpoint Prometheus.
+- **Alertas no entregadas**: validar `SMTP_*`, `TELEGRAM_*`, `SMS_WEBHOOK_URL`.
+- **OOM recurrente**: revisar `data/backups/pre_oom_snapshot.json` y `supervisor_pre_oom.json`.
+
+## Neutralidad y límites operativos
+
+- Solo se permiten consultas a fuentes públicas CNE vía GET.
+- No se altera contenido electoral ni se infieren preferencias políticas.
+- La evidencia forense preserva trazabilidad sin exfiltrar datos sensibles.

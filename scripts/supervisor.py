@@ -22,6 +22,7 @@ from core.security import SecurityConfig, send_admin_alert
 DEFAULT_COMMAND = [sys.executable, "scripts/run_pipeline.py"]
 CONFIG_PATH = Path("command_center/security_config.yaml")
 CLEAN_SHUTDOWN_FLAG = Path("/tmp/clean_shutdown.flag")
+OOM_PERSIST_FILE = Path("data/backups/supervisor_pre_oom.json")
 
 
 def _host_still_hostile(config: SecurityConfig) -> bool:
@@ -72,6 +73,13 @@ def run_supervisor(command: list[str], logger: logging.Logger) -> int:
         logger.info("supervisor_launch command=%s", command)
         proc = subprocess.run(command, check=False)
         returncode = proc.returncode
+
+        if returncode in {-9, -15}:
+            OOM_PERSIST_FILE.parent.mkdir(parents=True, exist_ok=True)
+            OOM_PERSIST_FILE.write_text(
+                f'{{"reason":"signal_{abs(returncode)}","timestamp":{int(time.time())}}}',
+                encoding="utf-8",
+            )
 
         clean_shutdown = CLEAN_SHUTDOWN_FLAG.exists()
         if clean_shutdown:

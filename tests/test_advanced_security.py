@@ -60,3 +60,34 @@ def test_detect_internal_anomalies_new_file(tmp_path: Path) -> None:
     (tmp_path / "new.py").write_text("print('x')", encoding="utf-8")
     triggers = manager.detect_internal_anomalies()
     assert "new_file_detected" in triggers
+
+
+def test_adaptive_cpu_ignores_brief_spike(monkeypatch: pytest.MonkeyPatch) -> None:
+    """English/Spanish: brief CPU spikes should not immediately trigger dead-man.
+
+    Picos breves de CPU no deben disparar inmediatamente el dead-man.
+    """
+    cfg = AdvancedSecurityConfig(cpu_threshold_percent=20, cpu_sustain_seconds=60, cpu_spike_grace_seconds=5)
+    manager = AdvancedSecurityManager(cfg)
+    monkeypatch.setattr("core.advanced_security.psutil.cpu_percent", lambda interval=0.1: 95.0)
+    monkeypatch.setattr("core.advanced_security.psutil.virtual_memory", lambda: type("vm", (), {"percent": 10.0})())
+    monkeypatch.setattr(manager.runtime_security, "detect_hostile_conditions", lambda: [])
+
+    triggers = manager.detect_internal_anomalies()
+
+    assert "cpu_sustained:95.0" not in triggers
+
+
+def test_solidity_runtime_checks_detect_blocked_pattern(tmp_path: Path) -> None:
+    """English/Spanish: runtime check should detect risky Solidity primitives.
+
+    El chequeo runtime debe detectar primitivas riesgosas en Solidity.
+    """
+    contracts_dir = tmp_path / "contracts"
+    contracts_dir.mkdir(parents=True)
+    contract = contracts_dir / "Vote.sol"
+    contract.write_text("pragma solidity ^0.8.20; contract Vote { function x() public { tx.origin; } }", encoding="utf-8")
+    cfg = AdvancedSecurityConfig(solidity_contract_paths=[str(contracts_dir / "*.sol")])
+    manager = AdvancedSecurityManager(cfg)
+    triggers = manager.detect_internal_anomalies()
+    assert any(t.startswith("solidity_blocked_pattern") for t in triggers)

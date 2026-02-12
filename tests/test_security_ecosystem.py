@@ -68,3 +68,31 @@ def test_manager_requires_consecutive_anomalies(monkeypatch) -> None:
     manager.on_poll_cycle()
 
     assert len(calls) == 1
+
+
+def test_integrated_flow_detection_to_backup(tmp_path: Path, monkeypatch) -> None:
+    """Integrated flow should chain anomaly -> alert -> air-gap -> backup.
+
+    El flujo integrado debe encadenar anomalía -> alerta -> air-gap -> backup.
+    """
+    cfg = AdvancedSecurityConfig(
+        anomaly_consecutive_limit=1,
+        backup_paths=[str(tmp_path / "*.json")],
+        auto_backup_forensic_logs=True,
+    )
+    manager = AdvancedSecurityManager(cfg)
+    (tmp_path / "snapshot.json").write_text('{"ok": true}', encoding="utf-8")
+    calls: list[str] = []
+    monkeypatch.setattr(manager, "verify_integrity", lambda: False)
+    monkeypatch.setattr(manager.runtime_security, "stop_honeypot", lambda: calls.append("runtime_stop"))
+    monkeypatch.setattr(manager.honeypot, "stop", lambda: calls.append("honeypot_stop"))
+    monkeypatch.setattr(manager.honeypot, "start", lambda: calls.append("honeypot_start"))
+    monkeypatch.setattr(manager.runtime_security, "start_honeypot", lambda: calls.append("runtime_start"))
+    monkeypatch.setattr(manager, "detect_internal_anomalies", lambda: ["memory_high:95.0"])
+    monkeypatch.setattr("core.advanced_security.time.sleep", lambda _seconds: None)
+
+    manager.on_poll_cycle()
+
+    assert "runtime_stop" in calls
+    assert "honeypot_stop" in calls
+    assert any(p.name.startswith("advanced_backup_") for p in (Path("data/backups")).glob("advanced_backup_*.json*"))

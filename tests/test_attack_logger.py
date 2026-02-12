@@ -51,7 +51,7 @@ def test_rotation_creates_gzip_archive(tmp_path: Path) -> None:
     time.sleep(0.2)
     logbook.stop()
 
-    gz_files = list(tmp_path.glob("attack_log-*.jsonl.gz"))
+    gz_files = list(tmp_path.glob("attack_log*.gz"))
     assert gz_files, "rotation gzip file was not created"
     with gzip.open(gz_files[0], "rt", encoding="utf-8") as fh:
         payload = json.loads(fh.readline())
@@ -107,3 +107,17 @@ def test_external_summary_uses_anonymized_ip(tmp_path: Path, monkeypatch: pytest
     logbook.stop()
 
     assert captured["payload"]["ip"].startswith("anon-")
+
+
+def test_honeypot_default_firewall_blocks_public_ips(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """English/Spanish: Honeypot default firewall should deny non-local clients.
+
+    El firewall por defecto del honeypot debe bloquear clientes no locales.
+    """
+    pytest.importorskip("flask")
+    cfg = AttackLogConfig(log_path=str(tmp_path / "attack_log.jsonl"), honeypot_enabled=True)
+    logbook = AttackForensicsLogbook(cfg)
+    honeypot = HoneypotServer(cfg, logbook)
+    client = honeypot.app.test_client()
+    response = client.get("/debug", environ_base={"REMOTE_ADDR": "198.51.100.50"})
+    assert response.status_code == 403

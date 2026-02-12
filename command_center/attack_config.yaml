@@ -4,6 +4,7 @@ log_path: logs/attack_log.jsonl
 rotation_interval: 86400
 max_file_size_mb: 10
 retention_days: 30
+log_rotation_days: 7
 frequency_window_seconds: 60
 sequence_window_size: 40
 max_requests_per_ip: 20
@@ -39,6 +40,7 @@ honeypot:
   enabled: true
   host: 127.0.0.1
   port: 8080
+  firewall_default_deny: true
   routes:
     - /debug
     - /admin
