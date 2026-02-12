@@ -46,7 +46,7 @@ except Exception:  # noqa: BLE001
 
     psutil = _PsutilFallback()
 
-import requests
+from core.http_compat import requests
 import yaml
 try:
     from prometheus_client import Counter, Gauge, start_http_server
