@@ -26,6 +26,7 @@ from core import logger as core_logger
 from core.attack_logger import AttackForensicsLogbook, AttackLogConfig, HoneypotServer
 from scripts.circuit_breaker import CircuitBreaker
 from core.security import DefensiveSecurityManager, DefensiveShutdown, SecurityConfig
+from core.advanced_security import load_manager
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
 from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
@@ -47,6 +48,7 @@ HEARTBEAT_PATH = DATA_DIR / "heartbeat.json"
 RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
 SECURITY_CONFIG_PATH = Path("command_center") / "security_config.yaml"
 ATTACK_CONFIG_PATH = Path("command_center") / "attack_config.yaml"
+ADVANCED_SECURITY_CONFIG_PATH = Path("command_center") / "advanced_security_config.yaml"
 RESILIENCE_STAGE_ORDER = [
     "start",
     "healthcheck",
@@ -1074,6 +1076,8 @@ def main():
     security_manager = DefensiveSecurityManager(SecurityConfig.from_yaml(SECURITY_CONFIG_PATH), logger=logger)
     security_manager.register_signal_handlers()
     security_manager.start_honeypot()
+    advanced_security_manager = load_manager(ADVANCED_SECURITY_CONFIG_PATH)
+    advanced_security_manager.start()
 
     def _guarded_run() -> bool:
         attack_logbook.log_connection_snapshot()
@@ -1083,6 +1087,7 @@ def main():
                 triggers,
                 snapshot_state=build_defensive_state_snapshot(),
             )
+        advanced_security_manager.on_poll_cycle()
         return safe_run_pipeline(config, security_manager=security_manager)
 
     try:
@@ -1155,6 +1160,7 @@ def main():
         print("[+] Scheduler activo: ejecución horaria en minuto 00 UTC")
         scheduler.start()
     finally:
+        advanced_security_manager.shutdown()
         honeypot.stop()
         attack_logbook.stop()
 

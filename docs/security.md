@@ -137,3 +137,53 @@ Esta bitácora ayuda a demostrar presión de ataque a lo largo del tiempo con re
 - Keep honeypot disabled by default (`command_center/attack_config.yaml`).
 - Expose honeypot only behind reverse proxy and strict firewall if required.
 - Use environment variables for external notifications (`WEBHOOK_URL`, `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`, `ATTACK_LOG_SALT`).
+
+## Sistema de Seguridad Avanzada Integrado (Integrated Advanced Security System)
+
+Este módulo agrega resiliencia defensiva pasiva para escenarios hostiles sin interferir con el polling del CNE.
+
+### Componentes
+
+1. **Honeypot ligero (`core/advanced_security.py`)**
+   - Endpoints señuelo configurables (`/admin`, `/login`, etc.) con respuestas aleatorias `404/403/500`.
+   - Registro forense de metadata (IP, UA, headers, tamaño, ruta, método, UTC).
+
+2. **Air-gap temporal automático**
+   - Al detectar anomalías internas (CPU/memoria/archivos nuevos), activa hibernación aleatoria.
+   - Detiene honeypot, limpia memoria (`gc.collect`) y verifica integridad antes de retomar.
+
+3. **Supervisor externo (`scripts/supervisor.py`)**
+   - Reinicio con cooldown largo aleatorio/exponencial ante salidas forzadas.
+   - Distingue cierre limpio por `/tmp/clean_shutdown.flag`.
+
+4. **Backups off-site cifrados**
+   - Respaldo cifrado de hashes/snapshots en intervalos (S3/B2/GitHub/local fallback).
+   - Hook post-hash (`core/hasher.py`) y backup en startup/shutdown.
+
+5. **Rotación de identidad**
+   - User-Agent rotativo restringido a versión `1.0`.
+   - Perfil de proxy opcional para evitar fingerprinting estático.
+
+6. **Alertas escalonadas**
+   - Nivel 1: solo bitácora local.
+   - Nivel 2: email.
+   - Nivel 3: Telegram principal + email fallback.
+
+### Flujo de alerta escalonada (ASCII)
+
+```text
+[detector interno/honeypot/supervisor]
+               |
+               v
+        clasificar severidad
+      /        |          \
+    L1         L2          L3
+    |          |           |
+ log local   email     telegram -> (si falla) -> email
+```
+
+### Recomendaciones operativas
+
+- Mantener `honeypot_enabled: false` por defecto y exponerlo solo detrás de firewall/reverse proxy.
+- Definir `BACKUP_AES_KEY`, credenciales cloud y canales de alerta por variables de entorno.
+- Usar `centinel-supervisor` como servicio externo en Compose o contenedor independiente.

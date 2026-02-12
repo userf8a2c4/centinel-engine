@@ -1,0 +1,40 @@
+enabled: true
+honeypot_enabled: false
+honeypot_host: "127.0.0.1"
+honeypot_port: 8081
+honeypot_endpoints:
+  - "/admin"
+  - "/login"
+  - "/api/v1/results"
+  - "/debug"
+
+airgap_min_minutes: 5
+airgap_max_minutes: 30
+
+cpu_threshold_percent: 85
+cpu_sustain_seconds: 120
+memory_threshold_percent: 80
+
+backup_provider: "s3"
+backup_interval: 1800
+backup_retention_days: 7
+backup_paths:
+  - "hashes/*.sha256"
+  - "data/snapshot_*.json"
+integrity_paths:
+  - "core/*.py"
+  - "scripts/run_pipeline.py"
+
+user_agents_list:
+  - "Mozilla/5.0 (compatible; Centinel-Engine/1.0)"
+  - "Centinel-AuditoriaHN/1.0 bot"
+  - "Centinel-ElectorHN/1.0 (auditoria publica)"
+  - "Centinel-HN/1.0 (monitoreo electoral)"
+rotate_every_min_polls: 10
+rotate_every_max_polls: 30
+
+proxy_list: []
+alert_levels:
+  level_1: "internal_log"
+  level_2: "email"
+  level_3: "telegram_primary_email_fallback"
