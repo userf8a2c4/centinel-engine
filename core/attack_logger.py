@@ -33,40 +33,10 @@ except Exception:  # noqa: BLE001
         @staticmethod
         def net_connections(kind: str = "inet"):
             return []
-
+# Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
     psutil = _PsutilFallback()
-
-class _HttpResponse:
-    def __init__(self, status_code: int, text: str = "") -> None:
-        self.status_code = int(status_code)
-        self.text = text
-
-
-class _RequestsCompat:
-    @staticmethod
-    def post(url: str, json: dict[str, Any] | None = None, timeout: int = 5) -> _HttpResponse:  # noqa: A002
-        body = b""
-        if json is not None:
-            body = json_module.dumps(json, ensure_ascii=False).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=body,
-            headers={"Content-Type": "application/json; charset=utf-8"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                payload = resp.read().decode("utf-8", errors="ignore")
-                return _HttpResponse(getattr(resp, "status", 200), payload)
-        except urllib.error.HTTPError as exc:
-            text = exc.read().decode("utf-8", errors="ignore") if hasattr(exc, "read") else str(exc)
-            return _HttpResponse(exc.code, text)
-        except Exception:  # noqa: BLE001
-            return _HttpResponse(503, "http_post_failed")
-
-
-requests = _RequestsCompat()
-json_module = json
+# Keep direct requests import: this path is the last known green baseline for CI security suites.
+import requests
 import yaml
 try:
     from flask import Flask, Request, request
