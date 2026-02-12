@@ -84,7 +84,7 @@ def run_supervisor(command: list[str], logger: logging.Logger) -> int:
             triggers = payload.get("triggers", triggers)
             state_dir = payload.get("state_dir", state_dir)
         except json.JSONDecodeError:
-            pass
+            logger.warning("supervisor_flag_file_corrupt path=%s", flag)
 
     send_admin_alert(
         config=config,
