@@ -33,7 +33,7 @@ except Exception:  # noqa: BLE001
             return []
 
     psutil = _PsutilFallback()
-import requests
+from core.http_compat import requests
 import yaml
 try:
     from flask import Flask, Request, request
