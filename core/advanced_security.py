@@ -48,8 +48,7 @@ except Exception:  # noqa: BLE001
 
 # Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
 
-# Keep direct requests import: this path is the last known green baseline for CI security suites.
-import requests
+from core.http_compat import requests
 import yaml
 try:
     from prometheus_client import Counter, Gauge, start_http_server
