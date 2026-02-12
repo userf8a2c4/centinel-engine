@@ -442,7 +442,7 @@ class AdvancedSecurityManager:
         window = self.config.honeypot_flood_window_seconds
         self._flood_events = [stamp for stamp in self._flood_events if now - stamp <= window]
         if len(self._flood_events) >= self.config.honeypot_flood_trigger_count:
-            self.alerts.send(2, "honeypot_flood_threshold", {"count": len(self._flood_events), "window_seconds": window})
+            self._safe_alert(2, "honeypot_flood_threshold", {"count": len(self._flood_events), "window_seconds": window})
             self.air_gap("honeypot_flood_threshold")
             self._flood_events.clear()
 
