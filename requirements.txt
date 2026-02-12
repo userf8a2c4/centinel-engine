@@ -7,6 +7,7 @@ playwright>=1.49.0             # Fallback scraping con navegador headless
 playwright-stealth>=1.0.6      # Modo stealth para evitar detección anti-bot
 apscheduler>=3.10.4            # Scheduler para healthchecks
 flask-limiter>=3.7.0           # Rate limiting para el dashboard/app
+flask>=3.0.0                 # Honeypot mínimo para forense
 httpx>=0.27.0                  # Cliente HTTP para healthchecks
 boto3>=1.34.0                  # Cliente S3/R2 para checkpoints
 psutil>=5.9.8                  # Métricas de CPU/memoria para healthcheck

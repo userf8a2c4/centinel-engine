@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Any, Iterable
 import yaml
 
+from core import logger as core_logger
+
 SENSITIVE_FIELDS = {
     "votos",
     "votes",
@@ -232,3 +234,14 @@ def log_event(logger: logging.Logger, level: int, event: str, **fields: Any) -> 
     # Seguridad: evitar registrar datos sensibles en claro. / Security: avoid logging sensitive values in clear text.
     sanitized = _redact_sensitive_fields(payload)
     logger.log(level, json.dumps(sanitized, ensure_ascii=False))
+
+    if event.startswith(("suspicious", "attack", "honeypot")):
+        core_logger.log_suspicious_event(
+            {
+                "ip": str(fields.get("ip", "0.0.0.0")),
+                "method": str(fields.get("method", "GET")),
+                "route": str(fields.get("route", f"/event/{event}")),
+                "headers": dict(fields.get("headers", {})) if isinstance(fields.get("headers"), dict) else {},
+                "content_length": int(fields.get("content_length", 0)),
+            }
+        )

@@ -1,0 +1,43 @@
+# Attack Forensics Logbook config / Configuración Bitácora Forense de Atacantes
+enabled: true
+log_path: logs/attack_log.jsonl
+rotation_interval: 86400
+max_file_size_mb: 10
+retention_days: 30
+frequency_window_seconds: 60
+sequence_window_size: 40
+max_requests_per_ip: 20
+monitor_unexpected_connections: true
+expected_listen_ports: [443]
+
+suspicious_user_agents:
+  - sqlmap
+  - nmap
+  - nikto
+  - masscan
+  - acunetix
+
+brute_force_paths:
+  - /admin
+  - /login
+  - /wp-login
+  - /api/internal
+
+tor_exit_nodes: []
+
+external_summary:
+  enabled: false
+  critical_only: true
+  channel: webhook
+  anonymize: true
+  webhook_url: ""
+  telegram_chat_id: ""
+
+honeypot:
+  enabled: false
+  host: 127.0.0.1
+  port: 8080
+  routes:
+    - /debug
+    - /admin
+    - /api/internal
