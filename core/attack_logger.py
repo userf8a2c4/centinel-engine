@@ -33,7 +33,19 @@ except Exception:  # noqa: BLE001
             return []
 
     psutil = _PsutilFallback()
-import requests
+try:
+    import requests
+except Exception:  # noqa: BLE001
+    class _RequestsFallback:
+        @staticmethod
+        def post(*_args: Any, **_kwargs: Any):
+            class _Resp:
+                status_code = 503
+                text = "requests_unavailable"
+
+            return _Resp()
+
+    requests = _RequestsFallback()
 import yaml
 try:
     from flask import Flask, Request, request
