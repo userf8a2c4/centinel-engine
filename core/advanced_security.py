@@ -28,24 +28,25 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
+class _PsutilFallback:
+    CONN_ESTABLISHED = "ESTABLISHED"
+
+    @staticmethod
+    def cpu_percent(interval: float = 0.1) -> float:
+        return 0.0
+
+    @staticmethod
+    def virtual_memory():
+        return type("_VMem", (), {"percent": 0.0})()
+
+    @staticmethod
+    def net_connections(kind: str = "inet"):
+        return []
+
+
 try:
     import psutil
-except Exception:  # noqa: BLE001
-    class _PsutilFallback:
-        CONN_ESTABLISHED = "ESTABLISHED"
-
-        @staticmethod
-        def cpu_percent(interval: float = 0.1) -> float:
-            return 0.0
-
-        @staticmethod
-        def virtual_memory():
-            return type("_VMem", (), {"percent": 0.0})()
-
-        @staticmethod
-        def net_connections(kind: str = "inet"):
-            return []
-
+except ModuleNotFoundError:
     psutil = _PsutilFallback()
 
 # Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.

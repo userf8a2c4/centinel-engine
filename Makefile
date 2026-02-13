@@ -46,10 +46,10 @@ security-scan:
 
 
 test-security:
-	$(PYTHON_COMMAND) -m pytest tests/test_attack_logger.py tests/test_advanced_security.py tests/test_security_ecosystem.py
+	$(PYTHON_COMMAND) -m pytest tests/test_attack_logger.py tests/test_advanced_security.py tests/test_advanced_security_fallback.py tests/test_security_ecosystem.py
 
 test-security-chaos:
 	$(PYTHON_COMMAND) -m pytest tests/chaos/test_security_chaos.py
 
 test-security-all:
-	$(PYTHON_COMMAND) -m pytest tests/test_attack_logger.py tests/test_advanced_security.py tests/test_security_ecosystem.py tests/chaos/test_security_chaos.py
+	$(PYTHON_COMMAND) -m pytest tests/test_attack_logger.py tests/test_advanced_security.py tests/test_advanced_security_fallback.py tests/test_security_ecosystem.py tests/chaos/test_security_chaos.py
