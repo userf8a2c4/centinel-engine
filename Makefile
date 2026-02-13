@@ -1,4 +1,4 @@
-.PHONY: init snapshot collect audit analyze summary pipeline test-stress security-scan test lint test-security test-security-chaos test-security-all
+.PHONY: init snapshot collect audit analyze summary pipeline security test-stress security-scan test lint test-security test-security-chaos test-security-all
 
 PYTHON_COMMAND ?= python
 
@@ -24,6 +24,11 @@ summary:
 
 pipeline:
 	$(PYTHON_COMMAND) scripts/run_pipeline.py --once
+
+security:
+	mkdir -p logs
+	$(PYTHON_COMMAND) -m bandit -r . -c bandit.yaml --severity-level medium 2>&1 | tee logs/security-bandit.log
+	$(PYTHON_COMMAND) -m pytest tests/test_security.py tests/test_attack_logger.py tests/test_advanced_security.py 2>&1 | tee logs/security-tests.log
 
 test-stress:
 	$(PYTHON_COMMAND) -m pytest tests/test_stress.py

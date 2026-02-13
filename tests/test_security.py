@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+pytest.importorskip("psutil")
+
 from core import security
 from core.security import DefensiveSecurityManager, DefensiveShutdown, SecurityConfig
 from scripts import supervisor
@@ -90,3 +92,30 @@ def test_supervisor_sends_alert_after_max_retries(monkeypatch: pytest.MonkeyPatc
     code = supervisor.run_supervisor(["python", "scripts/run_pipeline.py"], logger)
     assert code == 1
     assert called["alert"] == 1
+
+
+def test_collector_rejects_unsafe_urls() -> None:
+    """English: unsafe URL schemes must be rejected. Español: se rechazan esquemas inseguros."""
+    from scripts.collector import is_safe_http_url
+
+    assert is_safe_http_url("https://cne.example/api")
+    assert not is_safe_http_url("file:///etc/passwd")
+    assert not is_safe_http_url("ftp://example.com/data")
+    assert not is_safe_http_url("https://user:pass@example.com/secret")
+
+
+def test_hash_manifest_skips_symlink(tmp_path: Path) -> None:
+    """English: symlink snapshots are excluded from manifest. Español: se excluyen symlinks del manifiesto."""
+    from scripts.hash import build_manifest
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    real_file = data_dir / "a.json"
+    real_file.write_text('{"ok": true}', encoding="utf-8")
+    # English/Spanish: symlink candidate should be ignored for safety / el symlink debe ignorarse por seguridad.
+    (data_dir / "b.json").symlink_to(real_file)
+
+    manifest = build_manifest(data_dir)
+    names = {entry["file"] for entry in manifest}
+    assert "a.json" in names
+    assert "b.json" not in names

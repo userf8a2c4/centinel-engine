@@ -40,6 +40,20 @@ def hash_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def is_safe_snapshot_file(path: Path, data_dir: Path) -> bool:
+    """Validate candidate files for secure manifest generation.
+
+    Valida archivos candidatos para generación segura del manifiesto.
+    """
+    if path.suffix.lower() != ".json":
+        return False
+    if path.is_symlink():
+        return False
+    resolved = path.resolve()
+    base = data_dir.resolve()
+    return str(resolved).startswith(str(base))
+
+
 def load_previous_chain_hash() -> str:
     """Read the latest chained hash if any.
 
@@ -64,6 +78,9 @@ def build_manifest(data_dir: Path = DATA_DIR) -> list[dict[str, Any]]:
     """
     manifest: list[dict[str, Any]] = []
     for candidate in sorted(data_dir.glob("*.json")):
+        if not is_safe_snapshot_file(candidate, data_dir):
+            LOGGER.warning("hash_skip_unsafe_candidate file=%s", candidate)
+            continue
         try:
             manifest.append(
                 {

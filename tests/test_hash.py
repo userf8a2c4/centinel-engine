@@ -82,3 +82,17 @@ def test_write_snapshot_hash_creates_chained_payload(tmp_path: Path, monkeypatch
     assert payload["manifest_count"] == 1
     assert len(payload["hash"]) == 64
     assert len(payload["chained_hash"]) == 64
+
+
+def test_build_manifest_skips_symlink_candidates(tmp_path: Path):
+    """English: symlink JSONs are ignored for secure manifests. Español: se ignoran symlinks JSON por seguridad."""
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    target = data_dir / "safe.json"
+    target.write_text('{"ok": true}', encoding="utf-8")
+    (data_dir / "link.json").symlink_to(target)
+
+    manifest = hash_script.build_manifest(data_dir)
+    files = {entry["file"] for entry in manifest}
+    assert "safe.json" in files
+    assert "link.json" not in files

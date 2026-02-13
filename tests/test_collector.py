@@ -105,3 +105,10 @@ def test_run_collection_writes_report(tmp_path: Path, monkeypatch):
 
     assert code == 0
     assert output_path.exists()
+
+
+def test_is_safe_http_url_blocks_unsafe_schemes_and_credentials():
+    """English: URL validator blocks unsafe schemes and credentials. Español: bloquea esquemas inseguros y credenciales."""
+    assert collector.is_safe_http_url("https://cne.example/api")
+    assert not collector.is_safe_http_url("file:///etc/passwd")
+    assert not collector.is_safe_http_url("https://user:pass@example.com/private")

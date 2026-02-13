@@ -12,6 +12,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 import yaml
@@ -48,6 +49,23 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def is_safe_http_url(url: str) -> bool:
+    """Validate URL safety constraints before requesting.
+
+    Valida restricciones de seguridad de URL antes de consultar.
+    """
+    parsed = urlparse(url)
+    # English/Spanish: allow only http/https and explicit host / solo http/https y host explícito.
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    if not parsed.netloc:
+        return False
+    # English/Spanish: disallow embedded credentials in URL / bloquea credenciales embebidas en URL.
+    if parsed.username or parsed.password:
+        return False
+    return True
+
+
 def fetch_json_with_retry(
     session: requests.Session,
     url: str,
@@ -60,6 +78,10 @@ def fetch_json_with_retry(
 
     Descarga JSON desde URL con reintentos.
     """
+    if not is_safe_http_url(url):
+        LOGGER.error("collector_unsafe_url_skipped url=%s", url)
+        return None
+
     for attempt in range(1, max_attempts + 1):
         try:
             response = session.get(url, timeout=timeout_seconds)
@@ -144,7 +166,7 @@ def run_collection(config_path: Path = DEFAULT_CONFIG_PATH, retry_path: Path = D
                 continue
             payload = fetch_json_with_retry(
                 session,
-                endpoint,
+                str(endpoint),
                 timeout_seconds=timeout_seconds,
                 max_attempts=max_attempts,
                 backoff_base=backoff_base,
