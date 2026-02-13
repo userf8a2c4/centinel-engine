@@ -28,7 +28,7 @@ pipeline:
 security:
 	mkdir -p logs
 	$(PYTHON_COMMAND) -m bandit -r . -c bandit.yaml --severity-level medium 2>&1 | tee logs/security-bandit.log
-	$(PYTHON_COMMAND) -m pytest tests/test_security.py tests/test_attack_logger.py tests/test_advanced_security.py 2>&1 | tee logs/security-tests.log
+	$(PYTHON_COMMAND) -m pytest tests/test_security.py tests/test_attack_logger.py tests/test_advanced_security.py tests/test_advanced_security_fallback.py 2>&1 | tee logs/security-tests.log
 
 test-stress:
 	$(PYTHON_COMMAND) -m pytest tests/test_stress.py
