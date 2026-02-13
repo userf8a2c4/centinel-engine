@@ -1,0 +1,53 @@
+name: Centinel Pipeline CI
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
+
+jobs:
+  collector:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+      - name: Debug environment
+        run: |
+          echo "Python: $(python --version)"
+          echo "Poetry: $(poetry --version)"
+          env | sort | head -n 40
+          ls -la
+          ls -la data || true
+      - name: Run collector
+        run: poetry run python -m scripts.collector || echo "Error details: collector failed"
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: collector
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+      - name: Debug environment
+        run: |
+          echo "Python: $(python --version)"
+          env | sort | head -n 40
+          ls -la data || true
+          ls -la hashes || true
+      - name: Ejecutar snapshot y hash
+        run: poetry run python -m scripts.snapshot || echo "Error details: snapshot/hash failed"

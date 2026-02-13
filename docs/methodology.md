@@ -65,3 +65,19 @@ Standardize a reproducible flow to capture public data, preserve evidence, and r
 - **Traceability:** each data point has source, time, and hash.
 
 There is no human intervention during automated execution.
+
+## CI Robustness for Timed Audits / Robustez CI para auditorías cronometradas
+
+### [ES]
+Para soportar auditorías rápidas (objetivo máximo 5 minutos), el flujo incorpora tolerancia a fallos operativos:
+- Reintentos exponenciales para fetching remoto según `retry_config.yaml`.
+- Validación de estructura de snapshots y verificación de conteo esperado (96 JSONs).
+- Snapshot de hashing con timestamp UTC y encadenamiento para trazabilidad.
+- Chequeo estadístico básico (z-score con `scipy`) para marcar valores atípicos de votos totales.
+
+### [EN]
+To support fast audits (target maximum 5 minutes), the workflow now includes operational fault tolerance:
+- Exponential retries for remote fetching based on `retry_config.yaml`.
+- Snapshot schema validation and expected-count verification (96 JSONs).
+- UTC timestamped hash snapshots with chained integrity records.
+- Basic statistical check (z-score via `scipy`) to flag anomalous total-vote values.

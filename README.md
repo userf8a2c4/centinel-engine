@@ -58,3 +58,19 @@ make pipeline
 
 ## Descargo
 - Este repositorio procesa únicamente datos públicos publicados por el CNE y otras fuentes oficiales; documenta hechos técnicos verificables (hashes, diffs, metadatos) sin interpretación política ni partidaria.
+
+## CI Fixes / Correcciones de CI
+
+### [EN]
+Recent hardening addresses `exit code 1` failures in collector/audit jobs:
+- Added resilient collector (`scripts/collector.py`) with retry policy, HTTP/JSON exception handling, and schema validation for expected 96 JSON snapshots.
+- Added robust hash snapshot module (`scripts/hash.py`) and unified pipeline entrypoint (`scripts/snapshot.py`) with timestamped chained records.
+- Added workflow diagnostics and Poetry cache in `.github/workflows/pipeline.yml` to improve reliability and debugging speed.
+- Added `make collect` and `make audit` targets with log capture (`tee`) for local reproducibility.
+
+### [ES]
+Se endureció el pipeline para resolver fallos `exit code 1` en jobs de collector/audit:
+- Se agregó colector resiliente (`scripts/collector.py`) con política de reintentos, manejo de excepciones HTTP/JSON y validación de esquema para 96 snapshots esperados.
+- Se agregó módulo robusto de hash (`scripts/hash.py`) y un entrypoint unificado (`scripts/snapshot.py`) con registros encadenados y timestamp.
+- Se agregaron diagnósticos en workflow y cache de Poetry en `.github/workflows/pipeline.yml` para mejorar confiabilidad y velocidad de depuración.
+- Se añadieron targets `make collect` y `make audit` con captura de logs (`tee`) para reproducibilidad local.
