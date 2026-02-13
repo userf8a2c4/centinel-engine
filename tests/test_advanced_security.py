@@ -91,3 +91,16 @@ def test_solidity_runtime_checks_detect_blocked_pattern(tmp_path: Path) -> None:
     manager = AdvancedSecurityManager(cfg)
     triggers = manager.detect_internal_anomalies()
     assert any(t.startswith("solidity_blocked_pattern") for t in triggers)
+
+
+def test_psutil_symbol_is_always_available() -> None:
+    """English: psutil symbol must always exist in module scope.
+
+    Español: el símbolo psutil debe existir siempre en el alcance del módulo.
+    """
+    import core.advanced_security as adv
+
+    assert hasattr(adv, "psutil")
+    assert hasattr(adv.psutil, "cpu_percent")
+    assert hasattr(adv.psutil, "virtual_memory")
+    assert hasattr(adv.psutil, "net_connections")
