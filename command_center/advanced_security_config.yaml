@@ -1,3 +1,23 @@
+# ============================================================
+# SEGURIDAD AVANZADA (ES) / ADVANCED SECURITY (EN)
+# ============================================================
+# ES: Ajustes avanzados de honeypot, airgap, backups e integridad.
+# EN: Advanced settings for honeypot, airgap, backups, and integrity.
+#
+# ES: Índice:
+# EN: Index:
+# 01_interruptores_y_honeypot
+# 02_airgap_y_anomalias
+# 03_backups_e_integridad
+# 04_rotacion_ua_proxy_alertas
+# 05_prometheus_y_parametros_cpu
+# 06_reglas_solidity
+
+# ES: Convención binaria: todos los flags tipo enabled/monitor/critical/anonymize/encrypt
+#     usan true/false (booleano YAML, sin comillas).
+# EN: Binary convention: all flags such as enabled/monitor/critical/anonymize/encrypt
+#     use true/false (YAML booleans, without quotes).
+
 enabled: true
 honeypot_enabled: true
 honeypot_host: "127.0.0.1"

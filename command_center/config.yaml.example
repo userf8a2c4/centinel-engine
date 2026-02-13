@@ -1,36 +1,122 @@
-# Configuración centralizada para C.E.N.T.I.N.E.L.
-# Centralized configuration for C.E.N.T.I.N.E.L.
+# ============================================================
+# CONFIGURACIÓN CENTRAL DEL USUARIO (ES) / USER CENTRAL CONFIG (EN)
+# ============================================================
+# ES: Este archivo es el punto único de edición recomendado para operar
+#     C.E.N.T.I.N.E.L. de forma segura.
+# EN: This file is the recommended single editing point to operate
+#     C.E.N.T.I.N.E.L. safely.
+#
+# ES: Orden de lectura sugerido:
+#     1) Índice
+#     2) Sección 01 (obligatoria)
+#     3) Sección 02 y 03 (red / scraping)
+#     4) Resto de secciones según necesidad
+# EN: Suggested reading order:
+#     1) Index
+#     2) Section 01 (required)
+#     3) Sections 02 and 03 (network / scraping)
+#     4) Remaining sections as needed
 
-# URL base del endpoint de resultados (placeholder).
-# Base URL for results endpoint (placeholder).
-base_url: "https://results.example.org/api/v1/summary"
+# ES: Convención binaria: todos los flags tipo enabled/monitor/critical/anonymize/encrypt
+#     usan true/false (booleano YAML, sin comillas).
+# EN: Binary convention: all flags such as enabled/monitor/critical/anonymize/encrypt
+#     use true/false (YAML booleans, without quotes).
 
-# Endpoints operativos (placeholders).
-# Operational endpoints (placeholders).
-endpoints:
-  nacional: "https://results.example.org/api/v1/nacional"
-  fallback_nacional: "https://results.example.org/api/v1/nacional/fallback"
+# ============================================================
+# ÍNDICE / INDEX
+# ============================================================
+# 01_core_control
+# 02_sources_and_endpoints
+# 03_network_and_fetch
+# 04_data_mapping_and_validation
+# 05_analysis_rules
+# 06_observability_and_alerts
+# 07_resilience_and_recovery
+# 08_blockchain_anchors
 
-# Interruptor maestro (ON/OFF) para procesos automáticos.
-# Master switch (ON/OFF) for automatic processes.
+# ============================================================
+# 01_core_control
+# ============================================================
+# ES: Interruptor maestro. Valores permitidos: "ON" o "OFF". "ON" habilita procesos automáticos.
+# EN: Master switch. Allowed values: "ON" or "OFF". "ON" enables automatic processes.
 master_switch: "OFF"
 
-# Cadencia operativa recomendada (documentación de referencia).
-# Recommended operating cadence (documentation reference).
+# ES: URL base de referencia (placeholder). Puede no usarse si defines
+#     endpoints explícitos en la sección 02.
+# EN: Reference base URL (placeholder). It may be unused if explicit
+#     endpoints are defined in section 02.
+base_url: "https://results.example.org/api/v1/summary"
+
+# ES: Cadencia operativa recomendada (documentación guía).
+# EN: Recommended operating cadence (guidance documentation).
 scrape_cadence:
+  # ES: Frecuencia en días para mantenimiento/desarrollo.
+  # EN: Frequency in days for maintenance/development.
   maintenance_days: 30
+  # ES: Frecuencia en horas para monitoreo normal.
+  # EN: Frequency in hours for regular monitoring.
   monitoring_hours: 24
+  # ES: Frecuencia en minutos para elección activa.
+  # EN: Frequency in minutes for active election mode.
   election_minutes: 5
 
-# Parámetros de red.
-# Network parameters.
+# ============================================================
+# 02_sources_and_endpoints
+# ============================================================
+# ES: Endpoints operativos. Usa URLs reales del proveedor oficial.
+# EN: Operational endpoints. Use real URLs from the official provider.
+endpoints:
+  # ES: Endpoint nacional principal.
+  # EN: Primary national endpoint.
+  nacional: "https://results.example.org/api/v1/nacional"
+  # ES: Endpoint de respaldo para total nacional.
+  # EN: Fallback endpoint for national totals.
+  fallback_nacional: "https://results.example.org/api/v1/nacional/fallback"
+
+# ES: Fuentes consultables por el motor.
+# EN: Sources queried by the engine.
+sources:
+  # ES: Fuente nacional de ejemplo.
+  # EN: Example national source.
+  - name: "Nacional (demo)"
+    source_id: "NACIONAL"
+    level: "PRES"
+    scope: "NATIONAL"
+
+  # ES: Fuente departamental de ejemplo.
+  # EN: Example department source.
+  - name: "Departamento Demo"
+    department_code: "99"
+    level: "PD"
+    scope: "DEPARTMENT"
+
+# ============================================================
+# 03_network_and_fetch
+# ============================================================
+# ES: Timeout por solicitud en segundos.
+# EN: Per-request timeout in seconds.
 timeout: 20
+
+# ES: Reintentos antes de fallar definitivamente.
+# EN: Retries before definitive failure.
 retries: 5
+
+# ES: Backoff exponencial base (segundos).
+# EN: Exponential backoff base (seconds).
 backoff_base_seconds: 2
+
+# ES: Backoff máximo entre reintentos (segundos).
+# EN: Maximum backoff between retries (seconds).
 backoff_max_seconds: 60
 
-# Circuit Breaker para respuestas hostiles.
-# Circuit breaker for hostile responses.
+# ES: Encabezados HTTP globales.
+# EN: Global HTTP headers.
+headers:
+  Accept: "application/json"
+  User-Agent: "C.E.N.T.I.N.E.L./1.0 (command-center-example)"
+
+# ES: Circuit breaker para proteger el pipeline ante caídas repetidas.
+# EN: Circuit breaker to protect the pipeline from repeated failures.
 circuit_breaker:
   failure_threshold: 5
   failure_window_seconds: 600
@@ -39,8 +125,8 @@ circuit_breaker:
   success_threshold: 2
   open_log_interval_seconds: 300
 
-# Modo low-profile (stealth).
-# Low-profile mode (stealth).
+# ES: Modo low-profile para reducir huella de scraping.
+# EN: Low-profile mode to reduce scraping footprint.
 low_profile:
   enabled: false
   base_interval_minutes: 60
@@ -48,50 +134,16 @@ low_profile:
   timeout_seconds: 45
   accept_languages:
     - "es-HN,es;q=0.9,en-US;q=0.8,en;q=0.7"
-    - "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7"
     - "en-US,en;q=0.9,es;q=0.7"
-    - "en-GB,en;q=0.9,es;q=0.6"
-    - "es-MX,es;q=0.9,en;q=0.7"
   referers:
     - "https://www.google.com/"
-    - "https://www.bing.com/"
     - "https://duckduckgo.com/"
-    - "https://search.yahoo.com/"
-    - "https://www.wikipedia.org/"
   user_agents:
     - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0"
-    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0"
-    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15"
-    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15"
-    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 12_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15"
-    - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
     - "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"
-    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edg/122.0.0.0"
-    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edg/121.0.0.0"
-    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-    - "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1"
-    - "Mozilla/5.0 (iPhone; CPU iPhone OS 16_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
-    - "Mozilla/5.0 (iPad; CPU OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1"
-    - "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
-    - "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36"
-    - "Mozilla/5.0 (Linux; Android 12; SM-A528B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-    - "Mozilla/5.0 (Linux; Android 14; Pixel 6a; rv:122.0) Gecko/20100101 Firefox/122.0"
-    - "Mozilla/5.0 (Linux; Android 13; SAMSUNG SM-G781B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/24.0 Chrome/120.0.0.0 Mobile Safari/537.36"
-    - "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Brave Chrome/121.0.0.0 Safari/537.36"
-    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 
-# Encabezados HTTP.
-# HTTP headers.
-headers:
-  Accept: "application/json"
-  User-Agent: "C.E.N.T.I.N.E.L./1.0 (command-center-example)"
-
-# Fallback Playwright (anti-bloqueo básico).
-# Playwright fallback (basic anti-blocking).
+# ES: Fallback con Playwright cuando HTTP directo falla.
+# EN: Playwright fallback when direct HTTP fails.
 use_playwright: false
 playwright_stealth: true
 playwright_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
@@ -101,18 +153,21 @@ playwright_viewport:
   width: 1280
   height: 720
 
-# Cantidad esperada de candidatos (referencial).
-# Expected number of candidates (reference).
+# ============================================================
+# 04_data_mapping_and_validation
+# ============================================================
+# ES: Número esperado de candidatos (ajusta al proceso electoral real).
+# EN: Expected candidate count (adjust to real election process).
 candidate_count: 4
 
-# Llaves obligatorias (puede quedar vacío).
-# Required keys (can be empty).
+# ES: Llaves mínimas esperadas en la respuesta.
+# EN: Minimum keys expected in the response.
 required_keys:
   - "estadisticas"
   - "resultados"
 
-# Mapeo de campos de origen a esquema interno.
-# Map source fields to internal schema.
+# ES: Mapeo de campos del proveedor al esquema normalizado interno.
+# EN: Provider-to-internal normalized schema mapping.
 field_map:
   totals:
     valid_votes:
@@ -126,20 +181,11 @@ field_map:
   candidate_roots:
     - "resultados"
 
-# Fuentes configurables (nacional + departamentos).
-# Configurable sources (national + departments).
-sources:
-  - name: "Nacional (demo)"
-    source_id: "NACIONAL"
-    level: "PRES"
-    scope: "NATIONAL"
-  - name: "Departamento Demo"
-    department_code: "99"
-    level: "PD"
-    scope: "DEPARTMENT"
-
-# Reglas de análisis.
-# Analysis rules.
+# ============================================================
+# 05_analysis_rules
+# ============================================================
+# ES: Reglas analíticas. Puedes apagar reglas específicas por entorno.
+# EN: Analytical rules. You can disable specific rules per environment.
 rules:
   global_enabled: true
   trend_shift:
@@ -214,28 +260,27 @@ rules:
   mesas_diff:
     enabled: true
 
-# Logging centralizado.
-# Centralized logging.
+# ============================================================
+# 06_observability_and_alerts
+# ============================================================
+# ES: Logging principal del motor.
+# EN: Main engine logging.
 logging:
   level: "INFO"
   file: "C.E.N.T.I.N.E.L.log"
 
-# Blockchain (placeholder).
-# Blockchain (placeholder).
-blockchain:
-  enabled: false
-  network: "base"
-  private_key: ""
-
-# Alertas y criterios críticos.
-# Alerts and critical criteria.
+# ES: Configuración de alertas críticas.
+# EN: Critical alert configuration.
 alerts:
   critical_anomaly_types: []
   log_path: "alerts.log"
   output_path: "data/alerts.json"
 
-# Resiliencia operativa.
-# Operational resilience.
+# ============================================================
+# 07_resilience_and_recovery
+# ============================================================
+# ES: Recuperación automática ante fallos.
+# EN: Automatic recovery after failures.
 resilience:
   auto_resume:
     enabled: true
@@ -248,8 +293,18 @@ resilience:
     failure_rate: 0.9
     seed: 2026
 
-# Configuración de Arbitrum (placeholder).
-# Arbitrum configuration (placeholder).
+# ============================================================
+# 08_blockchain_anchors
+# ============================================================
+# ES: Anclaje genérico en blockchain (placeholder).
+# EN: Generic blockchain anchoring (placeholder).
+blockchain:
+  enabled: false
+  network: "base"
+  private_key: ""
+
+# ES: Configuración de Arbitrum (placeholder).
+# EN: Arbitrum configuration (placeholder).
 arbitrum:
   enabled: false
   network: "Arbitrum One"
