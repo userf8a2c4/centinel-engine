@@ -184,22 +184,22 @@ pipeline_command:
 
 | Parámetro | Descripción | Default | Recomendado | Escenario |
 | --- | --- | --- | --- | --- |
-| `mode` | ES: Modo del rotador. EN: Rotator mode. | `proxy_rotator` | `proxy_rotator` | Todos / All |
+| `mode` | ES: Modo del rotador. EN: Rotator mode. | `proxy_rotator` | `direct` por defecto, `proxy_rotator` solo para resiliencia | Todos / All |
 | `rotation_strategy` | ES: Estrategia de rotación. EN: Rotation strategy. | `round_robin` | `round_robin` | Todos / All |
-| `rotation_every_n` | ES: Rotar cada N requests. EN: Rotate every N requests. | `1` | Normal: `1–2` / Low-profile: `2–3` | Low-profile |
-| `proxy_timeout_seconds` | ES: Timeout de validación. EN: Proxy validation timeout. | `15` | Normal: `10–15` / Low-profile: `15–20` | Elección activa / Active election |
-| `test_url` | ES: Endpoint de validación (HEAD). EN: Validation endpoint (HEAD). | `https://httpbin.org/ip` | Endpoint estable | Todos / All |
+| `rotation_every_n` | ES: Rotar cada N requests. EN: Rotate every N requests. | `1` | Defensivo: `3–10` (evitar rotación agresiva) | Low-profile |
+| `proxy_timeout_seconds` | ES: Timeout de validación y uso del proxy. EN: Proxy validation and request timeout. | `15` | Normal: `10–15` / Low-profile: `15–20` | Elección activa / Active election |
+| `test_url` | ES: Endpoint de validación (GET liviano). EN: Validation endpoint (light GET). | `https://httpbin.org/ip` | Endpoint estable y de bajo costo | Todos / All |
 | `proxies[]` | ES: Lista de proxies (http/socks5). EN: Proxy list (http/socks5). | (ejemplo) | Normal: `2–5` / Low-profile: `1–2` | Elección activa / Active election |
 
 ### Ejemplo comentado / Commented example
 
 ```yaml
-# ES: Lista de proxies con validación y rotación round-robin.
-# EN: Proxy list with validation and round-robin rotation.
+# ES: Perfil defensivo: por defecto directo, habilitar rotación solo si hay necesidad operativa.
+# EN: Defensive profile: direct by default, enable rotation only when operationally needed.
 
-mode: proxy_rotator
+mode: direct
 rotation_strategy: round_robin
-rotation_every_n: 1
+rotation_every_n: 5
 proxy_timeout_seconds: 15
 test_url: https://httpbin.org/ip
 proxies:
@@ -211,9 +211,27 @@ proxies:
 
 ### Validación, rotación y fallback / Validation, rotation, and fallback
 
-**ES:** Validar cada proxy con una solicitud **HEAD** a `test_url` y registrar latencia. Usar rotación **round-robin** para distribuir carga. Si todos fallan, activar **fallback** a conexión directa con alertas y reducir cadencia para evitar presión sobre la fuente.
+**ES:** Validar cada proxy con una solicitud **GET liviana** a `test_url` y registrar latencia. Usar rotación **round-robin** para distribuir carga, no para evasión. Si todos fallan, activar **fallback** a conexión directa con alertas y reducir cadencia para evitar presión sobre la fuente.
 
-**EN:** Validate each proxy with a **HEAD** request to `test_url` and record latency. Use **round-robin** rotation to distribute load. If all fail, enable **fallback** to direct connection with alerts and reduce cadence to avoid source pressure.
+**EN:** Validate each proxy with a **light GET** request to `test_url` and record latency. Use **round-robin** rotation for load distribution, not evasion. If all fail, enable **fallback** to direct connection with alerts and reduce cadence to avoid source pressure.
+
+### Arquitectura defensiva sugerida / Suggested defensive architecture
+
+1. **Direct-first policy / Política direct-first**
+   - **ES:** Iniciar en `mode: direct` y activar `proxy_rotator` únicamente cuando exista degradación técnica comprobada (caídas de egress, timeouts, rutas inestables).
+   - **EN:** Start in `mode: direct` and enable `proxy_rotator` only when there is confirmed technical degradation (egress outages, timeouts, unstable routes).
+2. **Health-based failover / Failover por salud**
+   - **ES:** Revalidar pool antes de cada ventana crítica y tras agotar proxies activos. El sistema ya marca un proxy como muerto tras 3 fallos consecutivos y hace fallback a directo cuando no quedan activos.
+   - **EN:** Revalidate the pool before each critical window and after exhausting active proxies. The system already marks a proxy as dead after 3 consecutive failures and falls back to direct mode when none remain.
+3. **Slow rotation / Rotación lenta**
+   - **ES:** Preferir `rotation_every_n` entre `3` y `10` para evitar cambios de IP por cada request.
+   - **EN:** Prefer `rotation_every_n` between `3` and `10` to avoid IP switching on every request.
+4. **Circuit breaker + cadence / Circuit breaker + cadencia**
+   - **ES:** Ante 429/5xx persistentes, priorizar backoff y reducción de frecuencia de polling antes de aumentar rotación.
+   - **EN:** On persistent 429/5xx responses, prioritize backoff and lower polling frequency before increasing rotation.
+5. **Traceability / Trazabilidad**
+   - **ES:** Mantener logs de `proxy_validation_ok`, `proxy_marked_failure`, `proxy_marked_dead` y `proxy_fallback_direct` para auditoría técnica.
+   - **EN:** Keep logs for `proxy_validation_ok`, `proxy_marked_failure`, `proxy_marked_dead`, and `proxy_fallback_direct` for technical auditing.
 
 ---
 
