@@ -58,3 +58,33 @@ make pipeline
 
 ## Descargo
 - Este repositorio procesa únicamente datos públicos publicados por el CNE y otras fuentes oficiales; documenta hechos técnicos verificables (hashes, diffs, metadatos) sin interpretación política ni partidaria.
+
+## CI Fixes / Correcciones de CI
+
+### [EN]
+Recent hardening addresses `exit code 1` failures in collector/audit jobs:
+- Added resilient collector (`scripts/collector.py`) with retry policy, HTTP/JSON exception handling, and schema validation for expected 96 JSON snapshots.
+- Added robust hash snapshot module (`scripts/hash.py`) and unified pipeline entrypoint (`scripts/snapshot.py`) with timestamped chained records.
+- Added workflow diagnostics and Poetry cache in `.github/workflows/pipeline.yml` to improve reliability and debugging speed.
+- Added `make collect` and `make audit` targets with log capture (`tee`) for local reproducibility.
+
+### [ES]
+Se endureció el pipeline para resolver fallos `exit code 1` en jobs de collector/audit:
+- Se agregó colector resiliente (`scripts/collector.py`) con política de reintentos, manejo de excepciones HTTP/JSON y validación de esquema para 96 snapshots esperados.
+- Se agregó módulo robusto de hash (`scripts/hash.py`) y un entrypoint unificado (`scripts/snapshot.py`) con registros encadenados y timestamp.
+- Se agregaron diagnósticos en workflow y cache de Poetry en `.github/workflows/pipeline.yml` para mejorar confiabilidad y velocidad de depuración.
+- Se añadieron targets `make collect` y `make audit` con captura de logs (`tee`) para reproducibilidad local.
+
+## Security CI Fixes / Correcciones de seguridad en CI
+
+### [EN]
+- Added security-focused CI debug steps in workflows to investigate exit code 2 quickly.
+- Added `bandit.yaml` with targeted skip policy (e.g., `B101`) to reduce noise while keeping meaningful findings.
+- Added branch-aware tolerance for `dev-v*`/`work` so security suites can report issues without blocking iterative hardening.
+- Added `make security` target with logs for pre-CI validation.
+
+### [ES]
+- Se agregaron pasos de depuración de seguridad en workflows para investigar rápidamente el exit code 2.
+- Se agregó `bandit.yaml` con política de omisión focalizada (p.ej., `B101`) para reducir ruido y mantener hallazgos relevantes.
+- Se agregó tolerancia por rama para `dev-v*`/`work` y permitir reportes de seguridad sin bloquear iteraciones de endurecimiento.
+- Se agregó target `make security` con logs para validación previa a CI.
