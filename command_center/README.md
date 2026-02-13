@@ -9,6 +9,7 @@ Archivos editables:
 
 1. `config.yaml` → configuración principal de scraping, reglas y fuentes.
 2. `.env` → credenciales sensibles (claves, tokens).
+3. `security_config.yaml`, `advanced_security_config.yaml`, `attack_config.yaml`, `rules.yaml` → capas opcionales de seguridad y reglas avanzadas (ahora con índice y comentarios bilingües).
 
 ### Cadencia operativa recomendada
 - **Modo mantenimiento/desarrollo:** scraping y anclaje en L2 **1 vez al mes**.
@@ -48,6 +49,7 @@ Editable files:
 
 1. `config.yaml` → main scraping configuration, rules, and sources.
 2. `.env` → sensitive credentials (keys, tokens).
+3. `security_config.yaml`, `advanced_security_config.yaml`, `attack_config.yaml`, `rules.yaml` → optional security and advanced-rule layers (now with index and bilingual comments).
 
 ### Recommended operating cadence
 - **Maintenance/development mode:** scraping and L2 anchoring **once per month**.

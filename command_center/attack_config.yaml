@@ -1,3 +1,17 @@
+# ============================================================
+# BITÁCORA FORENSE DE ATAQUES (ES) / ATTACK FORENSICS LOGBOOK (EN)
+# ============================================================
+# ES: Configuración de captura, rotación y resumen de eventos sospechosos.
+# EN: Configuration for capture, rotation, and summary of suspicious events.
+#
+# ES: Índice:
+# EN: Index:
+# 01_estado_y_log_principal
+# 02_umbral_frecuencia_y_red
+# 03_iocs_y_rutas_sensibles
+# 04_resumen_externo
+# 05_honeypot
+
 # Attack Forensics Logbook config / Configuración Bitácora Forense de Atacantes
 enabled: true
 log_path: logs/attack_log.jsonl

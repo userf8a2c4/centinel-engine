@@ -1,3 +1,17 @@
+# ============================================================
+# SEGURIDAD DEFENSIVA BÁSICA (ES) / BASE DEFENSIVE SECURITY (EN)
+# ============================================================
+# ES: Configuración principal del Dead Man's Switch defensivo.
+# EN: Main configuration for the defensive Dead Man's Switch.
+#
+# ES: Índice:
+# EN: Index:
+# 01_umbral_recursos
+# 02_conexiones_y_puertos
+# 03_estado_seguro_y_reintentos
+# 04_alertas_y_notificaciones
+# 05_honeypot_observabilidad_forense
+
 # Defensive Dead Man's Switch config / Configuración del interruptor defensivo.
 cpu_threshold_percent: 90
 cpu_sustain_seconds: 60

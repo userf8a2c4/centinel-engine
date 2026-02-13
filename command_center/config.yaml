@@ -1,3 +1,17 @@
+# ============================================================
+# CONFIGURACIÓN OPERATIVA ACTIVA (ES) / ACTIVE OPERATIONS CONFIG (EN)
+# ============================================================
+# ES: Este archivo es la configuración real usada por el sistema en ejecución.
+# EN: This file is the real runtime configuration used by the system.
+#
+# ES: Índice rápido de secciones en este archivo:
+# EN: Quick section index in this file:
+# 01_control_general
+# 02_endpoints_y_fuentes
+# 03_red_y_fetch
+# 04_validacion_y_mapeo
+# 05_reglas_y_alertas
+
 # Configuración operativa principal de C.E.N.T.I.N.E.L.
 # Main operational configuration for C.E.N.T.I.N.E.L.
 
