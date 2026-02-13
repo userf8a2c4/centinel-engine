@@ -12,6 +12,11 @@
 # 04_alertas_y_notificaciones
 # 05_honeypot_observabilidad_forense
 
+# ES: Convención binaria: todos los flags tipo enabled/monitor/critical/anonymize/encrypt
+#     usan true/false (booleano YAML, sin comillas).
+# EN: Binary convention: all flags such as enabled/monitor/critical/anonymize/encrypt
+#     use true/false (YAML booleans, without quotes).
+
 # Defensive Dead Man's Switch config / Configuración del interruptor defensivo.
 cpu_threshold_percent: 90
 cpu_sustain_seconds: 60

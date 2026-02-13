@@ -10,6 +10,11 @@
 # 02_seguridad_general
 # 03_definiciones_de_reglas
 
+# ES: Convención binaria: todos los flags tipo enabled/monitor/critical/anonymize/encrypt
+#     usan true/false (booleano YAML, sin comillas).
+# EN: Binary convention: all flags such as enabled/monitor/critical/anonymize/encrypt
+#     use true/false (YAML booleans, without quotes).
+
 # Umbrales de resiliencia y reglas generales del command center.
 # Resilience thresholds and general rules for the command center.
 

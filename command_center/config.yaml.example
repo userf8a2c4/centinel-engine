@@ -17,6 +17,11 @@
 #     3) Sections 02 and 03 (network / scraping)
 #     4) Remaining sections as needed
 
+# ES: Convención binaria: todos los flags tipo enabled/monitor/critical/anonymize/encrypt
+#     usan true/false (booleano YAML, sin comillas).
+# EN: Binary convention: all flags such as enabled/monitor/critical/anonymize/encrypt
+#     use true/false (YAML booleans, without quotes).
+
 # ============================================================
 # ÍNDICE / INDEX
 # ============================================================
@@ -32,8 +37,8 @@
 # ============================================================
 # 01_core_control
 # ============================================================
-# ES: Interruptor maestro. "ON" habilita procesos automáticos.
-# EN: Master switch. "ON" enables automatic processes.
+# ES: Interruptor maestro. Valores permitidos: "ON" o "OFF". "ON" habilita procesos automáticos.
+# EN: Master switch. Allowed values: "ON" or "OFF". "ON" enables automatic processes.
 master_switch: "OFF"
 
 # ES: URL base de referencia (placeholder). Puede no usarse si defines

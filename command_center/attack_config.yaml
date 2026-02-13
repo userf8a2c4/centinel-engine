@@ -12,6 +12,11 @@
 # 04_resumen_externo
 # 05_honeypot
 
+# ES: Convención binaria: todos los flags tipo enabled/monitor/critical/anonymize/encrypt
+#     usan true/false (booleano YAML, sin comillas).
+# EN: Binary convention: all flags such as enabled/monitor/critical/anonymize/encrypt
+#     use true/false (YAML booleans, without quotes).
+
 # Attack Forensics Logbook config / Configuración Bitácora Forense de Atacantes
 enabled: true
 log_path: logs/attack_log.jsonl

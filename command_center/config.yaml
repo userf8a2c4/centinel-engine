@@ -12,11 +12,18 @@
 # 04_validacion_y_mapeo
 # 05_reglas_y_alertas
 
+# ES: Convenciones de valores binarios (MUY IMPORTANTE):
+#     - master_switch usa "ON" o "OFF" (texto, en mayúsculas).
+#     - Campos con sufijo/clave tipo enabled/allow/use/verify/sign usan true/false (booleano YAML, sin comillas).
+# EN: Binary value conventions (VERY IMPORTANT):
+#     - master_switch uses "ON" or "OFF" (uppercase strings).
+#     - Fields like enabled/allow/use/verify/sign use true/false (YAML booleans, without quotes).
+
 # Configuración operativa principal de C.E.N.T.I.N.E.L.
 # Main operational configuration for C.E.N.T.I.N.E.L.
 
-# Interruptor maestro para procesos automáticos (ON/OFF).
-# Master switch for automatic processes (ON/OFF).
+# Interruptor maestro para procesos automáticos. Valores permitidos: "ON" o "OFF".
+# Master switch for automatic processes. Allowed values: "ON" or "OFF".
 master_switch: "ON"
 
 # Alcance analítico permitido.
@@ -24,8 +31,8 @@ master_switch: "ON"
 scope:
   - "presidential"
 
-# Deshabilita mockups en modo real.
-# Disable mockups in real mode.
+# Deshabilita mockups en modo real. Valores permitidos: true/false.
+# Disable mockups in real mode. Allowed values: true/false.
 allow_mock: false
 
 # Dominios válidos del CNE para validar fuentes.
