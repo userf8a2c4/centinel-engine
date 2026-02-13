@@ -5,6 +5,8 @@ Pruebas para módulo integrado de seguridad avanzada.
 
 from __future__ import annotations
 
+import builtins
+import importlib
 import json
 from pathlib import Path
 
@@ -91,3 +93,31 @@ def test_solidity_runtime_checks_detect_blocked_pattern(tmp_path: Path) -> None:
     manager = AdvancedSecurityManager(cfg)
     triggers = manager.detect_internal_anomalies()
     assert any(t.startswith("solidity_blocked_pattern") for t in triggers)
+
+
+def test_psutil_symbol_is_always_available_even_if_import_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    """English: module must expose psutil fallback even when import raises ImportError.
+
+    Español: el módulo debe exponer fallback de psutil incluso cuando el import lanza ImportError.
+    """
+    import core.advanced_security as adv
+
+    real_import = builtins.__import__
+
+    def guarded_import(name, *args, **kwargs):
+        # English/Spanish: force psutil import failure to validate fallback binding / forzamos fallo de import para validar fallback.
+        if name == "psutil":
+            raise ImportError("forced psutil import failure")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    reloaded = importlib.reload(adv)
+
+    assert hasattr(reloaded, "psutil")
+    assert hasattr(reloaded.psutil, "cpu_percent")
+    assert hasattr(reloaded.psutil, "virtual_memory")
+    assert hasattr(reloaded.psutil, "net_connections")
+
+    # English/Spanish: restore module in normal state for next tests / restaura estado normal del módulo para siguientes pruebas.
+    monkeypatch.setattr(builtins, "__import__", real_import)
+    importlib.reload(reloaded)
