@@ -5,6 +5,8 @@ Compatibilidad mínima de cliente HTTP para evitar dependencia dura en requests.
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import json
 import urllib.error
 import urllib.request
@@ -21,7 +23,7 @@ class HttpResponse:
 
 
 class RequestsCompat:
-    """Subset of requests-like API used in this project."""
+    """Subset of requests-like API used when requests is unavailable."""
 
     @staticmethod
     def post(url: str, json_payload: dict[str, Any] | None = None, timeout: int = 10, **_kwargs: Any) -> HttpResponse:
@@ -49,9 +51,27 @@ class RequestsCompat:
 class _RequestsNamespace:
     """Expose requests-like namespace for monkeypatch compatibility."""
 
-    @staticmethod
-    def post(url: str, timeout: int = 10, json: dict[str, Any] | None = None, **kwargs: Any) -> HttpResponse:  # noqa: A002
-        return RequestsCompat.post(url=url, json_payload=json, timeout=timeout, **kwargs)
+    _real_requests_post = None
+
+    @classmethod
+    def _get_real_post(cls):
+        if cls._real_requests_post is not None:
+            return cls._real_requests_post
+        if importlib.util.find_spec("requests") is None:
+            cls._real_requests_post = RequestsCompat.post
+            return cls._real_requests_post
+        try:
+            cls._real_requests_post = importlib.import_module("requests").post
+        except Exception:
+            cls._real_requests_post = RequestsCompat.post
+        return cls._real_requests_post
+
+    @classmethod
+    def post(cls, url: str, timeout: int = 10, json: dict[str, Any] | None = None, **kwargs: Any) -> HttpResponse:  # noqa: A002
+        post_func = cls._get_real_post()
+        if post_func is RequestsCompat.post:
+            return RequestsCompat.post(url=url, json_payload=json, timeout=timeout, **kwargs)
+        return post_func(url, timeout=timeout, json=json, **kwargs)
 
 
 requests = _RequestsNamespace()
