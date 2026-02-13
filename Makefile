@@ -9,9 +9,11 @@ snapshot:
 	$(PYTHON_COMMAND) scripts/download_and_hash.py
 
 collect:
+	mkdir -p logs
 	$(PYTHON_COMMAND) -m scripts.collector 2>&1 | tee logs/collector.log
 
 audit:
+	mkdir -p logs
 	$(PYTHON_COMMAND) -m scripts.snapshot 2>&1 | tee logs/audit.log
 
 analyze:
