@@ -1,8 +1,28 @@
-mode: proxy_rotator
+# Perfil defensivo de proxies para C.E.N.T.I.N.E.L.
+# Defensive proxy profile for C.E.N.T.I.N.E.L.
+
+# ES: Política recomendada: conexión directa por defecto.
+# EN: Recommended policy: direct connection by default.
+mode: direct
+
+# ES: Mantener round_robin para distribuir carga cuando se habilite rotación.
+# EN: Keep round_robin to distribute load when rotation is enabled.
 rotation_strategy: round_robin
-rotation_every_n: 1
+
+# ES: Rotación lenta para evitar cambios de IP por cada request.
+# EN: Slow rotation to avoid changing IP on every request.
+rotation_every_n: 5
+
+# ES: Timeout de validación y request por proxy.
+# EN: Validation and per-request timeout for proxies.
 proxy_timeout_seconds: 15
+
+# ES: Endpoint liviano para validar salida de proxy.
+# EN: Lightweight endpoint for proxy egress validation.
 test_url: https://httpbin.org/ip
+
 proxies:
+  # ES: Formato esquema://[user:pass@]ip:port
+  # EN: Format scheme://[user:pass@]ip:port
   - "http://user:pass@ip:port"
   - "socks5://ip:port"
