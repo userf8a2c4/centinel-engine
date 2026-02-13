@@ -1,0 +1,16 @@
+# Bandit configuration for Centinel CI hardening.
+# Configuración de Bandit para endurecimiento de CI en Centinel.
+
+exclude_dirs:
+  - tests
+  - .venv
+  - venv
+  - node_modules
+
+skips:
+  # English/Spanish: asserts are acceptable in tests and controlled internal checks.
+  # asserts son aceptables en pruebas y validaciones internas controladas.
+  - B101
+
+# Keep medium/high findings visible, but CI workflow can downgrade on dev branches.
+# Mantiene hallazgos medium/high visibles; el workflow puede degradar en ramas dev.
