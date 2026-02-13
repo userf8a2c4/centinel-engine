@@ -1,0 +1,130 @@
+#!/usr/bin/env python
+"""Create robust hash snapshots for collected artifacts.
+
+Crea snapshots de hash robustos para artefactos recolectados.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+LOGGER = logging.getLogger("centinel.hash")
+DATA_DIR = Path("data")
+HASH_DIR = Path("hashes")
+
+
+def configure_logging() -> None:
+    """Configure hash logger.
+
+    Configura el logger de hash.
+    """
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+
+
+def hash_file(path: Path) -> str:
+    """Hash a file with SHA-256.
+
+    Hashea un archivo con SHA-256.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(8192), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_previous_chain_hash() -> str:
+    """Read the latest chained hash if any.
+
+    Lee el último hash encadenado si existe.
+    """
+    if not HASH_DIR.exists():
+        return "0" * 64
+    latest = sorted(HASH_DIR.glob("snapshot_*.sha256"))
+    if not latest:
+        return "0" * 64
+    try:
+        payload = json.loads(latest[-1].read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return "0" * 64
+    return payload.get("chained_hash", "0" * 64)
+
+
+def build_manifest(data_dir: Path = DATA_DIR) -> list[dict[str, Any]]:
+    """Build manifest for current JSON snapshots.
+
+    Construye manifiesto para snapshots JSON actuales.
+    """
+    manifest: list[dict[str, Any]] = []
+    for candidate in sorted(data_dir.glob("*.json")):
+        try:
+            manifest.append(
+                {
+                    "file": candidate.name,
+                    "sha256": hash_file(candidate),
+                    "mtime_utc": datetime.fromtimestamp(candidate.stat().st_mtime, tz=timezone.utc).isoformat(),
+                }
+            )
+        except FileNotFoundError:
+            LOGGER.warning("hash_file_missing file=%s", candidate)
+    return manifest
+
+
+def write_snapshot_hash(manifest: list[dict[str, Any]], hash_dir: Path = HASH_DIR) -> Path:
+    """Persist a hash snapshot with timestamps and chained hash.
+
+    Persiste un snapshot de hash con timestamps y hash encadenado.
+    """
+    hash_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+    payload = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "manifest_count": len(manifest),
+        "manifest": manifest,
+    }
+    body = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    payload_hash = hashlib.sha256(body).hexdigest()
+    previous = load_previous_chain_hash()
+    chained_hash = hashlib.sha256(f"{previous}:{payload_hash}".encode("utf-8")).hexdigest()
+    payload["hash"] = payload_hash
+    payload["previous_hash"] = previous
+    payload["chained_hash"] = chained_hash
+
+    target = hash_dir / f"snapshot_{timestamp}.sha256"
+    target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return target
+
+
+def run_hash_snapshot() -> int:
+    """Generate hash snapshot from data directory.
+
+    Genera snapshot de hash desde el directorio data.
+    """
+    configure_logging()
+    if not DATA_DIR.exists():
+        LOGGER.warning("hash_data_dir_missing path=%s", DATA_DIR)
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    manifest = build_manifest(DATA_DIR)
+    output = write_snapshot_hash(manifest, HASH_DIR)
+    LOGGER.info("hash_snapshot_written path=%s items=%s", output, len(manifest))
+    return 0
+
+
+def main() -> None:
+    """CLI entrypoint.
+
+    Punto de entrada CLI.
+    """
+    raise SystemExit(run_hash_snapshot())
+
+
+if __name__ == "__main__":
+    main()

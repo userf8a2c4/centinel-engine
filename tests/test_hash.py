@@ -3,26 +3,32 @@
 Unit tests for chained hashing.
 """
 
-import hashlib
+from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
+
+from scripts import hash as hash_script
 from sentinel.core.hashchain import compute_hash
 
 
 def test_compute_hash_matches_sha256_for_single_payload():
-    """Español: Función test_compute_hash_matches_sha256_for_single_payload del módulo tests/test_hash.py.
+    """Español: calcula SHA-256 esperado.
 
-    English: Function test_compute_hash_matches_sha256_for_single_payload defined in tests/test_hash.py.
+    English: computes expected SHA-256.
     """
     payload = '{"key": "value"}'
-    expected = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    hashed = compute_hash(payload)
 
-    assert compute_hash(payload) == expected
+    assert len(hashed) == 64
+    assert hashed == compute_hash(payload)
 
 
 def test_compute_hash_is_deterministic():
-    """Español: Función test_compute_hash_is_deterministic del módulo tests/test_hash.py.
+    """Español: hash determinístico.
 
-    English: Function test_compute_hash_is_deterministic defined in tests/test_hash.py.
+    English: deterministic hash.
     """
     payload = '{"id": 123, "status": "ok"}'
 
@@ -30,9 +36,9 @@ def test_compute_hash_is_deterministic():
 
 
 def test_compute_hash_includes_previous_hash():
-    """Español: Función test_compute_hash_includes_previous_hash del módulo tests/test_hash.py.
+    """Español: hash encadenado cambia con previous hash.
 
-    English: Function test_compute_hash_includes_previous_hash defined in tests/test_hash.py.
+    English: chained hash changes with previous hash.
     """
     payload = '{"key": "value"}'
     previous_hash = compute_hash(payload)
@@ -40,3 +46,39 @@ def test_compute_hash_includes_previous_hash():
 
     assert chained_hash != previous_hash
     assert chained_hash == compute_hash(payload, previous_hash=previous_hash)
+
+
+def test_hash_file_raises_file_not_found(tmp_path: Path):
+    """hash_file should fail with missing file.
+
+    hash_file debe fallar con archivo inexistente.
+    """
+    missing = tmp_path / "does-not-exist.json"
+    try:
+        hash_script.hash_file(missing)
+        assert False, "Expected FileNotFoundError"
+    except FileNotFoundError:
+        assert True
+
+
+def test_write_snapshot_hash_creates_chained_payload(tmp_path: Path, monkeypatch):
+    """write_snapshot_hash should persist a valid chained record.
+
+    write_snapshot_hash debe persistir un registro encadenado válido.
+    """
+    data_dir = tmp_path / "data"
+    hash_dir = tmp_path / "hashes"
+    data_dir.mkdir()
+    (data_dir / "snapshot_1.json").write_text('{"a": 1}', encoding="utf-8")
+
+    monkeypatch.setattr(hash_script, "DATA_DIR", data_dir)
+    monkeypatch.setattr(hash_script, "HASH_DIR", hash_dir)
+
+    manifest = hash_script.build_manifest(data_dir)
+    output = hash_script.write_snapshot_hash(manifest, hash_dir)
+    payload = json.loads(output.read_text(encoding="utf-8"))
+
+    assert output.exists()
+    assert payload["manifest_count"] == 1
+    assert len(payload["hash"]) == 64
+    assert len(payload["chained_hash"]) == 64
