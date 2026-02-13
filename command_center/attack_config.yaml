@@ -1,3 +1,22 @@
+# ============================================================
+# BITÁCORA FORENSE DE ATAQUES (ES) / ATTACK FORENSICS LOGBOOK (EN)
+# ============================================================
+# ES: Configuración de captura, rotación y resumen de eventos sospechosos.
+# EN: Configuration for capture, rotation, and summary of suspicious events.
+#
+# ES: Índice:
+# EN: Index:
+# 01_estado_y_log_principal
+# 02_umbral_frecuencia_y_red
+# 03_iocs_y_rutas_sensibles
+# 04_resumen_externo
+# 05_honeypot
+
+# ES: Convención binaria: todos los flags tipo enabled/monitor/critical/anonymize/encrypt
+#     usan true/false (booleano YAML, sin comillas).
+# EN: Binary convention: all flags such as enabled/monitor/critical/anonymize/encrypt
+#     use true/false (YAML booleans, without quotes).
+
 # Attack Forensics Logbook config / Configuración Bitácora Forense de Atacantes
 enabled: true
 log_path: logs/attack_log.jsonl

@@ -13,6 +13,9 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, model_v
 
 CONFIG_PATH = Path("command_center") / "config.yaml"
 RULES_PATH = Path("command_center") / "rules.yaml"
+SECURITY_PATH = Path("command_center") / "security_config.yaml"
+ADVANCED_SECURITY_PATH = Path("command_center") / "advanced_security_config.yaml"
+ATTACK_PATH = Path("command_center") / "attack_config.yaml"
 CONFIG_HISTORY_DIR = Path("command_center") / "configs" / "history"
 
 REQUIRED_TOP_LEVEL_KEYS = [
@@ -57,6 +60,84 @@ REQUIRED_NESTED_KEYS = {
     ],
     "rules": ["global_enabled"],
 }
+
+BOOLEAN_EXACT_KEYS = {
+    "enabled",
+    "global_enabled",
+    "allow_mock",
+    "use_playwright",
+    "playwright_stealth",
+    "critical_only",
+    "anonymize",
+    "firewall_default_deny",
+    "monitor_connections",
+    "monitor_unexpected_connections",
+    "auto_anchor_snapshots",
+    "verify_on_startup",
+    "verify_anchors_on_startup",
+    "verify_signatures",
+    "sign_hash_records",
+    "zero_trust",
+    "log_hashing",
+    "log_encryption",
+}
+
+
+def _iter_non_boolean_flags(node: Any, prefix: str = "") -> list[str]:
+    """Collect YAML paths where binary flags are not bool.
+
+    Recolecta rutas YAML donde flags binarios no son bool.
+    """
+    errors: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            key_text = str(key)
+            expects_bool = key_text in BOOLEAN_EXACT_KEYS or key_text.endswith("_enabled")
+            if expects_bool and not isinstance(value, bool):
+                errors.append(path)
+            errors.extend(_iter_non_boolean_flags(value, path))
+    elif isinstance(node, list):
+        for index, item in enumerate(node):
+            errors.extend(_iter_non_boolean_flags(item, f"{prefix}[{index}]"))
+    return errors
+
+
+def _validate_binary_conventions(payload: dict[str, Any], *, source_name: str) -> None:
+    """Validate ON/OFF + true/false conventions with actionable errors.
+
+    Valida convenciones ON/OFF + true/false con errores accionables.
+    """
+    master_switch = payload.get("master_switch")
+    if "master_switch" in payload and master_switch not in {"ON", "OFF"}:
+        raise ValueError(
+            "{source}: master_switch debe ser exactamente \"ON\" o \"OFF\" "
+            "(must be exactly \"ON\" or \"OFF\").".format(source=source_name)
+        )
+
+    bool_errors = _iter_non_boolean_flags(payload)
+    if bool_errors:
+        joined = ", ".join(sorted(bool_errors))
+        raise ValueError(
+            "{source}: los siguientes campos binarios deben usar true/false "
+            "(without quotes): {fields}.".format(source=source_name, fields=joined)
+        )
+
+
+def _load_yaml_mapping(path: Path) -> dict[str, Any]:
+    """Load a YAML mapping or raise a user-facing error.
+
+    Carga un mapa YAML o lanza un error orientado al usuario.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"Falta {path.as_posix()} (Missing {path.as_posix()}).")
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        raise ValueError(f"{path.name} tiene errores de sintaxis YAML ({path.name} has YAML syntax errors).") from exc
+    if not isinstance(raw, dict):
+        raise ValueError(f"{path.name} debe ser un mapa YAML ({path.name} must be a YAML mapping).")
+    return raw
 
 
 class RuleDefinition(BaseModel):
@@ -125,16 +206,8 @@ def _archive_config_file(source_path: Path, prefix: str) -> None:
 
 def load_rules_config() -> dict[str, Any]:
     """Load and validate rules.yaml. (Carga y valida rules.yaml.)"""
-    if not RULES_PATH.exists():
-        raise FileNotFoundError("Falta command_center/rules.yaml (Missing command_center/rules.yaml).")
-
-    try:
-        raw_config = yaml.safe_load(RULES_PATH.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError as exc:
-        raise ValueError("rules.yaml tiene errores de sintaxis (rules.yaml has syntax errors).") from exc
-
-    if not isinstance(raw_config, dict):
-        raise ValueError("rules.yaml debe ser un mapa YAML (rules.yaml must be a YAML mapping).")
+    raw_config = _load_yaml_mapping(RULES_PATH)
+    _validate_binary_conventions(raw_config, source_name=RULES_PATH.as_posix())
 
     try:
         RulesConfig.model_validate(raw_config)
@@ -157,8 +230,8 @@ def load_config() -> dict[str, Any]:
     if not CONFIG_PATH.exists():
         raise FileNotFoundError("Falta command_center/config.yaml. Centraliza toda la configuración en esa ruta.")
 
-    with CONFIG_PATH.open("r", encoding="utf-8") as handle:
-        config = yaml.safe_load(handle) or {}
+    config = _load_yaml_mapping(CONFIG_PATH)
+    _validate_binary_conventions(config, source_name=CONFIG_PATH.as_posix())
 
     missing_keys: list[str] = []
     for key in REQUIRED_TOP_LEVEL_KEYS:
@@ -185,6 +258,12 @@ def load_config() -> dict[str, Any]:
             "Faltan claves requeridas en command_center/config.yaml: "
             f"{missing}. Revisa la configuración centralizada."
         )
+
+    # Validate sibling command center config layers so startup fails fast with
+    # clear messages when a binary field is misconfigured.
+    for sibling_path in (SECURITY_PATH, ADVANCED_SECURITY_PATH, ATTACK_PATH):
+        sibling_payload = _load_yaml_mapping(sibling_path)
+        _validate_binary_conventions(sibling_payload, source_name=sibling_path.as_posix())
 
     _archive_config_file(CONFIG_PATH, "config")
     load_rules_config()
