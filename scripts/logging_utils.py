@@ -238,7 +238,7 @@ def log_event(logger: logging.Logger, level: int, event: str, **fields: Any) -> 
     if event.startswith(("suspicious", "attack", "honeypot")):
         core_logger.log_suspicious_event(
             {
-                "ip": str(fields.get("ip", "0.0.0.0")),
+                "ip": str(fields.get("ip", "0.0.0.0")),  # nosec B104 - fallback default, not a bind address
                 "method": str(fields.get("method", "GET")),
                 "route": str(fields.get("route", f"/event/{event}")),
                 "headers": dict(fields.get("headers", {})) if isinstance(fields.get("headers"), dict) else {},

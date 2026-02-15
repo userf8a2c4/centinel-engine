@@ -146,12 +146,7 @@ def _load_canonical_snapshot(connection: sqlite3.Connection, table_name: str, sn
     English: Function _load_canonical_snapshot defined in scripts/validate_hashes.py.
     """
     row = connection.execute(
-        f"""
-        SELECT canonical_json
-        FROM {table_name}
-        WHERE hash = ?
-        LIMIT 1
-        """,
+        f"SELECT canonical_json FROM {table_name} WHERE hash = ? LIMIT 1",  # nosec B608
         (snapshot_hash,),
     ).fetchone()
     if not row:

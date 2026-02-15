@@ -361,7 +361,7 @@ class AttackForensicsLogbook:
         """
         if event.get("classification") != "flood":
             return True
-        ip = str(event.get("ip", "0.0.0.0"))
+        ip = str(event.get("ip", "0.0.0.0"))  # nosec B104 - fallback default, not a bind address
         self._per_ip_flood_counter[ip] += 1
         return self._per_ip_flood_counter[ip] % self.config.flood_log_sample_ratio == 0
 
@@ -428,7 +428,7 @@ class AttackForensicsLogbook:
             return
 
     def _anonymized_summary(self, event: dict[str, Any]) -> dict[str, Any]:
-        ip = str(event.get("ip", "0.0.0.0"))
+        ip = str(event.get("ip", "0.0.0.0"))  # nosec B104 - fallback default, not a bind address
         safe_ip = self._anonymize_ip(ip) if self.config.anonymize_summaries else ip
         return {
             "event": event.get("classification", "suspicious"),
@@ -483,7 +483,7 @@ class HoneypotServer:
 
         @self.app.before_request
         def _basic_firewall() -> tuple[str, int] | None:
-            remote_ip = request.remote_addr or "0.0.0.0"
+            remote_ip = request.remote_addr or "0.0.0.0"  # nosec B104 - fallback default, not a bind address
             if remote_ip in self.config.honeypot_allowlist:
                 return None
             if self._is_private_or_loopback(remote_ip):
@@ -533,7 +533,7 @@ class HoneypotServer:
     def _handle(self) -> tuple[str, int]:
         headers = self._extract_headers(request)
         self.logbook.log_http_request(
-            ip=request.remote_addr or "0.0.0.0",
+            ip=request.remote_addr or "0.0.0.0",  # nosec B104 - fallback default, not a bind address
             method=request.method,
             route=request.path,
             headers=headers,

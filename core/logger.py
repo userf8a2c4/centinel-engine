@@ -29,7 +29,7 @@ def log_suspicious_event(event: dict[str, Any]) -> None:
     if not _ATTACK_LOGBOOK:
         return
     _ATTACK_LOGBOOK.log_http_request(
-        ip=str(event.get("ip", "0.0.0.0")),
+        ip=str(event.get("ip", "0.0.0.0")),  # nosec B104 - fallback default, not a bind address
         method=str(event.get("method", "GET")),
         route=str(event.get("route", "/unknown")),
         headers=dict(event.get("headers", {})),

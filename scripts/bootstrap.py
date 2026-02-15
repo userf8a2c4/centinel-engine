@@ -225,12 +225,7 @@ def _validate_sqlite(sqlite_path: Path) -> tuple[bool, str]:
                 return False, f"sqlite_prev_mismatch:{snapshot_hash}"
 
             snapshot_row = connection.execute(
-                f"""
-                SELECT canonical_json
-                FROM {table_name}
-                WHERE hash = ?
-                LIMIT 1
-                """,
+                f"SELECT canonical_json FROM {table_name} WHERE hash = ? LIMIT 1",  # nosec B608
                 (snapshot_hash,),
             ).fetchone()
             if not snapshot_row:

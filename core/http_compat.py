@@ -38,7 +38,7 @@ class RequestsCompat:
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 - URL validated by caller
                 payload = resp.read().decode("utf-8", errors="ignore")
                 return HttpResponse(status_code=int(getattr(resp, "status", 200)), text=payload)
         except urllib.error.HTTPError as exc:
