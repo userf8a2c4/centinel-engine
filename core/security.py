@@ -414,7 +414,7 @@ def send_admin_alert(
     if webhook:
         payload = json.dumps({"text": body}).encode("utf-8")
         req = request.Request(webhook, data=payload, headers={"Content-Type": "application/json"})
-        with request.urlopen(req, timeout=10) as resp:
+        with request.urlopen(req, timeout=10) as resp:  # nosec B310 - webhook URL from config/env
             if resp.status >= 400:
                 raise RuntimeError(f"webhook_failed:{resp.status}")
 

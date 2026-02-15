@@ -21,7 +21,7 @@ from core.security import SecurityConfig, send_admin_alert
 
 DEFAULT_COMMAND = [sys.executable, "scripts/run_pipeline.py"]
 CONFIG_PATH = Path("command_center/security_config.yaml")
-CLEAN_SHUTDOWN_FLAG = Path("/tmp/clean_shutdown.flag")
+CLEAN_SHUTDOWN_FLAG = Path("/tmp/clean_shutdown.flag")  # nosec B108 - ephemeral flag, no sensitive data
 OOM_PERSIST_FILE = Path("data/backups/supervisor_pre_oom.json")
 
 
