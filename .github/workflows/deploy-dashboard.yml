@@ -1,18 +1,30 @@
 name: Deploy Streamlit Dashboard
 
 on:
-  push:
-    branches:
-      - "main"
-      - "dev-v6"
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate Streamlit deploy secrets
+        id: preflight
+        run: |
+          if [ -z "${{ secrets.STREAMLIT_EMAIL }}" ] || [ -z "${{ secrets.STREAMLIT_PASSWORD }}" ]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Streamlit deploy skipped: missing STREAMLIT_EMAIL and/or STREAMLIT_PASSWORD secrets."
+          else
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy to Streamlit Community Cloud
+        if: steps.preflight.outputs.should_deploy == 'true'
         uses: streamlit/deploy-streamlit@v1
         with:
           app-path: "dashboard.py"
           branch: "${{ github.ref_name }}"
+          streamlit_email: "${{ secrets.STREAMLIT_EMAIL }}"
+          streamlit_password: "${{ secrets.STREAMLIT_PASSWORD }}"
+      - name: Skip deploy (missing secrets)
+        if: steps.preflight.outputs.should_deploy != 'true'
+        run: echo "Deployment intentionally skipped; configure STREAMLIT_EMAIL and STREAMLIT_PASSWORD to enable it."
