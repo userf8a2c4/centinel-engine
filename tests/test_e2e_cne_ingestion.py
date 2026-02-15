@@ -320,3 +320,164 @@ class TestMalformedVariantsOfRealData:
             department_code="00",
         )
         assert snapshot is None
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: All 18 departments + national scope
+# ---------------------------------------------------------------------------
+
+# Simulated per-department data (CNE sends same structure, different numbers)
+_DEPARTMENT_SNAPSHOT_TEMPLATE = {
+    "resultados": [
+        {"partido": "PARTIDO NACIONAL DE HONDURAS", "candidato": "NASRY JUAN ASFURA ZABLAH", "votos": "72,157", "porcentaje": "38.28"},
+        {"partido": "PARTIDO LIBERAL DE HONDURAS", "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM", "votos": "69,802", "porcentaje": "37.03"},
+        {"partido": "PARTIDO LIBERTAD Y REFUNDACION", "candidato": "RIXI RAMONA MONCADA GODOY", "votos": "34,358", "porcentaje": "18.23"},
+    ],
+    "estadisticas": {
+        "totalizacion_actas": {"actas_totales": "1,065", "actas_divulgadas": "1,058"},
+        "distribucion_votos": {"validos": "176,317", "nulos": "6,660", "blancos": "3,782"},
+        "estado_actas_divulgadas": {"actas_correctas": "904", "actas_inconsistentes": "154"},
+    },
+}
+
+ALL_DEPARTMENTS = [
+    ("Atlántida", "01"),
+    ("Choluteca", "02"),
+    ("Colón", "03"),
+    ("Comayagua", "04"),
+    ("Copán", "05"),
+    ("Cortés", "06"),
+    ("El Paraíso", "07"),
+    ("Francisco Morazán", "08"),
+    ("Gracias a Dios", "09"),
+    ("Intibucá", "10"),
+    ("Islas de la Bahía", "11"),
+    ("La Paz", "12"),
+    ("Lempira", "13"),
+    ("Ocotepeque", "14"),
+    ("Olancho", "15"),
+    ("Santa Bárbara", "16"),
+    ("Valle", "17"),
+    ("Yoro", "18"),
+]
+
+
+class TestAllDepartmentsAndNational:
+    """Normalization + storage must work for every department and national scope."""
+
+    @pytest.mark.parametrize("dept_name,dept_code", ALL_DEPARTMENTS)
+    def test_normalize_per_department(self, dept_name, dept_code):
+        """Each of the 18 departments normalizes correctly with scope=DEPARTMENT."""
+        snapshot = normalize_snapshot(
+            _DEPARTMENT_SNAPSHOT_TEMPLATE,
+            department_name=dept_name,
+            timestamp_utc="2025-12-10T17:03:59Z",
+            scope="DEPARTMENT",
+            department_code=dept_code,
+        )
+        assert snapshot is not None
+        assert snapshot.meta.scope == "DEPARTMENT"
+        assert snapshot.meta.department_code == dept_code
+        assert len(snapshot.candidates) == 3
+        assert snapshot.totals.valid_votes == 176317
+
+    def test_normalize_national(self):
+        """National scope normalizes with department_code='00'."""
+        snapshot = normalize_snapshot(
+            SNAPSHOT_DEC10_1703,
+            department_name="TODOS",
+            timestamp_utc="2025-12-10T17:03:59Z",
+            scope="NATIONAL",
+            department_code="00",
+        )
+        assert snapshot is not None
+        assert snapshot.meta.scope == "NATIONAL"
+        assert snapshot.meta.department_code == "00"
+
+    def test_department_code_resolved_from_name(self):
+        """When department_code is not passed, it resolves from department_name."""
+        snapshot = normalize_snapshot(
+            _DEPARTMENT_SNAPSHOT_TEMPLATE,
+            department_name="Francisco Morazán",
+            timestamp_utc="2025-12-10T17:03:59Z",
+            scope="DEPARTMENT",
+        )
+        assert snapshot is not None
+        assert snapshot.meta.department_code == "08"
+
+    def test_unknown_department_defaults_to_00(self):
+        """Unknown department name defaults to code '00'."""
+        snapshot = normalize_snapshot(
+            _DEPARTMENT_SNAPSHOT_TEMPLATE,
+            department_name="Desconocido",
+            timestamp_utc="2025-12-10T17:03:59Z",
+            scope="DEPARTMENT",
+        )
+        assert snapshot is not None
+        assert snapshot.meta.department_code == "00"
+
+    def test_storage_isolates_department_chains(self, tmp_path):
+        """Each department gets its own independent hash chain."""
+        db_path = tmp_path / "multi_dept.db"
+        store = LocalSnapshotStore(str(db_path))
+
+        # Store one snapshot for Cortés (06) and one for Olancho (15)
+        for dept_name, dept_code in [("Cortés", "06"), ("Olancho", "15")]:
+            snapshot = normalize_snapshot(
+                _DEPARTMENT_SNAPSHOT_TEMPLATE,
+                department_name=dept_name,
+                timestamp_utc="2025-12-10T17:03:59Z",
+                scope="DEPARTMENT",
+                department_code=dept_code,
+            )
+            store.store_snapshot(snapshot)
+
+        # Each department should have exactly 1 entry
+        cortes_entries = store.get_index_entries("06")
+        olancho_entries = store.get_index_entries("15")
+        assert len(cortes_entries) == 1
+        assert len(olancho_entries) == 1
+        assert cortes_entries[0]["department_code"] == "06"
+        assert olancho_entries[0]["department_code"] == "15"
+
+        # Their hashes should be different tables
+        assert cortes_entries[0]["table_name"] != olancho_entries[0]["table_name"]
+
+        store.close()
+
+    def test_national_and_departments_coexist(self, tmp_path):
+        """National and department snapshots coexist in the same DB."""
+        db_path = tmp_path / "mixed.db"
+        store = LocalSnapshotStore(str(db_path))
+
+        # Store national
+        national = normalize_snapshot(
+            SNAPSHOT_DEC10_1703,
+            department_name="TODOS",
+            timestamp_utc="2025-12-10T17:03:59Z",
+            scope="NATIONAL",
+            department_code="00",
+        )
+        store.store_snapshot(national)
+
+        # Store 3 departments
+        for dept_name, dept_code in [("Atlántida", "01"), ("Cortés", "06"), ("Yoro", "18")]:
+            snapshot = normalize_snapshot(
+                _DEPARTMENT_SNAPSHOT_TEMPLATE,
+                department_name=dept_name,
+                timestamp_utc="2025-12-10T17:03:59Z",
+                scope="DEPARTMENT",
+                department_code=dept_code,
+            )
+            store.store_snapshot(snapshot)
+
+        # All 4 entries should exist in the index
+        all_entries = store.get_index_entries()
+        assert len(all_entries) == 4
+
+        # Each has its own chain
+        national_entries = store.get_index_entries("00")
+        assert len(national_entries) == 1
+        assert national_entries[0]["department_code"] == "00"
+
+        store.close()
