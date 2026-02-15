@@ -6,10 +6,15 @@ on:
     branches: ["main", "dev-v6"]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     name: CI (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -31,10 +36,18 @@ jobs:
             requirements-dev.txt
 
       # Install dependencies / Instalar dependencias
-      - name: Install dependencies / Instalar dependencias
+      - name: Install dependencies with retry / Instalar dependencias con reintentos
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt -r requirements-dev.txt
+          for attempt in 1 2 3; do
+            echo "Dependency install attempt ${attempt}/3"
+            python -m pip install --upgrade pip && \
+            python -m pip install -r requirements.txt -r requirements-dev.txt && break
+            if [ "$attempt" -eq 3 ]; then
+              echo "Dependency installation failed after 3 attempts"
+              exit 1
+            fi
+            sleep 5
+          done
 
       # Lint / Revisar estilo
       - name: Lint (flake8 + black) / Lint (flake8 + black)
