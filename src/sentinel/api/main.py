@@ -34,16 +34,17 @@ SUMMARY_PATH = BASE_DIR / "reports" / "summary.txt"
 app = FastAPI(title="C.E.N.T.I.N.E.L. Public API", version="0.1.0")
 logger = logging.getLogger(__name__)
 
-origins_raw = os.getenv("CORS_ORIGINS", "*")
-origins = (
-    ["*"] if origins_raw.strip() == "*" else [origin.strip() for origin in origins_raw.split(",") if origin.strip()]
-)
+# Security: default to no CORS origins instead of wildcard.
+# Seguridad: por defecto sin orígenes CORS en lugar de wildcard.
+origins_raw = os.getenv("CORS_ORIGINS", "")
+origins = [origin.strip() for origin in origins_raw.split(",") if origin.strip()] if origins_raw.strip() else []
+_allow_credentials = bool(origins)  # credentials only valid with explicit origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=_allow_credentials,
+    allow_methods=["GET", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 

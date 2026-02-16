@@ -9,6 +9,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Security: explicit minimal permissions.
+permissions:
+  contents: read
+
 jobs:
   security-chaos:
     name: Security + Chaos + Metrics
