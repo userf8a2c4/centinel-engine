@@ -71,6 +71,10 @@ class _SlidingWindowLimiter:
     (Rate limiter de ventana deslizante por IP.)
     """
 
+    # Security: cap tracked IPs to prevent memory exhaustion from DDoS.
+    # Seguridad: limitar IPs rastreadas para prevenir agotamiento de memoria por DDoS.
+    _MAX_TRACKED_IPS = 10_000
+
     def __init__(self, max_requests: int = 60, window_seconds: int = 60) -> None:
         self._max: int = max_requests
         self._window: int = window_seconds
@@ -81,6 +85,12 @@ class _SlidingWindowLimiter:
         (Retorna True si la IP está dentro de su presupuesto de requests.)
         """
         now = time.monotonic()
+        # Evict stale IPs when bucket count exceeds safety cap.
+        # Eliminar IPs obsoletas cuando el conteo excede el límite de seguridad.
+        if len(self._buckets) > self._MAX_TRACKED_IPS:
+            stale = [k for k, v in self._buckets.items() if not v or now - v[-1] > self._window]
+            for k in stale:
+                del self._buckets[k]
         bucket = self._buckets[ip]
         # Evict expired timestamps (Eliminar timestamps expirados)
         while bucket and now - bucket[0] > self._window:

@@ -9,6 +9,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Security: explicit minimal permissions for all jobs.
+permissions:
+  contents: read
+
 env:
   PYTHONPATH: src
 
