@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import os
 import time
 from collections import defaultdict, deque
 from pathlib import Path
@@ -35,6 +36,17 @@ logger = logging.getLogger("centinel.middleware")
 # Path to the main config file (Ruta al archivo de configuración principal)
 _CONFIG_PATH = Path(__file__).resolve().parents[3] / "command_center" / "config.yaml"
 
+
+
+
+def _is_production_environment() -> bool:
+    """Return True when runtime environment indicates production mode.
+    (Retorna True cuando el entorno indica modo producción.)
+    """
+    return any(
+        os.getenv(name, "").strip().lower() in {"prod", "production"}
+        for name in ("CENTINEL_ENV", "ENV", "ENVIRONMENT", "APP_ENV")
+    )
 
 def _load_security_config() -> dict[str, Any]:
     """Load the 'security' section from command_center/config.yaml.
@@ -195,6 +207,11 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
                 self._limiter._max,
                 self._max_body_bytes,
                 list(self._blocked_headers) or "none",
+            )
+        elif _is_production_environment():
+            logger.warning(
+                "zero_trust_disabled_in_production security.zero_trust=false config_path=%s",
+                _CONFIG_PATH,
             )
 
     # ------------------------------------------------------------------
