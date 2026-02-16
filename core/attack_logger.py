@@ -247,8 +247,12 @@ class AttackForensicsLogbook:
             should_rotate = True
         if not should_rotate:
             return
+        # Skip rotation if the log file is empty (nothing to archive).
+        if self.path.exists() and self.path.stat().st_size == 0:
+            return
 
         if self._handler:
+            self._handler.flush()
             self._handler.doRollover()
             self._last_rotation = now
             self._cleanup_old_files()

@@ -2,8 +2,6 @@
 
 Notas de versiones, decisiones técnicas y cambios relevantes del proyecto.
 
-> ⚠️ **Política del Dev Diary:** las entradas históricas son inmutables. **Nunca se eliminan páginas anteriores**; si hay conflictos de naming/estructura, se corrigen nombres, rutas o índice, pero se conserva el historial completo.
-
 ## Entradas (orden cronológico)
 - [202512 - TransparencyFoundation - 01 (v0.0.3)](dev-diary/dev-diary-202512-TransparencyFoundation-01.md)
 - [202601 - RulesModularization - 01 (v0.0.31)](dev-diary/dev-diary-202601-RulesModularization-01.md)

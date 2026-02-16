@@ -48,13 +48,17 @@ def test_rotation_creates_gzip_archive(tmp_path: Path) -> None:
 
     logbook.log_http_request(ip="10.0.0.2", method="GET", route="/admin", headers={"User-Agent": "sqlmap"})
     logbook.log_http_request(ip="10.0.0.2", method="GET", route="/admin2", headers={"User-Agent": "sqlmap"})
-    time.sleep(0.2)
+    # Allow enough time for the background writer to flush both events to disk
+    # and for the rotation to trigger on the second event.
+    time.sleep(0.5)
     logbook.stop()
 
     gz_files = list(tmp_path.glob("attack_log*.gz"))
     assert gz_files, "rotation gzip file was not created"
     with gzip.open(gz_files[0], "rt", encoding="utf-8") as fh:
-        payload = json.loads(fh.readline())
+        lines = [line for line in fh if line.strip()]
+    assert lines, "rotated gzip archive is empty — rotation raced before flush"
+    payload = json.loads(lines[0])
     assert payload["route"] == "/admin"
 
 
