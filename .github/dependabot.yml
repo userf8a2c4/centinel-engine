@@ -1,5 +1,29 @@
 version: 2
 updates:
+  # Python dependencies (pip requirements) / Dependencias Python (requirements.txt)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    allow:
+      - dependency-type: "direct"
+    labels:
+      - "dependencies"
+      - "security"
+    open-pull-requests-limit: 5
+
+  # Dashboard pip dependencies / Dependencias pip del dashboard
+  - package-ecosystem: "pip"
+    directory: "/dashboard"
+    schedule:
+      interval: "weekly"
+    allow:
+      - dependency-type: "direct"
+    labels:
+      - "dependencies"
+      - "security"
+    open-pull-requests-limit: 5
+
   # Python dependencies (Poetry) / Dependencias de Python (Poetry)
   - package-ecosystem: "poetry"
     directory: "/"

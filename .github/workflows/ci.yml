@@ -20,10 +20,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: "3.11"
           cache: pip
@@ -47,10 +47,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -73,10 +73,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: "3.11"
           cache: pip
@@ -84,7 +84,12 @@ jobs:
       - name: Install security test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest==8.3.3 python-dateutil psutil pyyaml flask requests bandit
+          python -m pip install pytest==8.3.3 python-dateutil psutil pyyaml flask requests bandit cyclonedx-bom
+
+      - name: Generate SBOM (CycloneDX)
+        run: |
+          cyclonedx-py requirements requirements.txt --output-format json --output-file sbom.cyclonedx.json
+          test -s sbom.cyclonedx.json
 
       - name: Debug security workspace
         run: |
