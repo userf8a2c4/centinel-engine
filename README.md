@@ -1,6 +1,6 @@
-# Proyecto C.E.N.T.I.N.E.L.
+# Proyecto C.E.N.T.I.N.E.L. / C.E.N.T.I.N.E.L. Project
 
-[Quick Start](#quick-start) • [Documentación completa](/docs/README.md) • [Metodología](/docs/methodology.md) • [Contribuir](/docs/contributing.md) • [Licencia](/LICENSE)
+[Quick Start](#quick-start) • [Documentación completa / Full docs](/docs/README.md) • [Metodología / Methodology](/docs/methodology.md) • [Contribuir / Contributing](/docs/contributing.md) • [Licencia / License](/LICENSE)
 
 [![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue)](https://www.python.org/)
@@ -9,22 +9,35 @@
 [![CodeQL](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml/badge.svg)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml)
 [![Deploy Dashboard](https://github.com/userf8a2c4/centinel-engine/actions/workflows/deploy-dashboard.yml/badge.svg)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/deploy-dashboard.yml)
 
-## Descripción breve
+## Español
 
-Es un sistema técnico independiente y open-source para observar y auditar datos electorales **públicos** en Honduras. Genera evidencia verificable (hashes, diffs, snapshots, metadatos) sin interpretar resultados ni sustituir a ninguna autoridad. Opera de forma cívica, defensiva y no intrusiva.
+Sistema técnico open-source para observar y auditar datos electorales **públicos** en Honduras. Genera evidencia verificable (hashes, diffs, snapshots, metadatos) sin interpretación política ni sustitución de autoridades.
 
-## Características principales
+### Características
+- Cadena de evidencia reproducible con hashing SHA-256 encadenado.
+- Reglas de análisis configurables y trazabilidad histórica por cambios.
+- Organización de datos scrapeados por departamento y fuente.
+- Homeostasis operativa (vital signs) para ajustar cadencia de scraping dentro de límites éticos.
+- Endurecimiento de seguridad con controles de enfoque zero-trust en producción.
+- Configuración centralizada en [`command_center/`](/command_center/) y dashboard de demostración en [Streamlit](https://centinel-dashboard.streamlit.app/).
 
-- Evidencia técnica reproducible con hashes y snapshots encadenados.
-- Trazabilidad histórica para comparar cambios en datos públicos.
-- Reglas de análisis configurables para detectar eventos anómalos.
-- Operación neutral, cívica y no intrusiva.
-- Configuración centralizada en [`command_center/`](/command_center/).
-- Dashboard de demostracion en [Streamlit](https://centinel-dashboard.streamlit.app/)
+### Estado
+**AUDIT ACTIVE** · Desarrollo activo · Cadencia objetivo de polling electoral: 5 minutos.
 
-## Estado actual del proyecto
+## English
 
-**AUDIT ACTIVE** | En desarrollo activo | Preparado para polling cada 5 minutos en período electoral | Snapshots con hashing SHA-256 encadenado.
+Open-source technical system to monitor and audit **public** election data in Honduras. It produces verifiable evidence (hashes, diffs, snapshots, metadata) without political interpretation and without replacing official authorities.
+
+### Features
+- Reproducible evidence chain with linked SHA-256 hashing.
+- Configurable anomaly rules and historical change traceability.
+- Scraped data organization by department and source.
+- Operational homeostasis (vital signs) to adapt scrape cadence within ethical bounds.
+- Security hardening with production-focused zero-trust controls.
+- Centralized configuration in [`command_center/`](/command_center/) plus a demo [Streamlit dashboard](https://centinel-dashboard.streamlit.app/).
+
+### Status
+**AUDIT ACTIVE** · Actively developed · Election polling target cadence: every 5 minutes.
 
 ## Quick Start
 
@@ -35,26 +48,19 @@ poetry run python scripts/run_pipeline.py --once
 make pipeline
 ```
 
-## Enlaces importantes / Documentación
+## Enlaces importantes / Key docs
 
-| Documentación | Operación y seguridad |
+| Documentación / Documentation | Operación y seguridad / Operations & security |
 | --- | --- |
 | [Índice de documentación](docs/README.md) | [Manual de operación](docs/manual.md) |
-| [Arquitectura](docs/architecture.md) | [Flujo operativo y cadencia](docs/OPERATIONAL-FLOW-AND-CADENCE.md) |
+| [Arquitectura](docs/architecture.md) | [Operational flow and cadence](docs/OPERATIONAL-FLOW-AND-CADENCE.md) |
 | [Metodología](docs/methodology.md) | [Límites legales y operativos](docs/LEGAL-AND-OPERATIONAL-BOUNDARIES.md) |
 | [Principios operativos](docs/operating_principles.md) | [Seguridad](docs/security.md) |
 | [Reglas](docs/rules.md) | [Secretos y respaldos](docs/SECRETS_BACKUP.md) |
-| [Resiliencia operativa y tolerancia a fallos (configs)](docs/resilience.md) | [Circuit breaker y low-profile](docs/resilience.md#circuit-breaker-y-low-profile) |
+| [Resiliencia (configs)](docs/resilience.md) | [Circuit breaker y low-profile](docs/resilience.md#circuit-breaker-y-low-profile) |
 
-<details>
-<summary><strong>Detalles operativos</strong></summary>
+## Descargo / Disclaimer
 
-- **Legalidad y límites**: acceso a datos públicos, sin datos personales, sin interferencia. Ver [manual](docs/manual.md) y [principios operativos](docs/operating_principles.md).
-- **Flujo operativo**: captura → hashing encadenado → normalización → reglas → reportes reproducibles. Ver Ver [metodología](docs/methodology.md) .
-- **Control centralizado**: toda configuración editable está en [`command_center/`](/command_center/) para evitar ambigüedad.
-- **Cadencia**: mantenimiento mensual, monitoreo 24–72h, elección activa 5–15 min. Ver [manual](docs/manual.md).
-- **Arbitrum (opcional)**: anclaje L2 para sellar integridad de snapshots. Ver [guía de anclaje](docs/ANCHOR_SETUP_GUIDE.md).
-</details>
+Este repositorio procesa únicamente datos públicos del CNE y otras fuentes oficiales; documenta hechos técnicos verificables sin interpretación política ni partidaria.
 
-## Descargo
-- Este repositorio procesa únicamente datos públicos publicados por el CNE y otras fuentes oficiales; documenta hechos técnicos verificables (hashes, diffs, metadatos) sin interpretación política ni partidaria.
+This repository processes only public CNE and official-source data; it documents technically verifiable facts without political or partisan interpretation.
