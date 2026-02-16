@@ -43,11 +43,10 @@ def _is_production_environment() -> bool:
     """Return True when runtime environment indicates production mode.
     (Retorna True cuando el entorno indica modo producción.)
     """
-    for name in ("CENTINEL_ENV", "ENV", "ENVIRONMENT", "APP_ENV"):
-        value = os.getenv(name, "").strip().lower()
-        if value in {"prod", "production"}:
-            return True
-    return False
+    return any(
+        os.getenv(name, "").strip().lower() in {"prod", "production"}
+        for name in ("CENTINEL_ENV", "ENV", "ENVIRONMENT", "APP_ENV")
+    )
 
 def _load_security_config() -> dict[str, Any]:
     """Load the 'security' section from command_center/config.yaml.
