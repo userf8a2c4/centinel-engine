@@ -74,6 +74,10 @@ class LocalSnapshotStore:
             str: SHA-256 hash of the stored snapshot.
         """
         canonical_json = snapshot_to_canonical_json(snapshot)
+        try:
+            json.loads(canonical_json)
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise ValueError(f"canonical_json generation produced invalid JSON: {exc}") from exc
         snapshot_hash = compute_hash(canonical_json, previous_hash=previous_hash)
         tx_hash = None
         ipfs_cid = None
@@ -219,18 +223,24 @@ class LocalSnapshotStore:
             output_path (str): Output JSON path.
         """
         rows = self._fetch_department_rows(department_code)
-        payload = [
-            {
-                "timestamp_utc": row["timestamp_utc"],
-                "hash": row["hash"],
-                "previous_hash": row["previous_hash"],
-                "snapshot": json.loads(row["canonical_json"]),
-                "tx_hash": row["tx_hash"],
-                "ipfs_cid": row["ipfs_cid"],
-                "ipfs_tx_hash": row["ipfs_tx_hash"],
-            }
-            for row in rows
-        ]
+        payload = []
+        for row in rows:
+            try:
+                snapshot_data = json.loads(row["canonical_json"])
+            except (json.JSONDecodeError, TypeError) as exc:
+                logger.error("corrupted_canonical_json_export hash=%s error=%s", row["hash"], exc)
+                snapshot_data = None
+            payload.append(
+                {
+                    "timestamp_utc": row["timestamp_utc"],
+                    "hash": row["hash"],
+                    "previous_hash": row["previous_hash"],
+                    "snapshot": snapshot_data,
+                    "tx_hash": row["tx_hash"],
+                    "ipfs_cid": row["ipfs_cid"],
+                    "ipfs_tx_hash": row["ipfs_tx_hash"],
+                }
+            )
         Path(output_path).write_text(json.dumps(payload, ensure_ascii=False, indent=2))
 
     def export_department_csv(self, department_code: str, output_path: str) -> None:

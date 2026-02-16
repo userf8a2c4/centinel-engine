@@ -152,7 +152,20 @@ export const scrapeCycle = async () => {
           status: response.status
         });
       } else {
-        const payload = typeof response.data === "string" ? response.data : JSON.stringify(response.data);
+        let payload;
+        try {
+          payload = typeof response.data === "string" ? response.data : JSON.stringify(response.data);
+        } catch (serializeError) {
+          logger.error({ msg: "JSON serialize failed", url, error: serializeError.message });
+          consecutiveErrors += 1;
+          results.push({
+            hash: "0x",
+            url,
+            timestampISO: new Date().toISOString(),
+            status: "SERIALIZE_ERROR"
+          });
+          continue;
+        }
         const hash = crypto.createHash("sha256").update(payload).digest("hex");
         results.push({
           hash: `0x${hash}`,

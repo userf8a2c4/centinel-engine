@@ -57,11 +57,19 @@ CNE_RAW_SCHEMA = {
 
 
 class PresidentialActa(BaseModel):
-    """/** Esquema estricto de acta presidencial. / Strict schema for presidential acta. **/"""
+    """/** Esquema de acta presidencial compatible con formato CNE real.
 
-    cargo: Literal["presidencial"]
-    departamento: str = Field(min_length=1)
-    votos: int = Field(ge=0)
+    Acepta tanto el formato interno (cargo+departamento+votos obligatorios)
+    como el formato crudo del CNE (resultados+estadísticas sin metadatos).
+
+    / Presidential acta schema compatible with real CNE format.
+
+    Accepts both the internal format (cargo+departamento+votos required)
+    and the raw CNE format (resultados+estadisticas without metadata). **/"""
+
+    cargo: Literal["presidencial"] | None = None
+    departamento: str | None = Field(default=None)
+    votos: int | str | None = Field(default=None)
     registered_voters: int | None = Field(default=None, ge=0)
     total_votes: int | None = Field(default=None, ge=0)
     valid_votes: int | None = Field(default=None, ge=0)
@@ -69,13 +77,17 @@ class PresidentialActa(BaseModel):
     blank_votes: int | None = Field(default=None, ge=0)
     candidates: Dict[str, Any] | None = None
     resultados: Any | None = None
+    estadisticas: Any | None = None
     actas: Any | None = None
     votos_totales: Any | None = None
     meta: Dict[str, Any] | None = None
 
-    @validator("departamento")
-    def _strip_departamento(cls, value: str) -> str:
-        """/** Normaliza departamento y valida no vacío. / Normalize department and validate non-empty. **/"""
+    @validator("departamento", pre=True)
+    def _strip_departamento(cls, value: str | None) -> str | None:
+        """/** Normaliza departamento y valida no vacío si está presente.
+        / Normalize department and validate non-empty when present. **/"""
+        if value is None:
+            return None
         cleaned = value.strip()
         if not cleaned:
             raise ValueError("departamento cannot be empty")
@@ -88,13 +100,31 @@ class PresidentialActa(BaseModel):
             values["votos"] = values["total_votes"]
         return values
 
+    @root_validator(pre=True)
+    def _require_minimal_structure(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """/** Valida que el payload tenga al menos una estructura reconocible.
+
+        Acepta: formato interno (cargo+departamento) O formato CNE (resultados).
+
+        / Validate the payload has at least one recognizable structure.
+
+        Accepts: internal format (cargo+departamento) OR CNE format (resultados). **/"""
+        has_internal = values.get("cargo") is not None and values.get("departamento") is not None
+        has_cne = values.get("resultados") is not None or values.get("estadisticas") is not None
+        if not has_internal and not has_cne:
+            raise ValueError(
+                "Payload must have either cargo+departamento (internal format) "
+                "or resultados/estadisticas (CNE format)"
+            )
+        return values
+
     class Config:
         """Español: Clase Config del módulo src/sentinel/core/normalize.py.
 
         English: Config class defined in src/sentinel/core/normalize.py.
         """
 
-        extra = "forbid"
+        extra = "allow"
 
 
 def _drop_disallowed_keys(payload: Any) -> Any:
@@ -271,26 +301,40 @@ def normalize_snapshot(
     registered_voters = _safe_int(
         _first_value(
             raw,
-            totals_map.get("registered_voters", ["registered_voters", "inscritos", "padron"]),
+            totals_map.get("registered_voters", [
+                "registered_voters", "inscritos", "padron",
+                "estadisticas.totalizacion_actas.actas_totales",
+            ]),
         )
     )
     total_votes = _safe_int(
         _first_value(
             raw,
-            totals_map.get("total_votes", ["total_votes", "total_votos", "votos_emitidos"]),
+            totals_map.get("total_votes", [
+                "total_votes", "total_votos", "votos_emitidos",
+            ]),
         )
     )
     valid_votes = _safe_int(
         _first_value(
             raw,
-            totals_map.get("valid_votes", ["valid_votes", "votos_validos", "validos"]),
+            totals_map.get("valid_votes", [
+                "valid_votes", "votos_validos", "validos",
+                "estadisticas.distribucion_votos.validos",
+            ]),
         )
     )
-    null_votes = _safe_int(_first_value(raw, totals_map.get("null_votes", ["null_votes", "votos_nulos", "nulos"])))
+    null_votes = _safe_int(_first_value(raw, totals_map.get("null_votes", [
+        "null_votes", "votos_nulos", "nulos",
+        "estadisticas.distribucion_votos.nulos",
+    ])))
     blank_votes = _safe_int(
         _first_value(
             raw,
-            totals_map.get("blank_votes", ["blank_votes", "votos_blancos", "blancos"]),
+            totals_map.get("blank_votes", [
+                "blank_votes", "votos_blancos", "blancos",
+                "estadisticas.distribucion_votos.blancos",
+            ]),
         )
     )
 

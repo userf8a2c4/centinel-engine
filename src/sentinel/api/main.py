@@ -163,7 +163,16 @@ def fetch_latest_snapshot(connection: sqlite3.Connection) -> dict | None:
         """,  # nosec B608 - table name validated against strict pattern.
         (row["hash"],),
     ).fetchone()
-    payload = json.loads(snapshot["canonical_json"]) if snapshot else None
+    payload = None
+    if snapshot:
+        try:
+            payload = json.loads(snapshot["canonical_json"])
+        except (json.JSONDecodeError, TypeError) as exc:
+            logger.error(
+                "corrupted_canonical_json hash=%s error=%s",
+                row["hash"],
+                exc,
+            )
     return {
         "snapshot_id": row["hash"],
         "department_code": row["department_code"],
@@ -216,7 +225,16 @@ def fetch_snapshot_by_hash(connection: sqlite3.Connection, snapshot_hash: str) -
         """,  # nosec B608 - table name validated against strict pattern.
         (snapshot_hash,),
     ).fetchone()
-    payload = json.loads(snapshot["canonical_json"]) if snapshot else None
+    payload = None
+    if snapshot:
+        try:
+            payload = json.loads(snapshot["canonical_json"])
+        except (json.JSONDecodeError, TypeError) as exc:
+            logger.error(
+                "corrupted_canonical_json hash=%s error=%s",
+                snapshot_hash,
+                exc,
+            )
     return {
         "snapshot_id": row["hash"],
         "department_code": row["department_code"],
@@ -292,7 +310,8 @@ def load_alerts_payload() -> list[dict]:
             data = json.loads(ALERTS_JSON.read_text(encoding="utf-8"))
             if isinstance(data, list):
                 return data
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.error("corrupted_alerts_json path=%s error=%s", ALERTS_JSON, exc)
             return []
     if ALERTS_LOG.exists():
         try:
