@@ -122,7 +122,8 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
       - ./watchdog.yaml:/app/watchdog.yaml:ro
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Security: mount Docker socket read-only to limit container escape risk.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - centinel-engine
     networks:

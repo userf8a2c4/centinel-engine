@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: '*/30 * * * *'
 
+# Security: explicit minimal permissions.
+permissions:
+  contents: read
+
 jobs:
   collector:
     runs-on: ubuntu-latest
