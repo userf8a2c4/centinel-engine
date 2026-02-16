@@ -129,8 +129,10 @@ def test_pipeline_checkpoint_resume(tmp_path, monkeypatch):
     monkeypatch.setattr(run_pipeline, "FAILURE_CHECKPOINT_PATH", checkpoint_path)
 
     snapshots = []
+    snapshots_dir = data_dir / "snapshots" / "test_source"
+    snapshots_dir.mkdir(parents=True)
     for idx in range(19):
-        snapshot_path = data_dir / f"snapshot_{idx}.json"
+        snapshot_path = snapshots_dir / f"snapshot_{idx}.json"
         snapshot_path.write_text(
             json.dumps({"timestamp": datetime.now(timezone.utc).isoformat(), "id": idx}),
             encoding="utf-8",

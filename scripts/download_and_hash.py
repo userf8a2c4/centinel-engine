@@ -47,6 +47,12 @@ from centinel.downloader import (
     request_with_retry,
     should_skip_snapshot,
 )
+from centinel.paths import (
+    ensure_source_dirs,
+    hash_filename,
+    resolve_source_id,
+    snapshot_filename,
+)
 from scripts.circuit_breaker import CircuitBreaker
 from core.fetcher import build_rotating_request_profile
 from core.hasher import trigger_post_hash_backup
@@ -399,10 +405,10 @@ def process_sources(
     processed_sources = set(checkpoint.get("processed_sources", []))
     max_sources = int(config.get("max_sources_per_cycle", 19))
 
-    data_dir = Path("data")
-    hash_dir = Path("hashes")
-    data_dir.mkdir(exist_ok=True)
-    hash_dir.mkdir(exist_ok=True)
+    data_root = Path("data")
+    hash_root = Path("hashes")
+    data_root.mkdir(exist_ok=True)
+    hash_root.mkdir(exist_ok=True)
 
     health_state = get_health_state()
     retry_payload = resolve_retry_policy(config)
@@ -427,11 +433,15 @@ def process_sources(
             if not endpoint:
                 logger.error("Fuente sin endpoint definido: %s", source)
                 continue
-            source_label = source.get("source_id") or source.get("name", "unknown")
+            source_id = resolve_source_id(source)
+            source_label = source_id
+            data_dir, hash_dir = ensure_source_dirs(
+                source_id, data_root=data_root, hash_root=hash_root,
+            )
             if source_label in processed_sources:
                 logger.info("Fuente ya procesada en checkpoint: %s", source_label)
                 continue
-            if should_skip_snapshot(data_dir, source_label, retry_config=retry_config):
+            if should_skip_snapshot(data_dir, source_id, retry_config=retry_config):
                 logger.info("Snapshot reciente detectado, se omite descarga: %s", source_label)
                 continue
 
@@ -442,8 +452,7 @@ def process_sources(
                 fallback_hash = _use_fallback_snapshot(
                     data_dir,
                     hash_dir,
-                    source_label,
-                    source.get("source_id") or source.get("department_code", "NA"),
+                    source_id,
                     endpoint,
                     previous_hash,
                     reason="circuit_open",
@@ -480,8 +489,7 @@ def process_sources(
                 fallback_hash = _use_fallback_snapshot(
                     data_dir,
                     hash_dir,
-                    source_label,
-                    source.get("source_id") or source.get("department_code", "NA"),
+                    source_id,
                     endpoint,
                     previous_hash,
                     reason="request_failed",
@@ -500,8 +508,7 @@ def process_sources(
                 fallback_hash = _use_fallback_snapshot(
                     data_dir,
                     hash_dir,
-                    source_label,
-                    source.get("source_id") or source.get("department_code", "NA"),
+                    source_id,
                     endpoint,
                     previous_hash,
                     reason="payload_invalid",
@@ -517,7 +524,7 @@ def process_sources(
             normalized_payload = payload if isinstance(payload, list) else [payload]
             snapshot_payload = {
                 "timestamp": datetime.now().isoformat(),
-                "source": source.get("source_id") or source.get("name", "unknown"),
+                "source": source_id,
                 "source_url": response.url,
                 "data": normalized_payload,
             }
@@ -527,7 +534,7 @@ def process_sources(
                 snapshot_file,
             ) = _persist_snapshot_payload(
                 snapshot_payload,
-                source_id=source.get("source_id") or source.get("department_code", "NA"),
+                source_id=source_id,
                 data_dir=data_dir,
                 hash_dir=hash_dir,
                 previous_hash=previous_hash,
@@ -568,8 +575,8 @@ def _persist_snapshot_payload(
     chained_hash = chain_hash(previous_hash, snapshot_bytes)
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    snapshot_file = data_dir / f"snapshot_{timestamp}_{source_id}.json"
-    hash_file = hash_dir / f"snapshot_{timestamp}_{source_id}.sha256"
+    snapshot_file = data_dir / snapshot_filename(timestamp)
+    hash_file = hash_dir / hash_filename(timestamp)
     snapshot_file.write_bytes(snapshot_bytes)
     hash_record = {"hash": current_hash, "chained_hash": chained_hash}
 
@@ -589,10 +596,13 @@ def _persist_snapshot_payload(
     return chained_hash, current_hash, snapshot_file
 
 
-def _find_latest_snapshot_for_source(data_dir: Path, source_label: str) -> tuple[Path | None, dict[str, Any] | None]:
+def _find_latest_snapshot_for_source(data_dir: Path, source_id: str) -> tuple[Path | None, dict[str, Any] | None]:
     """English: Find the latest valid snapshot for a source.
 
     Español: Busca el último snapshot válido para una fuente.
+
+    data_dir ya apunta al subdirectorio de la fuente (e.g. data/snapshots/NACIONAL/).
+    data_dir already points to the source subdirectory (e.g. data/snapshots/NACIONAL/).
     """
     if not data_dir.exists():
         return None, None
@@ -601,29 +611,19 @@ def _find_latest_snapshot_for_source(data_dir: Path, source_label: str) -> tuple
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
-    for snapshot in candidates:
-        if source_label not in snapshot.name:
-            continue
+    for snapshot_path in candidates:
         try:
-            payload = json.loads(snapshot.read_text(encoding="utf-8"))
+            payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             continue
-        if isinstance(payload, dict) and payload.get("source") == source_label:
-            return snapshot, payload
-    for snapshot in candidates:
-        try:
-            payload = json.loads(snapshot.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            continue
-        if isinstance(payload, dict) and payload.get("source") == source_label:
-            return snapshot, payload
+        if isinstance(payload, dict):
+            return snapshot_path, payload
     return None, None
 
 
 def _use_fallback_snapshot(
     data_dir: Path,
     hash_dir: Path,
-    source_label: str,
     source_id: str,
     endpoint: str,
     previous_hash: str,
@@ -634,13 +634,13 @@ def _use_fallback_snapshot(
 
     Español: Usa el último snapshot válido como fallback.
     """
-    snapshot_path, payload = _find_latest_snapshot_for_source(data_dir, source_label)
+    snapshot_path, payload = _find_latest_snapshot_for_source(data_dir, source_id)
     if not payload:
-        logger.warning("fallback_snapshot_missing source=%s", source_label)
+        logger.warning("fallback_snapshot_missing source=%s", source_id)
         return None
     fallback_payload = {
         "timestamp": datetime.now().isoformat(),
-        "source": source_label,
+        "source": source_id,
         "source_url": payload.get("source_url") or endpoint,
         "data": payload.get("data", []),
         "fallback": True,
@@ -654,7 +654,7 @@ def _use_fallback_snapshot(
         hash_dir=hash_dir,
         previous_hash=previous_hash,
     )
-    logger.warning("fallback_snapshot_used source=%s reason=%s", source_label, reason)
+    logger.warning("fallback_snapshot_used source=%s reason=%s", source_id, reason)
     return chained_hash
 
 

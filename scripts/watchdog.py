@@ -48,7 +48,7 @@ class WatchdogConfig:
     resource_check_interval_seconds: int = 30
     alert_urls: list[str] = field(default_factory=list)
     data_dir: str = "data"
-    snapshot_glob: str = "*.json"
+    snapshot_glob: str = "snapshots/*/snapshot_*.json"
     snapshot_exclude: tuple[str, ...] = (
         "pipeline_state.json",
         "heartbeat.json",

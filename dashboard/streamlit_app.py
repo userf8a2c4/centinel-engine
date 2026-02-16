@@ -44,6 +44,8 @@ SRC_ROOT = REPO_ROOT / "src"
 
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
+
+from centinel.paths import iter_all_snapshots  # noqa: E402
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -658,9 +660,9 @@ def load_snapshot_files(
     if explicit_files:
         paths = [base_dir / name for name in explicit_files]
     else:
-        paths = sorted(base_dir.glob(pattern))
+        paths = iter_all_snapshots(data_root=base_dir, pattern=pattern)
         if not paths and pattern != "*.json":
-            paths = sorted(base_dir.glob("*.json"))
+            paths = iter_all_snapshots(data_root=base_dir, pattern="*.json")
     snapshots = []
     for path in paths:
         if not path.exists():

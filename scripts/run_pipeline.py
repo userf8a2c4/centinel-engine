@@ -27,6 +27,7 @@ from core.attack_logger import AttackForensicsLogbook, AttackLogConfig, Honeypot
 from scripts.circuit_breaker import CircuitBreaker
 from core.security import DefensiveSecurityManager, DefensiveShutdown, SecurityConfig
 from core.advanced_security import load_manager
+from centinel.paths import iter_all_hashes, iter_all_snapshots
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
 from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
@@ -146,12 +147,13 @@ def load_resilience_checkpoint() -> dict[str, Any]:
 
 def collect_snapshot_index(limit: int = 19) -> list[dict[str, Any]]:
     """/** Genera índice JSON con snapshots recientes. / Generate a JSON index with recent snapshots. **"""
-    snapshots = sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    all_snapshots = iter_all_snapshots(data_root=DATA_DIR)
+    snapshots = sorted(all_snapshots, key=lambda p: p.stat().st_mtime, reverse=True)
     index: list[dict[str, Any]] = []
     for snapshot in snapshots[:limit]:
         index.append(
             {
-                "file": snapshot.name,
+                "file": str(snapshot.relative_to(DATA_DIR)),
                 "mtime": snapshot.stat().st_mtime,
             }
         )
@@ -160,8 +162,10 @@ def collect_snapshot_index(limit: int = 19) -> list[dict[str, Any]]:
 
 def build_defensive_state_snapshot() -> dict[str, Any]:
     """/** Construye estado persistible para shutdown defensivo. / Build persisted state for defensive shutdown. **/"""
-    latest_snapshot = next(iter(sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)), None)
-    recent_hashes = [p.name for p in sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)[:10]]
+    all_snaps = iter_all_snapshots(data_root=DATA_DIR)
+    latest_snapshot = all_snaps[-1] if all_snaps else None
+    all_hashes = iter_all_hashes(hash_root=HASH_DIR)
+    recent_hashes = [str(p.relative_to(HASH_DIR)) for p in reversed(all_hashes[-10:])]
     queued_urls: list[str] = []
     config = load_config()
     endpoints = config.get("endpoints") if isinstance(config, dict) else None
@@ -325,7 +329,7 @@ def resolve_max_json_limit(config: dict[str, Any]) -> int:
 
 def build_snapshot_queue(limit: int) -> list[Path]:
     """/** Construye lista ordenada de snapshots. / Build ordered snapshot list. **"""
-    snapshots = sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime)
+    snapshots = iter_all_snapshots(data_root=DATA_DIR)
     return snapshots[-limit:]
 
 
@@ -386,7 +390,7 @@ def save_resilience_checkpoint(
         "timestamp": utcnow().isoformat(),
         "hashes": collect_recent_hashes(),
         "snapshot_index": snapshot_index or collect_snapshot_index(),
-        "latest_snapshot": (latest_snapshot.name if latest_snapshot else existing.get("latest_snapshot")),
+        "latest_snapshot": (str(latest_snapshot.relative_to(DATA_DIR)) if latest_snapshot and DATA_DIR in latest_snapshot.parents else latest_snapshot.name if latest_snapshot else existing.get("latest_snapshot")),
         "last_content_hash": content_hash or existing.get("last_content_hash"),
     }
     if error:
@@ -400,9 +404,10 @@ def save_resilience_checkpoint(
 
 def collect_recent_hashes(limit: int = 19) -> list[dict[str, Any]]:
     """/** Recolecta hashes recientes para checkpoint. / Collect recent hashes for checkpoint. **"""
-    hash_files = sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)
+    all_h = iter_all_hashes(hash_root=HASH_DIR)
+    hash_files = list(reversed(all_h))[:limit]
     hashes: list[dict[str, Any]] = []
-    for hash_file in hash_files[:limit]:
+    for hash_file in hash_files:
         try:
             payload = json.loads(hash_file.read_text(encoding="utf-8"))
             hashes.append(
@@ -655,7 +660,8 @@ def run_pipeline(config: dict[str, Any]):
             )
 
         if latest_snapshot is None:
-            latest_snapshot = snapshots[-1] if snapshots else latest_file(DATA_DIR, "*.json")
+            all_snaps = iter_all_snapshots(data_root=DATA_DIR)
+            latest_snapshot = snapshots[-1] if snapshots else (all_snaps[-1] if all_snaps else None)
         if not latest_snapshot:
             print("[!] No se encontró snapshot para procesar")
             log_event(logger, logging.WARNING, "snapshot_missing", run_id=run_id)
@@ -904,8 +910,9 @@ def run_polling_loop(config: dict[str, Any], *, run_once: bool, run_now: bool) -
 
 def _read_hashes_for_anchor(batch_size: int) -> list[str]:
     """/** Lee hashes recientes para anclaje en Arbitrum. / Read recent hashes for Arbitrum anchoring. **"""
-    hash_files = sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)
-    selected = list(reversed(hash_files[:batch_size]))
+    all_h = iter_all_hashes(hash_root=HASH_DIR)
+    hash_files_desc = list(reversed(all_h))
+    selected = list(reversed(hash_files_desc[:batch_size]))
     hashes: list[str] = []
     for hash_file in selected:
         try:
@@ -990,7 +997,7 @@ def _anchor_snapshot(
         return
 
     current_payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
-    snapshots = sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime)
+    snapshots = iter_all_snapshots(data_root=DATA_DIR)
     previous_snapshot = snapshots[-2] if len(snapshots) > 1 else None
     previous_payload = json.loads(previous_snapshot.read_text(encoding="utf-8")) if previous_snapshot else None
 

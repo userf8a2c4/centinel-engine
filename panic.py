@@ -22,6 +22,7 @@ from typing import Any
 import boto3
 import yaml
 
+from centinel.paths import iter_all_hashes
 from monitoring.alerts import dispatch_alert
 from scripts.logging_utils import configure_logging
 
@@ -208,7 +209,7 @@ def latest_hash() -> str | None:
 
     English: Function latest_hash defined in panic.py.
     """
-    hash_files = sorted(HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True)
+    hash_files = list(reversed(iter_all_hashes(hash_root=HASH_DIR)))
     if not hash_files:
         return None
     content = hash_files[0].read_text(encoding="utf-8").strip()

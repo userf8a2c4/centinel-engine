@@ -69,7 +69,9 @@ def test_write_snapshot_hash_creates_chained_payload(tmp_path: Path, monkeypatch
     data_dir = tmp_path / "data"
     hash_dir = tmp_path / "hashes"
     data_dir.mkdir()
-    (data_dir / "snapshot_1.json").write_text('{"a": 1}', encoding="utf-8")
+    source_dir = data_dir / "snapshots" / "test_source"
+    source_dir.mkdir(parents=True)
+    (source_dir / "snapshot_1.json").write_text('{"a": 1}', encoding="utf-8")
 
     monkeypatch.setattr(hash_script, "DATA_DIR", data_dir)
     monkeypatch.setattr(hash_script, "HASH_DIR", hash_dir)
@@ -88,11 +90,13 @@ def test_build_manifest_skips_symlink_candidates(tmp_path: Path):
     """English: symlink JSONs are ignored for secure manifests. Español: se ignoran symlinks JSON por seguridad."""
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    target = data_dir / "safe.json"
+    source_dir = data_dir / "snapshots" / "test_source"
+    source_dir.mkdir(parents=True)
+    target = source_dir / "snapshot_safe.json"
     target.write_text('{"ok": true}', encoding="utf-8")
-    (data_dir / "link.json").symlink_to(target)
+    (source_dir / "snapshot_link.json").symlink_to(target)
 
     manifest = hash_script.build_manifest(data_dir)
     files = {entry["file"] for entry in manifest}
-    assert "safe.json" in files
-    assert "link.json" not in files
+    assert any("snapshot_safe.json" in f for f in files)
+    assert not any("snapshot_link.json" in f for f in files)

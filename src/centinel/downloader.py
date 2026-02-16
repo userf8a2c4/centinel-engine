@@ -647,10 +647,13 @@ def should_skip_snapshot(data_dir: Path, source_id: str, *, retry_config: RetryC
     """Check idempotency rules to avoid duplicate downloads.
 
     English: Skips if a recent snapshot already exists for the source.
+
+    data_dir ya apunta al subdirectorio de la fuente (e.g. data/snapshots/NACIONAL/).
+    data_dir already points to the source subdirectory (e.g. data/snapshots/NACIONAL/).
     """
     if retry_config.recent_snapshot_seconds <= 0:
         return False
-    pattern = f"snapshot_*_{source_id}.json"
+    pattern = "snapshot_*.json"
     candidates = sorted(data_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
     if not candidates:
         return False

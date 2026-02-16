@@ -110,12 +110,14 @@ def test_hash_manifest_skips_symlink(tmp_path: Path) -> None:
 
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    real_file = data_dir / "a.json"
+    source_dir = data_dir / "snapshots" / "test_source"
+    source_dir.mkdir(parents=True)
+    real_file = source_dir / "snapshot_a.json"
     real_file.write_text('{"ok": true}', encoding="utf-8")
     # English/Spanish: symlink candidate should be ignored for safety / el symlink debe ignorarse por seguridad.
-    (data_dir / "b.json").symlink_to(real_file)
+    (source_dir / "snapshot_b.json").symlink_to(real_file)
 
     manifest = build_manifest(data_dir)
     names = {entry["file"] for entry in manifest}
-    assert "a.json" in names
-    assert "b.json" not in names
+    assert any("snapshot_a.json" in f for f in names)
+    assert not any("snapshot_b.json" in f for f in names)

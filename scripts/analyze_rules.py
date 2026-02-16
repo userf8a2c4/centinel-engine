@@ -19,6 +19,8 @@ import unicodedata
 from pathlib import Path
 from typing import Any, Optional
 
+from centinel.paths import iter_all_snapshots
+
 import yaml
 
 from sentinel.core.rules.common import extract_candidate_votes, extract_total_votes
@@ -75,10 +77,7 @@ def _latest_snapshots() -> tuple[Optional[Path], Optional[Path]]:
         key=lambda path: path.stat().st_mtime,
     )
     if not candidates:
-        candidates = sorted(
-            Path("data").glob("*.json"),
-            key=lambda path: path.stat().st_mtime,
-        )
+        candidates = iter_all_snapshots(data_root=Path("data"))
     if not candidates:
         return None, None
     current = candidates[-1]
