@@ -14,7 +14,9 @@ def test_watchdog_snapshot_stale(tmp_path) -> None:
 
     English: Marks an old snapshot as stale.
     """
-    snapshot = tmp_path / "snapshot_1.json"
+    source_dir = tmp_path / "snapshots" / "test_source"
+    source_dir.mkdir(parents=True)
+    snapshot = source_dir / "snapshot_1.json"
     snapshot.write_text("{}", encoding="utf-8")
 
     old = time.time() - 3600

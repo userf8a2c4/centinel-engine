@@ -17,6 +17,7 @@ from typing import Any
 
 import yaml
 
+from centinel.paths import iter_all_hashes, SNAPSHOTS_SUBDIR
 from scripts.logging_utils import configure_logging, log_event
 from sentinel.core.hashchain import compute_hash
 
@@ -48,6 +49,7 @@ class HashEntry:
     name: str
     stored_hash: str
     stored_current_hash: str | None = None
+    source_dir: str | None = None
 
 
 def _copy_if_missing(source_path: Path, destination_path: Path) -> bool:
@@ -89,24 +91,26 @@ def _validate_config(config: dict[str, Any]) -> list[str]:
 
 def _load_hash_entries(hashes_dir: Path) -> list[HashEntry]:
     """Español:
-        Carga entradas de hashes desde el directorio hashes/.
+        Carga entradas de hashes desde subdirectorios por fuente.
 
     English:
-        Load hash entries from the hashes/ directory.
+        Load hash entries from per-source subdirectories.
 
     Args:
-        hashes_dir: Ruta al directorio de hashes.
+        hashes_dir: Ruta al directorio raíz de hashes.
 
     Returns:
         Lista de entradas de hash encontradas.
     """
     entries: list[HashEntry] = []
-    for hash_file in sorted(hashes_dir.glob("snapshot_*.sha256")):
+    for hash_file in iter_all_hashes(hash_root=hashes_dir):
         raw = hash_file.read_text(encoding="utf-8").strip()
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError:
             payload = None
+
+        source_dir = hash_file.parent.name
 
         if isinstance(payload, dict):
             chained = payload.get("chained_hash") or payload.get("hash")
@@ -117,12 +121,13 @@ def _load_hash_entries(hashes_dir: Path) -> list[HashEntry]:
                         name=hash_file.stem,
                         stored_hash=str(chained),
                         stored_current_hash=str(current) if current else None,
+                        source_dir=source_dir,
                     )
                 )
             continue
 
         if raw:
-            entries.append(HashEntry(name=hash_file.stem, stored_hash=raw))
+            entries.append(HashEntry(name=hash_file.stem, stored_hash=raw, source_dir=source_dir))
     return entries
 
 
@@ -167,7 +172,8 @@ def _validate_hash_dir(hashes_dir: Path, data_dir: Path) -> tuple[bool, str]:
 
     previous_hash: str | None = None
     for entry in entries:
-        snapshot_path = data_dir / f"{entry.name}.json"
+        source_dir = entry.source_dir or ""
+        snapshot_path = data_dir / SNAPSHOTS_SUBDIR / source_dir / f"{entry.name}.json"
         if not snapshot_path.exists():
             return False, f"snapshot_missing:{entry.name}"
         canonical_json = _canonical_json(snapshot_path)

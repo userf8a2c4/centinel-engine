@@ -44,8 +44,8 @@ backup_interval: 1800
 auto_backup_forensic_logs: true
 backup_retention_days: 7
 backup_paths:
-  - "hashes/*.sha256"
-  - "data/snapshot_*.json"
+  - "hashes/**/*.sha256"
+  - "data/snapshots/**/*.json"
   - "logs/attack_log*.jsonl*"
 integrity_paths:
   - "core/*.py"

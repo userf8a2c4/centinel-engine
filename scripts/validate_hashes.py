@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+from centinel.paths import iter_all_hashes
 from sentinel.core.hashchain import compute_hash
 
 
@@ -30,6 +31,7 @@ class HashEntry:
     name: str
     stored_hash: str
     stored_current_hash: str | None = None
+    source_dir: str | None = None
 
 
 @dataclass
@@ -56,17 +58,20 @@ class AnchorResult:
 
 
 def _load_hash_entries(hashes_dir: Path) -> list[HashEntry]:
-    """Español: Función _load_hash_entries del módulo scripts/validate_hashes.py.
+    """Español: Carga entradas de hash desde subdirectorios por fuente.
 
-    English: Function _load_hash_entries defined in scripts/validate_hashes.py.
+    English: Load hash entries from per-source subdirectories.
     """
     entries: list[HashEntry] = []
-    for hash_file in sorted(hashes_dir.glob("snapshot_*.sha256")):
+    hash_files = iter_all_hashes(hash_root=hashes_dir)
+    for hash_file in hash_files:
         raw = hash_file.read_text(encoding="utf-8").strip()
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError:
             payload = None
+
+        source_dir = hash_file.parent.name
 
         if isinstance(payload, dict):
             chained = payload.get("chained_hash") or payload.get("hash")
@@ -77,12 +82,13 @@ def _load_hash_entries(hashes_dir: Path) -> list[HashEntry]:
                         name=hash_file.stem,
                         stored_hash=str(chained),
                         stored_current_hash=str(current) if current else None,
+                        source_dir=source_dir,
                     )
                 )
             continue
 
         if raw:
-            entries.append(HashEntry(name=hash_file.stem, stored_hash=raw))
+            entries.append(HashEntry(name=hash_file.stem, stored_hash=raw, source_dir=source_dir))
     return entries
 
 
@@ -108,9 +114,12 @@ def _validate_hash_dir(hashes_dir: Path, data_dir: Path) -> ValidationResult:
     if not entries:
         return ValidationResult(ok=False, error_snapshot="sin_hashes")
 
+    from centinel.paths import SNAPSHOTS_SUBDIR
+
     previous_hash: str | None = None
     for entry in entries:
-        snapshot_path = data_dir / f"{entry.name}.json"
+        source_dir = entry.source_dir or ""
+        snapshot_path = data_dir / SNAPSHOTS_SUBDIR / source_dir / f"{entry.name}.json"
         if not snapshot_path.exists():
             return ValidationResult(ok=False, error_snapshot=entry.name)
         canonical_json = _canonical_json(snapshot_path)

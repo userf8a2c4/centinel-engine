@@ -14,7 +14,7 @@ max_cpu_percent: 80
 max_mem_percent: 90
 alert_urls: []
 data_dir: "data"
-snapshot_glob: "*.json"
+snapshot_glob: "snapshots/*/snapshot_*.json"
 snapshot_exclude:
   - "pipeline_state.json"
   - "heartbeat.json"

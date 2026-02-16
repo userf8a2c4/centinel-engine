@@ -121,7 +121,7 @@ def test_process_sources_saves_snapshot(monkeypatch, tmp_path) -> None:
     config = {"max_sources_per_cycle": 1}
     download_and_hash.process_sources(sources, {}, config)
 
-    snapshots = list((tmp_path / "data").glob("snapshot_*.json"))
-    hashes = list((tmp_path / "hashes").glob("snapshot_*.sha256"))
+    snapshots = list((tmp_path / "data" / "snapshots" / "NACIONAL").glob("snapshot_*.json"))
+    hashes = list((tmp_path / "hashes" / "NACIONAL").glob("snapshot_*.sha256"))
     assert snapshots
     assert hashes

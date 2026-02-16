@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from centinel.paths import iter_all_hashes, iter_all_snapshots
+
 LOGGER = logging.getLogger("centinel.hash")
 DATA_DIR = Path("data")
 HASH_DIR = Path("hashes")
@@ -59,13 +61,11 @@ def load_previous_chain_hash() -> str:
 
     Lee el último hash encadenado si existe.
     """
-    if not HASH_DIR.exists():
-        return "0" * 64
-    latest = sorted(HASH_DIR.glob("snapshot_*.sha256"))
-    if not latest:
+    all_hashes = iter_all_hashes(hash_root=HASH_DIR)
+    if not all_hashes:
         return "0" * 64
     try:
-        payload = json.loads(latest[-1].read_text(encoding="utf-8"))
+        payload = json.loads(all_hashes[-1].read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return "0" * 64
     return payload.get("chained_hash", "0" * 64)
@@ -77,14 +77,14 @@ def build_manifest(data_dir: Path = DATA_DIR) -> list[dict[str, Any]]:
     Construye manifiesto para snapshots JSON actuales.
     """
     manifest: list[dict[str, Any]] = []
-    for candidate in sorted(data_dir.glob("*.json")):
+    for candidate in iter_all_snapshots(data_root=data_dir):
         if not is_safe_snapshot_file(candidate, data_dir):
             LOGGER.warning("hash_skip_unsafe_candidate file=%s", candidate)
             continue
         try:
             manifest.append(
                 {
-                    "file": candidate.name,
+                    "file": str(candidate.relative_to(data_dir)),
                     "sha256": hash_file(candidate),
                     "mtime_utc": datetime.fromtimestamp(candidate.stat().st_mtime, tz=timezone.utc).isoformat(),
                 }

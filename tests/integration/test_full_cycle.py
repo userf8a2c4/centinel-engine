@@ -167,8 +167,8 @@ def test_full_cycle(tmp_path, monkeypatch, mocker):
     ]
     process_sources(sources, {"nacional": endpoint})
 
-    snapshots = list(Path("data").glob("snapshot_*.json"))
-    hashes = list(Path("hashes").glob("snapshot_*.sha256"))
+    snapshots = list(Path("data/snapshots/NACIONAL").glob("snapshot_*.json"))
+    hashes = list(Path("hashes/NACIONAL").glob("snapshot_*.sha256"))
     assert snapshots
     assert hashes
 

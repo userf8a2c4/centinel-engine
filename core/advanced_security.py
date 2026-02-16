@@ -117,7 +117,7 @@ class AdvancedSecurityConfig:
     backup_provider: str = "local"
     backup_interval_seconds: int = 1800
     backup_retention_days: int = 7
-    backup_paths: list[str] = field(default_factory=lambda: ["hashes/*.sha256", "data/snapshot_*.json"])
+    backup_paths: list[str] = field(default_factory=lambda: ["hashes/**/*.sha256", "data/snapshots/**/*.json"])
     integrity_paths: list[str] = field(default_factory=lambda: ["core/*.py", "scripts/run_pipeline.py"])
     cpu_threshold_percent: float = 85.0
     cpu_sustain_seconds: int = 120
@@ -160,7 +160,7 @@ class AdvancedSecurityConfig:
             backup_provider=str(raw.get("backup_provider", "local")),
             backup_interval_seconds=int(raw.get("backup_interval", 1800)),
             backup_retention_days=int(raw.get("backup_retention_days", 7)),
-            backup_paths=[str(p) for p in raw.get("backup_paths", ["hashes/*.sha256", "data/snapshot_*.json"])],
+            backup_paths=[str(p) for p in raw.get("backup_paths", ["hashes/**/*.sha256", "data/snapshots/**/*.json"])],
             integrity_paths=[str(p) for p in raw.get("integrity_paths", ["core/*.py"] )],
             cpu_threshold_percent=float(raw.get("cpu_threshold_percent", 85)),
             cpu_sustain_seconds=int(raw.get("cpu_sustain_seconds", 120)),

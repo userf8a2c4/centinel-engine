@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from centinel.paths import iter_all_hashes
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
@@ -123,10 +124,7 @@ def verify_chain(chain_dir: Path) -> ChainVerificationResult:
         For each link n, confirms that:
             hash[n] == sha256(hash[n-1] + data[n])
     """
-    hash_files = sorted(
-        chain_dir.glob("*.sha256"),
-        key=lambda p: p.stat().st_mtime,
-    )
+    hash_files = iter_all_hashes(hash_root=chain_dir)
 
     if not hash_files:
         return ChainVerificationResult(
@@ -763,7 +761,7 @@ def run_startup_verification(
 
     # 3. Verificar firmas en registros de hash
     if verify_signatures and hash_dir.exists():
-        hash_files = sorted(hash_dir.glob("*.sha256"), key=lambda p: p.stat().st_mtime)
+        hash_files = iter_all_hashes(hash_root=hash_dir)
         for hash_file in hash_files:
             try:
                 record = json.loads(hash_file.read_text(encoding="utf-8"))

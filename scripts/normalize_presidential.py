@@ -8,6 +8,7 @@ import logging
 import re
 from pathlib import Path
 
+from centinel.paths import iter_all_snapshots
 from scripts.logging_utils import configure_logging, log_event
 
 INPUT_DIR = Path("data")
@@ -33,7 +34,7 @@ def to_float(x):
 
 
 max_files = 19
-files = sorted(INPUT_DIR.glob("*.json"))
+files = iter_all_snapshots(data_root=INPUT_DIR)
 for index, file in enumerate(files[:max_files]):
     raw = json.loads(file.read_text(encoding="utf-8"))
 
