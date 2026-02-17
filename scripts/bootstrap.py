@@ -19,7 +19,7 @@ import yaml
 
 from centinel.paths import iter_all_hashes, SNAPSHOTS_SUBDIR
 from scripts.logging_utils import configure_logging, log_event
-from sentinel.core.hashchain import compute_hash
+from centinel.core.hashchain import compute_hash
 
 logger = configure_logging("centinel.bootstrap", log_file="logs/centinel.log")
 

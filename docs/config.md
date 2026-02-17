@@ -8,12 +8,12 @@ Use the CLI or Python one-liners to validate the YAML schemas. (Usa el CLI o com
 
 ### Validate the main config (Validar la configuración principal)
 ```bash
-poetry run python -c "from sentinel.utils.config_loader import load_config; load_config()"
+poetry run python -c "from centinel.utils.config_loader import load_config; load_config()"
 ```
 
 ### Validate the rules config (Validar la configuración de reglas)
 ```bash
-poetry run python -c "from sentinel.utils.config_loader import load_rules_config; load_rules_config()"
+poetry run python -c "from centinel.utils.config_loader import load_rules_config; load_rules_config()"
 ```
 
 ### Dry-run command center (Command center en modo dry-run)

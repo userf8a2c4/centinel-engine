@@ -3,6 +3,6 @@
 FastAPI launcher for Centinel.
 """
 
-from sentinel.api.main import app
+from centinel.api.main import app
 
 __all__ = ["app"]

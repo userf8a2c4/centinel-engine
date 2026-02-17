@@ -32,9 +32,9 @@ from scripts.download_and_hash import is_master_switch_on, normalize_master_swit
 from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
 from scripts.security.encrypt_secrets import decrypt_secrets
-from sentinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
-from sentinel.core.custody import run_startup_verification
-from sentinel.utils.config_loader import load_config
+from centinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
+from centinel.core.custody import run_startup_verification
+from centinel.utils.config_loader import load_config
 
 DATA_DIR = Path("data")
 TEMP_DIR = DATA_DIR / "temp"

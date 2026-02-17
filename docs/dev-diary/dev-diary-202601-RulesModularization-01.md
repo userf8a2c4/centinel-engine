@@ -7,8 +7,8 @@
 **Autor / Author:** userf8a2c4
 
 **Resumen de avances / Summary of progress:**
-- Modularización completa de reglas de análisis en `sentinel/core/rules/`.  
-  Full modularization of analysis rules under `sentinel/core/rules/`.
+- Modularización completa de reglas de análisis en `centinel/core/rules/`.  
+  Full modularization of analysis rules under `centinel/core/rules/`.
 - Nuevas reglas forenses (trend shift, processing speed, irreversibility).  
   New forensic rules (trend shift, processing speed, irreversibility).
 - Orquestador configurable en `scripts/analyze_rules.py` con reglas habilitables por config.  
@@ -33,7 +33,7 @@
 Se modularizaron las reglas de análisis y se añadieron nuevas reglas forenses para detección de fraude en tiempo real.
 
 ### Cambios principales
-- **Mejora/Fix:** Modularización completa de reglas en `sentinel/core/rules/`.  
+- **Mejora/Fix:** Modularización completa de reglas en `centinel/core/rules/`.  
   - **Por qué:** Facilitar mantenimiento, pruebas unitarias y activación selectiva por configuración.  
   - **Impacto:** Mayor claridad y trazabilidad en la ejecución de reglas por snapshot.  
 
@@ -46,10 +46,10 @@ Se modularizaron las reglas de análisis y se añadieron nuevas reglas forenses 
   - **Impacto:** Flexibilidad operativa y ajustes rápidos sin cambios de código.  
 
 ### Cambios técnicos
-- Se creó el paquete `sentinel/core/rules/` con helpers y reglas individuales (Benford, ML outliers, diffs básicos, participación, trend shift, processing speed, irreversibility).
+- Se creó el paquete `centinel/core/rules/` con helpers y reglas individuales (Benford, ML outliers, diffs básicos, participación, trend shift, processing speed, irreversibility).
 - `scripts/analyze_rules.py` ahora usa `run_all_rules` y una lista `RULES` para ejecutar únicamente las reglas habilitadas.
 - Se añadieron parámetros de configuración bajo `rules` en `config.yaml` y `config.example.yaml`.
-- Se incluyeron pruebas del orquestador en `sentinel/tests/test_rules_orchestrator.py`.
+- Se incluyeron pruebas del orquestador en `tests/test_rules_orchestrator.py`.
 
 ### Notas adicionales
 - Las reglas siguen docstrings bilingües y manejo robusto de errores (datos nulos o timestamps inválidos).
@@ -71,7 +71,7 @@ Se modularizaron las reglas de análisis y se añadieron nuevas reglas forenses 
 The analysis rules were modularized and new forensic rules were added for real-time fraud detection.
 
 ### Main Changes
-- **Improvement/Fix:** Full rule modularization under `sentinel/core/rules/`.  
+- **Improvement/Fix:** Full rule modularization under `centinel/core/rules/`.  
   - **Why:** Improve maintainability, unit testing, and rule-level enable/disable controls.  
   - **Impact:** Clearer, traceable rule execution per snapshot.  
 
@@ -84,10 +84,10 @@ The analysis rules were modularized and new forensic rules were added for real-t
   - **Impact:** Operational flexibility and rapid adjustments without code changes.  
 
 ### Technical Changes
-- Added `sentinel/core/rules/` package with helpers and individual rules (Benford, ML outliers, basic diffs, participation, trend shift, processing speed, irreversibility).
+- Added `centinel/core/rules/` package with helpers and individual rules (Benford, ML outliers, basic diffs, participation, trend shift, processing speed, irreversibility).
 - `scripts/analyze_rules.py` now uses `run_all_rules` and a `RULES` list to run only enabled rules.
 - Added rule configuration under `rules` in `config.yaml` and `config.example.yaml`.
-- Included orchestrator tests in `sentinel/tests/test_rules_orchestrator.py`.
+- Included orchestrator tests in `tests/test_rules_orchestrator.py`.
 
 ### Additional Notes
 - Rules include bilingual docstrings and robust error handling for null data or invalid timestamps.

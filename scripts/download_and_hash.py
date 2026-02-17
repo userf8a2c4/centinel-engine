@@ -59,7 +59,7 @@ from core.hasher import trigger_post_hash_backup
 
 from monitoring.health import get_health_state
 from scripts.logging_utils import configure_logging, log_event
-from sentinel.core.custody import sign_hash_record
+from centinel.core.custody import sign_hash_record
 
 logger = configure_logging("centinel.download", log_file="logs/centinel.log")
 

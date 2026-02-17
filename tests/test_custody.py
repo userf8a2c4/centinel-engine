@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentinel.core.custody import (
+from centinel.core.custody import (
     _compute_expected_hash,
     generate_operator_keypair,
     run_startup_verification,
@@ -297,7 +297,7 @@ class TestVerifyAnchor:
     """Pruebas de verify_anchor con Web3 mockeado."""
 
     def test_missing_rpc_url(self):
-        from sentinel.core.custody import verify_anchor
+        from centinel.core.custody import verify_anchor
 
         result = verify_anchor("0x123", rpc_url="", contract_address="0xc")
         assert result.valid is False
@@ -337,7 +337,7 @@ class TestVerifyAnchor:
 
         with patch.dict(sys.modules, {"web3": mock_web3_mod}):
             # Re-import to pick up mock
-            import sentinel.core.custody as custody_mod
+            import centinel.core.custody as custody_mod
 
             importlib.reload(custody_mod)
 
@@ -375,7 +375,7 @@ class TestVerifyAnchor:
         mock_inst.keccak.return_value = event_sig
 
         with patch.dict(sys.modules, {"web3": mock_web3_mod}):
-            import sentinel.core.custody as custody_mod
+            import centinel.core.custody as custody_mod
 
             importlib.reload(custody_mod)
 

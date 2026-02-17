@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from sentinel.core.rules.registry import RuleDefinition, _RULE_REGISTRY
-from sentinel.core.rules_engine import RulesEngine
+from centinel.core.rules.registry import RuleDefinition, _RULE_REGISTRY
+from centinel.core.rules_engine import RulesEngine
 
 
 def _make_rule_def(tag: str, bucket: List[str]) -> RuleDefinition:
@@ -45,7 +45,7 @@ def test_engine_respects_global_enabled(monkeypatch):
     """
     called: List[str] = []
     monkeypatch.setattr(
-        "sentinel.core.rules_engine.list_rules",
+        "centinel.core.rules_engine.list_rules",
         lambda: [_make_rule_def("dummy", called)],
     )
 
@@ -64,7 +64,7 @@ def test_engine_filters_enabled_rules(monkeypatch):
     """
     called: List[str] = []
     monkeypatch.setattr(
-        "sentinel.core.rules_engine.list_rules",
+        "centinel.core.rules_engine.list_rules",
         lambda: [
             _make_rule_def("alpha", called),
             _make_rule_def("beta", called),
@@ -95,7 +95,7 @@ def test_all_rules_enabled_by_default(monkeypatch):
     """
     called: List[str] = []
     monkeypatch.setattr(
-        "sentinel.core.rules_engine.list_rules",
+        "centinel.core.rules_engine.list_rules",
         lambda: [
             _make_rule_def("no_config_rule", called),
         ],
@@ -114,7 +114,7 @@ def test_all_legacy_rules_registered():
     English:
         Verify that all 20 rules (13 original + 7 legacy) are registered.
     """
-    from sentinel.core import rules_engine  # noqa: F401 — triggers imports
+    from centinel.core import rules_engine  # noqa: F401 — triggers imports
 
     registered_keys = {r.config_key for r in _RULE_REGISTRY}
 

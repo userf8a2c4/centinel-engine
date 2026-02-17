@@ -8,7 +8,7 @@ import json
 
 import pytest
 
-from sentinel.core.normalize import (
+from centinel.core.normalize import (
     PresidentialActa,
     _safe_int,
     _sanitize_raw_payload,

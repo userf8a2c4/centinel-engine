@@ -5,7 +5,7 @@ Tests for YAML configuration loading and validation.
 
 import pytest
 
-from sentinel.utils import config_loader
+from centinel.utils import config_loader
 
 yaml = pytest.importorskip("yaml")
 
@@ -24,10 +24,10 @@ def test_load_config_reads_yaml(tmp_path, monkeypatch):
                 "endpoints": {"nacional": "https://example.test/nacional"},
                 "timeout": 9,
                 "retries": 2,
-                "headers": {"User-Agent": "sentinel"},
+                "headers": {"User-Agent": "centinel"},
                 "use_playwright": False,
                 "playwright_stealth": True,
-                "playwright_user_agent": "sentinel",
+                "playwright_user_agent": "centinel",
                 "playwright_viewport": {"width": 1, "height": 1},
                 "playwright_locale": "es-HN",
                 "playwright_timezone": "UTC",
@@ -79,7 +79,7 @@ def test_load_config_reads_yaml(tmp_path, monkeypatch):
     assert config["base_url"] == "https://example.test/api"
     assert config["timeout"] == 9
     assert config["retries"] == 2
-    assert config["headers"]["User-Agent"] == "sentinel"
+    assert config["headers"]["User-Agent"] == "centinel"
     assert config["candidate_count"] == 5
     assert config["required_keys"] == ["foo"]
     assert config["sources"][0]["department_code"] == "99"
@@ -110,10 +110,10 @@ def test_load_config_rejects_invalid_master_switch(tmp_path, monkeypatch):
                 "endpoints": {"nacional": "https://example.test/nacional"},
                 "timeout": 9,
                 "retries": 2,
-                "headers": {"User-Agent": "sentinel"},
+                "headers": {"User-Agent": "centinel"},
                 "use_playwright": False,
                 "playwright_stealth": True,
-                "playwright_user_agent": "sentinel",
+                "playwright_user_agent": "centinel",
                 "playwright_viewport": {"width": 1, "height": 1},
                 "playwright_locale": "es-HN",
                 "playwright_timezone": "UTC",

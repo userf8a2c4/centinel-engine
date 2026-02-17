@@ -124,7 +124,7 @@ except ImportError:  # pragma: no cover - optional dependency for QR rendering
     qrcode = None
 
 try:
-    from sentinel.core.rules_engine import RulesEngine
+    from centinel.core.rules_engine import RulesEngine
 except ImportError:  # pragma: no cover - optional dependency for rules engine
     RulesEngine = None
 
