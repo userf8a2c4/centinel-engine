@@ -6,9 +6,9 @@ Tests for local snapshot storage.
 import csv
 import json
 
-from sentinel.core.hashchain import compute_hash
-from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
-from sentinel.core.storage import LocalSnapshotStore
+from centinel.core.hashchain import compute_hash
+from centinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
+from centinel.core.storage import LocalSnapshotStore
 
 
 def test_store_snapshot_creates_index(tmp_path):

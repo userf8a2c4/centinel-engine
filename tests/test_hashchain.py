@@ -3,7 +3,7 @@
 Basic tests for the hash chain.
 """
 
-from sentinel.core.hashchain import compute_hash
+from centinel.core.hashchain import compute_hash
 
 
 def test_hash_is_stable():

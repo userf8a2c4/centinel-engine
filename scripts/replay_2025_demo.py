@@ -11,10 +11,10 @@ from pathlib import Path
 
 from dateutil import parser
 
-from sentinel.utils.logging_config import setup_logging
+from centinel.utils.logging_config import setup_logging
 
 setup_logging()
-logger = logging.getLogger("sentinel.replay")
+logger = logging.getLogger("centinel.replay")
 
 
 def parse_timestamp(path: Path, payload: dict) -> datetime | None:

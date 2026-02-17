@@ -9,7 +9,7 @@ El servicio API aplica límites en memoria por IP usando una ventana de 60 segun
 - **Global:** 100 requests por minuto.
 - **Verificación de hashchain:** 10 requests por minuto.
 
-Para ajustar límites, edita los valores en `src/sentinel/api/main.py`:
+Para ajustar límites, edita los valores en `src/centinel/api/main.py`:
 
 - `global_rate_limiter` → `RateLimitConfig(limit=100, window_seconds=60)`
 - `compare_rate_limiter` → `RateLimitConfig(limit=10, window_seconds=60)`
@@ -37,7 +37,7 @@ The API service applies in-memory IP-based limits using a 60-second window:
 - **Global:** 100 requests per minute.
 - **Hashchain verification:** 10 requests per minute.
 
-To adjust limits, edit the values in `src/sentinel/api/main.py`:
+To adjust limits, edit the values in `src/centinel/api/main.py`:
 
 - `global_rate_limiter` → `RateLimitConfig(limit=100, window_seconds=60)`
 - `compare_rate_limiter` → `RateLimitConfig(limit=10, window_seconds=60)`

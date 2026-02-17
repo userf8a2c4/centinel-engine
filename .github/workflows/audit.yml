@@ -59,4 +59,4 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TELEGRAM_TEMPLATE: ${{ secrets.TELEGRAM_TEMPLATE }}
         run: |
-          python scripts/post_to_telegram.py "Actualización automática completada. Snapshot generado y hasheado. Ver repo: https://github.com/userf8a2c4/hnd-sentinel-2029"
+          python scripts/post_to_telegram.py "Actualización automática completada. Snapshot generado y hasheado. Ver repo: https://github.com/userf8a2c4/hnd-centinel-2029"

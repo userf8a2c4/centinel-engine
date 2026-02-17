@@ -3,7 +3,7 @@
 Tests for normalization and canonical serialization.
 """
 
-from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
+from centinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
 
 
 def test_normalization_is_deterministic():

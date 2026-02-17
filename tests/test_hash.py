@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 from scripts import hash as hash_script
-from sentinel.core.hashchain import compute_hash
+from centinel.core.hashchain import compute_hash
 
 
 def test_compute_hash_matches_sha256_for_single_payload():

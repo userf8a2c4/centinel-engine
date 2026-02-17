@@ -7,5 +7,5 @@ English:
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent
-_LOCAL_PACKAGE = _ROOT / "sentinel"
+_LOCAL_PACKAGE = _ROOT / "centinel"
 __path__ = [str(_LOCAL_PACKAGE), str(_ROOT)]

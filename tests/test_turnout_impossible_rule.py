@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sentinel.core.rules.turnout_impossible_rule import apply
+from centinel.core.rules.turnout_impossible_rule import apply
 
 
 def test_turnout_impossible_flags_over_100():

@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Iterable
 
 from centinel.paths import iter_all_hashes
-from sentinel.core.hashchain import compute_hash
+from centinel.core.hashchain import compute_hash
 
 
 @dataclass

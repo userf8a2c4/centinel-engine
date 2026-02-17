@@ -16,7 +16,7 @@ from eth_account import Account
 from eth_utils import keccak
 from web3 import Web3
 
-from sentinel.utils.config_loader import load_config
+from centinel.utils.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 

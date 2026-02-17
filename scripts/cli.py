@@ -13,9 +13,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from sentinel.core.hashchain import compute_hash
+from centinel.core.hashchain import compute_hash
 from scripts.logging_utils import configure_logging, log_event
-from sentinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
+from centinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json
 
 logger = configure_logging(__name__)
 

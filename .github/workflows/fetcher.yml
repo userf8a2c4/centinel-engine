@@ -1,4 +1,4 @@
-name: SENTINEL Engine
+name: C.E.N.T.I.N.E.L. Engine
 
 on:
   schedule:
@@ -33,8 +33,8 @@ jobs:
 
       - name: Persistir Datos en Repositorio
         run: |
-          git config --global user.name 'Sentinel-Bot'
-          git config --global user.email 'bot@sentinel.ai'
+          git config --global user.name 'Centinel-Bot'
+          git config --global user.email 'bot@centinel.app'
           
           # Crear carpetas si no existen para evitar errores de git
           mkdir -p data hashes

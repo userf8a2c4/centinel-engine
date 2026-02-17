@@ -1,6 +1,6 @@
 """Tests for snapshot anchoring payload composition."""
 
-from sentinel.core import anchoring_payload
+from centinel.core import anchoring_payload
 
 
 def test_build_diff_summary_detects_changes():
