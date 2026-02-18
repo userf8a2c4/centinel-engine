@@ -130,3 +130,43 @@ def test_honeypot_default_firewall_blocks_public_ips(tmp_path: Path, monkeypatch
     client = honeypot.app.test_client()
     response = client.get("/debug", environ_base={"REMOTE_ADDR": "198.51.100.50"})
     assert response.status_code == 403
+
+
+def test_periodic_export_to_telegram_clears_local_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """English/Spanish: Periodic export should send file to Telegram and clear local content."""
+    cfg = AttackLogConfig(
+        log_path=str(tmp_path / "attack_log.jsonl"),
+        periodic_export_enabled=True,
+        periodic_export_interval_seconds=21_600,
+        periodic_export_channel="telegram",
+        telegram_chat_id="42",
+    )
+    logbook = AttackForensicsLogbook(cfg)
+
+    sent: dict[str, str] = {}
+
+    def _fake_post(url: str, data: dict, files: dict, timeout: int):
+        sent["url"] = url
+        sent["chat_id"] = data["chat_id"]
+        doc = files["document"][1]
+        sent["payload"] = doc.read().decode("utf-8")
+
+        class _Resp:
+            status_code = 200
+
+        return _Resp()
+
+    monkeypatch.setenv("TELEGRAM_TOKEN", "token123")
+    monkeypatch.setattr("core.attack_logger.requests.post", _fake_post)
+
+    logbook.start()
+    logbook.log_http_request(ip="198.51.100.10", method="GET", route="/scan", headers={"User-Agent": "ua"})
+    time.sleep(0.1)
+
+    assert logbook._export_once() is True
+    logbook.stop()
+
+    assert sent["url"].endswith("/sendDocument")
+    assert sent["chat_id"] == "42"
+    assert '"route": "/scan"' in sent["payload"]
+    assert (tmp_path / "attack_log.jsonl").read_text(encoding="utf-8") == ""
