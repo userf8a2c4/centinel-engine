@@ -15,24 +15,27 @@ logger = logging.getLogger(__name__)
 DEFAULT_ROTATION_EVERY_N = 5
 ROTATION_TRIGGER_CODES = {403, 429}
 
-USER_AGENT_POOL = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edg/120.0.0.0 Safari/537.36",
-] + [
-    f"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{110+i}.0.0.0 Safari/537.36"
-    for i in range(20)
-] + [
-    f"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:{102+i}.0) Gecko/20100101 Firefox/{102+i}.0"
-    for i in range(14)
-] + [
-    f"Mozilla/5.0 (Macintosh; Intel Mac OS X 13_{i}) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.{i} Safari/605.1.15"
-    for i in range(8)
-] + [
-    f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edg/{115+i}.0.0.0 Safari/537.36"
-    for i in range(8)
-]
+USER_AGENT_POOL = (
+    [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edg/120.0.0.0 Safari/537.36",
+    ]
+    + [
+        f"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{110+i}.0.0.0 Safari/537.36"
+        for i in range(20)
+    ]
+    + [f"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:{102+i}.0) Gecko/20100101 Firefox/{102+i}.0" for i in range(14)]
+    + [
+        f"Mozilla/5.0 (Macintosh; Intel Mac OS X 13_{i}) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.{i} Safari/605.1.15"
+        for i in range(8)
+    ]
+    + [
+        f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edg/{115+i}.0.0.0 Safari/537.36"
+        for i in range(8)
+    ]
+)
 
 
 class ProxyAndUAManager:

@@ -154,7 +154,9 @@ def check_vital_signs(config: Dict[str, Any], status: Dict[str, Any]) -> Dict[st
     baseline = int(_resolve_threshold(config, "baseline_interval_seconds"))
     failures_cons = int(_resolve_threshold(config, "consecutive_failures_conservative"))
     failures_crit = int(_resolve_threshold(config, "consecutive_failures_critical"))
-    low_success_threshold = float(config.get("low_success_rate_threshold", _resolve_threshold(config, "min_success_rate")))
+    low_success_threshold = float(
+        config.get("low_success_rate_threshold", _resolve_threshold(config, "min_success_rate"))
+    )
     max_latency = float(config.get("max_avg_latency_seconds", _resolve_threshold(config, "max_avg_latency")))
 
     consecutive_failures = int(status.get("consecutive_failures", 0))
