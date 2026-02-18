@@ -35,3 +35,5 @@ secrets.yaml
 # Config secrets / Secretos de configuracion
 config/secrets/*
 !config/secrets/.gitkeep
+
+!config/secrets/.env.example

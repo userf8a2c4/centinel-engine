@@ -29,7 +29,6 @@ from core.security import DefensiveSecurityManager, DefensiveShutdown, SecurityC
 from core.advanced_security import load_manager
 from centinel.paths import iter_all_hashes, iter_all_snapshots
 from scripts.download_and_hash import is_master_switch_on, normalize_master_switch
-from scripts.healthcheck import check_cne_connectivity
 from scripts.logging_utils import configure_logging, log_event
 from scripts.security.encrypt_secrets import decrypt_secrets
 from centinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
@@ -38,8 +37,9 @@ from centinel.utils.config_loader import load_config
 
 # Security hardening modules / Modulos de endurecimiento de seguridad
 from centinel_engine.rate_limiter import get_rate_limiter
-from centinel_engine.proxy_manager import get_proxy_and_ua, get_proxy_ua_manager
-from centinel_engine.secure_backup import backup_critical, backup_critical_assets, BackupScheduler
+from centinel_engine.proxy_manager import get_proxy_and_ua, mark_proxy_bad
+from centinel_engine.secure_backup import backup_critical, BackupScheduler
+from centinel_engine.vital_signs import check_vital_signs, update_status_after_scrape
 
 DATA_DIR = Path("data")
 TEMP_DIR = DATA_DIR / "temp"
@@ -591,6 +591,56 @@ def update_daily_summary(state, now, anomalies_count):
     state["daily_summary"] = daily
 
 
+
+def perform_cne_preflight_request(
+    config: dict[str, Any],
+    proxy: dict[str, str] | None,
+    user_agent: str,
+    timeout: float = 10.0,
+) -> int:
+    """Perform the preflight CNE request with proxy and User-Agent integration.
+
+    Bilingual: Ejecuta el request preflight al CNE con integración de proxy
+    y User-Agent.
+
+    Args:
+        config: Pipeline configuration dictionary.
+        proxy: Proxy dictionary for ``requests`` or ``None`` for direct mode.
+        user_agent: User-Agent string selected by proxy manager.
+        timeout: Timeout in seconds for the preflight request.
+
+    Returns:
+        HTTP status code from the preflight request.
+
+    Raises:
+        ValueError: If no endpoint can be resolved from config.
+        requests.RequestException: If the HTTP request fails.
+    """
+    endpoints = config.get("endpoints", {}) if isinstance(config, dict) else {}
+    if not isinstance(endpoints, dict):
+        endpoints = {}
+    preflight_url = (
+        config.get("healthcheck_url")
+        or config.get("base_url")
+        or endpoints.get("nacional")
+        or endpoints.get("fallback_nacional")
+    )
+    if not preflight_url:
+        raise ValueError("Missing preflight URL for CNE connectivity check")
+
+    headers: dict[str, str] = {"User-Agent": user_agent}
+    # Request uses proxy + UA selected for this cycle /
+    # El request usa proxy + UA seleccionado para este ciclo
+    response = requests.head(
+        str(preflight_url),
+        timeout=timeout,
+        allow_redirects=True,
+        headers=headers,
+        proxies=proxy,
+    )
+    return int(response.status_code)
+
+
 def run_pipeline(config: dict[str, Any]):
     """/** Ejecuta el pipeline completo. / Run the full pipeline. **"""
     now = utcnow()
@@ -632,32 +682,83 @@ def run_pipeline(config: dict[str, Any]):
     )
     log_event(logger, logging.INFO, "pipeline_start", run_id=run_id)
 
-    # Apply client-side rate limiting before pipeline execution /
-    # Aplicar rate-limiting del lado cliente antes de ejecutar pipeline
     rate_limiter = get_rate_limiter()
-    waited = rate_limiter.wait()
-    if waited > 0:
-        log_event(logger, logging.DEBUG, "rate_limiter_waited", seconds=round(waited, 2))
-
-    # Rotate proxy and User-Agent for this cycle /
-    # Rotar proxy y User-Agent para este ciclo
-    proxy_ua_mgr = get_proxy_ua_manager()
-    _proxy_dict, _user_agent = get_proxy_and_ua()
-    _proxy_url = (_proxy_dict or {}).get("https")
-    log_event(
-        logger,
-        logging.DEBUG,
-        "proxy_ua_rotated",
-        proxy=_proxy_url or "direct",
-        ua=_user_agent[:60],
-    )
+    consecutive_failures: int = 0
+    scrape_status: dict[str, Any] = {
+        "consecutive_failures": 0,
+        "success_history": [],
+        "latency_history": [],
+        "hash_chain_valid": True,
+    }
 
     try:
         if should_run_stage("healthcheck", start_stage):
             save_pipeline_checkpoint({"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()})
             save_resilience_checkpoint(run_id, "healthcheck")
             maybe_inject_chaos_failure("healthcheck", resilience_settings, chaos_rng)
-            health_ok = check_cne_connectivity(config)
+            waited = rate_limiter.wait()
+            if waited > 0:
+                log_event(logger, logging.DEBUG, "rate_limiter_waited", seconds=round(waited, 2))
+
+            proxy_dict, user_agent = get_proxy_and_ua()
+            proxy_url = (proxy_dict or {}).get("https")
+            log_event(
+                logger,
+                logging.DEBUG,
+                "proxy_ua_rotated",
+                proxy=proxy_url or "direct",
+                ua=user_agent[:60],
+            )
+
+            request_started_at = time.monotonic()
+            status_code: int | None = None
+            health_ok = False
+            try:
+                status_code = perform_cne_preflight_request(config, proxy_dict, user_agent)
+                health_ok = status_code < 400
+                consecutive_failures = 0 if health_ok else consecutive_failures + 1
+            except (
+                requests.exceptions.HTTPError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                TimeoutError,
+                ConnectionError,
+            ) as exc:
+                consecutive_failures += 1
+                mark_proxy_bad(proxy_dict)
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "healthcheck_request_exception",
+                    run_id=run_id,
+                    error=str(exc),
+                )
+            latency = max(0.0, time.monotonic() - request_started_at)
+
+            if status_code in {429, 403} or (status_code is not None and 500 <= status_code <= 599):
+                consecutive_failures += 1
+                mark_proxy_bad(proxy_dict)
+
+            if consecutive_failures > 0:
+                scrape_status = update_status_after_scrape(
+                    scrape_status,
+                    success=False,
+                    latency=latency,
+                    status_code=status_code,
+                )
+                scrape_status["consecutive_failures"] = consecutive_failures
+                # Immediate vital-signs recalculation after failures /
+                # Recalculo inmediato de signos vitales tras fallos
+                vital_state = check_vital_signs(config, scrape_status)
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "vital_signs_after_failure",
+                    run_id=run_id,
+                    mode=vital_state.get("mode"),
+                    recommended_delay=vital_state.get("recommended_delay_seconds"),
+                )
+
             download_cmd = [sys.executable, "scripts/download_and_hash.py"]
             if not health_ok:
                 log_event(
@@ -773,6 +874,12 @@ def run_pipeline(config: dict[str, Any]):
             _anchor_snapshot(config, state, now, latest_snapshot)
             _anchor_if_due(config, state, now)
 
+        scrape_status = update_status_after_scrape(
+            scrape_status,
+            success=True,
+            latency=0.0,
+            status_code=200,
+        )
         update_daily_summary(state, now, len(anomalies))
         state["last_run_at"] = now.isoformat()
         save_state(state)
@@ -811,6 +918,10 @@ def run_pipeline(config: dict[str, Any]):
             error=str(exc),
         )
         raise
+    finally:
+        # Always execute a fail-safe partial backup /
+        # Ejecutar siempre un respaldo parcial fail-safe
+        backup_critical()
 
 
 def safe_run_pipeline(config: dict[str, Any], security_manager: DefensiveSecurityManager | None = None) -> bool:
