@@ -1,59 +1,68 @@
-# Centinel Engine
+# Proyecto C.E.N.T.I.N.E.L.
 
-Auditoría continua, ética y técnica de datos públicos del CNE con evidencia verificable.
+<sub>Centinela Electrónico Neutral Técnico Íntegro Nacional Electoral Libre.</sub>
 
-## Estado actual
+[![CI](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml?query=branch%3Adev-v9)
+[![CodeQL](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml?query=branch%3Adev-v9)
+[![Pipeline](https://github.com/userf8a2c4/centinel-engine/actions/workflows/pipeline.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/pipeline.yml?query=branch%3Adev-v9)
+[![Scheduler](https://github.com/userf8a2c4/centinel-engine/actions/workflows/scheduler.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/scheduler.yml?query=branch%3Adev-v9)
+![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 
-`dev-v9` está enfocado en refactorización hacia simplicidad, claridad y mantenibilidad, sin perder capacidades operativas.
+Auditoría continua y verificable de datos públicos del CNE. / Continuous, verifiable auditing of CNE public data.
 
-## Objetivo del proyecto
+**Estado actual / Current status:** En desarrollo — núcleo congelado feb 2026 — rama `dev-v9`. / In development — core frozen Feb 2026 — branch `dev-v9`.
 
-Mantener un pipeline de auditoría continua para 2029 que sea:
-- Reproducible.
-- Agnóstico políticamente.
-- Legal y éticamente defensable.
+## Flujo principal / Core Flow
 
-## Flujo principal
-
-```text
-scheduler
-  -> scrape
-  -> normalize
-  -> hash (SHA-256 encadenado)
-  -> rules
-  -> secure backup (multi-destino cifrado)
+```mermaid
+flowchart LR
+    A[Scrape] --> B[Rate-limit & Proxy]
+    B --> C[Normalize]
+    C --> D[Hash encadenado SHA-256]
+    D --> E[Reglas básicas]
+    E --> F[Backup cifrado]
 ```
 
-## Ejecutar localmente
+## Quick Start
 
 ```bash
-poetry install
-poetry run python -m centinel_engine.vital_signs
-poetry run python scripts/run_pipeline.py --once
+make init && make pipeline
 ```
 
-Configuración centralizada en:
-- `config/prod/`
-- `config/dev/`
-- `config/secrets/`
+- Requisitos mínimos / Minimum requirements: **Python 3.10+**, **Poetry**.
+- `make init` prepara entorno y dependencias operativas.
+- `make pipeline` ejecuta un ciclo completo (`--once`) del flujo principal.
+- Configuración centralizada en `config/prod/`, `config/dev/`, `config/secrets/`.
 
-## Arquitectura (resumen)
+## Características clave / Key Features
 
-- `centinel_engine/`: lógica core (rate limiting, proxy/UA rotation, vital signs, secure backup, config loader).
-- `scripts/`: ejecución operacional y utilidades CLI.
-- `tests/`: unit, integration y chaos.
-- `docs/`: metodología, seguridad, resiliencia y marco legal.
-- `data/`: artefactos operativos y evidencia.
+- Pipeline reproducible para auditoría continua.
+- Normalización y validación de artefactos.
+- Hash chain SHA-256 para trazabilidad de evidencia.
+- Rotación de proxy/user-agent y control de rate limit.
+- Reglas básicas para anomalías electorales.
+- Backup seguro multi-destino con cifrado.
+- Suites de pruebas, seguridad y caos en `tests/`.
 
-## Legal & Ético
+## Navegación rápida / Quick Navigation
 
-Ver: [docs/legal_compliance_matrix.md](docs/legal_compliance_matrix.md).
+<details>
+<summary><strong>Ver enlaces principales del sistema y documentación</strong></summary>
 
-## Extensiones futuras (desactivadas)
+| Recurso / Resource | Ruta / Path |
+|---|---|
+| Documentación completa / Full docs | [`docs/`](docs/) |
+| Matriz legal / Legal matrix | [`docs/legal_compliance_matrix.md`](docs/legal_compliance_matrix.md) |
+| Arquitectura / Architecture | [`docs/architecture.md`](docs/architecture.md) |
+| Extender reglas UPNFM / Extend UPNFM rules | [`docs/upnfm_integration_guide.md`](docs/upnfm_integration_guide.md) |
 
-- Arbitrum.
-- Telegram.
-- Cloudflare hooks.
-- Integración UPNFM avanzada.
+</details>
 
-Estas extensiones existen como puntos de evolución, pero están desactivadas en el flujo core actual.
+## Descargo legal / Legal Disclaimer
+
+Uso exclusivo sobre datos públicos y bajo cumplimiento normativo aplicable. / Public-data use only, under applicable legal compliance. Ver detalle completo en la [matriz legal](docs/legal_compliance_matrix.md).
+
+## Licencia y metadatos / License & Metadata
+
+Licencia: **GNU AGPL-3.0**. Proyecto centrado en neutralidad técnica, trazabilidad y mantenibilidad operativa.
