@@ -30,11 +30,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import yaml
+from centinel_engine.config_loader import load_config
 
 logger = logging.getLogger("centinel.summarize")
-
-RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
 
 
 def _configure_logging() -> None:
@@ -51,16 +49,14 @@ def _configure_logging() -> None:
 
 
 def _load_rules_thresholds() -> dict[str, Any]:
-    """/** Carga umbrales desde command_center/rules.yaml. / Load thresholds from command_center/rules.yaml. **"""
-    if not RULES_CONFIG_PATH.exists():
-        return {}
+    """/** Carga umbrales desde config/prod/rules.yaml. / Load thresholds from config/prod/rules.yaml. **"""
     try:
-        with RULES_CONFIG_PATH.open("r", encoding="utf-8") as handle:
-            payload = yaml.safe_load(handle) or {}
-    except (OSError, yaml.YAMLError) as exc:
+        # English: centralized path via config loader. / Español: ruta centralizada vía config loader.
+        payload = load_config("rules.yaml", env="prod")
+        return payload if isinstance(payload, dict) else {}
+    except ValueError as exc:
         logger.warning("rules_yaml_invalid error=%s", exc)
         return {}
-    return payload if isinstance(payload, dict) else {}
 
 
 def _extract_p_value(alert: dict) -> float | None:
