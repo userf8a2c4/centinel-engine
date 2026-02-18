@@ -2017,6 +2017,26 @@ resilience_cfg = rules_cfg.get("resiliencia", {}) if rules_cfg else {}
 
 anchor = load_blockchain_anchor()
 
+# ── Panel Navigator ──────────────────────────────────────────────────────
+panel_mode = st.sidebar.radio(
+    "Modo de operacion (Operation mode)",
+    ["Dashboard Principal", "Panel de Caos", "Laboratorio UPNFM"],
+    index=0,
+    key="panel_mode",
+)
+if panel_mode == "Panel de Caos":
+    from panel_chaos import render_chaos_panel
+
+    render_chaos_panel()
+    st.stop()
+elif panel_mode == "Laboratorio UPNFM":
+    from panel_replay import render_replay_panel
+
+    render_replay_panel()
+    st.stop()
+
+st.sidebar.markdown("---")
+
 snapshot_source = st.sidebar.selectbox(
     "Fuente de snapshots (Snapshot source)",
     [
