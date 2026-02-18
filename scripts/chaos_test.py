@@ -1,3 +1,64 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/chaos_test.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - ChaosConfig
+  - ChaosMetrics
+  - ScenarioContext
+  - WatchdogMonitor
+  - _hash_payload
+  - _build_snapshot
+  - _load_config
+  - _apply_level_defaults
+  - _select_scenario
+  - _configure_logger
+  - _write_report
+  - _run_chaos_test
+  - run_chaos_test
+  - _parse_args
+  - _apply_overrides
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/chaos_test.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - ChaosConfig
+  - ChaosMetrics
+  - ScenarioContext
+  - WatchdogMonitor
+  - _hash_payload
+  - _build_snapshot
+  - _load_config
+  - _apply_level_defaults
+  - _select_scenario
+  - _configure_logger
+  - _write_report
+  - _run_chaos_test
+  - run_chaos_test
+  - _parse_args
+  - _apply_overrides
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Chaos Test Module
 # AUTO-DOC-INDEX
 #
@@ -16,7 +77,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Chaos testing for CNE Honduras monitoring simulations."""
+
 
 from __future__ import annotations
 

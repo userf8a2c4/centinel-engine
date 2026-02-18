@@ -1,6 +1,48 @@
-"""Operational health checks for scheduler pacing and resilience modes.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Bilingual: Señales vitales operativas para ritmo del scheduler y modos de resiliencia.
+======================== ESPAÑOL ========================
+Archivo: `centinel_engine/vital_signs.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - load_vital_signs_config
+  - _compute_success_rate
+  - _compute_avg_latency
+  - _emit_alert
+  - _resolve_threshold
+  - check_vital_signs
+  - load_health_state
+  - save_health_state
+  - update_status_after_scrape
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `centinel_engine/vital_signs.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - load_vital_signs_config
+  - _compute_success_rate
+  - _compute_avg_latency
+  - _emit_alert
+  - _resolve_threshold
+  - check_vital_signs
+  - load_health_state
+  - save_health_state
+  - update_status_after_scrape
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

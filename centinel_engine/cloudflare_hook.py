@@ -1,9 +1,32 @@
-"""Cloudflare protection extension hook (disabled by default).
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Provides a no-op integration point for future Cloudflare edge protections.
+======================== ESPAÑOL ========================
+Archivo: `centinel_engine/cloudflare_hook.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
 
-Provee un punto de integracion no operativo para protecciones futuras de borde
-con Cloudflare.
+Componentes detectados:
+  - apply_cloudflare_protection
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `centinel_engine/cloudflare_hook.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - apply_cloudflare_protection
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

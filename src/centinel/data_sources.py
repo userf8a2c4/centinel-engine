@@ -1,3 +1,50 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/data_sources.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - DataSourceError
+  - DataSourceConfigError
+  - DataSourceExhaustedError
+  - DataSourceKind
+  - DataSourceDefinition
+  - DataSourceSettings
+  - load_data_source_settings
+  - DataSourceCheckpoint
+  - DataSourceManager
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/data_sources.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - DataSourceError
+  - DataSourceConfigError
+  - DataSourceExhaustedError
+  - DataSourceKind
+  - DataSourceDefinition
+  - DataSourceSettings
+  - load_data_source_settings
+  - DataSourceCheckpoint
+  - DataSourceManager
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Data Sources Module
 # AUTO-DOC-INDEX
 #
@@ -16,53 +63,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Gestor de múltiples fuentes con fallback automático.
 
-Multi-source manager with automatic fallback.
-
-Example YAML configuration:
-    data_sources:
-      - source_id: "cne_api"
-        kind: "cne_api"
-        base_url: "https://resultados.cne.hn"
-        batch_path: "/actas/batch"
-        data_key: "actas"
-        headers:
-          Authorization: "Bearer ${CNE_TOKEN}"
-      - source_id: "mirror_bucket"
-        kind: "mirror_bucket"
-        base_url: "https://public-bucket.s3.amazonaws.com"
-        batch_path: "/actas/latest.json"
-      - source_id: "citizen_mirror"
-        kind: "citizen_mirror"
-        base_url: "https://mirror.example.org"
-        batch_path: "/actas/latest.json"
-      - source_id: "telegram_channel"
-        kind: "telegram_channel"
-        enabled: false
-      - source_id: "fallback_scrape"
-        kind: "fallback_scrape"
-        enabled: false
-    storage_path: "data"
-
-Example .env configuration (nested settings):
-    DATA_SOURCES__0__SOURCE_ID=cne_api
-    DATA_SOURCES__0__KIND=cne_api
-    DATA_SOURCES__0__BASE_URL=https://resultados.cne.hn
-    DATA_SOURCES__0__BATCH_PATH=/actas/batch
-    DATA_SOURCES__0__DATA_KEY=actas
-    DATA_SOURCES__1__SOURCE_ID=mirror_bucket
-    DATA_SOURCES__1__KIND=mirror_bucket
-    DATA_SOURCES__1__BASE_URL=https://public-bucket.s3.amazonaws.com
-    DATA_SOURCES__1__BATCH_PATH=/actas/latest.json
-    STORAGE_PATH=data
-
-Example usage:
-    settings = load_data_source_settings(Path("config.yaml"))
-    logger = setup_logging("INFO", settings.storage_path)
-    manager = DataSourceManager(settings=settings, logger=logger)
-    batch = await manager.get_next_batch()
-"""
 
 from __future__ import annotations
 

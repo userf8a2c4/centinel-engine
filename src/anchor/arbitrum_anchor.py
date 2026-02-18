@@ -1,3 +1,58 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/anchor/arbitrum_anchor.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _keccak256
+  - _normalize_hash
+  - _build_merkle_root
+  - _load_arbitrum_settings
+  - _resolve_private_key
+  - _obfuscate_identifier
+  - _log_anchor_start
+  - _log_anchor_sent
+  - _build_web3_client
+  - _build_anchor_transaction
+  - _send_anchor_transaction
+  - anchor_root
+  - anchor_batch
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/anchor/arbitrum_anchor.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _keccak256
+  - _normalize_hash
+  - _build_merkle_root
+  - _load_arbitrum_settings
+  - _resolve_private_key
+  - _obfuscate_identifier
+  - _log_anchor_start
+  - _log_anchor_sent
+  - _build_web3_client
+  - _build_anchor_transaction
+  - _send_anchor_transaction
+  - anchor_root
+  - anchor_batch
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Arbitrum Anchor Module
 # AUTO-DOC-INDEX
 #
@@ -16,11 +71,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Anclaje de hashes en Arbitrum One usando Merkle Trees.
 
-English:
-    Hash anchoring on Arbitrum One using Merkle Trees.
-"""
 
 from __future__ import annotations
 

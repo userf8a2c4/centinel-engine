@@ -1,3 +1,36 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/core/rules/last_digit_uniformity_rule.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _last_digit
+  - apply
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/core/rules/last_digit_uniformity_rule.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _last_digit
+  - apply
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Last Digit Uniformity Rule Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +49,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Regla de uniformidad del último dígito.
 
-Last digit uniformity rule.
-"""
 
 from __future__ import annotations
 

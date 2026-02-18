@@ -1,6 +1,42 @@
-"""Security defensive mode tests.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Pruebas del modo defensivo de seguridad.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_security.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _Mem
+  - test_detect_hostile_by_memory_and_http
+  - test_activate_defensive_mode_persists_state
+  - test_supervisor_sends_alert_after_max_retries
+  - test_collector_rejects_unsafe_urls
+  - test_hash_manifest_skips_symlink
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_security.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _Mem
+  - test_detect_hostile_by_memory_and_http
+  - test_activate_defensive_mode_persists_state
+  - test_supervisor_sends_alert_after_max_retries
+  - test_collector_rejects_unsafe_urls
+  - test_hash_manifest_skips_symlink
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

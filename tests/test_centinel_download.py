@@ -1,6 +1,36 @@
-"""Pruebas de descarga y hashing en Centinel.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Tests for Centinel download and hashing.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_centinel_download.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_download_and_hash_success
+  - test_download_and_hash_handles_429
+  - test_fetch_content_retries_on_timeout
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_centinel_download.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_download_and_hash_success
+  - test_download_and_hash_handles_429
+  - test_fetch_content_retries_on_timeout
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 import asyncio

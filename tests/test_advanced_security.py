@@ -1,6 +1,44 @@
-"""Tests for integrated advanced security module.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Pruebas para módulo integrado de seguridad avanzada.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_advanced_security.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_identity_rotator_uses_v1_user_agents
+  - test_honeypot_logs_request_metadata
+  - test_alert_level_1_does_not_call_external
+  - test_detect_internal_anomalies_new_file
+  - test_adaptive_cpu_ignores_brief_spike
+  - test_solidity_runtime_checks_detect_blocked_pattern
+  - test_honeypot_encrypts_events_file
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_advanced_security.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_identity_rotator_uses_v1_user_agents
+  - test_honeypot_logs_request_metadata
+  - test_alert_level_1_does_not_call_external
+  - test_detect_internal_anomalies_new_file
+  - test_adaptive_cpu_ignores_brief_spike
+  - test_solidity_runtime_checks_detect_blocked_pattern
+  - test_honeypot_encrypts_events_file
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

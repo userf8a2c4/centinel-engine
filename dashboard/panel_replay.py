@@ -1,3 +1,56 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `dashboard/panel_replay.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _load_single_json
+  - _load_multi_snapshots
+  - _generate_synthetic_steps
+  - _load_source_snapshots
+  - _extract_candidates
+  - _get_timestamp
+  - _replay_step
+  - _run_comparison
+  - _init_replay_state
+  - _reset_replay
+  - _render_rule_editors
+  - render_replay_panel
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `dashboard/panel_replay.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _load_single_json
+  - _load_multi_snapshots
+  - _generate_synthetic_steps
+  - _load_source_snapshots
+  - _extract_candidates
+  - _get_timestamp
+  - _replay_step
+  - _run_comparison
+  - _init_replay_state
+  - _reset_replay
+  - _render_rule_editors
+  - render_replay_panel
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Panel Replay Module
 # AUTO-DOC-INDEX
 #
@@ -16,16 +69,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Laboratorio UPNFM — Reproduccion de Datos para C.E.N.T.I.N.E.L.
 
-Panel para reproducir datos historicos/mock, manipular tiempos de scraping
-y variables de reglas en tiempo real, orientado a los matematicos de la UPNFM.
-
-UPNFM Laboratory — Data Replay for C.E.N.T.I.N.E.L.
-
-Panel for replaying historical/mock data, manipulating scraping timing and
-rule variables in real-time, designed for UPNFM mathematicians.
-"""
 
 from __future__ import annotations
 

@@ -1,6 +1,42 @@
-"""Pruebas unitarias de hashing encadenado.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Unit tests for chained hashing.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_hash.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_compute_hash_matches_sha256_for_single_payload
+  - test_compute_hash_is_deterministic
+  - test_compute_hash_includes_previous_hash
+  - test_hash_file_raises_file_not_found
+  - test_write_snapshot_hash_creates_chained_payload
+  - test_build_manifest_skips_symlink_candidates
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_hash.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_compute_hash_matches_sha256_for_single_payload
+  - test_compute_hash_is_deterministic
+  - test_compute_hash_includes_previous_hash
+  - test_hash_file_raises_file_not_found
+  - test_write_snapshot_hash_creates_chained_payload
+  - test_build_manifest_skips_symlink_candidates
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

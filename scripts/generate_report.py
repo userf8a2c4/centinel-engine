@@ -1,4 +1,55 @@
 #!/usr/bin/env python
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/generate_report.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - load_snapshot_files
+  - build_snapshot_metrics
+  - build_anomalies
+  - build_heatmap
+  - build_benford_data
+  - _register_pdf_fonts
+  - NumberedCanvas
+  - create_pdf_charts
+  - build_pdf_report
+  - main
+  - bloque_main
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/generate_report.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - load_snapshot_files
+  - build_snapshot_metrics
+  - build_anomalies
+  - build_heatmap
+  - build_benford_data
+  - _register_pdf_fonts
+  - NumberedCanvas
+  - create_pdf_charts
+  - build_pdf_report
+  - main
+  - bloque_main
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Generate Report Module
 # AUTO-DOC-INDEX
 #
@@ -17,11 +68,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Genera un PDF premium de auditoría electoral usando ReportLab.
 
-Usage:
-    python -m scripts.generate_report --source-dir data --output centinel_informe.pdf
-"""
 
 from __future__ import annotations
 

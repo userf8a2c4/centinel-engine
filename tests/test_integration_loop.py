@@ -1,6 +1,42 @@
-"""Integration-oriented tests for scheduler guardrails.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Bilingual: Pruebas orientadas a integración para las barreras del scheduler.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_integration_loop.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _DummyProxyRotator
+  - _scheduler_loop_backup_hook
+  - test_rate_limiter_blocks_burst
+  - test_proxy_rotation_on_429
+  - test_backup_called_after_scrape
+  - test_vital_signs_triggers_conservative
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_integration_loop.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _DummyProxyRotator
+  - _scheduler_loop_backup_hook
+  - test_rate_limiter_blocks_burst
+  - test_proxy_rotation_on_429
+  - test_backup_called_after_scrape
+  - test_vital_signs_triggers_conservative
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

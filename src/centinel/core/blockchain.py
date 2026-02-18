@@ -1,3 +1,48 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/core/blockchain.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - load_blockchain_config
+  - resolve_private_key
+  - is_blockchain_enabled
+  - resolve_rpc_url
+  - _build_web3_client
+  - _send_payload_to_chain
+  - publish_hash_to_chain
+  - publish_cid_to_chain
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/core/blockchain.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - load_blockchain_config
+  - resolve_private_key
+  - is_blockchain_enabled
+  - resolve_rpc_url
+  - _build_web3_client
+  - _send_payload_to_chain
+  - publish_hash_to_chain
+  - publish_cid_to_chain
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Blockchain Module
 # AUTO-DOC-INDEX
 #
@@ -16,11 +61,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Publicación de hashes en blockchain y configuración asociada.
 
-English:
-    Hash publication to blockchain with configuration helpers.
-"""
 
 from __future__ import annotations
 

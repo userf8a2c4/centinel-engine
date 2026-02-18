@@ -1,4 +1,65 @@
 #!/usr/bin/env python3
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/watchdog_daemon.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - DaemonConfig
+  - _load_daemon_config
+  - DiagnosticResult
+  - check_cpu
+  - check_memory
+  - check_disk
+  - check_cne_reachability
+  - check_pipeline_alive
+  - run_all_diagnostics
+  - reset_proxy_state
+  - clear_caches
+  - remove_stale_locks
+  - restart_pipeline
+  - execute_healing
+  - DaemonState
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/watchdog_daemon.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - DaemonConfig
+  - _load_daemon_config
+  - DiagnosticResult
+  - check_cpu
+  - check_memory
+  - check_disk
+  - check_cne_reachability
+  - check_pipeline_alive
+  - run_all_diagnostics
+  - reset_proxy_state
+  - clear_caches
+  - remove_stale_locks
+  - restart_pipeline
+  - execute_healing
+  - DaemonState
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Watchdog Daemon Module
 # AUTO-DOC-INDEX
 #
@@ -17,46 +78,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Obsessive self-healing watchdog daemon for C.E.N.T.I.N.E.L.
-(Daemon watchdog obsesivo de auto-curación para C.E.N.T.I.N.E.L.)
 
-Runs as an external process (systemd-compatible) that continuously monitors
-the pipeline's health and autonomously heals failures:
-  • System diagnostics — CPU, memory, disk via psutil
-  • CNE endpoint reachability — HTTP HEAD with timeout
-  • Proxy/cache reset — clears stale proxy state and temp caches
-  • Pipeline restart — graceful SIGTERM → SIGKILL escalation
-  • Anti-loop cooldown — prevents restart storms
-  • DoS simulation — for load-testing the recovery path
-
-(Se ejecuta como proceso externo (compatible con systemd) que monitorea
-continuamente la salud del pipeline y cura fallos autónomamente:
-  • Diagnóstico de sistema — CPU, memoria, disco vía psutil
-  • Alcanzabilidad del endpoint CNE — HTTP HEAD con timeout
-  • Reset de proxies/caches — limpia estado de proxies y caches temporales
-  • Reinicio del pipeline — escalación SIGTERM → SIGKILL
-  • Cooldown anti-loop — previene tormentas de reinicio
-  • Simulación DoS — para stress-testing de la ruta de recuperación.)
-
-Config: command_center/config.yaml → resilience section.
-Usage:
-    python scripts/watchdog_daemon.py                  # Normal mode (Modo normal)
-    python scripts/watchdog_daemon.py --simulate-dos   # DoS simulation (Simulación DoS)
-
-systemd unit example (ejemplo de unidad systemd):
-    [Unit]
-    Description=CENTINEL Watchdog Daemon
-    After=network.target
-
-    [Service]
-    Type=simple
-    ExecStart=/usr/bin/python3 /opt/centinel-engine/scripts/watchdog_daemon.py
-    Restart=always
-    RestartSec=10
-
-    [Install]
-    WantedBy=multi-user.target
-"""
 
 from __future__ import annotations
 

@@ -1,3 +1,64 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/core/rules/common.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - safe_int
+  - safe_int_or_none
+  - safe_float_or_none
+  - extract_department
+  - parse_timestamp
+  - extract_candidates
+  - extract_candidate_votes
+  - extract_total_votes
+  - extract_vote_breakdown
+  - extract_actas_mesas_counts
+  - extract_porcentaje_escrutado
+  - extract_registered_voters
+  - extract_mesas
+  - extract_mesa_code
+  - extract_mesa_candidate_votes
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/core/rules/common.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - safe_int
+  - safe_int_or_none
+  - safe_float_or_none
+  - extract_department
+  - parse_timestamp
+  - extract_candidates
+  - extract_candidate_votes
+  - extract_total_votes
+  - extract_vote_breakdown
+  - extract_actas_mesas_counts
+  - extract_porcentaje_escrutado
+  - extract_registered_voters
+  - extract_mesas
+  - extract_mesa_code
+  - extract_mesa_candidate_votes
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Common Module
 # AUTO-DOC-INDEX
 #
@@ -16,7 +77,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Funciones comunes para extracción segura de datos electorales. (Common helpers for safely extracting electoral data.)"""
+
 
 from __future__ import annotations
 

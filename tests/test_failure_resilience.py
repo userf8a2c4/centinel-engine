@@ -1,7 +1,38 @@
-"""Tests de resiliencia ante fallos de red.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-English:
-    Resilience tests for network failure scenarios.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_failure_resilience.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _DummyResponse
+  - test_process_sources_handles_connection_error
+  - test_healthcheck_returns_false_on_failures
+  - test_process_sources_saves_snapshot
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_failure_resilience.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _DummyResponse
+  - test_process_sources_handles_connection_error
+  - test_healthcheck_returns_false_on_failures
+  - test_process_sources_saves_snapshot
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

@@ -1,11 +1,32 @@
-"""Arbitrum anchoring extension hook (disabled by default).
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-This module defines a no-op extension point so future Arbitrum anchoring logic
-can be enabled without changing core hash-generation code paths.
+======================== ESPAÑOL ========================
+Archivo: `centinel_engine/arbitrum_hook.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
 
-Este modulo define un punto de extension no operativo para que la logica futura
- de anclaje en Arbitrum pueda habilitarse sin cambiar los flujos centrales de
- generacion de hashes.
+Componentes detectados:
+  - anchor_hash_to_arbitrum
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `centinel_engine/arbitrum_hook.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - anchor_hash_to_arbitrum
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

@@ -1,6 +1,38 @@
-"""Integrated security ecosystem tests.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Pruebas integradas del ecosistema de seguridad.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_security_ecosystem.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_attack_logbook_flood_sampling_and_callback
+  - test_manager_honeypot_flood_triggers_air_gap
+  - test_manager_requires_consecutive_anomalies
+  - test_integrated_flow_detection_to_backup
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_security_ecosystem.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_attack_logbook_flood_sampling_and_callback
+  - test_manager_honeypot_flood_triggers_air_gap
+  - test_manager_requires_consecutive_anomalies
+  - test_integrated_flow_detection_to_backup
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

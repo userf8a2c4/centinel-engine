@@ -1,12 +1,34 @@
-"""Chaos testing unit tests for CNE recovery scenarios.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Español:
-Estas pruebas validan que el mecanismo de resiliencia se recupera ante
-rate-limits 429 y mantiene la consistencia de datos durante la auditoría.
+======================== ESPAÑOL ========================
+Archivo: `tests/chaos/test_chaos_runner.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
 
-English:
-These tests validate that the resilience mechanism recovers from 429 rate
-limits and maintains data consistency during the audit.
+Componentes detectados:
+  - _build_level_config
+  - test_fetch_recovers_after_429
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/chaos/test_chaos_runner.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _build_level_config
+  - test_fetch_recovers_after_429
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 import logging

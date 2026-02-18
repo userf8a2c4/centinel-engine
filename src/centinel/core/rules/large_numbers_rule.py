@@ -1,3 +1,38 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/core/rules/large_numbers_rule.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _extract_mesa_votes
+  - _aggregate_mesas
+  - apply
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/core/rules/large_numbers_rule.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _extract_mesa_votes
+  - _aggregate_mesas
+  - apply
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Large Numbers Rule Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +51,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Regla de Ley de Grandes Números para proporciones de votos por mesa.
 
-Law of Large Numbers rule for per-table vote proportions.
-"""
 
 from __future__ import annotations
 

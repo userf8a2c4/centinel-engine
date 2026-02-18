@@ -1,7 +1,36 @@
-"""Pruebas de integración con JSON real del CNE Honduras 2025.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Integration tests using real CNE Honduras 2025 JSON snapshots to verify
-the normalization pipeline handles the actual data format correctly.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_cne_real_json.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - TestSafeIntCommaStrings
+  - TestSanitizeRealCnePayload
+  - TestNormalizeRealCneData
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_cne_real_json.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - TestSafeIntCommaStrings
+  - TestSanitizeRealCnePayload
+  - TestNormalizeRealCneData
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 import json

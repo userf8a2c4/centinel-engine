@@ -1,3 +1,46 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/monitoring/health.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - HealthcheckClient
+  - HealthcheckState
+  - get_health_state
+  - reset_health_state
+  - _build_health_router
+  - start_healthchecks_scheduler
+  - register_healthchecks
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/monitoring/health.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - HealthcheckClient
+  - HealthcheckState
+  - get_health_state
+  - reset_health_state
+  - _build_health_router
+  - start_healthchecks_scheduler
+  - register_healthchecks
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Health Module
 # AUTO-DOC-INDEX
 #
@@ -16,11 +59,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Healthchecks y monitoreo externo para C.E.N.T.I.N.E.L.
 
-English:
-    External healthchecks and monitoring helpers.
-"""
 
 from __future__ import annotations
 

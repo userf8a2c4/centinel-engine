@@ -1,7 +1,48 @@
-"""Tests de inyección de fallas para resiliencia del pipeline.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-English:
-    Failure injection tests for pipeline resilience.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_failure_injection.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _install_apscheduler_stubs
+  - _install_crypto_stub
+  - _install_dotenv_stub
+  - _set_pipeline_paths
+  - test_safe_run_pipeline_saves_checkpoint_on_connection_error
+  - test_run_pipeline_resumes_from_checkpoint
+  - test_safe_run_pipeline_auto_resume_retries
+  - test_emit_critical_alerts_writes_outputs
+  - test_maybe_inject_chaos_failure_raises
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_failure_injection.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _install_apscheduler_stubs
+  - _install_crypto_stub
+  - _install_dotenv_stub
+  - _set_pipeline_paths
+  - test_safe_run_pipeline_saves_checkpoint_on_connection_error
+  - test_run_pipeline_resumes_from_checkpoint
+  - test_safe_run_pipeline_auto_resume_retries
+  - test_emit_critical_alerts_writes_outputs
+  - test_maybe_inject_chaos_failure_raises
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

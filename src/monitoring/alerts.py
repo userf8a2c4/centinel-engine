@@ -1,3 +1,52 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/monitoring/alerts.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - AlertConfig
+  - AlertManager
+  - get_default_alert_manager
+  - dispatch_alert
+  - resolve_latest_checkpoint_hash
+  - _truncate_for_telegram
+  - _parse_retry_after
+  - _env_int
+  - _env_float
+  - _sleep_backoff
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/monitoring/alerts.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - AlertConfig
+  - AlertManager
+  - get_default_alert_manager
+  - dispatch_alert
+  - resolve_latest_checkpoint_hash
+  - _truncate_for_telegram
+  - _parse_retry_after
+  - _env_int
+  - _env_float
+  - _sleep_backoff
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Alerts Module
 # AUTO-DOC-INDEX
 #
@@ -16,7 +65,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Alertas externas accionables para Centinel Engine."""
+
 
 from __future__ import annotations
 

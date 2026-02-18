@@ -1,6 +1,40 @@
-"""Proxy and User-Agent rotation manager for resilient scraping.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Bilingual: Gestor de rotación de proxy y User-Agent para scraping resiliente.
+======================== ESPAÑOL ========================
+Archivo: `centinel_engine/proxy_manager.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - ProxyAndUAManager
+  - get_proxy_ua_manager
+  - reset_proxy_ua_manager
+  - get_proxy_and_ua
+  - mark_proxy_bad
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `centinel_engine/proxy_manager.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - ProxyAndUAManager
+  - get_proxy_ua_manager
+  - reset_proxy_ua_manager
+  - get_proxy_and_ua
+  - mark_proxy_bad
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

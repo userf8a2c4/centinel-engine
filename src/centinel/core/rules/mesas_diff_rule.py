@@ -1,3 +1,34 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/core/rules/mesas_diff_rule.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - apply
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/core/rules/mesas_diff_rule.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - apply
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Mesas Diff Rule Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +47,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Regla de mesas duplicadas o desaparecidas.
 
-Rule for duplicated or missing polling tables.
-"""
 
 from __future__ import annotations
 

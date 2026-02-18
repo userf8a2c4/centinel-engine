@@ -1,3 +1,58 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/core/normalize.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - PresidentialActa
+  - _drop_disallowed_keys
+  - _sanitize_raw_payload
+  - _compute_payload_hash
+  - _validate_presidential_acta
+  - _safe_int
+  - _get_nested_value
+  - _first_value
+  - _extract_candidates_root
+  - _iter_candidates
+  - normalize_snapshot
+  - snapshot_to_canonical_json
+  - snapshot_to_dict
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/core/normalize.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - PresidentialActa
+  - _drop_disallowed_keys
+  - _sanitize_raw_payload
+  - _compute_payload_hash
+  - _validate_presidential_acta
+  - _safe_int
+  - _get_nested_value
+  - _first_value
+  - _extract_candidates_root
+  - _iter_candidates
+  - normalize_snapshot
+  - snapshot_to_canonical_json
+  - snapshot_to_dict
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Normalize Module
 # AUTO-DOC-INDEX
 #
@@ -16,11 +71,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Normaliza datos crudos del CNE y genera snapshots canónicos.
 
-English:
-    Normalizes raw CNE data and builds canonical snapshots.
-"""
 
 from __future__ import annotations
 

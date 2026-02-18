@@ -1,3 +1,38 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `core/attack_logger.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - AttackLogConfig
+  - AttackForensicsLogbook
+  - HoneypotServer
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `core/attack_logger.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - AttackLogConfig
+  - AttackForensicsLogbook
+  - HoneypotServer
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Attack Logger Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +51,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Attack forensics logging utilities.
 
-Utilidades de bitácora forense de atacantes.
-"""
 
 from __future__ import annotations
 

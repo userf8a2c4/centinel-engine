@@ -1,4 +1,37 @@
-"""Watchdog resilience tests for heartbeat and recovery logic."""
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `tests/resilience/test_watchdog.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_watchdog_heartbeat_miss_triggers_failure_and_recovery_log
+  - test_watchdog_grace_period_and_action_trigger
+  - test_watchdog_handle_failure_invokes_restart_hooks
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/resilience/test_watchdog.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_watchdog_heartbeat_miss_triggers_failure_and_recovery_log
+  - test_watchdog_grace_period_and_action_trigger
+  - test_watchdog_handle_failure_invokes_restart_hooks
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
 
 from __future__ import annotations
 

@@ -1,3 +1,64 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/core/custody.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - ChainLink
+  - ChainVerificationResult
+  - AnchorVerificationResult
+  - SignatureResult
+  - _compute_expected_hash
+  - verify_chain
+  - verify_chain_from_entries
+  - verify_anchor
+  - verify_anchor_from_log
+  - generate_operator_keypair
+  - _load_operator_private_key
+  - _load_operator_public_key
+  - sign_snapshot
+  - verify_snapshot_signature
+  - sign_hash_record
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/core/custody.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - ChainLink
+  - ChainVerificationResult
+  - AnchorVerificationResult
+  - SignatureResult
+  - _compute_expected_hash
+  - verify_chain
+  - verify_chain_from_entries
+  - verify_anchor
+  - verify_anchor_from_log
+  - generate_operator_keypair
+  - _load_operator_private_key
+  - _load_operator_public_key
+  - sign_snapshot
+  - verify_snapshot_signature
+  - sign_hash_record
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Custody Module
 # AUTO-DOC-INDEX
 #
@@ -16,17 +77,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Cadena de custodia verificable — FASE 2.
 
-Provee verificación end-to-end de la cadena de hashes, anclaje en
-Arbitrum y firma Ed25519 del operador en cada snapshot.
-
-English:
-    Verifiable custody chain — PHASE 2.
-
-    Provides end-to-end verification of the hash chain, Arbitrum
-    anchor validation, and Ed25519 operator signatures per snapshot.
-"""
 
 from __future__ import annotations
 

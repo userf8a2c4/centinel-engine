@@ -1,3 +1,50 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/api/middleware.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _is_production_environment
+  - _load_security_config
+  - _SlidingWindowLimiter
+  - _parse_networks
+  - _parse_blocklist
+  - _ip_in_blocklist
+  - ZeroTrustMiddleware
+  - _extract_client_ip
+  - install_zero_trust
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/api/middleware.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _is_production_environment
+  - _load_security_config
+  - _SlidingWindowLimiter
+  - _parse_networks
+  - _parse_blocklist
+  - _ip_in_blocklist
+  - ZeroTrustMiddleware
+  - _extract_client_ip
+  - install_zero_trust
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Middleware Module
 # AUTO-DOC-INDEX
 #
@@ -16,19 +63,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Zero Trust middleware for the C.E.N.T.I.N.E.L. public API.
-(Middleware Zero Trust para la API pública de C.E.N.T.I.N.E.L.)
 
-Enforces: per-IP rate limiting (slowapi), IP blocklist, request size caps,
-and suspicious-header rejection.  Every request is untrusted by default —
-even from internal networks.  All checks are opt-in via config.yaml →
-security.zero_trust: true.
-
-(Aplica: rate limiting por IP (slowapi), blocklist de IPs, límite de tamaño
-de request, y rechazo de headers sospechosos.  Cada request es no-confiable
-por defecto — incluso desde redes internas.  Todos los chequeos son opt-in
-vía config.yaml → security.zero_trust: true.)
-"""
 
 from __future__ import annotations
 
