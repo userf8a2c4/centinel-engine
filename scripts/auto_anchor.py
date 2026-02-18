@@ -1,4 +1,41 @@
 #!/usr/bin/env python3
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/auto_anchor.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _load_security_settings
+  - _ensure_decrypted_private_key
+  - main
+  - bloque_main
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/auto_anchor.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _load_security_settings
+  - _ensure_decrypted_private_key
+  - main
+  - bloque_main
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Auto Anchor Module
 # AUTO-DOC-INDEX
 #
@@ -17,7 +54,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""/** Anclaje manual con desencriptación bajo demanda. / Manual anchoring with on-demand decryption. **/"""
+
 
 from __future__ import annotations
 

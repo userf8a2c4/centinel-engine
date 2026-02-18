@@ -1,4 +1,65 @@
 #!/usr/bin/env python
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/download_and_hash.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - resolve_config_path
+  - apply_env_overrides
+  - normalize_master_switch
+  - is_master_switch_on
+  - load_config
+  - compute_hash
+  - chain_hash
+  - download_with_retries
+  - fetch_with_retry
+  - resolve_retry_policy
+  - resolve_low_profile_settings
+  - build_request_headers
+  - resolve_timeout_seconds
+  - create_mock_snapshot
+  - run_mock_mode
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/download_and_hash.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - resolve_config_path
+  - apply_env_overrides
+  - normalize_master_switch
+  - is_master_switch_on
+  - load_config
+  - compute_hash
+  - chain_hash
+  - download_with_retries
+  - fetch_with_retry
+  - resolve_retry_policy
+  - resolve_low_profile_settings
+  - build_request_headers
+  - resolve_timeout_seconds
+  - create_mock_snapshot
+  - run_mock_mode
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Download And Hash Module
 # AUTO-DOC-INDEX
 #
@@ -18,31 +79,7 @@
 #   - Integraciones / Integrations
 
 # -*- coding: utf-8 -*-
-"""
-download_and_hash.py
 
-Descarga snapshots de resultados electorales del CNE Honduras y genera hashes encadenados
-SHA-256 para integridad.
-
-Uso:
-    python -m scripts.download_and_hash [--mock]
-
-Dependencias: requests, pyyaml, hashlib, logging, argparse, pathlib, json, datetime
-
-Este script es parte del proyecto C.E.N.T.I.N.E.L. y se usa solo para auditoría
-ciudadana neutral.
-
-Download CNE Honduras election results snapshots and generate chained SHA-256 hashes
-for integrity.
-
-Usage:
-    python -m scripts.download_and_hash [--mock]
-
-Dependencies: requests, pyyaml, hashlib, logging, argparse, pathlib, json, datetime
-
-This script is part of the C.E.N.T.I.N.E.L. project and is used only for neutral
-civic auditing.
-"""
 
 import argparse
 import hashlib

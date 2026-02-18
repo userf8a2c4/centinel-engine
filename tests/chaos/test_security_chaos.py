@@ -1,6 +1,36 @@
-"""Chaos-style tests for security orchestration.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Pruebas tipo chaos para orquestación de seguridad.
+======================== ESPAÑOL ========================
+Archivo: `tests/chaos/test_security_chaos.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_chaos_simulated_ddos_generates_single_air_gap
+  - test_chaos_integrity_tampering_detected
+  - test_chaos_oom_signal_persists_backup
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/chaos/test_security_chaos.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_chaos_simulated_ddos_generates_single_air_gap
+  - test_chaos_integrity_tampering_detected
+  - test_chaos_oom_signal_persists_backup
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

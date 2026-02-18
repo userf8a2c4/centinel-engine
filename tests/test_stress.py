@@ -1,6 +1,42 @@
-"""Pruebas de estrés para resiliencia y reglas estadísticas.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Stress tests for resilience and statistical rules.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_stress.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _install_apscheduler_stubs
+  - _build_response
+  - test_download_with_retries_recovers_from_outages
+  - test_pipeline_checkpoint_resume
+  - test_rules_edge_cases_insufficient_data
+  - bloque_main
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_stress.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _install_apscheduler_stubs
+  - _build_response
+  - test_download_with_retries_recovers_from_outages
+  - test_pipeline_checkpoint_resume
+  - test_rules_edge_cases_insufficient_data
+  - bloque_main
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

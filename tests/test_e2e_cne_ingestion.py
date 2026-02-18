@@ -1,12 +1,40 @@
-"""Prueba end-to-end: ingesta de JSON real del CNE → DB → API → hashchain.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Simula el flujo completo de producción usando los 3 snapshots reales del CNE
-(temprano, medio, final) para verificar que el sistema sobrevive datos en vivo.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_e2e_cne_ingestion.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
 
-End-to-end test: real CNE JSON ingestion → DB → API → hashchain.
+Componentes detectados:
+  - TestNormalizationSurvivesAllSnapshots
+  - TestStorageHashchainIntegrity
+  - TestApiServesRealData
+  - TestMalformedVariantsOfRealData
+  - TestAllDepartmentsAndNational
 
-Simulates the full production flow using 3 real CNE snapshots (early, mid, final)
-to verify the system survives live data.
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_e2e_cne_ingestion.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - TestNormalizationSurvivesAllSnapshots
+  - TestStorageHashchainIntegrity
+  - TestApiServesRealData
+  - TestMalformedVariantsOfRealData
+  - TestAllDepartmentsAndNational
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 import json

@@ -1,6 +1,38 @@
-"""Pruebas de carga y validación de configuración YAML.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Tests for YAML configuration loading and validation.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_config.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_load_config_reads_yaml
+  - test_load_config_missing_key_raises
+  - test_load_config_rejects_invalid_master_switch
+  - test_load_rules_config_rejects_string_enabled
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_config.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_load_config_reads_yaml
+  - test_load_config_missing_key_raises
+  - test_load_config_rejects_invalid_master_switch
+  - test_load_rules_config_rejects_string_enabled
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 import pytest

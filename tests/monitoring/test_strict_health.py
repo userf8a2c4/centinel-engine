@@ -1,6 +1,38 @@
-"""Español: Módulo con utilidades y definiciones para tests/monitoring/test_strict_health.py.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-English: Module utilities and definitions for tests/monitoring/test_strict_health.py.
+======================== ESPAÑOL ========================
+Archivo: `tests/monitoring/test_strict_health.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _make_payload
+  - test_check_checkpoint_age_stale
+  - test_is_healthy_strict_failure_logs_reason
+  - test_is_healthy_strict_success
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/monitoring/test_strict_health.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _make_payload
+  - test_check_checkpoint_age_stale
+  - test_is_healthy_strict_failure_logs_reason
+  - test_is_healthy_strict_success
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

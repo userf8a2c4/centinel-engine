@@ -1,6 +1,40 @@
-"""Collector tests with resilient retry and schema validation.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Pruebas del colector con reintentos resilientes y validación de esquema.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_collector.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _Response
+  - test_fetch_json_with_retry_recovers_after_one_failure
+  - test_validate_collected_payloads_warns_when_count_is_not_96
+  - test_run_collection_writes_report
+  - test_is_safe_http_url_blocks_unsafe_schemes_and_credentials
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_collector.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _Response
+  - test_fetch_json_with_retry_recovers_after_one_failure
+  - test_validate_collected_payloads_warns_when_count_is_not_96
+  - test_run_collection_writes_report
+  - test_is_safe_http_url_blocks_unsafe_schemes_and_credentials
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

@@ -1,3 +1,44 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/utils/logs.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _load_log_security_config
+  - HashChainLogger
+  - _get_fernet_key
+  - encrypt_log_file
+  - decrypt_log_file
+  - create_integrity_logger
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/utils/logs.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _load_log_security_config
+  - HashChainLogger
+  - _get_fernet_key
+  - encrypt_log_file
+  - decrypt_log_file
+  - create_integrity_logger
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Logs Module
 # AUTO-DOC-INDEX
 #
@@ -16,23 +57,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""SHA-256 chained log hashing with optional encrypted persistence.
-(Hashing encadenado SHA-256 de logs con persistencia encriptada opcional.)
 
-Provides tamper-evident logging: each log entry includes the SHA-256 hash
-of the previous entry, forming a hash chain.  Any modification to a past
-entry breaks the chain and is detectable.
-
-(Provee logging a prueba de manipulaciones: cada entrada incluye el hash
-SHA-256 de la entrada anterior, formando una cadena de hashes.  Cualquier
-modificación a una entrada pasada rompe la cadena y es detectable.)
-
-Opt-in via config.yaml:
-    security:
-      log_hashing: true           # Enable hash chain (Habilitar cadena de hashes)
-      log_encryption: true        # Enable AES encryption (Habilitar encriptación AES)
-      log_encryption_key_env: "CENTINEL_LOG_KEY"  # Env var with Fernet key
-"""
 
 from __future__ import annotations
 

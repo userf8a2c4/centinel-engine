@@ -1,6 +1,54 @@
-"""Encrypted backup utilities for critical Centinel artifacts.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Bilingual: Utilidades de respaldo cifrado para artefactos críticos de Centinel.
+======================== ESPAÑOL ========================
+Archivo: `centinel_engine/secure_backup.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _generate_backup_key
+  - _get_fernet
+  - _encrypt_data
+  - _compute_sha256
+  - _collect_hash_chain_files
+  - _build_backup_manifest
+  - _backup_to_local
+  - _backup_to_dropbox
+  - _backup_to_s3
+  - backup_critical_assets
+  - backup_critical
+  - BackupScheduler
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `centinel_engine/secure_backup.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _generate_backup_key
+  - _get_fernet
+  - _encrypt_data
+  - _compute_sha256
+  - _collect_hash_chain_files
+  - _build_backup_manifest
+  - _backup_to_local
+  - _backup_to_dropbox
+  - _backup_to_s3
+  - backup_critical_assets
+  - backup_critical
+  - BackupScheduler
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

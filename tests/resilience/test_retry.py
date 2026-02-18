@@ -1,4 +1,45 @@
-"""Retry and download resilience tests using responses."""
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `tests/resilience/test_retry.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_retry_policy_computes_exponential_backoff_with_jitter
+  - test_build_request_headers_low_profile_selection
+  - test_request_with_retry_retries_429_503_and_preserves_headers
+  - test_request_with_retry_retries_timeout_then_succeeds
+  - test_request_json_with_retry_recovers_from_malformed_json
+  - test_request_with_retry_persists_failed_requests_jsonl
+  - test_request_with_retry_retries_timeout_until_max_attempts
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/resilience/test_retry.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_retry_policy_computes_exponential_backoff_with_jitter
+  - test_build_request_headers_low_profile_selection
+  - test_request_with_retry_retries_429_503_and_preserves_headers
+  - test_request_with_retry_retries_timeout_then_succeeds
+  - test_request_json_with_retry_recovers_from_malformed_json
+  - test_request_with_retry_persists_failed_requests_jsonl
+  - test_request_with_retry_retries_timeout_until_max_attempts
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
 
 from __future__ import annotations
 

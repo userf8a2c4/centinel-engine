@@ -1,3 +1,62 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/analyze_rules.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _load_config
+  - _load_snapshot
+  - _latest_snapshots
+  - _normalize_level
+  - _extract_level
+  - _extract_department
+  - _strip_unwanted_fields
+  - _build_source_map
+  - _normalize_department_label
+  - _allowed_departments
+  - _aggregate_national
+  - _filter_presidential_snapshot
+  - _locate_hashchain
+  - main
+  - bloque_main
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/analyze_rules.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _load_config
+  - _load_snapshot
+  - _latest_snapshots
+  - _normalize_level
+  - _extract_level
+  - _extract_department
+  - _strip_unwanted_fields
+  - _build_source_map
+  - _normalize_department_label
+  - _allowed_departments
+  - _aggregate_national
+  - _filter_presidential_snapshot
+  - _locate_hashchain
+  - main
+  - bloque_main
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Analyze Rules Module
 # AUTO-DOC-INDEX
 #
@@ -16,19 +75,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""
-CLI delgado para ejecutar el motor unificado de reglas.
 
-Toda la lógica de ejecución, verificación de hashchain y generación de
-reportes vive en ``RulesEngine``.  Este script sólo resuelve rutas de
-snapshots, carga configuración y delega a ``RulesEngine.run()``.
-
-Thin CLI wrapper for the unified rules engine.
-
-All execution logic, hashchain verification, and report generation lives in
-``RulesEngine``.  This script only resolves snapshot paths, loads config, and
-delegates to ``RulesEngine.run()``.
-"""
 
 from __future__ import annotations
 

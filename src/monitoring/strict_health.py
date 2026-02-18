@@ -1,3 +1,64 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/monitoring/strict_health.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _env_int
+  - _env_float
+  - _now_utc
+  - _parse_timestamp
+  - _build_s3_config
+  - _build_s3_client
+  - _get_bucket_name
+  - _get_pipeline_version
+  - _get_run_id
+  - _get_write_test_key
+  - _get_checkpoint_manager
+  - ResourceSample
+  - ResourceSampler
+  - CriticalLogTracker
+  - _ensure_critical_tracker
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/monitoring/strict_health.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _env_int
+  - _env_float
+  - _now_utc
+  - _parse_timestamp
+  - _build_s3_config
+  - _build_s3_client
+  - _get_bucket_name
+  - _get_pipeline_version
+  - _get_run_id
+  - _get_write_test_key
+  - _get_checkpoint_manager
+  - ResourceSample
+  - ResourceSampler
+  - CriticalLogTracker
+  - _ensure_critical_tracker
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Strict Health Module
 # AUTO-DOC-INDEX
 #
@@ -16,25 +77,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Healthcheck estricto para validar liveness/readiness real.
 
-English:
-    Strict healthcheck to validate real liveness/readiness.
-
-Ejemplo de respuesta cuando falla:
-    {
-      "healthy": false,
-      "timestamp": "2024-01-01T12:00:00Z",
-      "failures": [
-        "checkpoint_integrity_failed",
-        "resources_threshold_exceeded"
-      ],
-      "checks": {
-        "checkpoint": {"ok": false, "message": "checkpoint_integrity_failed"},
-        "resources": {"ok": false, "cpu_avg": 0.95, "memory_avg": 0.90}
-      }
-    }
-"""
 
 from __future__ import annotations
 

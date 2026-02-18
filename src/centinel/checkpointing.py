@@ -1,3 +1,46 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/checkpointing.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - CheckpointConfig
+  - CheckpointError
+  - CheckpointStorageError
+  - CheckpointValidationError
+  - CheckpointManager
+  - generate_checkpoint_key
+  - bloque_main
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/checkpointing.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - CheckpointConfig
+  - CheckpointError
+  - CheckpointStorageError
+  - CheckpointValidationError
+  - CheckpointManager
+  - generate_checkpoint_key
+  - bloque_main
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Checkpointing Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +59,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Sistema de checkpointing externo, persistente y cifrado para Centinel Engine.
 
-External, persistent, and encrypted checkpointing system for Centinel Engine.
-"""
 
 from __future__ import annotations
 

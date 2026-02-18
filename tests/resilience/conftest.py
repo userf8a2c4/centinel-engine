@@ -1,4 +1,43 @@
-"""Shared fixtures for resilience tests."""
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `tests/resilience/conftest.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - mock_responses
+  - retry_config_path
+  - retry_config
+  - watchdog_config_path
+  - proxies_config_path
+  - sample_headers
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/resilience/conftest.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - mock_responses
+  - retry_config_path
+  - retry_config
+  - watchdog_config_path
+  - proxies_config_path
+  - sample_headers
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
 
 from __future__ import annotations
 

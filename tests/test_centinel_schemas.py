@@ -1,6 +1,38 @@
-"""Pruebas de validación y normalización de esquemas Centinel.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Tests for Centinel schema validation and normalization.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_centinel_schemas.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_validate_actas_normalizes
+  - test_validate_actas_migrates_fields
+  - test_validate_resultados_rejects_invalid_counts
+  - test_validate_rejects_invalid_json_bytes
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_centinel_schemas.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_validate_actas_normalizes
+  - test_validate_actas_migrates_fields
+  - test_validate_resultados_rejects_invalid_counts
+  - test_validate_rejects_invalid_json_bytes
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 import pytest

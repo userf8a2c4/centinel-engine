@@ -1,3 +1,48 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `core/advanced_security.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - AdvancedSecurityConfig
+  - IdentityRotator
+  - HoneypotService
+  - AlertManager
+  - BackupManager
+  - AdvancedSecurityManager
+  - load_manager
+  - update_runtime_security_hooks
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `core/advanced_security.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - AdvancedSecurityConfig
+  - IdentityRotator
+  - HoneypotService
+  - AlertManager
+  - BackupManager
+  - AdvancedSecurityManager
+  - load_manager
+  - update_runtime_security_hooks
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Advanced Security Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +61,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Integrated advanced defensive security utilities.
 
-Utilidades defensivas integradas de seguridad avanzada.
-"""
 
 from __future__ import annotations
 

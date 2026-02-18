@@ -1,3 +1,44 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `core/analyze_rules.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _load_rules_config
+  - _get_rule_param
+  - _first_digits
+  - apply_benford_law
+  - check_distribution_chi2
+  - bloque_main
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `core/analyze_rules.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _load_rules_config
+  - _get_rule_param
+  - _first_digits
+  - apply_benford_law
+  - check_distribution_chi2
+  - bloque_main
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Analyze Rules Module
 # AUTO-DOC-INDEX
 #
@@ -16,13 +57,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Reglas estadísticas para auditoría presidencial. (Presidential audit statistical rules.)
 
-Este módulo incluye funciones específicas para auditorías de distribución de
-votos usando la Ley de Benford y pruebas chi-cuadrado. (This module includes
-specific functions for auditing vote distributions using Benford's Law and
-chi-square tests.)
-"""
 
 from __future__ import annotations
 

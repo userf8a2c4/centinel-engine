@@ -1,3 +1,36 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `dashboard/centinel_pdf_report.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - ReportCanvas
+  - CentinelPDFReport
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `dashboard/centinel_pdf_report.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - ReportCanvas
+  - CentinelPDFReport
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Centinel Pdf Report Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +49,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Español: Módulo con utilidades y definiciones para dashboard/centinel_pdf_report.py.
 
-English: Module utilities and definitions for dashboard/centinel_pdf_report.py.
-"""
 
 import datetime as dt
 import hashlib

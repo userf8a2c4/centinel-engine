@@ -1,3 +1,64 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `maintain.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - BucketConfig
+  - RuntimeConfig
+  - load_environment
+  - build_console
+  - setup_logging
+  - resolve_rate_limit_settings
+  - _read_rate_limit_state
+  - _write_rate_limit_state
+  - is_rate_limited
+  - parse_runtime_config
+  - build_bucket_config
+  - build_s3_client
+  - confirm_action
+  - retry_operation
+  - build_checkpoint_manager
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `maintain.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - BucketConfig
+  - RuntimeConfig
+  - load_environment
+  - build_console
+  - setup_logging
+  - resolve_rate_limit_settings
+  - _read_rate_limit_state
+  - _write_rate_limit_state
+  - is_rate_limited
+  - parse_runtime_config
+  - build_bucket_config
+  - build_s3_client
+  - confirm_action
+  - retry_operation
+  - build_checkpoint_manager
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Maintain Module
 # AUTO-DOC-INDEX
 #
@@ -16,11 +77,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Centinel Engine maintenance utility.
 
-This script provides one-stop maintenance commands for checkpointing,
-status inspection, key rotation, backups, and recovery testing.
-"""
 
 from __future__ import annotations
 

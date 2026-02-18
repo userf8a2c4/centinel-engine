@@ -1,7 +1,40 @@
-"""Hostile scenario tests for legal-resilient hardening controls.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Bilingual: Pruebas de escenarios hostiles para controles de endurecimiento
-resiliente y legal.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_hostile_scenarios.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _base_vitals_status
+  - test_50_consecutive_429_enters_critical_with_1800_delay
+  - test_hash_chain_break_enters_critical_mode
+  - test_empty_proxy_pool_falls_back_to_direct_mode
+  - test_rate_limiter_blocks_burst_over_3
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_hostile_scenarios.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _base_vitals_status
+  - test_50_consecutive_429_enters_critical_with_1800_delay
+  - test_hash_chain_break_enters_critical_mode
+  - test_empty_proxy_pool_falls_back_to_direct_mode
+  - test_rate_limiter_blocks_burst_over_3
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

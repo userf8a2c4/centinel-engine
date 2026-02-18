@@ -1,3 +1,46 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/monitoring/telegram_alert.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _collect_system_metrics
+  - _collect_network_context
+  - _format_uptime
+  - send_security_alert
+  - send_shutdown_alert
+  - send_dos_detection_alert
+  - _count_integrity_entries
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/monitoring/telegram_alert.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _collect_system_metrics
+  - _collect_network_context
+  - _format_uptime
+  - send_security_alert
+  - send_shutdown_alert
+  - send_dos_detection_alert
+  - _count_integrity_entries
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Telegram Alert Module
 # AUTO-DOC-INDEX
 #
@@ -16,23 +59,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Obsessive Telegram alerting for security events and shutdowns.
-(Alertas Telegram obsesivas para eventos de seguridad y apagados.)
 
-Extends the base alert system with detailed metrics, IP forensics,
-and structured context for anomaly detection and shutdown events.
-Designed so OEA/EU/Carter observers get maximum transparency.
-
-(Extiende el sistema base de alertas con métricas detalladas, forense
-de IPs, y contexto estructurado para detección de anomalías y eventos
-de apagado.  Diseñado para que observadores OEA/UE/Carter obtengan
-máxima transparencia.)
-
-Usage:
-    from monitoring.telegram_alert import send_security_alert, send_shutdown_alert
-    send_security_alert("rate_limit_exceeded", ip="1.2.3.4", path="/snapshots/latest")
-    send_shutdown_alert(reason="SIGTERM", uptime_seconds=3600)
-"""
 
 from __future__ import annotations
 

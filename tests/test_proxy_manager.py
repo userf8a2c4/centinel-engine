@@ -1,7 +1,46 @@
-"""Tests for centinel_engine.proxy_manager (User-Agent pool and proxy rotation).
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Bilingual: Pruebas para centinel_engine.proxy_manager (pool de User-Agents y
-rotacion de proxies).
+======================== ESPAÑOL ========================
+Archivo: `tests/test_proxy_manager.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _reset_singleton
+  - MockProxyRotator
+  - TestUserAgentPool
+  - TestUARotation
+  - TestProxyRotation
+  - TestStatusNotification
+  - TestManagerStats
+  - TestSingleton
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_proxy_manager.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _reset_singleton
+  - MockProxyRotator
+  - TestUserAgentPool
+  - TestUARotation
+  - TestProxyRotation
+  - TestStatusNotification
+  - TestManagerStats
+  - TestSingleton
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

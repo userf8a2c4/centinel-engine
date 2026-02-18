@@ -1,3 +1,64 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/watchdog.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - WatchdogConfig
+  - _utcnow
+  - _load_config
+  - _load_state
+  - _save_state
+  - _find_latest_snapshot
+  - _check_snapshot
+  - _check_log_growth
+  - _check_locks
+  - _check_heartbeat
+  - _check_resources
+  - _record_failures
+  - _should_act
+  - _send_alerts
+  - _terminate_pipeline
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/watchdog.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - WatchdogConfig
+  - _utcnow
+  - _load_config
+  - _load_state
+  - _save_state
+  - _find_latest_snapshot
+  - _check_snapshot
+  - _check_log_growth
+  - _check_locks
+  - _check_heartbeat
+  - _check_resources
+  - _record_failures
+  - _should_act
+  - _send_alerts
+  - _terminate_pipeline
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Watchdog Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +77,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Watchdog de resiliencia para Centinel Engine.
 
-Resilience watchdog for Centinel Engine.
-"""
 
 from __future__ import annotations
 

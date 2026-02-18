@@ -1,10 +1,32 @@
-"""Telegram alert extension hook (disabled by default).
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-This module exposes a stable function signature for future Telegram-based
-critical alert delivery while remaining non-functional today.
+======================== ESPAÑOL ========================
+Archivo: `centinel_engine/telegram_hook.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
 
-Este modulo expone una firma estable para envio futuro de alertas criticas por
-Telegram, manteniendose no funcional por ahora.
+Componentes detectados:
+  - send_alert_via_telegram
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `centinel_engine/telegram_hook.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - send_alert_via_telegram
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from __future__ import annotations

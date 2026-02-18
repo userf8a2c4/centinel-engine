@@ -1,3 +1,38 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/pipeline.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - PipelineCursor
+  - start_pipeline
+  - bloque_main
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/pipeline.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - PipelineCursor
+  - start_pipeline
+  - bloque_main
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Pipeline Module
 # AUTO-DOC-INDEX
 #
@@ -16,11 +51,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Arranque del pipeline principal con recuperación.
 
-English:
-    Main pipeline startup with recovery.
-"""
 
 from __future__ import annotations
 

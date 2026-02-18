@@ -1,3 +1,64 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `src/centinel/downloader.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - RetryPolicy
+  - RetryConfig
+  - RetryableError
+  - RetryableStatusError
+  - RetryableExceptionError
+  - RetryableParsingError
+  - NonRetryableStatusError
+  - PolicyWait
+  - PolicyStop
+  - StructuredLogger
+  - _parse_jitter
+  - _parse_policy
+  - load_retry_config
+  - _write_failed_request
+  - _build_failed_payload
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `src/centinel/downloader.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - RetryPolicy
+  - RetryConfig
+  - RetryableError
+  - RetryableStatusError
+  - RetryableExceptionError
+  - RetryableParsingError
+  - NonRetryableStatusError
+  - PolicyWait
+  - PolicyStop
+  - StructuredLogger
+  - _parse_jitter
+  - _parse_policy
+  - load_retry_config
+  - _write_failed_request
+  - _build_failed_payload
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Downloader Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +77,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Downloader resiliente con reintentos configurables.
 
-Resilient downloader with configurable retries.
-"""
 
 from __future__ import annotations
 

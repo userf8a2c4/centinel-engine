@@ -1,6 +1,34 @@
-"""Pruebas de normalización y serialización canónica.
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
 
-Tests for normalization and canonical serialization.
+======================== ESPAÑOL ========================
+Archivo: `tests/test_normalize.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - test_normalization_is_deterministic
+  - test_normalization_parses_nested_totals_and_candidates
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `tests/test_normalize.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - test_normalization_is_deterministic
+  - test_normalization_parses_nested_totals_and_candidates
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
 """
 
 from centinel.core.normalize import normalize_snapshot, snapshot_to_canonical_json

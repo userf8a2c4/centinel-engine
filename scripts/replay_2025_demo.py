@@ -1,3 +1,44 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/replay_2025_demo.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - parse_timestamp
+  - load_snapshot
+  - diff_snapshots
+  - generate_report
+  - main
+  - bloque_main
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/replay_2025_demo.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - parse_timestamp
+  - load_snapshot
+  - diff_snapshots
+  - generate_report
+  - main
+  - bloque_main
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Replay 2025 Demo Module
 # AUTO-DOC-INDEX
 #
@@ -16,10 +57,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Genera un reporte demo de diffs para snapshots 2025.
 
-Generate a demo diffs report for 2025 snapshots.
-"""
 
 import argparse
 import json

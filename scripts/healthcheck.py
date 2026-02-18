@@ -1,3 +1,40 @@
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/healthcheck.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - _build_session
+  - _collect_endpoints
+  - check_cne_connectivity
+  - check_cne_endpoints
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/healthcheck.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - _build_session
+  - _collect_endpoints
+  - check_cne_connectivity
+  - check_cne_endpoints
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Healthcheck Module
 # AUTO-DOC-INDEX
 #
@@ -16,11 +53,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""Healthchecks de conectividad CNE antes de ejecutar pipeline.
 
-English:
-    Connectivity checks to CNE endpoints before running the pipeline.
-"""
 
 from __future__ import annotations
 

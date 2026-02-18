@@ -1,4 +1,65 @@
 #!/usr/bin/env python3
+"""
+======================== ÍNDICE / INDEX ========================
+1. Descripción general / Overview
+2. Componentes principales / Main components
+3. Notas de mantenimiento / Maintenance notes
+
+======================== ESPAÑOL ========================
+Archivo: `scripts/cli.py`.
+Este módulo forma parte de Centinel Engine y está documentado para facilitar
+la navegación, mantenimiento y auditoría técnica.
+
+Componentes detectados:
+  - SnapshotInput
+  - NormalizedSnapshot
+  - load_snapshots
+  - normalize_snapshots
+  - write_normalized_outputs
+  - write_hashchain
+  - _safe_int
+  - _apply_benford
+  - audit_snapshots
+  - write_anomalies
+  - _sha256_file
+  - write_registry
+  - build_status
+  - write_status
+  - run_pipeline
+  - ...
+
+Notas:
+- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
+- Priorizar claridad operativa y trazabilidad del comportamiento.
+
+======================== ENGLISH ========================
+File: `scripts/cli.py`.
+This module is part of Centinel Engine and is documented to improve
+navigation, maintenance, and technical auditability.
+
+Detected components:
+  - SnapshotInput
+  - NormalizedSnapshot
+  - load_snapshots
+  - normalize_snapshots
+  - write_normalized_outputs
+  - write_hashchain
+  - _safe_int
+  - _apply_benford
+  - audit_snapshots
+  - write_anomalies
+  - _sha256_file
+  - write_registry
+  - build_status
+  - write_status
+  - run_pipeline
+  - ...
+
+Notes:
+- Keep this header in sync with structural changes in the file.
+- Prioritize operational clarity and behavior traceability.
+"""
+
 # Cli Module
 # AUTO-DOC-INDEX
 #
@@ -17,10 +78,7 @@
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
 
-"""CLI para normalización, hashing y resúmenes de snapshots.
 
-CLI for snapshot normalization, hashing, and summaries.
-"""
 
 import argparse
 import hashlib
