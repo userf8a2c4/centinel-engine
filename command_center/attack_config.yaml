@@ -10,7 +10,8 @@
 # 02_umbral_frecuencia_y_red
 # 03_iocs_y_rutas_sensibles
 # 04_resumen_externo
-# 05_honeypot
+# 05_exportacion_periodica
+# 06_honeypot
 
 # ES: Convención binaria: todos los flags tipo enabled/monitor/critical/anonymize/encrypt
 #     usan true/false (booleano YAML, sin comillas).
@@ -54,6 +55,11 @@ external_summary:
   anonymize: true
   webhook_url: ""
   telegram_chat_id: ""
+
+periodic_export:
+  enabled: true
+  interval_seconds: 21600
+  channel: telegram
 
 honeypot:
   enabled: true

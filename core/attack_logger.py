@@ -75,6 +75,9 @@ class AttackLogConfig:
     anonymize_summaries: bool = True
     webhook_url: str = ""
     telegram_chat_id: str = ""
+    periodic_export_enabled: bool = False
+    periodic_export_interval_seconds: int = 21_600
+    periodic_export_channel: str = "telegram"
     honeypot_enabled: bool = False
     honeypot_host: str = "127.0.0.1"
     honeypot_port: int = 8080
@@ -100,6 +103,7 @@ class AttackLogConfig:
         if not isinstance(raw, dict):
             return cls()
         external = raw.get("external_summary", {}) if isinstance(raw.get("external_summary"), dict) else {}
+        periodic_export = raw.get("periodic_export", {}) if isinstance(raw.get("periodic_export"), dict) else {}
         honeypot = raw.get("honeypot", {}) if isinstance(raw.get("honeypot"), dict) else {}
         return cls(
             enabled=bool(raw.get("enabled", True)),
@@ -121,6 +125,9 @@ class AttackLogConfig:
             anonymize_summaries=bool(external.get("anonymize", True)),
             webhook_url=str(external.get("webhook_url", "")),
             telegram_chat_id=str(external.get("telegram_chat_id", "")),
+            periodic_export_enabled=bool(periodic_export.get("enabled", False)),
+            periodic_export_interval_seconds=max(1, int(periodic_export.get("interval_seconds", 21_600))),
+            periodic_export_channel=str(periodic_export.get("channel", "telegram")),
             honeypot_enabled=bool(honeypot.get("enabled", False)),
             honeypot_host=str(honeypot.get("host", "127.0.0.1")),
             honeypot_port=int(honeypot.get("port", 8080)),
@@ -148,7 +155,9 @@ class AttackForensicsLogbook:
         self._writer_thread: threading.Thread | None = None
         self._last_rotation = time.time()
         self._handler: TimedRotatingFileHandler | None = None
+        self._export_thread: threading.Thread | None = None
         self._event_callback = event_callback
+        self._io_lock = threading.Lock()
         self._per_ip_hits: dict[str, deque[float]] = defaultdict(deque)
         self._per_ip_routes: dict[str, deque[str]] = defaultdict(lambda: deque(maxlen=self.config.sequence_window_size))
         self._per_ip_flood_counter: dict[str, int] = defaultdict(int)
@@ -173,6 +182,9 @@ class AttackForensicsLogbook:
         self._writer_stop.clear()
         self._writer_thread = threading.Thread(target=self._writer_loop, name="attack-log-writer", daemon=True)
         self._writer_thread.start()
+        if self.config.periodic_export_enabled:
+            self._export_thread = threading.Thread(target=self._periodic_export_loop, name="attack-log-export", daemon=True)
+            self._export_thread.start()
 
     def stop(self) -> None:
         """Stop writer thread gracefully.
@@ -183,6 +195,9 @@ class AttackForensicsLogbook:
             self._events.put(None)
             self._writer_stop.set()
             self._writer_thread.join(timeout=3)
+        if self._export_thread and self._export_thread.is_alive():
+            self._writer_stop.set()
+            self._export_thread.join(timeout=3)
         if self._handler:
             self._handler.close()
             self._handler = None
@@ -229,13 +244,74 @@ class AttackForensicsLogbook:
             try:
                 if payload is None:
                     return
-                self._rotate_if_needed()
-                if self._handler is None:
-                    self._ensure_handler()
-                if self._handler:
-                    self._handler.emit(logging.makeLogRecord({"msg": json.dumps(payload, ensure_ascii=False)}))
+                with self._io_lock:
+                    self._rotate_if_needed()
+                    if self._handler is None:
+                        self._ensure_handler()
+                    if self._handler:
+                        self._handler.emit(logging.makeLogRecord({"msg": json.dumps(payload, ensure_ascii=False)}))
             finally:
                 self._events.task_done()
+
+    def _periodic_export_loop(self) -> None:
+        while not self._writer_stop.is_set():
+            interval = max(1, int(self.config.periodic_export_interval_seconds))
+            if self._writer_stop.wait(timeout=interval):
+                return
+            self._export_once()
+
+    def _export_once(self) -> bool:
+        """Export current attack log snapshot and clear exported portion on success.
+
+        Exporta snapshot actual del log y limpia la porción exportada si fue exitoso.
+        """
+        export_path = self.path.with_name(f"attack_log_export_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}.jsonl")
+        snapshot = b""
+        with self._io_lock:
+            if self._handler:
+                self._handler.flush()
+            if not self.path.exists():
+                return False
+            snapshot = self.path.read_bytes()
+            if not snapshot:
+                return False
+            export_path.write_bytes(snapshot)
+
+        exported = False
+        try:
+            exported = self._send_export_file(export_path)
+            if not exported:
+                return False
+            with self._io_lock:
+                if self._handler:
+                    self._handler.flush()
+                if not self.path.exists():
+                    return True
+                current = self.path.read_bytes()
+                if current.startswith(snapshot):
+                    self.path.write_bytes(current[len(snapshot) :])
+            return True
+        finally:
+            if exported:
+                export_path.unlink(missing_ok=True)
+
+    def _send_export_file(self, export_path: Path) -> bool:
+        if self.config.periodic_export_channel != "telegram":
+            return False
+        token = os.getenv("TELEGRAM_TOKEN", "")
+        chat_id = os.getenv("TELEGRAM_CHAT_ID", self.config.telegram_chat_id)
+        if not token or not chat_id:
+            return False
+
+        with export_path.open("rb") as file_handle:
+            response = requests.post(
+                f"https://api.telegram.org/bot{token}/sendDocument",
+                data={"chat_id": chat_id, "caption": "centinel_attack_log_export"},
+                files={"document": (export_path.name, file_handle, "application/json")},
+                timeout=10,
+            )
+        status = int(getattr(response, "status_code", 500))
+        return 200 <= status < 300
 
     def _rotate_if_needed(self) -> None:
         now = time.time()
