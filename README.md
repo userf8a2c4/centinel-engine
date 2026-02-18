@@ -2,10 +2,10 @@
 
 <sub>Centinela Electrónico Neutral Técnico Íntegro Nacional Electoral Libre.</sub>
 
-[![CI](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml/badge.svg)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml)
-[![Pipeline](https://github.com/userf8a2c4/centinel-engine/actions/workflows/pipeline.yml/badge.svg)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/pipeline.yml)
-[![Scheduler](https://github.com/userf8a2c4/centinel-engine/actions/workflows/scheduler.yml/badge.svg)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/scheduler.yml)
+[![CI](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml?query=branch%3Adev-v9)
+[![CodeQL](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml?query=branch%3Adev-v9)
+[![Pipeline](https://github.com/userf8a2c4/centinel-engine/actions/workflows/pipeline.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/pipeline.yml?query=branch%3Adev-v9)
+[![Scheduler](https://github.com/userf8a2c4/centinel-engine/actions/workflows/scheduler.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/scheduler.yml?query=branch%3Adev-v9)
 ![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 
