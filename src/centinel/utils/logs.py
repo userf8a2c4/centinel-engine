@@ -1,3 +1,21 @@
+# Logs Module
+# AUTO-DOC-INDEX
+#
+# ES: Índice rápido
+#   1) Propósito del módulo
+#   2) Componentes principales
+#   3) Puntos de extensión
+#
+# EN: Quick index
+#   1) Module purpose
+#   2) Main components
+#   3) Extension points
+#
+# Secciones / Sections:
+#   - Configuración / Configuration
+#   - Lógica principal / Core logic
+#   - Integraciones / Integrations
+
 """SHA-256 chained log hashing with optional encrypted persistence.
 (Hashing encadenado SHA-256 de logs con persistencia encriptada opcional.)
 
