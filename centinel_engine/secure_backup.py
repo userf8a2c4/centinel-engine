@@ -54,6 +54,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from centinel_engine.cloudflare_hook import apply_cloudflare_protection
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -493,6 +495,7 @@ class BackupScheduler:
         health_state_path: Path = DEFAULT_HEALTH_STATE_PATH,
         hash_chain_dir: Path = DEFAULT_HASH_CHAIN_DIR,
         backup_dir: Path = DEFAULT_BACKUP_DIR / "encrypted",
+        config: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._interval: int = max(interval_seconds, 60)
         self._health_state_path: Path = health_state_path
@@ -501,6 +504,7 @@ class BackupScheduler:
         self._stop_event: threading.Event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._last_backup_time: float = 0.0
+        self._config: Dict[str, Any] = config or {}
 
     def start(self) -> None:
         """Start the background backup timer.
@@ -509,6 +513,11 @@ class BackupScheduler:
         """
         if self._thread is not None and self._thread.is_alive():
             return
+
+        # Apply optional Cloudflare protection hook before scheduler loop /
+        # Aplicar hook opcional de Cloudflare antes del bucle del scheduler.
+        if bool(self._config.get("ENABLE_CLOUDFLARE", False)):
+            apply_cloudflare_protection(self._config)
         self._stop_event.clear()
         self._thread = threading.Thread(
             target=self._run_loop,
