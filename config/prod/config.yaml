@@ -1,0 +1,6 @@
+# ES: Flags de extensiones opcionales para el núcleo congelado.
+# EN: Optional extension flags for the frozen core.
+ENABLE_ARBITRUM: false
+ENABLE_TELEGRAM: false
+ENABLE_CLOUDFLARE: false
+ENABLE_UPNFM: false

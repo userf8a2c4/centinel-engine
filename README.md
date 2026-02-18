@@ -47,6 +47,21 @@ Open-source technical system to monitor and audit **public** election data in Ho
 ### Status
 **IN DEVELOPMENT** · Continuous operational hardening · Election polling target cadence: every 5 minutes.
 
+## Estado actual del núcleo congelado (feb 2026)
+
+**ES:** El núcleo operativo queda congelado en un flujo mínimo, verificable y mantenible: **scrape → rate-limit → proxy/UA → hash → backup cifrado → reglas básicas**.
+
+**EN:** The operational core is frozen on a minimal, verifiable, and maintainable flow: **scrape → rate-limit → proxy/UA → hash → encrypted backup → basic rules**.
+
+- **Scrape / Recolección:** ingestión de JSON públicos con cadencia controlada.
+- **Rate-limit:** token-bucket defensivo para reducir presión sobre la fuente.
+- **Proxy/UA:** rotación de salida y User-Agent según necesidad operativa.
+- **Hash:** sellado SHA-256 encadenado para trazabilidad de snapshots.
+- **Backup cifrado / Encrypted backup:** respaldo AES-256 con verificación de integridad.
+- **Reglas básicas / Basic rules:** validaciones mínimas de consistencia y diferencias entre snapshots.
+
+**Stubs desactivados / Disabled stubs:** `Arbitrum`, `Telegram`, `Cloudflare` y extensión `UPNFM` se mantienen explícitamente desactivados en producción para preservar un núcleo estable.
+
 ## Quick Start
 
 ```bash
