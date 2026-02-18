@@ -73,7 +73,7 @@ except ImportError:
 # Default paths / Rutas por defecto
 # ---------------------------------------------------------------------------
 DEFAULT_HEALTH_STATE_PATH = Path("data/health_state.json")
-DEFAULT_HASH_CHAIN_DIR = Path("hashes")
+DEFAULT_HASH_CHAIN_DIR = Path("data/hashes")
 DEFAULT_BACKUP_DIR = Path("backups")
 DEFAULT_BACKUP_INTERVAL_SECONDS = 1800  # 30 minutes / 30 minutos
 
@@ -302,7 +302,7 @@ def backup_critical_assets(
     *,
     health_state_path: Path = DEFAULT_HEALTH_STATE_PATH,
     hash_chain_dir: Path = DEFAULT_HASH_CHAIN_DIR,
-    backup_dir: Path = DEFAULT_BACKUP_DIR,
+    backup_dir: Path = DEFAULT_BACKUP_DIR / "encrypted",
 ) -> Dict[str, Any]:
     """Back up critical Centinel assets (health state + hash chain) to all configured destinations.
 
@@ -427,6 +427,40 @@ def backup_critical_assets(
 # ---------------------------------------------------------------------------
 
 
+def backup_critical(
+    *,
+    health_state_path: Path = DEFAULT_HEALTH_STATE_PATH,
+    hash_chain_dir: Path = DEFAULT_HASH_CHAIN_DIR,
+    backup_dir: Path = DEFAULT_BACKUP_DIR / "encrypted",
+) -> Dict[str, Any]:
+    """Run encrypted critical backup in fail-safe mode for scheduler/post-scrape hooks.
+
+    Bilingual: Ejecuta respaldo cifrado crítico en modo fail-safe para hooks de scheduler o post-scrape.
+
+    Args:
+        health_state_path: Path to serialized health state JSON file.
+        hash_chain_dir: Directory with hash-chain artifacts (prefers data/hashes).
+        backup_dir: Output directory for encrypted local bundles.
+
+    Returns:
+        Dictionary with per-destination backup status and metadata.
+
+    Raises:
+        Never: Errors are captured and returned in the result payload.
+    """
+    effective_hash_dir = hash_chain_dir if hash_chain_dir.exists() else Path("hashes")
+    # Never break scraper flow / Nunca romper el flujo del scraper
+    try:
+        return backup_critical_assets(
+            health_state_path=health_state_path,
+            hash_chain_dir=effective_hash_dir,
+            backup_dir=backup_dir,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.error("backup_critical_unexpected_error | error inesperado en backup_critical: %s", exc)
+        return {"local": False, "dropbox": False, "s3": False, "errors": [str(exc)], "files_backed_up": []}
+
+
 class BackupScheduler:
     """Runs backup_critical_assets() on a configurable interval in a background thread.
 
@@ -440,7 +474,7 @@ class BackupScheduler:
         interval_seconds: int = DEFAULT_BACKUP_INTERVAL_SECONDS,
         health_state_path: Path = DEFAULT_HEALTH_STATE_PATH,
         hash_chain_dir: Path = DEFAULT_HASH_CHAIN_DIR,
-        backup_dir: Path = DEFAULT_BACKUP_DIR,
+        backup_dir: Path = DEFAULT_BACKUP_DIR / "encrypted",
     ) -> None:
         self._interval: int = max(interval_seconds, 60)
         self._health_state_path: Path = health_state_path

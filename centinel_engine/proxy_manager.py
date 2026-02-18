@@ -237,7 +237,7 @@ class ProxyAndUAManager:
         Returns:
             True if the status code triggered a forced rotation flag.
         """
-        if status_code in ROTATION_TRIGGER_CODES:
+        if status_code in ROTATION_TRIGGER_CODES or 500 <= status_code <= 599:
             logger.warning(
                 "Hostile status detected, forcing proxy rotation | "
                 "Estado hostil detectado, forzando rotacion de proxy: status=%d",
@@ -301,3 +301,31 @@ def reset_proxy_ua_manager() -> None:
     global _MANAGER
     with _MANAGER_LOCK:
         _MANAGER = None
+
+
+def get_proxy_and_ua(
+    *,
+    force_proxy_rotation: bool = False,
+) -> Tuple[Optional[Dict[str, str]], str]:
+    """Return a proxy mapping and User-Agent for the next HTTP request.
+
+    Bilingual: Retorna un mapeo de proxy y User-Agent para el siguiente request HTTP.
+
+    Args:
+        force_proxy_rotation: Force immediate proxy rotation when True.
+
+    Returns:
+        Tuple with proxy dictionary (or None for direct mode) and UA string.
+
+    Raises:
+        RuntimeError: If proxy metadata cannot be normalized.
+    """
+    manager = get_proxy_ua_manager()
+    proxy_url, ua_str = manager.rotate_proxy_and_ua(force_proxy_rotation=force_proxy_rotation)
+
+    # Normalize proxy URL into client-friendly dict / Normalizar URL a dict compatible
+    if proxy_url is None:
+        return None, ua_str
+
+    proxy_dict: Dict[str, str] = {"http": proxy_url, "https": proxy_url}
+    return proxy_dict, ua_str

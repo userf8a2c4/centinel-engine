@@ -68,7 +68,7 @@ COMMAND_CENTER_PATH = Path("command_center") / "config.yaml"
 config_path = DEFAULT_CONFIG_PATH
 TEMP_DIR = Path("data") / "temp"
 CHECKPOINT_PATH = TEMP_DIR / "download_checkpoint.json"
-DEFAULT_RETRY_CONFIG_PATH = "retry_config.yaml"
+DEFAULT_RETRY_CONFIG_PATH = "config/prod/retry_config.yaml"
 
 
 def resolve_config_path(config_path_override: str | None = None) -> str:

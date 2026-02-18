@@ -18,6 +18,8 @@ import threading
 import time
 from typing import Optional
 
+from centinel_engine.config_loader import load_config
+
 logger = logging.getLogger(__name__)
 
 # Default rate-limit parameters / Parametros de rate-limit por defecto
@@ -202,10 +204,11 @@ _SINGLETON_LOCK: threading.Lock = threading.Lock()
 
 def get_rate_limiter(
     *,
-    rate_interval: float = DEFAULT_RATE_INTERVAL,
+    rate_interval: Optional[float] = None,
     burst: int = DEFAULT_BURST,
     min_interval: float = DEFAULT_MIN_INTERVAL,
     max_interval: float = DEFAULT_MAX_INTERVAL,
+    config_path: str = "config/prod/rate_limiter.yaml",
 ) -> TokenBucketRateLimiter:
     """Return the global rate limiter instance, creating it on first call.
 
@@ -222,11 +225,26 @@ def get_rate_limiter(
     with _SINGLETON_LOCK:
         if _RATE_LIMITER is not None:
             return _RATE_LIMITER
+
+        config = load_config(
+            path=config_path,
+            defaults={
+                "capacity": burst,
+                "rate_interval_seconds": DEFAULT_RATE_INTERVAL,
+                "min_interval_seconds": min_interval,
+                "max_interval_seconds": max_interval,
+            },
+        )
+        resolved_rate_interval = max(8.0, float(config.get("rate_interval_seconds", DEFAULT_RATE_INTERVAL)))
+        resolved_burst = int(config.get("capacity", burst))
+        resolved_min_interval = float(config.get("min_interval_seconds", min_interval))
+        resolved_max_interval = float(config.get("max_interval_seconds", max_interval))
+
         _RATE_LIMITER = TokenBucketRateLimiter(
-            rate_interval=rate_interval,
-            burst=burst,
-            min_interval=min_interval,
-            max_interval=max_interval,
+            rate_interval=resolved_rate_interval if rate_interval is None else max(8.0, rate_interval),
+            burst=resolved_burst,
+            min_interval=resolved_min_interval,
+            max_interval=resolved_max_interval,
         )
         return _RATE_LIMITER
 

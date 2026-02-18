@@ -118,13 +118,13 @@ services:
     restart: always
     command: ["python", "scripts/watchdog.py"]
     environment:
-      WATCHDOG_CONFIG: "/app/watchdog.yaml"
+      WATCHDOG_CONFIG: "/app/config/prod/watchdog.yaml"
       LOG_LEVEL: "info"
       TZ: "UTC"
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
-      - ./watchdog.yaml:/app/watchdog.yaml:ro
+      - ./config/prod/watchdog.yaml:/app/config/prod/watchdog.yaml:ro
       # Security: mount Docker socket read-only to limit container escape risk.
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:

@@ -27,7 +27,7 @@ if importlib.util.find_spec("structlog"):
     structlog = _structlog
 
 
-DEFAULT_RETRY_CONFIG_PATH = Path("retry_config.yaml")
+DEFAULT_RETRY_CONFIG_PATH = Path("config/prod/retry_config.yaml")
 DEFAULT_FAILED_REQUESTS_PATH = Path("failed_requests.jsonl")
 DEFAULT_TIMEOUT_SECONDS = 30.0
 _secure_random = secrets.SystemRandom()

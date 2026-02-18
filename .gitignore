@@ -31,3 +31,7 @@ node_modules/
 *.pem
 *.key
 secrets.yaml
+
+# Config secrets / Secretos de configuracion
+config/secrets/*
+!config/secrets/.gitkeep

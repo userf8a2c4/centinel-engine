@@ -703,7 +703,7 @@ def main() -> None:
         },
         "footer_left": "Hash encadenado: 0x9f3fa7c2…",
         "footer_right": "Hash reporte: 0xabc123…",
-        "footer_disclaimer": "Uso informativo bajo Ley de Transparencia · Auditoría ciudadana neutral.",
+        "footer_disclaimer": "Datos solo de fuentes públicas CNE, conforme Ley Transparencia 170-2006. Agnóstico político.",
     }
 
     chart_buffers = create_pdf_charts(benford_df, snapshot_df, heatmap_df, anomalies_df)

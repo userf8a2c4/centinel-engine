@@ -73,3 +73,8 @@ make pipeline
 Este repositorio procesa únicamente datos públicos del CNE y otras fuentes oficiales; documenta hechos técnicos verificables sin interpretación política ni partidaria.
 
 This repository processes only public CNE and official-source data; it documents technically verifiable facts without political or partisan interpretation.
+
+## Cumplimiento Legal – Feb 2026
+
+- Matriz oficial: [docs/legal_compliance_matrix.md](docs/legal_compliance_matrix.md).
+- Declaración obligatoria de reportes: **"Datos solo de fuentes públicas CNE, conforme Ley Transparencia 170-2006. Agnóstico político."**

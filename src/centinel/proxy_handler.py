@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 import httpx
-import yaml
+
+from centinel_engine.config_loader import load_config
 
 DEFAULT_PROXY_TIMEOUT_SECONDS = 15.0
 DEFAULT_PROXY_TEST_URL = "https://httpbin.org/ip"
@@ -258,10 +259,8 @@ class ProxyRotator:
 
 def load_proxy_config(config_path: Optional[Path] = None) -> dict:
     """Carga configuración de proxies desde YAML y variables de entorno."""
-    path = config_path or Path(os.getenv("PROXY_CONFIG_PATH", "proxies.yaml"))
-    payload: dict = {}
-    if path.exists():
-        payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    path = config_path or Path(os.getenv("PROXY_CONFIG_PATH", "config/prod/proxies.yaml"))
+    payload: dict = load_config(path=str(path), defaults={})
 
     def env(name: str, default: Optional[str] = None) -> Optional[str]:
         """Español: Función env del módulo src/centinel/proxy_handler.py.
