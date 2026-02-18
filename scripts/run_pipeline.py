@@ -55,9 +55,8 @@ from centinel_engine.config_loader import load_config as load_engine_config
 
 # Security hardening modules / Modulos de endurecimiento de seguridad
 from centinel_engine.rate_limiter import get_rate_limiter
-from centinel_engine.proxy_manager import get_proxy_and_ua, mark_proxy_bad
-from centinel_engine.secure_backup import backup_critical, BackupScheduler
-from centinel_engine.vital_signs import check_vital_signs, update_status_after_scrape
+from centinel_engine import proxy_manager, secure_backup, vital_signs
+from centinel_engine.secure_backup import BackupScheduler
 
 DATA_DIR = Path("data")
 TEMP_DIR = DATA_DIR / "temp"
@@ -726,7 +725,9 @@ def run_pipeline(config: dict[str, Any]) -> None:
             if waited > 0:
                 log_event(logger, logging.DEBUG, "rate_limiter_waited", seconds=round(waited, 2))
 
-            proxy_dict, user_agent = get_proxy_and_ua()
+            # Select proxy + User-Agent before each CNE request /
+            # Seleccionar proxy + User-Agent antes de cada request al CNE
+            proxy_dict, user_agent = proxy_manager.get_proxy_and_ua()
             proxy_url = (proxy_dict or {}).get("https")
             log_event(
                 logger,
@@ -754,7 +755,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
                 # Never break on proxy rotation hook failure /
                 # Nunca romper por fallo del hook de rotacion de proxy
                 try:
-                    mark_proxy_bad(proxy_dict)
+                    proxy_manager.mark_proxy_bad(proxy_dict)
                 except Exception as proxy_exc:  # noqa: BLE001
                     log_event(logger, logging.WARNING, "proxy_mark_bad_failed", error=str(proxy_exc))
                 log_event(
@@ -766,14 +767,14 @@ def run_pipeline(config: dict[str, Any]) -> None:
                 )
                 # Force immediate vital signs evaluation after critical errors /
                 # Forzar evaluacion inmediata de signos vitales tras errores criticos
-                scrape_status = update_status_after_scrape(
+                scrape_status = vital_signs.update_status_after_scrape(
                     scrape_status,
                     success=False,
                     latency=max(0.0, time.monotonic() - request_started_at),
                     status_code=status_code,
                 )
                 scrape_status["consecutive_failures"] = consecutive_failures
-                vital_state = check_vital_signs(config, scrape_status)
+                vital_state = vital_signs.check_vital_signs(config, scrape_status)
                 log_event(
                     logger,
                     logging.WARNING,
@@ -789,12 +790,12 @@ def run_pipeline(config: dict[str, Any]) -> None:
                 # Mark proxy as bad for 429/403/5xx without breaking run /
                 # Marcar proxy como malo para 429/403/5xx sin romper la corrida
                 try:
-                    mark_proxy_bad(proxy_dict)
+                    proxy_manager.mark_proxy_bad(proxy_dict)
                 except Exception as proxy_exc:  # noqa: BLE001
                     log_event(logger, logging.WARNING, "proxy_mark_bad_failed", error=str(proxy_exc))
 
             if consecutive_failures > 0:
-                scrape_status = update_status_after_scrape(
+                scrape_status = vital_signs.update_status_after_scrape(
                     scrape_status,
                     success=False,
                     latency=latency,
@@ -803,7 +804,9 @@ def run_pipeline(config: dict[str, Any]) -> None:
                 scrape_status["consecutive_failures"] = consecutive_failures
                 # Immediate vital-signs recalculation after failures /
                 # Recalculo inmediato de signos vitales tras fallos
-                vital_state = check_vital_signs(config, scrape_status)
+                # Force immediate vital signs evaluation /
+                # Forzar evaluacion inmediata de signos vitales
+                vital_state = vital_signs.check_vital_signs(config, scrape_status)
                 log_event(
                     logger,
                     logging.WARNING,
@@ -928,7 +931,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
             _anchor_snapshot(config, state, now, latest_snapshot)
             _anchor_if_due(config, state, now)
 
-        scrape_status = update_status_after_scrape(
+        scrape_status = vital_signs.update_status_after_scrape(
             scrape_status,
             success=True,
             latency=0.0,
@@ -944,7 +947,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
         # Respaldo cifrado despues de scrape exitoso
         if enable_backup:
             try:
-                backup_result = backup_critical()
+                backup_result = secure_backup.backup_critical()
                 log_event(
                     logger,
                     logging.INFO,
@@ -978,7 +981,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
         # Ejecutar siempre un respaldo parcial fail-safe
         if enable_backup:
             try:
-                backup_critical()
+                secure_backup.backup_critical()
             except Exception as backup_exc:  # noqa: BLE001
                 log_event(logger, logging.WARNING, "final_backup_failed", error=str(backup_exc))
 
