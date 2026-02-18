@@ -91,3 +91,32 @@ def test_solidity_runtime_checks_detect_blocked_pattern(tmp_path: Path) -> None:
     manager = AdvancedSecurityManager(cfg)
     triggers = manager.detect_internal_anomalies()
     assert any(t.startswith("solidity_blocked_pattern") for t in triggers)
+
+
+def test_honeypot_encrypts_events_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    pytest.importorskip("flask")
+
+    class FakeFernet:
+        def __init__(self, key: bytes) -> None:
+            self.key = key
+
+        def encrypt(self, data: bytes) -> bytes:
+            return b"enc:" + data[::-1]
+
+    monkeypatch.setenv("HONEYPOT_LOG_KEY", "unit-test-key")
+    monkeypatch.setattr("core.advanced_security.Fernet", FakeFernet)
+
+    cfg = AdvancedSecurityConfig(
+        honeypot_enabled=True,
+        honeypot_endpoints=["/admin"],
+        honeypot_encrypt_events=True,
+        honeypot_events_path=str(tmp_path / "honeypot.enc"),
+    )
+    honeypot = HoneypotService(cfg)
+    client = honeypot.app.test_client()
+    response = client.get("/admin", headers={"User-Agent": "scanner"})
+
+    assert response.status_code in {403, 404, 500}
+    raw_line = honeypot.events_path.read_text(encoding="utf-8").strip()
+    assert raw_line.startswith("enc:")
+    assert "/admin" not in raw_line

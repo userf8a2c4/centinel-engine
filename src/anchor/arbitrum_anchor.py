@@ -150,6 +150,53 @@ def _resolve_private_key(settings: dict[str, Any]) -> str | None:
     return env_key
 
 
+
+
+def _obfuscate_identifier(value: str) -> str:
+    """Return shortened identifier for logs without exposing full values.
+
+    Devuelve identificador acortado para logs sin exponer valores completos.
+    """
+    if len(value) <= 10:
+        return value
+    return f"{value[:6]}…{value[-4:]}"
+
+
+def _log_anchor_start(settings: dict[str, Any], anchor_id: str, root_hex: str) -> None:
+    privacy_mode = bool(settings.get("log_redact_identifiers", False))
+    if privacy_mode:
+        logger.info("anchor_root_start anchor_id=%s root=%s", _obfuscate_identifier(anchor_id), _obfuscate_identifier(root_hex))
+        return
+    logger.info("anchor_root_start anchor_id=%s root=%s", anchor_id, root_hex)
+
+
+def _log_anchor_sent(
+    settings: dict[str, Any],
+    *,
+    anchor_id: str,
+    tx_hash_hex: str,
+    root_hex: str,
+    checksum_address: str,
+) -> None:
+    privacy_mode = bool(settings.get("log_redact_identifiers", False))
+    if privacy_mode:
+        logger.info(
+            "anchor_root_sent anchor_id=%s tx_hash=%s root=%s contract=%s",
+            _obfuscate_identifier(anchor_id),
+            _obfuscate_identifier(tx_hash_hex),
+            _obfuscate_identifier(root_hex),
+            _obfuscate_identifier(checksum_address),
+        )
+        return
+    logger.info(
+        "anchor_root_sent anchor_id=%s tx_hash=%s root=%s contract=%s",
+        anchor_id,
+        tx_hash_hex,
+        root_hex,
+        checksum_address,
+    )
+
+
 def _build_web3_client(rpc_url: str) -> Web3:
     """Construye un cliente Web3 conectado al RPC.
 
@@ -264,7 +311,7 @@ def anchor_root(root_hash: str) -> Dict[str, Any]:
     timestamp = datetime.now(timezone.utc).isoformat()
     root_bytes = _normalize_hash(root_hash)
     root_hex = f"0x{root_bytes.hex()}"
-    logger.info("anchor_root_start anchor_id=%s root=%s", anchor_id, root_hex)
+    _log_anchor_start(settings, anchor_id, root_hex)
 
     web3 = _build_web3_client(rpc_url)
     tx, checksum_address = _build_anchor_transaction(
@@ -275,12 +322,12 @@ def anchor_root(root_hash: str) -> Dict[str, Any]:
     )
     tx_hash_hex = _send_anchor_transaction(web3=web3, tx=tx, private_key=private_key)
 
-    logger.info(
-        "anchor_root_sent anchor_id=%s tx_hash=%s root=%s contract=%s",
-        anchor_id,
-        tx_hash_hex,
-        root_hex,
-        checksum_address,
+    _log_anchor_sent(
+        settings,
+        anchor_id=anchor_id,
+        tx_hash_hex=tx_hash_hex,
+        root_hex=root_hex,
+        checksum_address=checksum_address,
     )
 
     return {
@@ -327,7 +374,14 @@ def anchor_batch(hashes: List[str]) -> Dict[str, Any]:
     batch_id = uuid4().hex
     timestamp = datetime.now(timezone.utc).isoformat()
     root = _build_merkle_root(hashes)
-    logger.info("anchor_batch_start batch_id=%s root=%s", batch_id, root)
+    if settings.get("log_redact_identifiers", False):
+        logger.info(
+            "anchor_batch_start batch_id=%s root=%s",
+            _obfuscate_identifier(batch_id),
+            _obfuscate_identifier(root),
+        )
+    else:
+        logger.info("anchor_batch_start batch_id=%s root=%s", batch_id, root)
 
     web3 = _build_web3_client(rpc_url)
     root_bytes = web3.to_bytes(hexstr=root)
@@ -339,7 +393,15 @@ def anchor_batch(hashes: List[str]) -> Dict[str, Any]:
     )
     tx_hash_hex = _send_anchor_transaction(web3=web3, tx=tx, private_key=private_key)
 
-    logger.info("anchor_batch_sent batch_id=%s tx_hash=%s root=%s", batch_id, tx_hash_hex, root)
+    if settings.get("log_redact_identifiers", False):
+        logger.info(
+            "anchor_batch_sent batch_id=%s tx_hash=%s root=%s",
+            _obfuscate_identifier(batch_id),
+            _obfuscate_identifier(tx_hash_hex),
+            _obfuscate_identifier(root),
+        )
+    else:
+        logger.info("anchor_batch_sent batch_id=%s tx_hash=%s root=%s", batch_id, tx_hash_hex, root)
 
     return {
         "tx_hash": tx_hash_hex,
