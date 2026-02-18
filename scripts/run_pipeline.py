@@ -36,6 +36,11 @@ from centinel.core.anchoring_payload import build_diff_summary, compute_anchor_r
 from centinel.core.custody import run_startup_verification
 from centinel.utils.config_loader import load_config
 
+# Security hardening modules / Modulos de endurecimiento de seguridad
+from centinel_engine.rate_limiter import get_rate_limiter
+from centinel_engine.proxy_manager import get_proxy_ua_manager
+from centinel_engine.secure_backup import backup_critical_assets, BackupScheduler
+
 DATA_DIR = Path("data")
 TEMP_DIR = DATA_DIR / "temp"
 HASH_DIR = Path("hashes")
@@ -623,6 +628,25 @@ def run_pipeline(config: dict[str, Any]):
     )
     log_event(logger, logging.INFO, "pipeline_start", run_id=run_id)
 
+    # Apply client-side rate limiting before pipeline execution /
+    # Aplicar rate-limiting del lado cliente antes de ejecutar pipeline
+    rate_limiter = get_rate_limiter()
+    waited = rate_limiter.wait()
+    if waited > 0:
+        log_event(logger, logging.DEBUG, "rate_limiter_waited", seconds=round(waited, 2))
+
+    # Rotate proxy and User-Agent for this cycle /
+    # Rotar proxy y User-Agent para este ciclo
+    proxy_ua_mgr = get_proxy_ua_manager()
+    _proxy_url, _user_agent = proxy_ua_mgr.rotate_proxy_and_ua()
+    log_event(
+        logger,
+        logging.DEBUG,
+        "proxy_ua_rotated",
+        proxy=_proxy_url or "direct",
+        ua=_user_agent[:60],
+    )
+
     try:
         if should_run_stage("healthcheck", start_stage):
             save_pipeline_checkpoint({"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()})
@@ -749,6 +773,22 @@ def run_pipeline(config: dict[str, Any]):
         save_state(state)
         clear_pipeline_checkpoint()
         clear_resilience_checkpoint()
+
+        # Encrypted backup after successful scrape /
+        # Respaldo cifrado despues de scrape exitoso
+        try:
+            backup_result = backup_critical_assets()
+            log_event(
+                logger,
+                logging.INFO,
+                "post_scrape_backup",
+                run_id=run_id,
+                local=backup_result.get("local", False),
+                files=len(backup_result.get("files_backed_up", [])),
+            )
+        except Exception as backup_exc:  # noqa: BLE001
+            log_event(logger, logging.WARNING, "post_scrape_backup_failed", error=str(backup_exc))
+
         log_event(logger, logging.INFO, "pipeline_complete", run_id=run_id)
     except Exception as exc:  # noqa: BLE001
         log_event(
@@ -1086,6 +1126,11 @@ def main():
     advanced_security_manager = load_manager(ADVANCED_SECURITY_CONFIG_PATH)
     advanced_security_manager.start()
 
+    # Start background encrypted backup scheduler (every 30 min) /
+    # Iniciar programador de respaldo cifrado en segundo plano (cada 30 min)
+    backup_scheduler = BackupScheduler(interval_seconds=1800)
+    backup_scheduler.start()
+
     def _guarded_run() -> bool:
         attack_logbook.log_connection_snapshot()
         triggers = security_manager.detect_hostile_conditions()
@@ -1167,6 +1212,7 @@ def main():
         print("[+] Scheduler activo: ejecución horaria en minuto 00 UTC")
         scheduler.start()
     finally:
+        backup_scheduler.stop()
         advanced_security_manager.shutdown()
         honeypot.stop()
         attack_logbook.stop()

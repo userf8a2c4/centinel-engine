@@ -19,6 +19,9 @@ Sistema técnico open-source para observar y auditar datos electorales **públic
 - Organización de datos scrapeados por departamento y fuente.
 - Homeostasis operativa (vital signs) para ajustar cadencia de scraping dentro de límites éticos.
 - Endurecimiento de seguridad con controles de enfoque zero-trust en producción.
+- Rate-limiting agresivo del lado cliente (token-bucket) + rotación de proxies y User-Agent pool (50+).
+- Respaldo cifrado AES-256 automático a múltiples destinos (local, Dropbox, S3).
+- [Matriz de cumplimiento legal](/docs/legal_compliance_matrix.md) con referencias a legislación hondureña vigente.
 - Configuración centralizada en [`command_center/`](/command_center/) y dashboard de demostración en [Streamlit](https://centinel-dashboard.streamlit.app/).
 
 ### Estado
@@ -34,6 +37,9 @@ Open-source technical system to monitor and audit **public** election data in Ho
 - Scraped data organization by department and source.
 - Operational homeostasis (vital signs) to adapt scrape cadence within ethical bounds.
 - Security hardening with production-focused zero-trust controls.
+- Aggressive client-side rate limiting (token-bucket) + proxy rotation and User-Agent pool (50+).
+- AES-256 encrypted automatic backup to multiple destinations (local, Dropbox, S3).
+- [Legal compliance matrix](/docs/legal_compliance_matrix.md) with references to current Honduran legislation.
 - Centralized configuration in [`command_center/`](/command_center/) plus a demo [Streamlit dashboard](https://centinel-dashboard.streamlit.app/).
 
 ### Status
@@ -58,6 +64,7 @@ make pipeline
 | [Principios operativos](docs/operating_principles.md) | [Seguridad](docs/security.md) |
 | [Reglas](docs/rules.md) | [Secretos y respaldos](docs/SECRETS_BACKUP.md) |
 | [Resiliencia (configs)](docs/resilience.md) | [Circuit breaker y low-profile](docs/resilience.md#circuit-breaker-y-low-profile) |
+| [Matriz legal / Legal matrix](docs/legal_compliance_matrix.md) | [Security audit](SECURITY_AUDIT.md) |
 
 ## Descargo / Disclaimer
 
