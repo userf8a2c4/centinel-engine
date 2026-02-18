@@ -28,3 +28,8 @@
 - **Licensing consistency** aligned to AGPL-3.0 across repository metadata.
 - **Release governance** requires lockfile integrity and signed release checklist.
 - **Operational governance** keeps Arbitrum disabled by default outside electoral windows.
+
+## Cumplimiento Legal – Feb 2026
+
+- Matriz oficial: [docs/legal_compliance_matrix.md](docs/legal_compliance_matrix.md).
+- Declaración obligatoria de reportes: **"Datos solo de fuentes públicas CNE, conforme Ley Transparencia 170-2006. Agnóstico político."**

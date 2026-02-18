@@ -2012,7 +2012,7 @@ configs = load_configs()
 command_center_cfg = configs.get("command_center", {})
 rules_path = Path("command_center") / "rules.yaml"
 if not rules_path.exists():
-    rules_path = Path("rules.yaml")
+    rules_path = Path("config/prod/rules.yaml")
 rules_cfg = load_rules_config(rules_path)
 resilience_cfg = rules_cfg.get("resiliencia", {}) if rules_cfg else {}
 
@@ -2955,7 +2955,7 @@ with tabs[5]:
         "footer_right": f"Hash reporte: {report_hash[:16]}…",
         "footer_root_hash": anchor.root_hash,
         "footer_disclaimer": (
-            "Documento generado automáticamente por Centinel Engine. " "Prohibida su alteración parcial."
+            "Datos solo de fuentes públicas CNE, conforme Ley Transparencia 170-2006. Agnóstico político."
         ),
     }
 

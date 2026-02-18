@@ -38,8 +38,8 @@ from centinel.utils.config_loader import load_config
 
 # Security hardening modules / Modulos de endurecimiento de seguridad
 from centinel_engine.rate_limiter import get_rate_limiter
-from centinel_engine.proxy_manager import get_proxy_ua_manager
-from centinel_engine.secure_backup import backup_critical_assets, BackupScheduler
+from centinel_engine.proxy_manager import get_proxy_and_ua, get_proxy_ua_manager
+from centinel_engine.secure_backup import backup_critical, backup_critical_assets, BackupScheduler
 
 DATA_DIR = Path("data")
 TEMP_DIR = DATA_DIR / "temp"
@@ -642,7 +642,8 @@ def run_pipeline(config: dict[str, Any]):
     # Rotate proxy and User-Agent for this cycle /
     # Rotar proxy y User-Agent para este ciclo
     proxy_ua_mgr = get_proxy_ua_manager()
-    _proxy_url, _user_agent = proxy_ua_mgr.rotate_proxy_and_ua()
+    _proxy_dict, _user_agent = get_proxy_and_ua()
+    _proxy_url = (_proxy_dict or {}).get("https")
     log_event(
         logger,
         logging.DEBUG,
@@ -672,7 +673,7 @@ def run_pipeline(config: dict[str, Any]):
                 save_resilience_checkpoint(run_id, "download")
                 maybe_inject_chaos_failure("download", resilience_settings, chaos_rng)
                 retry_config_path = config.get("retry_config_path") or os.getenv(
-                    "RETRY_CONFIG_PATH", "retry_config.yaml"
+                    "RETRY_CONFIG_PATH", "config/prod/retry_config.yaml"
                 )
                 download_env = os.environ.copy()
                 download_env["RETRY_CONFIG_PATH"] = retry_config_path
@@ -781,7 +782,7 @@ def run_pipeline(config: dict[str, Any]):
         # Encrypted backup after successful scrape /
         # Respaldo cifrado despues de scrape exitoso
         try:
-            backup_result = backup_critical_assets()
+            backup_result = backup_critical()
             log_event(
                 logger,
                 logging.INFO,

@@ -1,0 +1,4 @@
+capacity: 3
+rate_interval_seconds: 10
+min_interval_seconds: 8
+max_interval_seconds: 12

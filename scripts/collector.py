@@ -24,7 +24,7 @@ from centinel.schemas import validate_snapshot
 
 LOGGER = logging.getLogger("centinel.collector")
 DEFAULT_CONFIG_PATH = Path("command_center/config.yaml")
-DEFAULT_RETRY_PATH = Path("retry_config.yaml")
+DEFAULT_RETRY_PATH = Path("config/prod/retry_config.yaml")
 DEFAULT_OUTPUT_PATH = Path("data/collector_latest.json")
 
 

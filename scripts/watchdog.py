@@ -491,7 +491,7 @@ def main() -> None:
 
     English: Function main defined in scripts/watchdog.py.
     """
-    config_path = Path(os.getenv("WATCHDOG_CONFIG", "watchdog.yaml"))
+    config_path = Path(os.getenv("WATCHDOG_CONFIG", "config/prod/watchdog.yaml"))
     logger = configure_logging("centinel.watchdog", log_file="logs/watchdog.log")
     logger.info("watchdog_start config=%s", config_path)
     config = _load_config(config_path)
