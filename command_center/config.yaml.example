@@ -109,6 +109,10 @@ backoff_base_seconds: 2
 # EN: Maximum backoff between retries (seconds).
 backoff_max_seconds: 60
 
+# ES: Habilita respaldo seguro tras scrape exitoso y siempre en finally (default: true).
+# EN: Enables secure backup after successful scrape and always in finally (default: true).
+ENABLE_BACKUP: true
+
 # ES: Encabezados HTTP globales.
 # EN: Global HTTP headers.
 headers:

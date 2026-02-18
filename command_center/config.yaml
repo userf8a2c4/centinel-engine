@@ -102,6 +102,11 @@ backoff_max_seconds: 30
 
 # Rate limiting interno para polling/maintain.
 # Internal rate limiting for polling/maintain.
+
+# Habilita respaldo seguro al finalizar scrape y en finally (default: true).
+# Enables secure backup after successful scrape and in finally (default: true).
+ENABLE_BACKUP: true
+
 polling_rate_limit:
   # Cooldown mínimo entre solicitudes (segundos).
   # Minimum cooldown between requests (seconds).
