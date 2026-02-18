@@ -208,7 +208,8 @@ def get_rate_limiter(
     burst: int = DEFAULT_BURST,
     min_interval: float = DEFAULT_MIN_INTERVAL,
     max_interval: float = DEFAULT_MAX_INTERVAL,
-    config_path: str = "config/prod/rate_limiter.yaml",
+    config_file_name: str = "rate_limiter.yaml",
+    config_env: str = "prod",
 ) -> TokenBucketRateLimiter:
     """Return the global rate limiter instance, creating it on first call.
 
@@ -226,15 +227,21 @@ def get_rate_limiter(
         if _RATE_LIMITER is not None:
             return _RATE_LIMITER
 
-        config = load_config(
-            path=config_path,
-            defaults={
-                "capacity": burst,
-                "rate_interval_seconds": DEFAULT_RATE_INTERVAL,
-                "min_interval_seconds": min_interval,
-                "max_interval_seconds": max_interval,
-            },
-        )
+        defaults: dict[str, float | int] = {
+            "capacity": burst,
+            "rate_interval_seconds": DEFAULT_RATE_INTERVAL,
+            "min_interval_seconds": min_interval,
+            "max_interval_seconds": max_interval,
+        }
+        try:
+            loaded_config = load_config(config_file_name, env=config_env)
+            config = {**defaults, **loaded_config}
+        except ValueError as exc:
+            logger.error(
+                "rate_limiter_config_error | error de configuracion rate limiter: %s",
+                exc,
+            )
+            config = dict(defaults)
         resolved_rate_interval = max(8.0, float(config.get("rate_interval_seconds", DEFAULT_RATE_INTERVAL)))
         resolved_burst = int(config.get("capacity", burst))
         resolved_min_interval = float(config.get("min_interval_seconds", min_interval))

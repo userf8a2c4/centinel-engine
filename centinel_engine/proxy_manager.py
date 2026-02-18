@@ -246,6 +246,31 @@ class ProxyAndUAManager:
             return True
         return False
 
+
+    def mark_proxy_bad(self, proxy: Optional[Dict[str, str]] = None) -> None:
+        """Mark current proxy as unhealthy and force next rotation when possible.
+
+        Bilingual: Marca el proxy actual como no saludable y fuerza la
+        siguiente rotacion cuando sea posible.
+
+        Args:
+            proxy: Proxy dictionary from ``get_proxy_and_ua`` (optional).
+        """
+        del proxy  # Explicitly unused marker / Marcador explicito de no uso
+        if self._proxy_rotator is None:
+            logger.warning("proxy_mark_bad_skipped | sin rotador de proxy configurado")
+            return
+
+        with self._lock:
+            try:
+                self._proxy_rotator._requests_since_rotation = self._proxy_rotator.rotation_every_n
+                self._rotation_count += 1
+                logger.warning(
+                    "proxy_marked_bad | proxy marcado como malo, rotacion forzada en siguiente request"
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.error("proxy_mark_bad_failed | fallo al marcar proxy malo: %s", exc)
+
     @property
     def stats(self) -> Dict[str, Any]:
         """Return manager statistics for monitoring.
@@ -329,3 +354,15 @@ def get_proxy_and_ua(
 
     proxy_dict: Dict[str, str] = {"http": proxy_url, "https": proxy_url}
     return proxy_dict, ua_str
+
+
+def mark_proxy_bad(proxy: Optional[Dict[str, str]] = None) -> None:
+    """Mark the active proxy as bad in the global manager.
+
+    Bilingual: Marca el proxy activo como malo en el gestor global.
+
+    Args:
+        proxy: Proxy dictionary returned by ``get_proxy_and_ua``.
+    """
+    manager = get_proxy_ua_manager()
+    manager.mark_proxy_bad(proxy)
