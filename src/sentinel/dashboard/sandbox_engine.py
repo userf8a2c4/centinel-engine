@@ -13,22 +13,16 @@ All operations are ephemeral and discarded when the session ends.
 
 from __future__ import annotations
 
-import collections
 import copy
 import hashlib
 import importlib
 import json
-import math
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
-
-from sentinel.dashboard.utils.constants import DEPARTMENTS, PARTIES
-
 
 # ---------------------------------------------------------------------------
 # Rule registry – maps config keys to module paths
@@ -73,6 +67,7 @@ DEFAULT_RULE_PARAMS: dict[str, dict[str, Any]] = {
 # ---------------------------------------------------------------------------
 # Load historical 2025 snapshots from disk
 # ---------------------------------------------------------------------------
+
 
 def _safe_int(value: Any) -> int:
     """Parse a string like '1,023,359' into an int."""
@@ -126,7 +121,9 @@ def load_historical_snapshots(data_dir: str | None = None) -> list[dict[str, Any
         ts = _parse_timestamp_from_filename(filepath.name)
         if ts is None:
             continue
-        snapshots.append({"payload": payload, "timestamp": ts, "filename": filepath.name})
+        snapshots.append(
+            {"payload": payload, "timestamp": ts, "filename": filepath.name}
+        )
 
     return sorted(snapshots, key=lambda s: s["timestamp"])
 
@@ -134,6 +131,7 @@ def load_historical_snapshots(data_dir: str | None = None) -> list[dict[str, Any
 # ---------------------------------------------------------------------------
 # Convert raw CNE snapshot to the dict format that rules expect
 # ---------------------------------------------------------------------------
+
 
 def snapshot_to_rule_format(raw: dict[str, Any], timestamp: datetime) -> dict[str, Any]:
     """Convert a raw CNE JSON snapshot into the flat dict rules expect."""
@@ -145,12 +143,14 @@ def snapshot_to_rule_format(raw: dict[str, Any], timestamp: datetime) -> dict[st
 
     candidates = []
     for r in resultados:
-        candidates.append({
-            "name": r.get("candidato", ""),
-            "party": r.get("partido", ""),
-            "votes": _safe_int(r.get("votos")),
-            "id": r.get("candidato", ""),
-        })
+        candidates.append(
+            {
+                "name": r.get("candidato", ""),
+                "party": r.get("partido", ""),
+                "votes": _safe_int(r.get("votos")),
+                "id": r.get("candidato", ""),
+            }
+        )
 
     return {
         "timestamp": timestamp.isoformat(),
@@ -158,8 +158,8 @@ def snapshot_to_rule_format(raw: dict[str, Any], timestamp: datetime) -> dict[st
         "candidatos": candidates,
         "totals": {
             "total_votes": _safe_int(distribucion.get("validos", 0))
-                           + _safe_int(distribucion.get("nulos", 0))
-                           + _safe_int(distribucion.get("blancos", 0)),
+            + _safe_int(distribucion.get("nulos", 0))
+            + _safe_int(distribucion.get("blancos", 0)),
             "valid_votes": _safe_int(distribucion.get("validos")),
             "null_votes": _safe_int(distribucion.get("nulos")),
             "blank_votes": _safe_int(distribucion.get("blancos")),
@@ -178,6 +178,7 @@ def snapshot_to_rule_format(raw: dict[str, Any], timestamp: datetime) -> dict[st
 # ---------------------------------------------------------------------------
 # Convert a rule-format dict to a DataFrame row for dashboard display
 # ---------------------------------------------------------------------------
+
 
 def rule_format_to_df_row(data: dict[str, Any]) -> dict[str, Any]:
     """Turn a rule-format dict into a flat row suitable for a DataFrame."""
@@ -200,7 +201,9 @@ def rule_format_to_df_row(data: dict[str, Any]) -> dict[str, Any]:
         short = _short_party_name(name)
         row[short] = c.get("votes", 0)
 
-    hash_input = f"{data.get('timestamp')}_{row['total_votos']}_{row.get('actas_divulgadas')}"
+    hash_input = (
+        f"{data.get('timestamp')}_{row['total_votos']}_{row.get('actas_divulgadas')}"
+    )
     row["hash"] = hashlib.sha256(hash_input.encode()).hexdigest()
 
     return row
@@ -225,12 +228,17 @@ def _short_party_name(full_name: str) -> str:
 # Chaos injection utilities
 # ---------------------------------------------------------------------------
 
-def inject_vote_spike(snapshot: dict[str, Any], candidate_idx: int, extra_votes: int) -> dict[str, Any]:
+
+def inject_vote_spike(
+    snapshot: dict[str, Any], candidate_idx: int, extra_votes: int
+) -> dict[str, Any]:
     """Add extra votes to a specific candidate (simulates ballot stuffing)."""
     modified = copy.deepcopy(snapshot)
     candidates = modified.get("candidatos", [])
     if 0 <= candidate_idx < len(candidates):
-        candidates[candidate_idx]["votes"] = candidates[candidate_idx].get("votes", 0) + extra_votes
+        candidates[candidate_idx]["votes"] = (
+            candidates[candidate_idx].get("votes", 0) + extra_votes
+        )
         totals = modified.get("totals", {})
         totals["total_votes"] = totals.get("total_votes", 0) + extra_votes
         totals["valid_votes"] = totals.get("valid_votes", 0) + extra_votes
@@ -245,16 +253,22 @@ def inject_arithmetic_mismatch(snapshot: dict[str, Any], offset: int) -> dict[st
     return modified
 
 
-def inject_vote_regression(snapshot: dict[str, Any], candidate_idx: int, reduction: int) -> dict[str, Any]:
+def inject_vote_regression(
+    snapshot: dict[str, Any], candidate_idx: int, reduction: int
+) -> dict[str, Any]:
     """Reduce a candidate's votes (simulates impossible regression)."""
     modified = copy.deepcopy(snapshot)
     candidates = modified.get("candidatos", [])
     if 0 <= candidate_idx < len(candidates):
-        candidates[candidate_idx]["votes"] = max(0, candidates[candidate_idx].get("votes", 0) - reduction)
+        candidates[candidate_idx]["votes"] = max(
+            0, candidates[candidate_idx].get("votes", 0) - reduction
+        )
     return modified
 
 
-def inject_acta_speed_anomaly(snapshot: dict[str, Any], extra_actas: int) -> dict[str, Any]:
+def inject_acta_speed_anomaly(
+    snapshot: dict[str, Any], extra_actas: int
+) -> dict[str, Any]:
     """Inflate processed actas to trigger speed anomaly."""
     modified = copy.deepcopy(snapshot)
     actas = modified.get("actas", {})
@@ -330,6 +344,7 @@ CHAOS_INJECTIONS = {
 # Sandbox rule execution (in-memory, no side effects)
 # ---------------------------------------------------------------------------
 
+
 def run_rules_sandbox(
     current_data: dict[str, Any],
     previous_data: dict[str, Any] | None,
@@ -357,13 +372,15 @@ def run_rules_sandbox(
                 alert["rule"] = rule_name
             all_alerts.extend(alerts)
         except Exception as exc:
-            all_alerts.append({
-                "type": f"Error en regla {rule_name}",
-                "severity": "Low",
-                "department": "SISTEMA",
-                "justification": str(exc),
-                "rule": rule_name,
-            })
+            all_alerts.append(
+                {
+                    "type": f"Error en regla {rule_name}",
+                    "severity": "Low",
+                    "department": "SISTEMA",
+                    "justification": str(exc),
+                    "rule": rule_name,
+                }
+            )
 
     return all_alerts
 
@@ -371,6 +388,7 @@ def run_rules_sandbox(
 # ---------------------------------------------------------------------------
 # Build replay DataFrame from historical snapshots
 # ---------------------------------------------------------------------------
+
 
 def build_replay_dataframe(snapshots: list[dict[str, Any]]) -> pd.DataFrame:
     """Convert a list of historical snapshots into a DataFrame for the dashboard."""

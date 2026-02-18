@@ -31,13 +31,13 @@ def render_department_tab(df: pd.DataFrame, partidos: list[str]) -> None:
 
     # Aggregate latest snapshot per department. / Agregar último snapshot por departamento.
     latest_by_dept = (
-        df.groupby("departamento")[["total_votos"] + partidos]
-        .last()
-        .reset_index()
+        df.groupby("departamento")[["total_votos"] + partidos].last().reset_index()
     )
 
     st.dataframe(
-        latest_by_dept.style.format({col: "{:,}" for col in latest_by_dept.columns if col != "departamento"})
+        latest_by_dept.style.format(
+            {col: "{:,}" for col in latest_by_dept.columns if col != "departamento"}
+        )
     )
 
     melted = latest_by_dept.melt(

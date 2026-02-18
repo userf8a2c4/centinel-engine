@@ -16,15 +16,10 @@ Fully in-memory sandbox. Does not touch production.
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import copy
-from datetime import datetime, timedelta
 
 from sentinel.dashboard.sandbox_engine import (
-    CHAOS_INJECTIONS,
     DEFAULT_RULE_PARAMS,
-    RULE_MODULES,
-    build_replay_dataframe,
     inject_acta_speed_anomaly,
     inject_arithmetic_mismatch,
     inject_benford_violation,
@@ -32,7 +27,6 @@ from sentinel.dashboard.sandbox_engine import (
     inject_vote_regression,
     inject_vote_spike,
     load_historical_snapshots,
-    rule_format_to_df_row,
     run_rules_sandbox,
     snapshot_to_rule_format,
 )
@@ -156,9 +150,7 @@ with st.sidebar:
 
     # 5. Scrutiny jump
     if st.checkbox("Salto de escrutinio", value=False, key="chk_scrut"):
-        jump_pct = st.slider(
-            "Salto (%)", 1.0, 30.0, 10.0, step=0.5, key="scrut_pct"
-        )
+        jump_pct = st.slider("Salto (%)", 1.0, 30.0, 10.0, step=0.5, key="scrut_pct")
         active_injections["salto_escrutinio"] = {"jump_pct": jump_pct}
 
     # 6. Benford violation
@@ -194,9 +186,7 @@ for injection_key, params in active_injections.items():
             modified_data, params["candidate_idx"], params["reduction"]
         )
     elif injection_key == "velocidad_actas":
-        modified_data = inject_acta_speed_anomaly(
-            modified_data, params["extra_actas"]
-        )
+        modified_data = inject_acta_speed_anomaly(modified_data, params["extra_actas"])
     elif injection_key == "salto_escrutinio":
         modified_data = inject_scrutiny_jump(modified_data, params["jump_pct"])
     elif injection_key == "violacion_benford":
@@ -260,20 +250,24 @@ with tab_compare:
         compare_rows = []
         for i, (b, m) in enumerate(zip(base_candidates, mod_candidates)):
             name = b.get("party", "") or b.get("name", f"Candidato {i}")
-            compare_rows.append({
-                "Candidato": name[:40],
-                "Votos Original": b.get("votes", 0),
-                "Votos Modificado": m.get("votes", 0),
-                "Diferencia": m.get("votes", 0) - b.get("votes", 0),
-            })
+            compare_rows.append(
+                {
+                    "Candidato": name[:40],
+                    "Votos Original": b.get("votes", 0),
+                    "Votos Modificado": m.get("votes", 0),
+                    "Diferencia": m.get("votes", 0) - b.get("votes", 0),
+                }
+            )
 
         compare_df = pd.DataFrame(compare_rows)
         st.dataframe(
-            compare_df.style.format({
-                "Votos Original": "{:,}",
-                "Votos Modificado": "{:,}",
-                "Diferencia": "{:+,}",
-            }),
+            compare_df.style.format(
+                {
+                    "Votos Original": "{:,}",
+                    "Votos Modificado": "{:,}",
+                    "Diferencia": "{:+,}",
+                }
+            ),
             use_container_width=True,
         )
 
@@ -302,28 +296,32 @@ with tab_compare:
     base_totals = base_rule_data.get("totals", {})
     mod_totals = modified_data.get("totals", {})
 
-    totals_compare = pd.DataFrame([
-        {
-            "Métrica": "Total votos",
-            "Original": base_totals.get("total_votes", 0),
-            "Modificado": mod_totals.get("total_votes", 0),
-        },
-        {
-            "Métrica": "Votos válidos",
-            "Original": base_totals.get("valid_votes", 0),
-            "Modificado": mod_totals.get("valid_votes", 0),
-        },
-        {
-            "Métrica": "Actas procesadas",
-            "Original": base_totals.get("actas_procesadas", 0),
-            "Modificado": mod_totals.get("actas_procesadas", 0),
-        },
-    ])
+    totals_compare = pd.DataFrame(
+        [
+            {
+                "Métrica": "Total votos",
+                "Original": base_totals.get("total_votes", 0),
+                "Modificado": mod_totals.get("total_votes", 0),
+            },
+            {
+                "Métrica": "Votos válidos",
+                "Original": base_totals.get("valid_votes", 0),
+                "Modificado": mod_totals.get("valid_votes", 0),
+            },
+            {
+                "Métrica": "Actas procesadas",
+                "Original": base_totals.get("actas_procesadas", 0),
+                "Modificado": mod_totals.get("actas_procesadas", 0),
+            },
+        ]
+    )
     st.dataframe(
-        totals_compare.style.format({
-            "Original": "{:,}",
-            "Modificado": "{:,}",
-        }),
+        totals_compare.style.format(
+            {
+                "Original": "{:,}",
+                "Modificado": "{:,}",
+            }
+        ),
         use_container_width=True,
     )
 
@@ -359,14 +357,23 @@ with tab_alerts:
 
     # Alert severity distribution chart
     if alerts_modified:
-        sev_counts = pd.DataFrame(alerts_modified).groupby("severity").size().reset_index(name="count")
+        sev_counts = (
+            pd.DataFrame(alerts_modified)
+            .groupby("severity")
+            .size()
+            .reset_index(name="count")
+        )
         fig_sev = px.pie(
             sev_counts,
             values="count",
             names="severity",
             title="Distribución de severidad",
             color="severity",
-            color_discrete_map={"High": "#EF553B", "Medium": "#FFA15A", "Low": "#00CC96"},
+            color_discrete_map={
+                "High": "#EF553B",
+                "Medium": "#FFA15A",
+                "Low": "#00CC96",
+            },
         )
         st.plotly_chart(fig_sev, use_container_width=True)
 

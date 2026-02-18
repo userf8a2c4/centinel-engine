@@ -22,7 +22,6 @@ import streamlit as st
 from sentinel.core.normalize import normalize_snapshot, snapshot_to_dict
 from sentinel.dashboard.utils.constants import DATA_CACHE_TTL, DEPARTMENTS, PARTIES
 
-
 REPO_OWNER = "userf8a2c4"
 REPO_NAME = "sentinel"
 BRANCH = "dev-v3"
@@ -66,10 +65,10 @@ def _simulate_snapshot_rows(timestamps: pd.DatetimeIndex) -> list[dict[str, obje
         for department_name in DEPARTMENTS:
             total_votes = int(random_number_generator.integers(8000, 60000))
             vote_share_weights = random_number_generator.dirichlet([4.2, 3.6, 1.5, 0.7])
-            party_votes = random_number_generator.multinomial(total_votes, vote_share_weights)
-            hash_input = (
-                f"{snapshot_timestamp.isoformat()}_{department_name}_{party_votes.tolist()}"
+            party_votes = random_number_generator.multinomial(
+                total_votes, vote_share_weights
             )
+            hash_input = f"{snapshot_timestamp.isoformat()}_{department_name}_{party_votes.tolist()}"
             snapshot_row_hash_sha256 = hashlib.sha256(hash_input.encode()).hexdigest()
 
             simulated_snapshot_rows.append(

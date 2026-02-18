@@ -17,16 +17,14 @@ def _ensure_db(path: str) -> None:
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with sqlite3.connect(path) as connection:
         cursor = connection.cursor()
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS irreversibility_state (
                 scope TEXT PRIMARY KEY,
                 leader TEXT,
                 irreversible INTEGER,
                 timestamp TEXT
             )
-            """
-        )
+            """)
         connection.commit()
 
 

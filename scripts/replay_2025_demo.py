@@ -8,7 +8,6 @@ from dateutil import parser
 
 from sentinel.utils.logging_config import setup_logging
 
-
 setup_logging()
 logger = logging.getLogger("sentinel.replay")
 

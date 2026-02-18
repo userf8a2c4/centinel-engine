@@ -12,7 +12,9 @@ import pandas as pd
 import streamlit as st
 
 
-def _normalize_date_range(date_range: tuple[date, date] | list[date]) -> tuple[date, date]:
+def _normalize_date_range(
+    date_range: tuple[date, date] | list[date],
+) -> tuple[date, date]:
     """English docstring: Normalize a date input into a (start, end) tuple.
 
     Args:

@@ -142,7 +142,10 @@ def update_daily_summary(state, now, anomalies_count):
 
 
 def send_alert_if_configured(
-    config: dict[str, Any], state: dict[str, Any], summary_path: Path, critical_count: int
+    config: dict[str, Any],
+    state: dict[str, Any],
+    summary_path: Path,
+    critical_count: int,
 ):
     if critical_count <= 0:
         print("[i] Alertas omitidas: no hay errores críticos")
@@ -242,24 +245,24 @@ def run_pipeline(config: dict[str, Any]):
 def _read_hashes_for_anchor(batch_size: int) -> list[str]:
     """Lee los hashes más recientes para anclaje en Arbitrum."""
     hash_files = sorted(
-        HASH_DIR.glob(\"*.sha256\"), key=lambda p: p.stat().st_mtime, reverse=True
+        HASH_DIR.glob("*.sha256"), key=lambda p: p.stat().st_mtime, reverse=True
     )
     selected = list(reversed(hash_files[:batch_size]))
     hashes: list[str] = []
     for hash_file in selected:
         try:
-            payload = json.loads(hash_file.read_text(encoding=\"utf-8\"))
-            hash_value = payload.get(\"hash\") or payload.get(\"chained_hash\")
+            payload = json.loads(hash_file.read_text(encoding="utf-8"))
+            hash_value = payload.get("hash") or payload.get("chained_hash")
             if hash_value:
                 hashes.append(hash_value)
         except json.JSONDecodeError:
-            logger.warning(\"hash_file_invalid path=%s\", hash_file)
+            logger.warning("hash_file_invalid path=%s", hash_file)
     return hashes
 
 
 def _should_anchor(state: dict[str, Any], now: datetime, interval_minutes: int) -> bool:
     """Determina si debe ejecutarse el anclaje según intervalo."""
-    last_anchor = state.get(\"last_anchor_at\")
+    last_anchor = state.get("last_anchor_at")
     if not last_anchor:
         return True
     try:
@@ -269,21 +272,23 @@ def _should_anchor(state: dict[str, Any], now: datetime, interval_minutes: int) 
     return now - last_dt >= timedelta(minutes=interval_minutes)
 
 
-def _anchor_if_due(config: dict[str, Any], state: dict[str, Any], now: datetime) -> None:
+def _anchor_if_due(
+    config: dict[str, Any], state: dict[str, Any], now: datetime
+) -> None:
     """Ejecuta el anclaje de hashes si corresponde."""
-    arbitrum_config = config.get(\"arbitrum\", {})
-    if not arbitrum_config.get(\"enabled\", False):
+    arbitrum_config = config.get("arbitrum", {})
+    if not arbitrum_config.get("enabled", False):
         return
 
-    interval_minutes = int(arbitrum_config.get(\"interval_minutes\", 15))
-    batch_size = int(arbitrum_config.get(\"batch_size\", 19))
+    interval_minutes = int(arbitrum_config.get("interval_minutes", 15))
+    batch_size = int(arbitrum_config.get("batch_size", 19))
     if not _should_anchor(state, now, interval_minutes):
         return
 
     hashes = _read_hashes_for_anchor(batch_size)
     if len(hashes) < batch_size:
         logger.warning(
-            \"anchor_skipped_not_enough_hashes expected=%s actual=%s\",
+            "anchor_skipped_not_enough_hashes expected=%s actual=%s",
             batch_size,
             len(hashes),
         )
@@ -292,21 +297,21 @@ def _anchor_if_due(config: dict[str, Any], state: dict[str, Any], now: datetime)
     try:
         result = anchor_batch(hashes)
     except Exception as exc:  # noqa: BLE001
-        logger.error(\"anchor_failed error=%s\", exc)
+        logger.error("anchor_failed error=%s", exc)
         return
 
     anchor_record = {
-        \"batch_id\": result.get(\"batch_id\"),
-        \"root\": result.get(\"root\"),
-        \"tx_hash\": result.get(\"tx_hash\"),
-        \"timestamp\": result.get(\"timestamp\"),
-        \"individual_hashes\": hashes,
+        "batch_id": result.get("batch_id"),
+        "root": result.get("root"),
+        "tx_hash": result.get("tx_hash"),
+        "timestamp": result.get("timestamp"),
+        "individual_hashes": hashes,
     }
-    anchor_path = ANCHOR_LOG_DIR / f\"anchor_{anchor_record['batch_id']}.json\"
+    anchor_path = ANCHOR_LOG_DIR / f"anchor_{anchor_record['batch_id']}.json"
     anchor_path.write_text(
-        json.dumps(anchor_record, indent=2, ensure_ascii=False), encoding=\"utf-8\"
+        json.dumps(anchor_record, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    state[\"last_anchor_at\"] = result.get(\"timestamp\")
+    state["last_anchor_at"] = result.get("timestamp")
 
 
 def main():

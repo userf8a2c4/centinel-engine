@@ -40,7 +40,9 @@ class RuleRegistry:
         return (rule for rule in self.rules.values() if rule.enabled)
 
 
-def build_rule_parameters_template(*, threshold: str = "", window: str = "", notes: str = "") -> dict[str, str]:
+def build_rule_parameters_template(
+    *, threshold: str = "", window: str = "", notes: str = ""
+) -> dict[str, str]:
     """Plantilla explícita para ubicar los valores modificables de una regla.
 
     Explicit template to locate the modifiable values of a rule.

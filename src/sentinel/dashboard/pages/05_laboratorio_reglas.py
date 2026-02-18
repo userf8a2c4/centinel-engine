@@ -18,22 +18,15 @@ with detection engine parameters.
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import time
-import copy
-from datetime import datetime, timedelta
 
 from sentinel.dashboard.sandbox_engine import (
-    DEFAULT_RULE_PARAMS,
     RULE_MODULES,
     build_replay_dataframe,
     load_historical_snapshots,
-    rule_format_to_df_row,
     run_rules_sandbox,
     snapshot_to_rule_format,
-    _short_party_name,
 )
 from sentinel.dashboard.utils.benford import benford_analysis
 
@@ -68,6 +61,7 @@ st.markdown(
 # ---------------------------------------------------------------------------
 # Load historical data
 # ---------------------------------------------------------------------------
+
 
 @st.cache_data(ttl=3600, show_spinner="Cargando snapshots históricos 2025...")
 def _load_snapshots():
@@ -124,18 +118,27 @@ with st.sidebar:
         rule_configs["benford_law"] = {
             "chi_square_threshold": st.slider(
                 "Chi² p-value umbral",
-                0.001, 0.20, 0.05, step=0.005,
+                0.001,
+                0.20,
+                0.05,
+                step=0.005,
                 key="bf_chi",
                 help="Valores más bajos = más estricto",
             ),
             "deviation_pct": st.slider(
                 "Desviación máx. (%)",
-                1.0, 50.0, 15.0, step=1.0,
+                1.0,
+                50.0,
+                15.0,
+                step=1.0,
                 key="bf_dev",
             ),
             "min_samples": st.slider(
                 "Muestras mínimas",
-                2, 50, 10, key="bf_min",
+                2,
+                50,
+                10,
+                key="bf_min",
             ),
         }
 
@@ -144,7 +147,10 @@ with st.sidebar:
         rule_configs["basic_diff"] = {
             "relative_vote_change_pct": st.slider(
                 "Cambio relativo máx. (%)",
-                1.0, 50.0, 15.0, step=1.0,
+                1.0,
+                50.0,
+                15.0,
+                step=1.0,
                 key="bd_pct",
             ),
         }
@@ -154,12 +160,18 @@ with st.sidebar:
         rule_configs["trend_shift"] = {
             "threshold_percent": st.slider(
                 "Umbral de desviación (%)",
-                1.0, 30.0, 10.0, step=0.5,
+                1.0,
+                30.0,
+                10.0,
+                step=0.5,
                 key="ts_pct",
             ),
             "max_hours": st.slider(
                 "Ventana máxima (horas)",
-                0.5, 12.0, 3.0, step=0.5,
+                0.5,
+                12.0,
+                3.0,
+                step=0.5,
                 key="ts_hrs",
             ),
         }
@@ -169,7 +181,10 @@ with st.sidebar:
         rule_configs["processing_speed"] = {
             "max_actas_per_15min": st.slider(
                 "Máx. actas por 15 min",
-                50, 2000, 500, step=50,
+                50,
+                2000,
+                500,
+                step=50,
                 key="ps_actas",
             ),
         }
@@ -179,7 +194,10 @@ with st.sidebar:
         rule_configs["participation_anomaly"] = {
             "scrutiny_jump_pct": st.slider(
                 "Salto escrutinio (%)",
-                0.5, 20.0, 5.0, step=0.5,
+                0.5,
+                20.0,
+                5.0,
+                step=0.5,
                 key="pa_jump",
             ),
         }
@@ -189,12 +207,18 @@ with st.sidebar:
         rule_configs["ml_outliers"] = {
             "contamination": st.slider(
                 "Contaminación (Isolation Forest)",
-                0.01, 0.50, 0.10, step=0.01,
+                0.01,
+                0.50,
+                0.10,
+                step=0.01,
                 key="ml_cont",
             ),
             "min_samples": st.slider(
                 "Muestras mínimas",
-                2, 20, 5, key="ml_min",
+                2,
+                20,
+                5,
+                key="ml_min",
             ),
         }
 
@@ -215,8 +239,7 @@ selected_snapshots = snapshots[start_idx:end_idx]
 
 # Convert to rule format
 rule_data_list = [
-    snapshot_to_rule_format(s["payload"], s["timestamp"])
-    for s in selected_snapshots
+    snapshot_to_rule_format(s["payload"], s["timestamp"]) for s in selected_snapshots
 ]
 
 # Run rules on each consecutive pair
@@ -265,20 +288,31 @@ with col4:
 st.markdown("---")
 
 # Tabs
-tab_timeline, tab_alerts, tab_benford, tab_explorer = st.tabs([
-    "Evolución Temporal",
-    "Línea de Alertas",
-    "Análisis Benford",
-    "Explorador de Snapshots",
-])
+tab_timeline, tab_alerts, tab_benford, tab_explorer = st.tabs(
+    [
+        "Evolución Temporal",
+        "Línea de Alertas",
+        "Análisis Benford",
+        "Explorador de Snapshots",
+    ]
+)
 
 with tab_timeline:
     st.subheader("Evolución de votos por partido")
 
     if not replay_df.empty:
         # Detect party columns (non-standard columns)
-        base_cols = {"timestamp", "departamento", "total_votos", "actas_divulgadas",
-                     "actas_totales", "votos_validos", "votos_nulos", "votos_blancos", "hash"}
+        base_cols = {
+            "timestamp",
+            "departamento",
+            "total_votos",
+            "actas_divulgadas",
+            "actas_totales",
+            "votos_validos",
+            "votos_nulos",
+            "votos_blancos",
+            "hash",
+        }
         party_cols = [c for c in replay_df.columns if c not in base_cols]
 
         if party_cols:
@@ -317,9 +351,14 @@ with tab_timeline:
             st.plotly_chart(fig_actas, use_container_width=True)
 
         # Scrutiny percentage
-        if "actas_divulgadas" in replay_df.columns and "actas_totales" in replay_df.columns:
+        if (
+            "actas_divulgadas" in replay_df.columns
+            and "actas_totales" in replay_df.columns
+        ):
             replay_df["pct_escrutado"] = (
-                replay_df["actas_divulgadas"] / replay_df["actas_totales"].replace(0, 1) * 100
+                replay_df["actas_divulgadas"]
+                / replay_df["actas_totales"].replace(0, 1)
+                * 100
             )
             fig_pct = px.area(
                 replay_df,
@@ -337,34 +376,44 @@ with tab_alerts:
 
     if all_alerts_timeline:
         # Alerts per snapshot bar chart
-        alert_timeline_df = pd.DataFrame({
-            "Snapshot": range(len(alerts_per_snapshot)),
-            "Timestamp": [s["timestamp"].strftime("%m-%d %H:%M") for s in selected_snapshots],
-            "Alertas": alerts_per_snapshot,
-            "High": [s["High"] for s in severity_per_snapshot],
-            "Medium": [s["Medium"] for s in severity_per_snapshot],
-            "Low": [s["Low"] for s in severity_per_snapshot],
-        })
+        alert_timeline_df = pd.DataFrame(
+            {
+                "Snapshot": range(len(alerts_per_snapshot)),
+                "Timestamp": [
+                    s["timestamp"].strftime("%m-%d %H:%M") for s in selected_snapshots
+                ],
+                "Alertas": alerts_per_snapshot,
+                "High": [s["High"] for s in severity_per_snapshot],
+                "Medium": [s["Medium"] for s in severity_per_snapshot],
+                "Low": [s["Low"] for s in severity_per_snapshot],
+            }
+        )
 
         fig_alert_bar = go.Figure()
-        fig_alert_bar.add_trace(go.Bar(
-            x=alert_timeline_df["Timestamp"],
-            y=alert_timeline_df["High"],
-            name="Alta",
-            marker_color="#EF553B",
-        ))
-        fig_alert_bar.add_trace(go.Bar(
-            x=alert_timeline_df["Timestamp"],
-            y=alert_timeline_df["Medium"],
-            name="Media",
-            marker_color="#FFA15A",
-        ))
-        fig_alert_bar.add_trace(go.Bar(
-            x=alert_timeline_df["Timestamp"],
-            y=alert_timeline_df["Low"],
-            name="Baja",
-            marker_color="#00CC96",
-        ))
+        fig_alert_bar.add_trace(
+            go.Bar(
+                x=alert_timeline_df["Timestamp"],
+                y=alert_timeline_df["High"],
+                name="Alta",
+                marker_color="#EF553B",
+            )
+        )
+        fig_alert_bar.add_trace(
+            go.Bar(
+                x=alert_timeline_df["Timestamp"],
+                y=alert_timeline_df["Medium"],
+                name="Media",
+                marker_color="#FFA15A",
+            )
+        )
+        fig_alert_bar.add_trace(
+            go.Bar(
+                x=alert_timeline_df["Timestamp"],
+                y=alert_timeline_df["Low"],
+                name="Baja",
+                marker_color="#00CC96",
+            )
+        )
         fig_alert_bar.update_layout(
             barmode="stack",
             title="Alertas por snapshot (apiladas por severidad)",
@@ -390,7 +439,14 @@ with tab_alerts:
 
         # Full alert table
         st.subheader("Tabla completa de alertas")
-        display_cols = ["timestamp", "rule", "severity", "type", "department", "justification"]
+        display_cols = [
+            "timestamp",
+            "rule",
+            "severity",
+            "type",
+            "department",
+            "justification",
+        ]
         available_cols = [c for c in display_cols if c in alerts_df.columns]
         st.dataframe(
             alerts_df[available_cols].sort_values(
@@ -414,19 +470,23 @@ with tab_benford:
 
         if observed is not None and theoretical is not None:
             fig_benford = go.Figure()
-            fig_benford.add_trace(go.Bar(
-                x=list(range(1, 10)),
-                y=observed,
-                name="Observado",
-                marker_color="#636EFA",
-            ))
-            fig_benford.add_trace(go.Scatter(
-                x=list(range(1, 10)),
-                y=theoretical,
-                mode="lines+markers",
-                name="Benford teórico",
-                line=dict(color="#EF553B", width=2),
-            ))
+            fig_benford.add_trace(
+                go.Bar(
+                    x=list(range(1, 10)),
+                    y=observed,
+                    name="Observado",
+                    marker_color="#636EFA",
+                )
+            )
+            fig_benford.add_trace(
+                go.Scatter(
+                    x=list(range(1, 10)),
+                    y=theoretical,
+                    mode="lines+markers",
+                    name="Benford teórico",
+                    line=dict(color="#EF553B", width=2),
+                )
+            )
             fig_benford.update_layout(
                 title=f"Ley de Benford — Desviación media: {deviation:.2f}%",
                 xaxis_title="Primer dígito",
@@ -434,7 +494,9 @@ with tab_benford:
             )
             st.plotly_chart(fig_benford, use_container_width=True)
 
-            chi_threshold = rule_configs.get("benford_law", {}).get("chi_square_threshold", 0.05)
+            chi_threshold = rule_configs.get("benford_law", {}).get(
+                "chi_square_threshold", 0.05
+            )
             if deviation > rule_configs.get("benford_law", {}).get("deviation_pct", 15):
                 st.error(f"Desviación ({deviation:.2f}%) supera el umbral configurado.")
             else:
@@ -443,9 +505,20 @@ with tab_benford:
             st.info("Datos insuficientes para análisis de Benford.")
 
         # Per-party Benford analysis
-        base_cols = {"timestamp", "departamento", "total_votos", "actas_divulgadas",
-                     "actas_totales", "votos_validos", "votos_nulos", "votos_blancos", "hash"}
-        party_cols = [c for c in replay_df.columns if c not in base_cols and c != "pct_escrutado"]
+        base_cols = {
+            "timestamp",
+            "departamento",
+            "total_votos",
+            "actas_divulgadas",
+            "actas_totales",
+            "votos_validos",
+            "votos_nulos",
+            "votos_blancos",
+            "hash",
+        }
+        party_cols = [
+            c for c in replay_df.columns if c not in base_cols and c != "pct_escrutado"
+        ]
 
         if party_cols:
             st.subheader("Benford por partido")
@@ -468,7 +541,9 @@ with tab_explorer:
             0,
             len(selected_snapshots) - 1,
             0,
-            format_func=lambda i: selected_snapshots[i]["timestamp"].strftime("%Y-%m-%d %H:%M"),
+            format_func=lambda i: selected_snapshots[i]["timestamp"].strftime(
+                "%Y-%m-%d %H:%M"
+            ),
             key="explorer_slider",
         )
 
@@ -484,7 +559,9 @@ with tab_explorer:
         )
 
         # Run rules on this specific snapshot
-        snap_alerts = run_rules_sandbox(rule_data, prev_data, rule_configs, enabled_rules)
+        snap_alerts = run_rules_sandbox(
+            rule_data, prev_data, rule_configs, enabled_rules
+        )
 
         col1, col2 = st.columns([2, 1])
 
@@ -494,14 +571,16 @@ with tab_explorer:
 
             candidates = rule_data.get("candidatos", [])
             if candidates:
-                cand_df = pd.DataFrame([
-                    {
-                        "Candidato": c.get("name", "")[:50],
-                        "Partido": c.get("party", "")[:30],
-                        "Votos": c.get("votes", 0),
-                    }
-                    for c in candidates
-                ])
+                cand_df = pd.DataFrame(
+                    [
+                        {
+                            "Candidato": c.get("name", "")[:50],
+                            "Partido": c.get("party", "")[:30],
+                            "Votos": c.get("votes", 0),
+                        }
+                        for c in candidates
+                    ]
+                )
                 st.dataframe(
                     cand_df.style.format({"Votos": "{:,}"}),
                     use_container_width=True,

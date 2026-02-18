@@ -10,7 +10,9 @@ import numpy as np
 import pandas as pd
 
 
-def benford_analysis(series: pd.Series) -> tuple[pd.Series | None, pd.Series | None, float | None]:
+def benford_analysis(
+    series: pd.Series,
+) -> tuple[pd.Series | None, pd.Series | None, float | None]:
     """English docstring: Compute Benford observed and theoretical distributions.
 
     Args:
