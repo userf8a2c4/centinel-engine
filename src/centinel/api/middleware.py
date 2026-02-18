@@ -124,7 +124,11 @@ class _SlidingWindowLimiter:
 # IP blocklist helpers (Helpers de blocklist de IPs)
 # ---------------------------------------------------------------------------
 
-def _parse_blocklist(raw_list: list[str] | None) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+def _parse_networks(
+    raw_list: list[str] | None,
+    *,
+    log_key: str,
+) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
     """Parse a list of IPs/CIDRs into network objects.
     (Parsea una lista de IPs/CIDRs en objetos de red.)
 
@@ -139,8 +143,13 @@ def _parse_blocklist(raw_list: list[str] | None) -> list[ipaddress.IPv4Network |
         try:
             nets.append(ipaddress.ip_network(entry.strip(), strict=False))
         except ValueError:
-            logger.warning("middleware_blocklist_invalid entry=%s", entry)
+            logger.warning("%s entry=%s", log_key, entry)
     return nets
+
+
+def _parse_blocklist(raw_list: list[str] | None) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    """Wrapper preserving explicit blocklist semantics in logs/docs."""
+    return _parse_networks(raw_list, log_key="middleware_blocklist_invalid")
 
 
 def _ip_in_blocklist(
@@ -194,6 +203,13 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
         # Blocklist (Lista de bloqueo)
         self._blocklist = _parse_blocklist(zt.get("ip_blocklist"))
 
+        # Trusted proxy networks for X-Forwarded-For parsing.
+        # (Redes proxy confiables para parsear X-Forwarded-For.)
+        self._trusted_proxy_nets = _parse_networks(
+            zt.get("trusted_proxy_cidrs"),
+            log_key="middleware_trusted_proxy_invalid",
+        )
+
         # Headers that should never appear in legitimate CNE polling traffic
         # (Headers que nunca deberían aparecer en tráfico legítimo de polling CNE)
         self._blocked_headers: set[str] = set(
@@ -225,7 +241,7 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
         if not self._enabled:
             return await call_next(request)
 
-        client_ip = _extract_client_ip(request)
+        client_ip = _extract_client_ip(request, self._trusted_proxy_nets)
 
         # 1. IP blocklist (Lista de bloqueo de IPs)
         if _ip_in_blocklist(client_ip, self._blocklist):
@@ -246,16 +262,29 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
 
         # 3. Body size cap (Límite de tamaño de cuerpo)
         content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > self._max_body_bytes:
-            logger.warning(
-                "zero_trust_payload_too_large ip=%s bytes=%s",
-                client_ip,
-                content_length,
-            )
-            return JSONResponse(
-                status_code=413,
-                content={"detail": "Payload too large"},
-            )
+        if content_length:
+            try:
+                content_length_value = int(content_length)
+            except ValueError:
+                logger.warning(
+                    "zero_trust_invalid_content_length ip=%s value=%s",
+                    client_ip,
+                    content_length,
+                )
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": "Bad request"},
+                )
+            if content_length_value > self._max_body_bytes:
+                logger.warning(
+                    "zero_trust_payload_too_large ip=%s bytes=%s",
+                    client_ip,
+                    content_length,
+                )
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "Payload too large"},
+                )
 
         # 4. Suspicious header rejection (Rechazo de headers sospechosos)
         if self._blocked_headers:
@@ -285,20 +314,32 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
 # Helpers (Funciones auxiliares)
 # ---------------------------------------------------------------------------
 
-def _extract_client_ip(request: Request) -> str:
+def _extract_client_ip(
+    request: Request,
+    trusted_proxy_nets: list[ipaddress.IPv4Network | ipaddress.IPv6Network] | None = None,
+) -> str:
     """Extract the real client IP respecting X-Forwarded-For behind a proxy.
     (Extrae la IP real del cliente respetando X-Forwarded-For detrás de proxy.)
 
     Falls back to request.client.host when the header is absent.
     (Recurre a request.client.host cuando el header está ausente.)
     """
+    direct_ip = request.client.host if request.client else "unknown"
     forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        # First IP in the chain is the original client
-        # (La primera IP en la cadena es el cliente original)
-        return forwarded.split(",")[0].strip()
+    if forwarded and trusted_proxy_nets:
+        try:
+            direct_addr = ipaddress.ip_address(direct_ip)
+        except ValueError:
+            direct_addr = None
+        if direct_addr and any(direct_addr in net for net in trusted_proxy_nets):
+            # First IP in the chain is the original client
+            # (La primera IP en la cadena es el cliente original)
+            return forwarded.split(",")[0].strip()
+        logger.warning("zero_trust_untrusted_proxy_ignored source_ip=%s", direct_ip)
+    elif forwarded:
+        logger.warning("zero_trust_forwarded_for_ignored_no_trusted_proxy source_ip=%s", direct_ip)
     if request.client:
-        return request.client.host
+        return direct_ip
     return "unknown"
 
 
