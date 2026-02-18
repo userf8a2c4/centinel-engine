@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from centinel_engine.config_loader import load_config
+from centinel_engine.telegram_hook import send_alert_via_telegram
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ def _compute_avg_latency(latency_history: List[float]) -> float:
     return sum(latency_history) / len(latency_history)
 
 
-def _emit_alert(mode: str, metrics: Dict[str, Any]) -> None:
+def _emit_alert(mode: str, metrics: Dict[str, Any], config: Optional[Dict[str, Any]] = None) -> None:
     """Emit alert for degraded modes (stub for future encrypted email).
 
     Bilingual: Emite alerta para modos degradados (stub para email cifrado futuro).
@@ -130,6 +131,7 @@ def _emit_alert(mode: str, metrics: Dict[str, Any]) -> None:
     Args:
         mode: Current operational mode ('conservative' or 'critical').
         metrics: Dictionary with computed diagnostics.
+        config: Runtime configuration dictionary used for extension flags.
     """
     msg = (
         f"[CENTINEL ALERT] Mode={mode} | "
@@ -144,6 +146,12 @@ def _emit_alert(mode: str, metrics: Dict[str, Any]) -> None:
     print(msg)  # noqa: T201
     # TODO: stub for encrypted email notification /
     # TODO: stub para notificacion por email cifrado.
+
+    # Future critical alert channel guarded by flag /
+    # Canal futuro de alerta critica protegido por flag.
+    effective_config: Dict[str, Any] = config or {}
+    if mode == "critical" and bool(effective_config.get("ENABLE_TELEGRAM", False)):
+        send_alert_via_telegram(msg, effective_config)
 
 
 def check_vital_signs(
@@ -292,7 +300,7 @@ def check_vital_signs(
 
     # Emit alert if degraded / Emitir alerta si hay degradacion.
     if alert_needed:
-        _emit_alert(mode, metrics)
+        _emit_alert(mode, metrics, config=thresholds)
 
     return state
 

@@ -62,6 +62,7 @@ from centinel.core.rules import (  # noqa: F401
     turnout_impossible_rule,
 )
 from centinel.core.hashchain import compute_hash
+from centinel_engine.arbitrum_hook import anchor_hash_to_arbitrum
 from centinel.core.rules.registry import RuleDefinition, list_rules
 
 logger = logging.getLogger(__name__)
@@ -152,6 +153,9 @@ class RulesEngine:
         English:
             Verify snapshot hash-chain integrity.
         """
+        # Punto de extensión futura para reglas avanzadas validadas por UPNFM
+        # Actualmente usa solo rules.yaml básicas
+        # Mantener compatibilidad total
         alerts: list[dict] = []
         try:
             entries = json.loads(hashchain_path.read_text(encoding="utf-8"))
@@ -212,14 +216,20 @@ class RulesEngine:
     # ── report helpers ───────────────────────────────────────────────────
 
     @staticmethod
-    def snapshot_hash(payload: dict) -> str:
+    def snapshot_hash(payload: dict, config: Optional[dict] = None) -> str:
         """Calcula el hash SHA-256 del snapshot canónico.
 
         English:
             Compute the canonical SHA-256 hash of a snapshot payload.
         """
         canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
-        return hashlib.sha256(canonical).hexdigest()
+        current_hash = hashlib.sha256(canonical).hexdigest()
+
+        # Future extension point: optional Arbitrum anchoring /
+        # Punto de extension futura: anclaje opcional en Arbitrum.
+        if bool((config or {}).get("ENABLE_ARBITRUM", False)):
+            return anchor_hash_to_arbitrum(current_hash, config or {})
+        return current_hash
 
     @staticmethod
     def write_report(
@@ -275,6 +285,9 @@ class RulesEngine:
             Accumulates alerts, highlights critical severities, and can signal
             snapshot pause when critical alerts exist.
         """
+        # Punto de extensión futura para reglas avanzadas validadas por UPNFM
+        # Actualmente usa solo rules.yaml básicas
+        # Mantener compatibilidad total
         alerts: list[dict] = []
         critical_alerts: list[dict] = []
 
