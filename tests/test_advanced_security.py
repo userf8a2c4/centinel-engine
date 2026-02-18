@@ -86,7 +86,9 @@ def test_solidity_runtime_checks_detect_blocked_pattern(tmp_path: Path) -> None:
     contracts_dir = tmp_path / "contracts"
     contracts_dir.mkdir(parents=True)
     contract = contracts_dir / "Vote.sol"
-    contract.write_text("pragma solidity ^0.8.20; contract Vote { function x() public { tx.origin; } }", encoding="utf-8")
+    contract.write_text(
+        "pragma solidity ^0.8.20; contract Vote { function x() public { tx.origin; } }", encoding="utf-8"
+    )
     cfg = AdvancedSecurityConfig(solidity_contract_paths=[str(contracts_dir / "*.sol")])
     manager = AdvancedSecurityManager(cfg)
     triggers = manager.detect_internal_anomalies()

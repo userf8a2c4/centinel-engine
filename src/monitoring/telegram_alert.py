@@ -66,6 +66,7 @@ def _collect_network_context(ip: str | None = None) -> dict[str, Any]:
         # (Marcar IPs privadas/internas para auditoría Zero Trust)
         try:
             import ipaddress
+
             addr = ipaddress.ip_address(ip)
             ctx["ip_is_private"] = addr.is_private
             ctx["ip_version"] = addr.version
@@ -110,6 +111,7 @@ def _format_uptime(seconds: float) -> str:
 # ---------------------------------------------------------------------------
 # Public API (API pública)
 # ---------------------------------------------------------------------------
+
 
 def send_security_alert(
     event: str,
@@ -244,6 +246,7 @@ def send_dos_detection_alert(
 # ---------------------------------------------------------------------------
 # Helpers (Funciones auxiliares)
 # ---------------------------------------------------------------------------
+
 
 def _count_integrity_entries() -> int:
     """Count entries in the integrity log for verification reporting.

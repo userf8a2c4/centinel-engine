@@ -395,7 +395,11 @@ def save_resilience_checkpoint(
         "timestamp": utcnow().isoformat(),
         "hashes": collect_recent_hashes(),
         "snapshot_index": snapshot_index or collect_snapshot_index(),
-        "latest_snapshot": (str(latest_snapshot.relative_to(DATA_DIR)) if latest_snapshot and DATA_DIR in latest_snapshot.parents else latest_snapshot.name if latest_snapshot else existing.get("latest_snapshot")),
+        "latest_snapshot": (
+            str(latest_snapshot.relative_to(DATA_DIR))
+            if latest_snapshot and DATA_DIR in latest_snapshot.parents
+            else latest_snapshot.name if latest_snapshot else existing.get("latest_snapshot")
+        ),
         "last_content_hash": content_hash or existing.get("last_content_hash"),
     }
     if error:

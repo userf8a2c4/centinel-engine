@@ -150,8 +150,6 @@ def _resolve_private_key(settings: dict[str, Any]) -> str | None:
     return env_key
 
 
-
-
 def _obfuscate_identifier(value: str) -> str:
     """Return shortened identifier for logs without exposing full values.
 
@@ -165,7 +163,9 @@ def _obfuscate_identifier(value: str) -> str:
 def _log_anchor_start(settings: dict[str, Any], anchor_id: str, root_hex: str) -> None:
     privacy_mode = bool(settings.get("log_redact_identifiers", False))
     if privacy_mode:
-        logger.info("anchor_root_start anchor_id=%s root=%s", _obfuscate_identifier(anchor_id), _obfuscate_identifier(root_hex))
+        logger.info(
+            "anchor_root_start anchor_id=%s root=%s", _obfuscate_identifier(anchor_id), _obfuscate_identifier(root_hex)
+        )
         return
     logger.info("anchor_root_start anchor_id=%s root=%s", anchor_id, root_hex)
 

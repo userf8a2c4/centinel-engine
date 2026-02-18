@@ -46,6 +46,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from centinel.paths import iter_all_snapshots  # noqa: E402
+
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -2478,7 +2479,9 @@ st.markdown(
     <p>Arbitrum · activo</p>
   </div>
 </div>
-    """.format(alerts=len(filtered_anomalies)),
+    """.format(
+        alerts=len(filtered_anomalies)
+    ),
     unsafe_allow_html=True,
 )
 

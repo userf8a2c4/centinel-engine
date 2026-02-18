@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     from cryptography.fernet import Fernet
+
     _HAS_CRYPTOGRAPHY = True
 except ImportError:
     _HAS_CRYPTOGRAPHY = False
@@ -56,12 +57,14 @@ except ImportError:
 # ---------------------------------------------------------------------------
 try:
     import dropbox  # type: ignore[import-untyped]
+
     _HAS_DROPBOX = True
 except ImportError:
     _HAS_DROPBOX = False
 
 try:
     import boto3  # type: ignore[import-untyped]
+
     _HAS_BOTO3 = True
 except ImportError:
     _HAS_BOTO3 = False
@@ -171,6 +174,7 @@ def _build_backup_manifest(
 # Backup destinations / Destinos de respaldo
 # ---------------------------------------------------------------------------
 
+
 def _backup_to_local(
     backup_dir: Path,
     payload: bytes,
@@ -209,9 +213,7 @@ def _backup_to_local(
         )
         return True
     except Exception as exc:
-        logger.error(
-            "Local backup failed | Respaldo local fallo: %s", exc
-        )
+        logger.error("Local backup failed | Respaldo local fallo: %s", exc)
         return False
 
 
@@ -248,9 +250,7 @@ def _backup_to_dropbox(
         )
         return True
     except Exception as exc:
-        logger.error(
-            "Dropbox backup failed | Respaldo Dropbox fallo: %s", exc
-        )
+        logger.error("Dropbox backup failed | Respaldo Dropbox fallo: %s", exc)
         return False
 
 
@@ -289,15 +289,14 @@ def _backup_to_s3(
         )
         return True
     except Exception as exc:
-        logger.error(
-            "S3 backup failed | Respaldo S3 fallo: %s", exc
-        )
+        logger.error("S3 backup failed | Respaldo S3 fallo: %s", exc)
         return False
 
 
 # ---------------------------------------------------------------------------
 # Main backup function / Funcion principal de respaldo
 # ---------------------------------------------------------------------------
+
 
 def backup_critical_assets(
     *,
@@ -374,6 +373,7 @@ def backup_critical_assets(
             # Store as base64-safe string in JSON structure /
             # Almacenar como cadena base64-safe en estructura JSON
             import base64
+
             combined_payload[name] = base64.b64encode(raw_data).decode("ascii")
 
         raw_bundle = json.dumps(combined_payload, indent=2, ensure_ascii=False).encode("utf-8")
@@ -425,6 +425,7 @@ def backup_critical_assets(
 # ---------------------------------------------------------------------------
 # Timed backup scheduler / Programador de respaldo temporizado
 # ---------------------------------------------------------------------------
+
 
 class BackupScheduler:
     """Runs backup_critical_assets() on a configurable interval in a background thread.

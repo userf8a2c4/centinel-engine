@@ -28,6 +28,7 @@ import yaml
 try:
     import psutil
 except Exception:  # noqa: BLE001
+
     class _PsutilFallback:
         CONN_LISTEN = "LISTEN"
         CONN_ESTABLISHED = "ESTABLISHED"
@@ -387,8 +388,7 @@ def send_admin_alert(
         "Sistema en hibernación defensiva; verifique host y reinicie manualmente.\n"
         f"Triggers: {', '.join(triggers)}\n"
         f"Safe state: {state_path}\n"
-        "Recent logs:\n"
-        + "\n".join(recent_logs[-20:])
+        "Recent logs:\n" + "\n".join(recent_logs[-20:])
     )
 
     smtp_server = os.getenv("SMTP_SERVER", config.smtp.get("server", ""))

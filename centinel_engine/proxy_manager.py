@@ -97,9 +97,9 @@ USER_AGENT_POOL: List[str] = [
 # Minimum required pool size / Tamano minimo requerido del pool
 _MIN_POOL_SIZE: int = 50
 
-assert len(USER_AGENT_POOL) >= _MIN_POOL_SIZE, (
-    f"UA pool must have >= {_MIN_POOL_SIZE} entries, got {len(USER_AGENT_POOL)}"
-)
+assert (
+    len(USER_AGENT_POOL) >= _MIN_POOL_SIZE
+), f"UA pool must have >= {_MIN_POOL_SIZE} entries, got {len(USER_AGENT_POOL)}"
 
 # HTTP status codes that trigger forced proxy rotation /
 # Codigos HTTP que fuerzan rotacion de proxy
@@ -202,13 +202,10 @@ class ProxyAndUAManager:
 
                 if should_rotate:
                     # Force selection of next proxy / Forzar seleccion del siguiente proxy
-                    self._proxy_rotator._requests_since_rotation = (
-                        self._proxy_rotator.rotation_every_n
-                    )
+                    self._proxy_rotator._requests_since_rotation = self._proxy_rotator.rotation_every_n
                     self._rotation_count += 1
                     logger.info(
-                        "Proxy rotation triggered | Rotacion de proxy activada: "
-                        "request_count=%d, forced=%s",
+                        "Proxy rotation triggered | Rotacion de proxy activada: " "request_count=%d, forced=%s",
                         self._request_count,
                         force_proxy_rotation,
                     )
@@ -216,8 +213,7 @@ class ProxyAndUAManager:
                 proxy_url = self._proxy_rotator.get_proxy_for_request()
 
             logger.debug(
-                "rotate_proxy_and_ua | rotacion proxy+ua: "
-                "proxy=%s, ua=%s..., req_count=%d",
+                "rotate_proxy_and_ua | rotacion proxy+ua: " "proxy=%s, ua=%s..., req_count=%d",
                 proxy_url or "direct",
                 ua[:50],
                 self._request_count,

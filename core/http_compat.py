@@ -67,7 +67,9 @@ class _RequestsNamespace:
         return cls._real_requests_post
 
     @classmethod
-    def post(cls, url: str, timeout: int = 10, json: dict[str, Any] | None = None, **kwargs: Any) -> HttpResponse:  # noqa: A002
+    def post(
+        cls, url: str, timeout: int = 10, json: dict[str, Any] | None = None, **kwargs: Any
+    ) -> HttpResponse:  # noqa: A002
         post_func = cls._get_real_post()
         if post_func is RequestsCompat.post:
             return RequestsCompat.post(url=url, json_payload=json, timeout=timeout, **kwargs)

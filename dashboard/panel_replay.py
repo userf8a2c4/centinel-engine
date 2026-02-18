@@ -202,10 +202,7 @@ def _extract_candidates(snapshot: dict) -> dict[str, int]:
     if isinstance(cands, dict):
         return {k: v for k, v in cands.items() if isinstance(v, (int, float))}
     elif isinstance(cands, list):
-        return {
-            c.get("candidato", c.get("id", f"pos-{c.get('posicion', '?')}")): c.get("votos", 0)
-            for c in cands
-        }
+        return {c.get("candidato", c.get("id", f"pos-{c.get('posicion', '?')}")): c.get("votos", 0) for c in cands}
     return {}
 
 
@@ -401,9 +398,7 @@ def _render_rule_editors(rules_cfg: dict) -> None:
 
     if st.sidebar.button("Restaurar valores por defecto", use_container_width=True):
         if st.session_state.replay_original_rules is not None:
-            st.session_state.replay_rules_config = copy.deepcopy(
-                st.session_state.replay_original_rules
-            )
+            st.session_state.replay_rules_config = copy.deepcopy(st.session_state.replay_original_rules)
             st.rerun()
 
 
@@ -428,13 +423,9 @@ def render_replay_panel() -> None:
 
     # Initialize rules config from command_center if not yet done
     if st.session_state.replay_rules_config is None:
-        st.session_state.replay_rules_config = copy.deepcopy(
-            command_center_cfg.get("rules", {})
-        )
+        st.session_state.replay_rules_config = copy.deepcopy(command_center_cfg.get("rules", {}))
     if st.session_state.replay_original_rules is None:
-        st.session_state.replay_original_rules = copy.deepcopy(
-            command_center_cfg.get("rules", {})
-        )
+        st.session_state.replay_original_rules = copy.deepcopy(command_center_cfg.get("rules", {}))
 
     rules_cfg = st.session_state.replay_rules_config
 
@@ -586,9 +577,9 @@ def render_replay_panel() -> None:
         st.markdown("### Distribucion de votos — Snapshot actual")
         candidates = _extract_candidates(current_snap)
         if candidates:
-            cand_df = pd.DataFrame(
-                [{"Candidato": k, "Votos": v} for k, v in candidates.items()]
-            ).sort_values("Votos", ascending=False)
+            cand_df = pd.DataFrame([{"Candidato": k, "Votos": v} for k, v in candidates.items()]).sort_values(
+                "Votos", ascending=False
+            )
 
             bar_chart = (
                 alt.Chart(cand_df)
@@ -613,9 +604,7 @@ def render_replay_panel() -> None:
                 snap = snapshots[step_idx]
                 cands = _extract_candidates(snap)
                 for cand_name, votes in cands.items():
-                    evolution_rows.append(
-                        {"Paso": step_idx, "Candidato": cand_name, "Votos": votes}
-                    )
+                    evolution_rows.append({"Paso": step_idx, "Candidato": cand_name, "Votos": votes})
 
             if evolution_rows:
                 evo_df = pd.DataFrame(evolution_rows)
@@ -640,9 +629,7 @@ def render_replay_panel() -> None:
         # --- Current step alerts ---
         st.markdown("### Alertas — Paso actual")
 
-        current_step_results = [
-            r for r in replay_state["results_history"] if r["step"] == current_idx - 1
-        ]
+        current_step_results = [r for r in replay_state["results_history"] if r["step"] == current_idx - 1]
 
         if current_step_results:
             step_result = current_step_results[0]

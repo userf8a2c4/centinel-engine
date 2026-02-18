@@ -29,14 +29,16 @@ class _HistoryStore:
     def __init__(self, db_path: str) -> None:
         os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
         self._conn = sqlite3.connect(db_path)
-        self._conn.execute("""
+        self._conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS ml_history (
                 department TEXT NOT NULL,
                 seq INTEGER NOT NULL,
                 value REAL NOT NULL,
                 PRIMARY KEY (department, seq)
             )
-            """)
+            """
+        )
         self._conn.commit()
 
     def append(self, department: str, value: float, max_history: int) -> List[float]:

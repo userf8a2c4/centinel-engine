@@ -200,11 +200,13 @@ class LocalSnapshotStore:
                 (department_code,),
             ).fetchall()
         else:
-            rows = self._connection.execute("""
+            rows = self._connection.execute(
+                """
                 SELECT department_code, timestamp_utc, table_name, hash, previous_hash, tx_hash, ipfs_cid, ipfs_tx_hash
                 FROM snapshot_index
                 ORDER BY department_code, timestamp_utc
-                """).fetchall()
+                """
+            ).fetchall()
 
         return [dict(row) for row in rows]
 
@@ -319,7 +321,8 @@ class LocalSnapshotStore:
         English:
             Ensure the index table and optional columns exist.
         """
-        self._connection.execute("""
+        self._connection.execute(
+            """
             CREATE TABLE IF NOT EXISTS snapshot_index (
                 department_code TEXT NOT NULL,
                 timestamp_utc TEXT NOT NULL,
@@ -331,7 +334,8 @@ class LocalSnapshotStore:
                 ipfs_tx_hash TEXT,
                 PRIMARY KEY (department_code, timestamp_utc)
             )
-            """)
+            """
+        )
         self._ensure_column("snapshot_index", "tx_hash", "TEXT")
         self._ensure_column("snapshot_index", "ipfs_cid", "TEXT")
         self._ensure_column("snapshot_index", "ipfs_tx_hash", "TEXT")

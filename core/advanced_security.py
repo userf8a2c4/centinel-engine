@@ -31,6 +31,7 @@ from typing import Any
 try:
     import psutil
 except Exception:  # noqa: BLE001
+
     class _PsutilFallback:
         CONN_ESTABLISHED = "ESTABLISHED"
 
@@ -52,9 +53,11 @@ except Exception:  # noqa: BLE001
 
 from core.http_compat import requests
 import yaml
+
 try:
     from prometheus_client import Counter, Gauge, start_http_server
 except Exception:  # noqa: BLE001
+
     class _Metric:
         def labels(self, **_kwargs: Any) -> "_Metric":
             return self
@@ -74,11 +77,14 @@ except Exception:  # noqa: BLE001
     def start_http_server(_port: int) -> None:
         return
 
+
 from core.attack_logger import AttackForensicsLogbook, AttackLogConfig
 from core.security import DefensiveSecurityManager, SecurityConfig
+
 try:
     from cryptography.fernet import Fernet
 except Exception:  # noqa: BLE001
+
     class Fernet:  # type: ignore[override]
         def __init__(self, key: bytes) -> None:
             self.key = key
@@ -169,7 +175,7 @@ class AdvancedSecurityConfig:
             backup_interval_seconds=int(raw.get("backup_interval", 1800)),
             backup_retention_days=int(raw.get("backup_retention_days", 7)),
             backup_paths=[str(p) for p in raw.get("backup_paths", ["hashes/**/*.sha256", "data/snapshots/**/*.json"])],
-            integrity_paths=[str(p) for p in raw.get("integrity_paths", ["core/*.py"] )],
+            integrity_paths=[str(p) for p in raw.get("integrity_paths", ["core/*.py"])],
             cpu_threshold_percent=float(raw.get("cpu_threshold_percent", 85)),
             cpu_sustain_seconds=int(raw.get("cpu_sustain_seconds", 120)),
             memory_threshold_percent=float(raw.get("memory_threshold_percent", 80)),
@@ -191,7 +197,9 @@ class AdvancedSecurityConfig:
             cpu_baseline_window=int(raw.get("cpu_baseline_window", 6)),
             alert_sms_webhook=str(raw.get("alert_sms_webhook", "")),
             solidity_contract_paths=[str(p) for p in raw.get("solidity_contract_paths", ["contracts/**/*.sol"])],
-            solidity_blocked_patterns=[str(p) for p in raw.get("solidity_blocked_patterns", ["tx.origin", "delegatecall", "selfdestruct"])],
+            solidity_blocked_patterns=[
+                str(p) for p in raw.get("solidity_blocked_patterns", ["tx.origin", "delegatecall", "selfdestruct"])
+            ],
         )
 
 
@@ -211,7 +219,9 @@ class IdentityRotator:
         self.config = config
         self._poll_count = 0
         self._next_rotation = random.randint(config.rotate_every_min_polls, config.rotate_every_max_polls)
-        self._current_ua = config.user_agents_list[0] if config.user_agents_list else "Mozilla/5.0 (compatible; Centinel-Engine/1.0)"
+        self._current_ua = (
+            config.user_agents_list[0] if config.user_agents_list else "Mozilla/5.0 (compatible; Centinel-Engine/1.0)"
+        )
         self._current_proxy = ""
 
     def _rotate_now(self) -> None:
@@ -262,7 +272,9 @@ class HoneypotService:
                 try:
                     self._fernet = Fernet(key_value.encode("utf-8"))
                 except Exception as exc:  # noqa: BLE001
-                    LOGGER.warning("honeypot_encrypt_key_invalid env=%s error=%s", self.config.honeypot_encryption_key_env, exc)
+                    LOGGER.warning(
+                        "honeypot_encrypt_key_invalid env=%s error=%s", self.config.honeypot_encryption_key_env, exc
+                    )
             else:
                 LOGGER.warning("honeypot_encrypt_key_missing env=%s", self.config.honeypot_encryption_key_env)
         self.events_path.parent.mkdir(parents=True, exist_ok=True)
@@ -496,13 +508,21 @@ class AdvancedSecurityManager:
         self._cpu_samples: deque[float] = deque(maxlen=max(3, config.cpu_baseline_window))
         self._metrics_started = False
         self._honeypot_events_per_minute: deque[float] = deque(maxlen=500)
-        self.attack_logbook = AttackForensicsLogbook(AttackLogConfig.from_yaml(Path("command_center/attack_config.yaml")), self.on_attack_event)
-        self.runtime_security = DefensiveSecurityManager(SecurityConfig.from_yaml(Path("command_center/security_config.yaml")))
+        self.attack_logbook = AttackForensicsLogbook(
+            AttackLogConfig.from_yaml(Path("command_center/attack_config.yaml")), self.on_attack_event
+        )
+        self.runtime_security = DefensiveSecurityManager(
+            SecurityConfig.from_yaml(Path("command_center/security_config.yaml"))
+        )
         self._register_signal_handlers()
         atexit.register(self.shutdown)
 
     def _register_signal_handlers(self) -> None:
-        for sig in (getattr(signal, "SIGTERM", None), getattr(signal, "SIGINT", None), getattr(signal, "SIGUSR1", None)):
+        for sig in (
+            getattr(signal, "SIGTERM", None),
+            getattr(signal, "SIGINT", None),
+            getattr(signal, "SIGUSR1", None),
+        ):
             if sig is None:
                 continue
             signal.signal(sig, self._handle_oom_like_signal)
@@ -542,7 +562,9 @@ class AdvancedSecurityManager:
         now = time.time()
         self._cpu_samples.append(cpu)
         baseline = sum(self._cpu_samples) / max(1, len(self._cpu_samples))
-        adaptive_cpu_threshold = min(99.0, max(self.config.cpu_threshold_percent, baseline + self.config.cpu_adaptive_margin_percent))
+        adaptive_cpu_threshold = min(
+            99.0, max(self.config.cpu_threshold_percent, baseline + self.config.cpu_adaptive_margin_percent)
+        )
         if cpu > adaptive_cpu_threshold:
             self._cpu_high_since = self._cpu_high_since or now
             sustained_for = now - self._cpu_high_since
@@ -593,7 +615,9 @@ class AdvancedSecurityManager:
             maxlen=500,
         )
         if len(self._flood_events) >= self.config.honeypot_flood_trigger_count:
-            self._safe_alert(2, "honeypot_flood_threshold", {"count": len(self._flood_events), "window_seconds": window})
+            self._safe_alert(
+                2, "honeypot_flood_threshold", {"count": len(self._flood_events), "window_seconds": window}
+            )
             self.air_gap("honeypot_flood_threshold")
             self._flood_events.clear()
         if len(self._honeypot_events_per_minute) >= self.config.honeypot_threshold_per_minute:
@@ -629,7 +653,9 @@ class AdvancedSecurityManager:
                 LOGGER.error("alert_delivery_repeated_failure event=%s count=%s", event, self._alert_failures)
 
     def verify_integrity(self) -> bool:
-        suspicious = [p for p in psutil.net_connections(kind="inet") if getattr(p, "status", "") == psutil.CONN_ESTABLISHED]
+        suspicious = [
+            p for p in psutil.net_connections(kind="inet") if getattr(p, "status", "") == psutil.CONN_ESTABLISHED
+        ]
         if len(suspicious) > self.config.integrity_max_established_connections:
             return False
         for pattern in self.config.integrity_paths:
@@ -641,7 +667,9 @@ class AdvancedSecurityManager:
         triggers = self.detect_internal_anomalies()
         if triggers:
             self._anomaly_consecutive += 1
-            self._safe_alert(2, "internal_anomaly", {"triggers": triggers, "consecutive_count": self._anomaly_consecutive})
+            self._safe_alert(
+                2, "internal_anomaly", {"triggers": triggers, "consecutive_count": self._anomaly_consecutive}
+            )
             if self._anomaly_consecutive >= self.config.anomaly_consecutive_limit:
                 self.air_gap(",".join(triggers))
                 self._anomaly_consecutive = 0

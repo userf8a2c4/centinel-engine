@@ -22,12 +22,14 @@ from centinel.api.main import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _create_test_db(tmp_path: Path, *, canonical_json: str = '{"valid": true}'):
     """Create a minimal SQLite database with one snapshot for testing."""
     db_path = tmp_path / "test.db"
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE snapshot_index (
             department_code TEXT NOT NULL,
             timestamp_utc TEXT NOT NULL,
@@ -39,8 +41,10 @@ def _create_test_db(tmp_path: Path, *, canonical_json: str = '{"valid": true}'):
             ipfs_tx_hash TEXT,
             PRIMARY KEY (department_code, timestamp_utc)
         )
-    """)
-    conn.execute("""
+    """
+    )
+    conn.execute(
+        """
         CREATE TABLE dept_01_snapshots (
             timestamp_utc TEXT PRIMARY KEY,
             hash TEXT NOT NULL,
@@ -56,7 +60,8 @@ def _create_test_db(tmp_path: Path, *, canonical_json: str = '{"valid": true}'):
             ipfs_cid TEXT,
             ipfs_tx_hash TEXT
         )
-    """)
+    """
+    )
     conn.execute(
         """INSERT INTO snapshot_index
            (department_code, timestamp_utc, table_name, hash, previous_hash, tx_hash)
@@ -76,6 +81,7 @@ def _create_test_db(tmp_path: Path, *, canonical_json: str = '{"valid": true}'):
 # ---------------------------------------------------------------------------
 # fetch_latest_snapshot: corrupted canonical_json
 # ---------------------------------------------------------------------------
+
 
 class TestFetchLatestSnapshotCorruptedJson:
     """Validate fetch_latest_snapshot handles corrupted canonical_json."""
@@ -100,6 +106,7 @@ class TestFetchLatestSnapshotCorruptedJson:
 # ---------------------------------------------------------------------------
 # fetch_snapshot_by_hash: corrupted canonical_json
 # ---------------------------------------------------------------------------
+
 
 class TestFetchSnapshotByHashCorruptedJson:
     """Validate fetch_snapshot_by_hash handles corrupted canonical_json."""
@@ -132,6 +139,7 @@ class TestFetchSnapshotByHashCorruptedJson:
 # load_alerts_payload: corrupted alerts.json
 # ---------------------------------------------------------------------------
 
+
 class TestLoadAlertsCorruptedJson:
     """Validate load_alerts_payload handles corrupted files with logging."""
 
@@ -139,9 +147,9 @@ class TestLoadAlertsCorruptedJson:
         alerts_file = tmp_path / "alerts.json"
         alerts_file.write_text("{BROKEN", encoding="utf-8")
 
-        with patch("centinel.api.main.ALERTS_JSON", alerts_file), \
-             patch("centinel.api.main.ALERTS_LOG", tmp_path / "nonexistent.log"), \
-             patch("centinel.api.main.logger") as mock_logger:
+        with patch("centinel.api.main.ALERTS_JSON", alerts_file), patch(
+            "centinel.api.main.ALERTS_LOG", tmp_path / "nonexistent.log"
+        ), patch("centinel.api.main.logger") as mock_logger:
             result = load_alerts_payload()
 
         assert result == []
@@ -153,8 +161,9 @@ class TestLoadAlertsCorruptedJson:
         alerts_file = tmp_path / "alerts.json"
         alerts_file.write_text('[{"alert": "test"}]', encoding="utf-8")
 
-        with patch("centinel.api.main.ALERTS_JSON", alerts_file), \
-             patch("centinel.api.main.ALERTS_LOG", tmp_path / "nonexistent.log"):
+        with patch("centinel.api.main.ALERTS_JSON", alerts_file), patch(
+            "centinel.api.main.ALERTS_LOG", tmp_path / "nonexistent.log"
+        ):
             result = load_alerts_payload()
 
         assert result == [{"alert": "test"}]
@@ -163,6 +172,7 @@ class TestLoadAlertsCorruptedJson:
 # ---------------------------------------------------------------------------
 # storage: canonical_json validation before DB insert
 # ---------------------------------------------------------------------------
+
 
 class TestStorageCanonicalJsonValidation:
     """Validate that store_snapshot rejects invalid canonical JSON."""

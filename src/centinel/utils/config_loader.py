@@ -111,8 +111,8 @@ def _validate_binary_conventions(payload: dict[str, Any], *, source_name: str) -
     master_switch = payload.get("master_switch")
     if "master_switch" in payload and master_switch not in {"ON", "OFF"}:
         raise ValueError(
-            "{source}: master_switch debe ser exactamente \"ON\" o \"OFF\" "
-            "(must be exactly \"ON\" or \"OFF\").".format(source=source_name)
+            '{source}: master_switch debe ser exactamente "ON" o "OFF" '
+            '(must be exactly "ON" or "OFF").'.format(source=source_name)
         )
 
     bool_errors = _iter_non_boolean_flags(payload)
