@@ -67,7 +67,9 @@ def benford_second_digit_test(vote_counts: List[int]) -> Tuple[float, str]:
     if not vote_counts:
         return 0.0, "NO_DATA"
 
-    observed = [0] * 10  # Conteo observado por dígito 0-9. / Observed count per digit 0-9.
+    observed = [
+        0
+    ] * 10  # Conteo observado por dígito 0-9. / Observed count per digit 0-9.
     valid_count = 0
 
     for count in vote_counts:
@@ -76,7 +78,9 @@ def benford_second_digit_test(vote_counts: List[int]) -> Tuple[float, str]:
             observed[digit] += 1
             valid_count += 1
 
-    if valid_count < 50:  # Muy pocos datos → no confiable. / Too few data points → not reliable.
+    if (
+        valid_count < 50
+    ):  # Muy pocos datos → no confiable. / Too few data points → not reliable.
         return 0.0, "INSUFFICIENT_DATA"
 
     chi2 = 0.0
@@ -87,7 +91,7 @@ def benford_second_digit_test(vote_counts: List[int]) -> Tuple[float, str]:
             chi2 += ((observed_freq - expected) ** 2) / expected
 
     if chi2 > 20:
-        return chi2, "CRITICO"   # Alto riesgo de anomalía. / High anomaly risk.
+        return chi2, "CRITICO"  # Alto riesgo de anomalía. / High anomaly risk.
     if chi2 > 12:
         return chi2, "ALTO"
     return chi2, "NORMAL"

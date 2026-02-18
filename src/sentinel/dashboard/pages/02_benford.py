@@ -16,12 +16,10 @@ from sentinel.dashboard.data_loader import (
 st.set_page_config(page_title="Ley de Benford - Sentinel", layout="wide")
 
 st.title("Análisis de la Ley de Benford")
-st.markdown(
-    """
+st.markdown("""
 Esta vista permite analizar la distribución de los **dígitos iniciales** de diferentes campos numéricos
 para compararlos con la **Ley de Benford** (distribución teórica esperada).
-"""
-)
+""")
 
 
 @st.cache_data(ttl=600, show_spinner="Cargando snapshots...")

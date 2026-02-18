@@ -9,7 +9,6 @@ from typing import Dict, Any, List, Iterable
 
 from sentinel.core.models import Meta, Totals, CandidateResult, Snapshot
 
-
 DEPARTMENT_CODES = {
     "Atlántida": "01",
     "Choluteca": "02",

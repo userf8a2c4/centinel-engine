@@ -6,7 +6,6 @@ from typing import Dict, List, Optional
 
 from sentinel.core.rules.common import extract_department, extract_total_votes
 
-
 _HISTORY: Dict[str, List[float]] = collections.defaultdict(list)
 logger = logging.getLogger(__name__)
 

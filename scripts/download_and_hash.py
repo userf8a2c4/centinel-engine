@@ -40,6 +40,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def normalize_master_switch(value: Any) -> str:
     """Normaliza el switch maestro a 'ON' o 'OFF'."""
     if value is None:

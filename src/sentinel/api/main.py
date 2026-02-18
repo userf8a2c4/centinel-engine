@@ -71,14 +71,12 @@ def fetch_latest_snapshot(connection: sqlite3.Connection) -> dict | None:
     Returns:
         dict | None: Latest snapshot or None if missing.
     """
-    row = connection.execute(
-        """
+    row = connection.execute("""
         SELECT department_code, timestamp_utc, table_name, hash, previous_hash, tx_hash
         FROM snapshot_index
         ORDER BY timestamp_utc DESC
         LIMIT 1
-        """
-    ).fetchone()
+        """).fetchone()
     if not row:
         return None
     snapshot = connection.execute(

@@ -120,14 +120,20 @@ def create_pdf(
     pdf.cell(0, 8, "Integridad y Benford", ln=True)
     pdf.set_font("Helvetica", "", 11)
 
-    observed, theoretical, deviation = benford_analysis(df["total_votos"]) if not df.empty else (None, None, None)
+    observed, theoretical, deviation = (
+        benford_analysis(df["total_votos"]) if not df.empty else (None, None, None)
+    )
 
     if deviation is None:
         pdf.multi_cell(0, 6, "Datos insuficientes para análisis de Benford.")
     else:
         pdf.cell(0, 6, f"Desviación promedio: {deviation:.2f}%", ln=True)
         if deviation > BENFORD_THRESHOLD:
-            pdf.multi_cell(0, 6, "Alerta: desviación superior al umbral esperado (posible anomalía).")
+            pdf.multi_cell(
+                0,
+                6,
+                "Alerta: desviación superior al umbral esperado (posible anomalía).",
+            )
         else:
             pdf.multi_cell(0, 6, "Resultado dentro del rango esperado.")
     pdf.ln(2)

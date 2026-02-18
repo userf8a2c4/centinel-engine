@@ -11,6 +11,10 @@ analysis_results.json
 analysis_results.parquet
 anomalies_report.json
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # Archivos temporales
 *.log
 *.tmp

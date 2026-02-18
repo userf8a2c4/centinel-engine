@@ -37,7 +37,11 @@ def detect_spike_in_time_series(
     spike_sum = 0
     for ts, val in zip(timestamps, values):
         hour = int(ts.split(":")[0])
-        if int(suspicious_window_start.split(":")[0]) <= hour < int(suspicious_window_end.split(":")[0]):
+        if (
+            int(suspicious_window_start.split(":")[0])
+            <= hour
+            < int(suspicious_window_end.split(":")[0])
+        ):
             spike_sum += val
 
     return (spike_sum / total) > 0.30  # Umbral temporal 30%. / Temporary threshold 30%.

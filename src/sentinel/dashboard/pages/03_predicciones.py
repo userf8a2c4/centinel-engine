@@ -15,12 +15,10 @@ from sentinel.dashboard.data_loader import (
 st.set_page_config(page_title="Predicciones y NLP - Sentinel", layout="wide")
 
 st.title("Predicciones y análisis en lenguaje natural")
-st.markdown(
-    """
+st.markdown("""
 Esta sección genera **predicciones rápidas** sobre los totales de votos usando modelos simples de
 machine learning y ofrece un **resumen en lenguaje natural** a partir del último snapshot.
-"""
-)
+""")
 
 
 @st.cache_data(ttl=600, show_spinner="Cargando snapshots...")

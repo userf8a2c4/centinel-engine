@@ -76,12 +76,22 @@ def _render_sidebar(df) -> tuple[bool, list[str], list[str], tuple[date, date]]:
         simple_mode = st.toggle("Modo Simple (solo resumen básico)", value=False)
 
         st.subheader("Filtros")
-        depto_options = ["Todos"] + sorted(df["departamento"].unique()) if not df.empty else ["Todos"] + DEPARTMENTS
-        selected_departments = st.multiselect("Departamentos", depto_options, default=["Todos"])
+        depto_options = (
+            ["Todos"] + sorted(df["departamento"].unique())
+            if not df.empty
+            else ["Todos"] + DEPARTMENTS
+        )
+        selected_departments = st.multiselect(
+            "Departamentos", depto_options, default=["Todos"]
+        )
 
-        party_options = [p for p in PARTIES if p in df.columns] if not df.empty else PARTIES
+        party_options = (
+            [p for p in PARTIES if p in df.columns] if not df.empty else PARTIES
+        )
         default_parties = party_options[:]
-        selected_parties = st.multiselect("Partidos/Candidatos", party_options, default=default_parties)
+        selected_parties = st.multiselect(
+            "Partidos/Candidatos", party_options, default=default_parties
+        )
 
         if df.empty:
             date_range = st.date_input("Rango de fechas", [])
@@ -95,7 +105,12 @@ def _render_sidebar(df) -> tuple[bool, list[str], list[str], tuple[date, date]]:
                 max_value=max_date,
             )
 
-    return simple_mode, selected_departments, selected_parties, _normalize_date_range(date_range)
+    return (
+        simple_mode,
+        selected_departments,
+        selected_parties,
+        _normalize_date_range(date_range),
+    )
 
 
 def run_dashboard() -> None:
@@ -122,13 +137,11 @@ def run_dashboard() -> None:
 
     if df_filtered.empty:
         st.warning("No hay datos en el rango seleccionado. Ajusta filtros.")
-        st.markdown(
-            """
+        st.markdown("""
 ---
 ¿Quieres revisar el código y la metodología? Visita nuestro repositorio:
 [https://github.com/userf8a2c4/sentinel](https://github.com/userf8a2c4/sentinel)
-"""
-        )
+""")
         return
 
     # PDF download button. / Botón de descarga PDF.
@@ -141,13 +154,11 @@ def run_dashboard() -> None:
     )
 
     if simple_mode:
-        st.markdown(
-            """
+        st.markdown("""
 ---
 ¿Quieres revisar el código y la metodología? Visita nuestro repositorio:
 [https://github.com/userf8a2c4/sentinel](https://github.com/userf8a2c4/sentinel)
-"""
-        )
+""")
         return
 
     st.markdown("---")
@@ -165,10 +176,8 @@ def run_dashboard() -> None:
         render_integrity_tab(df_filtered)
 
     # Footer invitation. / Invitación en el footer.
-    st.markdown(
-        """
+    st.markdown("""
 ---
 ¿Quieres revisar el código y la metodología? Visita nuestro repositorio:
 [https://github.com/userf8a2c4/sentinel](https://github.com/userf8a2c4/sentinel)
-"""
-    )
+""")
