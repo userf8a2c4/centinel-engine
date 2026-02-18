@@ -335,7 +335,7 @@ security:
   # Habilitar middleware Zero Trust en la API pública.
   # Enable Zero Trust middleware on the public API.
   # ← Cambiar a true para activar / Change to true to enable.
-  zero_trust: false
+  zero_trust: true
 
   # Configuración detallada de Zero Trust (solo aplica si zero_trust: true).
   # Detailed Zero Trust configuration (only applies when zero_trust: true).
@@ -361,7 +361,7 @@ security:
   # Habilitar hashing encadenado SHA-256 en logs de integridad.
   # Enable SHA-256 chained hashing on integrity logs.
   # ← Cambiar a true para activar / Change to true to enable.
-  log_hashing: false
+  log_hashing: true
 
   # Habilitar encriptación de logs con Fernet (AES-128-CBC).
   # Enable log encryption with Fernet (AES-128-CBC).
@@ -404,8 +404,7 @@ resilience:
   # ─────────────────────────────────────────────────────────────────
   watchdog_daemon:
     # Habilitar el daemon (Enable the daemon).
-    # ← Cambiar a true para activar / Change to true to enable.
-    enabled: false
+    enabled: true
     # Intervalo de chequeo en segundos (Check interval in seconds).
     check_interval_seconds: 30
     # Cooldown entre acciones correctivas en segundos para prevenir restart storms.

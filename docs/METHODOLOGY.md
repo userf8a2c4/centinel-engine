@@ -163,3 +163,7 @@ This document describes the current technical methodology of C.E.N.T.I.N.E.L. an
 - The methodology is complemented by the legal framework in [LEGAL-AND-OPERATIONAL-BOUNDARIES.md](LEGAL-AND-OPERATIONAL-BOUNDARIES.md).
 - Security and secrets management are detailed in [SECURITY-AND-SECRETS.md](SECURITY-AND-SECRETS.md).
 - Planned expansion includes PDF reports and technical annexes with reproducible evidence.
+
+
+### Revisión académica externa
+- Las reglas matemáticas se encuentran en revisión técnica continua junto a especialistas de la **UPNFM**, con el objetivo de elevar precisión analítica, robustez estadística y trazabilidad metodológica sin comprometer neutralidad operativa.
