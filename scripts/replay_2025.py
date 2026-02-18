@@ -1,3 +1,21 @@
+# Replay 2025 Module
+# AUTO-DOC-INDEX
+#
+# ES: Índice rápido
+#   1) Propósito del módulo
+#   2) Componentes principales
+#   3) Puntos de extensión
+#
+# EN: Quick index
+#   1) Module purpose
+#   2) Main components
+#   3) Extension points
+#
+# Secciones / Sections:
+#   - Configuración / Configuration
+#   - Lógica principal / Core logic
+#   - Integraciones / Integrations
+
 """Reproduce un ciclo 2025: normaliza, analiza y genera diffs de snapshots.
 
 Replay a 2025 cycle: normalize, analyze, and generate snapshot diffs.

@@ -1,3 +1,21 @@
+# Vital Signs Module
+# AUTO-DOC-INDEX
+#
+# ES: Índice rápido
+#   1) Propósito del módulo
+#   2) Componentes principales
+#   3) Puntos de extensión
+#
+# EN: Quick index
+#   1) Module purpose
+#   2) Main components
+#   3) Extension points
+#
+# Secciones / Sections:
+#   - Configuración / Configuration
+#   - Lógica principal / Core logic
+#   - Integraciones / Integrations
+
 """Vital signs monitoring for resilient, ethical scrape cadence adaptation.
 
 This module evaluates operational telemetry ("vital signs") from the latest scrape
@@ -17,6 +35,8 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from centinel_engine.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +64,31 @@ DEFAULT_HEALTH_STATE: Dict[str, Any] = {
     "metrics": {},
 }
 
+
+
+
+def load_vital_signs_config(env: str = "prod") -> Dict[str, Any]:
+    """Load vital-signs thresholds from centralized config storage.
+
+    Bilingual: Carga umbrales de signos vitales desde el almacenamiento
+    centralizado de configuración.
+
+    Args:
+        env: Environment folder under ``config``.
+
+    Returns:
+        Vital-sign thresholds dictionary, or defaults when unavailable.
+    """
+    try:
+        loaded = load_config("rules.yaml", env=env)
+    except ValueError as exc:
+        logger.error("vital_signs_config_error | error de config de signos vitales: %s", exc)
+        return dict(DEFAULT_THRESHOLDS)
+
+    candidate = loaded.get("vital_signs", loaded) if isinstance(loaded, dict) else {}
+    if not isinstance(candidate, dict):
+        return dict(DEFAULT_THRESHOLDS)
+    return {**DEFAULT_THRESHOLDS, **candidate}
 
 def _compute_success_rate(success_history: List[bool]) -> float:
     """Compute success rate from recent history.
