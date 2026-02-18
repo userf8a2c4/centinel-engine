@@ -3,7 +3,7 @@ name = "centinel-engine"
 version = "0.1.0"
 description = "C.E.N.T.I.N.E.L.: sistema técnico para auditoría continua de datos electorales públicos en Honduras"
 authors = ["userf8a2c4 <contact@centinel.app>"]
-license = "MIT"
+license = "AGPL-3.0-only"
 readme = "README.md"
 homepage = "https://github.com/userf8a2c4/centinel-engine"
 repository = "https://github.com/userf8a2c4/centinel-engine"
@@ -11,7 +11,7 @@ documentation = "https://github.com/userf8a2c4/centinel-engine#readme"
 keywords = ["auditoria-electoral", "transparencia", "hashchain", "open-data", "civic-tech"]
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
   "Operating System :: OS Independent",
   "Intended Audience :: Developers",
   "Topic :: Security",

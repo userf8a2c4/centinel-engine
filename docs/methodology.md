@@ -25,6 +25,9 @@ Estandarizar un flujo reproducible para capturar datos públicos, preservar evid
 - Reportes técnicos reproducibles.
 - Historial transparente de variaciones y eventos.
 
+### Revisión académica externa
+- Las reglas matemáticas se encuentran en revisión técnica continua junto a especialistas de la **UPNFM**, con el objetivo de elevar precisión analítica, robustez estadística y trazabilidad metodológica sin comprometer neutralidad operativa.
+
 ### Beneficios metodológicos
 - **Neutralidad:** separa observación técnica de interpretación política.
 - **Reproducibilidad:** cualquier tercero puede repetir el análisis.

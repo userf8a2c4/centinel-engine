@@ -4,6 +4,7 @@
 - Integración completa con Poetry y CI/CD para linting, type-checking y tests.
 - Automatización de despliegue Docker (cron) con volúmenes persistentes.
 - Mejoras de observabilidad: métricas de frescura y alertas automáticas.
+- Cierre de gobernanza técnica: consistencia de licencia, lockfile íntegro y checklist de releases.
 
 ## Mediano plazo
 - Validación de datos con firmas y pruebas criptográficas adicionales.
@@ -23,6 +24,7 @@
 - Full Poetry + CI/CD integration for linting, type-checking, and tests.
 - Docker deployment automation (cron) with persistent volumes.
 - Observability improvements: freshness metrics and automated alerts.
+- Technical governance closure: license consistency, lockfile integrity, and release checklist.
 
 ## Mid term
 - Data validation with signatures and additional cryptographic proofs.
