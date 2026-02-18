@@ -34,6 +34,7 @@ eth-account>=0.11.0,<1.0.0     # Firma de transacciones
 pycryptodome>=3.20.0,<4.0.0    # Keccak256 para Merkle Trees
 rich>=13.7.0,<14.0.0           # Logging bonito en consola durante desarrollo
 slowapi>=0.1.9,<1.0.0          # Rate limiting para FastAPI
+cloudflare>=3.0.0,<4.0.0       # SDK oficial para Cloudflare API
 
 # Testing y desarrollo
 pytest==8.3.3                  # Suite de pruebas unitarias e integración
