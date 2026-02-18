@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any, Iterable
-import yaml
+from centinel_engine.config_loader import load_config
 
 from core import logger as core_logger
 
@@ -182,14 +182,12 @@ class SanitizingFilter(logging.Filter):
 
 def _load_security_settings() -> dict[str, Any]:
     """/** Carga configuración de seguridad desde rules.yaml. / Load security settings from rules.yaml. **/"""
-    rules_path = Path("command_center") / "rules.yaml"
-    if not rules_path.exists():
-        return {}
     try:
-        parsed = yaml.safe_load(rules_path.read_text(encoding="utf-8")) or {}
+        # English: load centralized production rules. / Español: cargar reglas centralizadas de producción.
+        parsed = load_config("rules.yaml", env="prod")
         if isinstance(parsed, dict):
             return parsed.get("security", {}) if isinstance(parsed.get("security"), dict) else {}
-    except Exception:
+    except ValueError:
         return {}
     return {}
 

@@ -28,23 +28,19 @@ import os
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from anchor.arbitrum_anchor import anchor_batch, anchor_root
+from centinel_engine.config_loader import load_config
 from scripts.logging_utils import configure_logging, log_event
 from scripts.security.encrypt_secrets import decrypt_secrets
 
 logger = configure_logging("centinel.auto_anchor", log_file="logs/centinel.log")
-RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
-
 
 def _load_security_settings() -> dict[str, Any]:
-    """/** Carga configuración de seguridad desde rules.yaml. / Load security settings from rules.yaml. **/"""
-    if not RULES_CONFIG_PATH.exists():
-        return {}
+    """/** Carga configuración de seguridad desde config/prod/rules.yaml. / Load security settings from config/prod/rules.yaml. **/"""
     try:
-        payload = yaml.safe_load(RULES_CONFIG_PATH.read_text(encoding="utf-8")) or {}
-    except (OSError, yaml.YAMLError):
+        # English: centralized rules config source. / Español: fuente centralizada de reglas.
+        payload = load_config("rules.yaml", env="prod")
+    except ValueError:
         return {}
     if isinstance(payload, dict):
         return payload.get("security", {}) if isinstance(payload.get("security"), dict) else {}

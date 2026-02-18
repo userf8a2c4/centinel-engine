@@ -36,7 +36,6 @@ from typing import Any
 
 import random
 import requests
-import yaml
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from anchor.arbitrum_anchor import anchor_batch, anchor_root
@@ -51,7 +50,8 @@ from scripts.logging_utils import configure_logging, log_event
 from scripts.security.encrypt_secrets import decrypt_secrets
 from centinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
 from centinel.core.custody import run_startup_verification
-from centinel.utils.config_loader import load_config
+from centinel.utils.config_loader import load_config as load_pipeline_config
+from centinel_engine.config_loader import load_config as load_engine_config
 
 # Security hardening modules / Modulos de endurecimiento de seguridad
 from centinel_engine.rate_limiter import get_rate_limiter
@@ -69,7 +69,6 @@ STATE_PATH = DATA_DIR / "pipeline_state.json"
 PIPELINE_CHECKPOINT_PATH = TEMP_DIR / "pipeline_checkpoint.json"
 FAILURE_CHECKPOINT_PATH = TEMP_DIR / "checkpoint.json"
 HEARTBEAT_PATH = DATA_DIR / "heartbeat.json"
-RULES_CONFIG_PATH = Path("command_center") / "rules.yaml"
 SECURITY_CONFIG_PATH = Path("command_center") / "security_config.yaml"
 ATTACK_CONFIG_PATH = Path("command_center") / "attack_config.yaml"
 ADVANCED_SECURITY_CONFIG_PATH = Path("command_center") / "advanced_security_config.yaml"
@@ -190,7 +189,7 @@ def build_defensive_state_snapshot() -> dict[str, Any]:
     all_hashes = iter_all_hashes(hash_root=HASH_DIR)
     recent_hashes = [str(p.relative_to(HASH_DIR)) for p in reversed(all_hashes[-10:])]
     queued_urls: list[str] = []
-    config = load_config()
+    config = load_pipeline_config()
     endpoints = config.get("endpoints") if isinstance(config, dict) else None
     if isinstance(endpoints, dict):
         queued_urls = [str(url) for url in endpoints.values()][:25]
@@ -205,12 +204,12 @@ def build_defensive_state_snapshot() -> dict[str, Any]:
 
 
 def load_rules_thresholds() -> dict[str, Any]:
-    """/** Carga reglas desde command_center/rules.yaml. / Load rules from command_center/rules.yaml. **"""
-    if not RULES_CONFIG_PATH.exists():
-        return {}
+    """/** Carga reglas desde config/prod/rules.yaml. / Load rules from config/prod/rules.yaml. **"""
     try:
-        return yaml.safe_load(RULES_CONFIG_PATH.read_text(encoding="utf-8")) or {}
-    except (OSError, yaml.YAMLError) as exc:
+        # English: use centralized configuration loader. / Español: usar cargador centralizado de configuración.
+        payload = load_engine_config("rules.yaml", env="prod")
+        return payload if isinstance(payload, dict) else {}
+    except ValueError as exc:
         logger.warning("rules_yaml_invalid error=%s", exc)
         return {}
 
@@ -1247,7 +1246,7 @@ def main():
         help="Ejecuta inmediatamente antes del scheduler",
     )
     args = parser.parse_args()
-    config = load_config()
+    config = load_pipeline_config()
     attack_config = AttackLogConfig.from_yaml(ATTACK_CONFIG_PATH)
     attack_logbook = AttackForensicsLogbook(attack_config)
     attack_logbook.start()
