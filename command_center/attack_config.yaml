@@ -64,3 +64,20 @@ honeypot:
     - /debug
     - /admin
     - /api/internal
+    - /login
+    - /wp-admin
+    - /wp-login.php
+    - /phpmyadmin
+    - /manager/html
+    - /.env
+    - /server-status
+    - /actuator
+    - /jenkins/login
+    - /grafana/login
+    - /admin/config
+    - /api/v1/admin/users
+    - /auth/reset
+    - /backoffice
+    - /console
+    - /db-admin
+    - /internal/metrics

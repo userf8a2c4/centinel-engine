@@ -27,6 +27,22 @@ honeypot_endpoints:
   - "/login"
   - "/api/v1/results"
   - "/debug"
+  - "/wp-admin"
+  - "/wp-login.php"
+  - "/phpmyadmin"
+  - "/manager/html"
+  - "/.env"
+  - "/server-status"
+  - "/actuator"
+  - "/jenkins/login"
+  - "/grafana/login"
+  - "/admin/config"
+  - "/api/internal"
+  - "/api/v1/admin/users"
+  - "/auth/reset"
+  - "/backoffice"
+  - "/console"
+  - "/db-admin"
 
 airgap_min_minutes: 5
 airgap_max_minutes: 20
@@ -56,10 +72,29 @@ user_agents_list:
   - "Centinel-AuditoriaHN/1.0 bot"
   - "Centinel-ElectorHN/1.0 (auditoria publica)"
   - "Centinel-HN/1.0 (monitoreo electoral)"
+  - "Centinel-GuardianHN/1.0 (integridad de datos)"
+  - "Centinel-ObserverHN/1.0 (validacion de snapshots)"
+  - "Centinel-CollectorHN/1.0 (captura distribuida)"
+  - "Centinel-ForensicsHN/1.0 (telemetria segura)"
+  - "Centinel-ComplianceHN/1.0 (verificacion normativa)"
+  - "Centinel-WatchHN/1.0 (deteccion de anomalias)"
+  - "Centinel-VitalsHN/1.0 (estado operacional)"
+  - "Centinel-AnchorHN/1.0 (anclaje blockchain)"
+  - "Centinel-TraceHN/1.0 (trazabilidad forense)"
+  - "Centinel-SentinelHN/1.0 (defensa perimetral)"
+  - "Centinel-AegisHN/1.0 (resiliencia activa)"
 rotate_every_min_polls: 10
 rotate_every_max_polls: 30
 
-proxy_list: []
+proxy_list:
+  - "http://198.51.100.11:8080"
+  - "http://198.51.100.12:8080"
+  - "http://198.51.100.13:8080"
+  - "http://198.51.100.14:8080"
+  - "http://198.51.100.15:8080"
+  - "http://198.51.100.16:8080"
+  - "http://198.51.100.17:8080"
+  - "http://198.51.100.18:8080"
 alert_escalation_failures: 3
 honeypot_threshold_per_minute: 100
 prometheus_enabled: true
