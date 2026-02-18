@@ -1,3 +1,21 @@
+# Middleware Module
+# AUTO-DOC-INDEX
+#
+# ES: Índice rápido
+#   1) Propósito del módulo
+#   2) Componentes principales
+#   3) Puntos de extensión
+#
+# EN: Quick index
+#   1) Module purpose
+#   2) Main components
+#   3) Extension points
+#
+# Secciones / Sections:
+#   - Configuración / Configuration
+#   - Lógica principal / Core logic
+#   - Integraciones / Integrations
+
 """Zero Trust middleware for the C.E.N.T.I.N.E.L. public API.
 (Middleware Zero Trust para la API pública de C.E.N.T.I.N.E.L.)
 

@@ -1,3 +1,21 @@
+# Ml Outliers Rule Module
+# AUTO-DOC-INDEX
+#
+# ES: Índice rápido
+#   1) Propósito del módulo
+#   2) Componentes principales
+#   3) Puntos de extensión
+#
+# EN: Quick index
+#   1) Module purpose
+#   2) Main components
+#   3) Extension points
+#
+# Secciones / Sections:
+#   - Configuración / Configuration
+#   - Lógica principal / Core logic
+#   - Integraciones / Integrations
+
 """Regla ML para detectar outliers en cambios relativos de votos. (ML rule to detect outliers in relative vote changes.)"""
 
 from __future__ import annotations
