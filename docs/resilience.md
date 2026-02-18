@@ -16,6 +16,14 @@
 
 ---
 
+## Puntos de extensión futura (desactivados)
+
+**ES:** Arbitrum, Telegram, Cloudflare y reglas UPNFM quedan definidos como extensiones futuras, pero permanecen desactivados en el núcleo congelado.
+
+**EN:** Arbitrum, Telegram, Cloudflare, and UPNFM rules are defined as future extensions, but they remain disabled in the frozen core.
+
+---
+
 ## 1) `retry_config.yaml` — Reintentos, backoff y jitter / Retries, backoff, and jitter
 
 ### Ecuaciones de backoff y jitter / Backoff and jitter equations
