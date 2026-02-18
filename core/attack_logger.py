@@ -27,16 +27,19 @@ from typing import Any, Callable
 try:
     import psutil
 except Exception:  # noqa: BLE001
+
     class _PsutilFallback:
         CONN_LISTEN = "LISTEN"
 
         @staticmethod
         def net_connections(kind: str = "inet"):
             return []
-# Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
+
+    # Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
     psutil = _PsutilFallback()
 from core.http_compat import requests
 import yaml
+
 try:
     from flask import Flask, Request, request
     from werkzeug.serving import make_server
@@ -66,7 +69,9 @@ class AttackLogConfig:
     sequence_window_size: int = 40
     max_requests_per_ip: int = 20
     brute_force_paths: list[str] = field(default_factory=lambda: ["/admin", "/login", "/wp-login", "/api/internal"])
-    suspicious_user_agents: list[str] = field(default_factory=lambda: ["sqlmap", "nmap", "nikto", "masscan", "acunetix"])
+    suspicious_user_agents: list[str] = field(
+        default_factory=lambda: ["sqlmap", "nmap", "nikto", "masscan", "acunetix"]
+    )
     tor_exit_nodes: list[str] = field(default_factory=list)
     expected_listen_ports: list[int] = field(default_factory=lambda: [443])
     external_summary_enabled: bool = False
@@ -299,7 +304,9 @@ class AttackForensicsLogbook:
             return "proxy_suspect"
         return "suspicious"
 
-    def _build_event(self, *, ip: str, method: str, route: str, headers: dict[str, str], content_length: int = 0) -> dict[str, Any]:
+    def _build_event(
+        self, *, ip: str, method: str, route: str, headers: dict[str, str], content_length: int = 0
+    ) -> dict[str, Any]:
         frequency = self._event_frequency(ip)
         routes = self._per_ip_routes[ip]
         routes.append(route)
@@ -369,7 +376,9 @@ class AttackForensicsLogbook:
         self._per_ip_flood_counter[ip] += 1
         return self._per_ip_flood_counter[ip] % self.config.flood_log_sample_ratio == 0
 
-    def log_http_request(self, *, ip: str, method: str, route: str, headers: dict[str, str], content_length: int = 0) -> dict[str, Any]:
+    def log_http_request(
+        self, *, ip: str, method: str, route: str, headers: dict[str, str], content_length: int = 0
+    ) -> dict[str, Any]:
         """Register suspicious inbound HTTP metadata.
 
         Registra metadatos HTTP de entrada sospechosa.

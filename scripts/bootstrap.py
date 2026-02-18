@@ -214,11 +214,13 @@ def _validate_sqlite(sqlite_path: Path) -> tuple[bool, str]:
     latest_hash: str | None = None
 
     try:
-        rows = connection.execute("""
+        rows = connection.execute(
+            """
             SELECT department_code, timestamp_utc, table_name, hash, previous_hash
             FROM snapshot_index
             ORDER BY department_code, timestamp_utc
-            """).fetchall()
+            """
+        ).fetchall()
 
         for row in rows:
             department_code = row["department_code"]

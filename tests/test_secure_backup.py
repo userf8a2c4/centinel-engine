@@ -29,6 +29,7 @@ from centinel_engine.secure_backup import (  # noqa: E402
 # Test 1: SHA-256 computation / Calculo SHA-256
 # ---------------------------------------------------------------------------
 
+
 class TestSHA256:
     """Tests for SHA-256 hash computation / Pruebas de calculo de hash SHA-256."""
 
@@ -63,6 +64,7 @@ class TestSHA256:
 # Test 2: Backup manifest / Manifiesto de respaldo
 # ---------------------------------------------------------------------------
 
+
 class TestManifest:
     """Tests for backup manifest construction / Pruebas de construccion de manifiesto."""
 
@@ -86,6 +88,7 @@ class TestManifest:
 # ---------------------------------------------------------------------------
 # Test 3: Hash chain file collection / Recoleccion de archivos de cadena de hashes
 # ---------------------------------------------------------------------------
+
 
 class TestHashChainCollection:
     """Tests for hash chain file discovery / Pruebas de descubrimiento de archivos de cadena."""
@@ -122,6 +125,7 @@ class TestHashChainCollection:
 # ---------------------------------------------------------------------------
 # Test 4: Local backup / Respaldo local
 # ---------------------------------------------------------------------------
+
 
 class TestLocalBackup:
     """Tests for local backup writing / Pruebas de escritura de respaldo local."""
@@ -164,6 +168,7 @@ class TestLocalBackup:
 # ---------------------------------------------------------------------------
 # Test 5: Full backup pipeline / Pipeline completo de respaldo
 # ---------------------------------------------------------------------------
+
 
 class TestBackupCriticalAssets:
     """Tests for the main backup_critical_assets function / Pruebas de la funcion principal."""
@@ -227,6 +232,7 @@ class TestBackupCriticalAssets:
 # ---------------------------------------------------------------------------
 # Test 6: BackupScheduler / Programador de respaldo
 # ---------------------------------------------------------------------------
+
 
 class TestBackupScheduler:
     """Tests for the backup scheduler / Pruebas del programador de respaldo."""

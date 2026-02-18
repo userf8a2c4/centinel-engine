@@ -2,7 +2,7 @@
 
 [Quick Start](#quick-start) • [Documentación completa / Full docs](/docs/README.md) • [Metodología / Methodology](/docs/methodology.md) • [Contribuir / Contributing](/docs/contributing.md) • [Licencia / License](/LICENSE)
 
-[![Licencia: AGPL v3](https://img.shields.io/badge/Licencia-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Licencia: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue)](https://www.python.org/)
 [![Último commit](https://img.shields.io/github/last-commit/userf8a2c4/centinel-engine/main)](https://github.com/userf8a2c4/centinel-engine/commits/main)
 [![CI](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml)
@@ -23,9 +23,10 @@ Sistema técnico open-source para observar y auditar datos electorales **públic
 - Respaldo cifrado AES-256 automático a múltiples destinos (local, Dropbox, S3).
 - [Matriz de cumplimiento legal](/docs/legal_compliance_matrix.md) con referencias a legislación hondureña vigente.
 - Configuración centralizada en [`command_center/`](/command_center/) y dashboard de demostración en [Streamlit](https://centinel-dashboard.streamlit.app/).
+- Validación metodológica continua con revisión externa de reglas matemáticas junto a especialistas de la UPNFM para elevar precisión analítica y respaldo académico.
 
 ### Estado
-**AUDIT ACTIVE** · Desarrollo activo · Cadencia objetivo de polling electoral: 5 minutos.
+**EN DESARROLLO** · Preparación operativa continua · Cadencia objetivo de polling electoral: 5 minutos.
 
 ## English
 
@@ -41,9 +42,10 @@ Open-source technical system to monitor and audit **public** election data in Ho
 - AES-256 encrypted automatic backup to multiple destinations (local, Dropbox, S3).
 - [Legal compliance matrix](/docs/legal_compliance_matrix.md) with references to current Honduran legislation.
 - Centralized configuration in [`command_center/`](/command_center/) plus a demo [Streamlit dashboard](https://centinel-dashboard.streamlit.app/).
+- Ongoing methodological validation with external review of mathematical rules alongside UPNFM specialists to improve analytical precision and academic backing.
 
 ### Status
-**AUDIT ACTIVE** · Actively developed · Election polling target cadence: every 5 minutes.
+**IN DEVELOPMENT** · Continuous operational hardening · Election polling target cadence: every 5 minutes.
 
 ## Quick Start
 

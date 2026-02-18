@@ -51,6 +51,7 @@ def _normal_status() -> Dict[str, Any]:
 # Test 1: Normal mode / Modo normal
 # ---------------------------------------------------------------------------
 
+
 class TestNormalMode:
     """Tests for normal operational mode / Pruebas para modo operativo normal."""
 
@@ -88,6 +89,7 @@ class TestNormalMode:
 # ---------------------------------------------------------------------------
 # Test 2: Conservative mode via consecutive failures
 # ---------------------------------------------------------------------------
+
 
 class TestConservativeMode:
     """Tests for conservative mode / Pruebas para modo conservador."""
@@ -139,6 +141,7 @@ class TestConservativeMode:
 # Test 3: Critical mode via hash chain broken
 # ---------------------------------------------------------------------------
 
+
 class TestCriticalMode:
     """Tests for critical mode / Pruebas para modo critico."""
 
@@ -188,6 +191,7 @@ class TestCriticalMode:
 # ---------------------------------------------------------------------------
 # Test 4: Persistence - save & load
 # ---------------------------------------------------------------------------
+
 
 class TestPersistence:
     """Tests for health state persistence / Pruebas para persistencia del estado."""
@@ -264,6 +268,7 @@ class TestPersistence:
 # Test 5: update_status_after_scrape helper
 # ---------------------------------------------------------------------------
 
+
 class TestUpdateStatus:
     """Tests for the status update helper / Pruebas para el helper de actualizacion."""
 
@@ -311,6 +316,7 @@ class TestUpdateStatus:
 # Test 6: Helper functions
 # ---------------------------------------------------------------------------
 
+
 class TestHelpers:
     """Tests for internal helper functions / Pruebas para funciones auxiliares internas."""
 
@@ -340,6 +346,7 @@ class TestHelpers:
 # ---------------------------------------------------------------------------
 # Test 7: Default thresholds constants
 # ---------------------------------------------------------------------------
+
 
 class TestDefaultConstants:
     """Tests for default constant values / Pruebas para valores constantes por defecto."""

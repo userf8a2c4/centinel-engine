@@ -17,10 +17,16 @@ services:
     # Reinicio automático agresivo en caso de caída.
     restart: always
 
-    # Healthcheck estricto: requiere endpoint /healthz en el puerto 8000.
+    # Healthcheck del worker de pipeline: valida heartbeat reciente en disco.
     healthcheck:
-      # Healthcheck estricto y silencioso para detectar fallos rápido.
-      test: ["CMD", "curl", "-f", "-s", "http://localhost:8000/healthz"]
+      # Falla si no existe heartbeat o si supera 10 minutos de antigüedad.
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "from pathlib import Path; import json, datetime as dt; p=Path('/app/data/heartbeat.json'); assert p.exists(); payload=json.loads(p.read_text()); t=dt.datetime.fromisoformat(payload['updated_at']); now=dt.datetime.now(dt.timezone.utc); assert (now-t).total_seconds() < 600",
+        ]
       interval: 20s
       timeout: 10s
       retries: 5
@@ -75,9 +81,6 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
 
-    # Exponer el puerto del servicio.
-    ports:
-      - "8000:8000"
 
     # Red interna para minimizar exposición.
     networks:

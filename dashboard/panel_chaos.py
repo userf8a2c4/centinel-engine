@@ -94,7 +94,12 @@ SCENARIO_UI = [
     {"key": "network_cut", "label": "Corte de Red", "icon": "🌐", "desc": "Simula perdida total de red"},
     {"key": "disk_fill", "label": "Disco Lleno", "icon": "💾", "desc": "Simula disco sin espacio"},
     {"key": "bucket_write", "label": "Fallo Bucket", "icon": "☁", "desc": "Simula fallo escritura en bucket"},
-    {"key": "checkpoint_corruption", "label": "Corrupcion Checkpoint", "icon": "📄", "desc": "Corrompe el checkpoint de estado"},
+    {
+        "key": "checkpoint_corruption",
+        "label": "Corrupcion Checkpoint",
+        "icon": "📄",
+        "desc": "Corrompe el checkpoint de estado",
+    },
 ]
 
 
@@ -137,9 +142,7 @@ def _get_or_create_runner(actas_before_failure: int) -> FakePipelineRunner:
 
 
 def _log_event(event_type: str, message: str) -> None:
-    st.session_state.chaos_event_log.append(
-        {"time": _now_str(), "type": event_type, "message": message}
-    )
+    st.session_state.chaos_event_log.append({"time": _now_str(), "type": event_type, "message": message})
 
 
 def _run_chaos_scenario(runner: FakePipelineRunner, scenario_key: str) -> None:
@@ -399,9 +402,7 @@ def render_chaos_panel() -> None:
         # --- Alert Log from runner ---
         if runner and runner.alert_log:
             st.markdown("### Alertas del Pipeline")
-            alert_df = pd.DataFrame(
-                [{"Alerta": a, "Indice": i} for i, a in enumerate(runner.alert_log)]
-            )
+            alert_df = pd.DataFrame([{"Alerta": a, "Indice": i} for i, a in enumerate(runner.alert_log)])
             st.dataframe(alert_df, use_container_width=True, hide_index=True)
 
         # --- Rules Engine Results (from injected snapshots) ---

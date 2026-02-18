@@ -89,9 +89,9 @@ def fetch_json_with_retry(
     for attempt in range(1, max_attempts + 1):
         try:
             headers = {
-                "User-Agent": random.choice(user_agents)
-                if user_agents
-                else "Mozilla/5.0 (compatible; Centinel-Collector/1.0)",
+                "User-Agent": (
+                    random.choice(user_agents) if user_agents else "Mozilla/5.0 (compatible; Centinel-Collector/1.0)"
+                ),
                 "Accept": "application/json",
             }
             proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
@@ -107,7 +107,9 @@ def fetch_json_with_retry(
     return None
 
 
-def validate_collected_payloads(payloads: list[dict[str, Any]], expected_count: int = 96) -> tuple[list[dict[str, Any]], int]:
+def validate_collected_payloads(
+    payloads: list[dict[str, Any]], expected_count: int = 96
+) -> tuple[list[dict[str, Any]], int]:
     """Validate payloads against canonical schema.
 
     Valida payloads contra el esquema canónico.
@@ -170,7 +172,9 @@ def run_collection(config_path: Path = DEFAULT_CONFIG_PATH, retry_path: Path = D
         jitter_bounds = [0.0, 0.0]
     min_jitter = max(float(jitter_bounds[0]), 0.0)
     max_jitter = max(float(jitter_bounds[1]), min_jitter)
-    user_agents = scraping_profile.get("user_agents", []) if isinstance(scraping_profile.get("user_agents"), list) else []
+    user_agents = (
+        scraping_profile.get("user_agents", []) if isinstance(scraping_profile.get("user_agents"), list) else []
+    )
     user_agents = [str(agent) for agent in user_agents if str(agent).strip()]
     rotator = get_proxy_rotator(LOGGER)
 
@@ -221,7 +225,9 @@ def run_collection(config_path: Path = DEFAULT_CONFIG_PATH, retry_path: Path = D
         "snapshots": valid_payloads,
     }
     DEFAULT_OUTPUT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    LOGGER.info("collector_report_written path=%s valid=%s invalid=%s", DEFAULT_OUTPUT_PATH, len(valid_payloads), invalid_count)
+    LOGGER.info(
+        "collector_report_written path=%s valid=%s invalid=%s", DEFAULT_OUTPUT_PATH, len(valid_payloads), invalid_count
+    )
     return 0
 
 

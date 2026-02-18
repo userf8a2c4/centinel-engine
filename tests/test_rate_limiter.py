@@ -26,6 +26,7 @@ from centinel_engine.rate_limiter import (  # noqa: E402
 # Fixtures / Fixtures de prueba
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _reset_singleton() -> None:
     """Reset the global singleton before each test / Reiniciar singleton antes de cada test."""
@@ -37,6 +38,7 @@ def _reset_singleton() -> None:
 # ---------------------------------------------------------------------------
 # Test 1: Construction and defaults / Construccion y valores por defecto
 # ---------------------------------------------------------------------------
+
 
 class TestConstruction:
     """Tests for rate limiter construction / Pruebas de construccion del limitador."""
@@ -94,6 +96,7 @@ class TestConstruction:
 # Test 2: Token consumption / Consumo de tokens
 # ---------------------------------------------------------------------------
 
+
 class TestTokenConsumption:
     """Tests for token bucket behavior / Pruebas del comportamiento del token-bucket."""
 
@@ -135,6 +138,7 @@ class TestTokenConsumption:
 # Test 3: Minimum interval enforcement / Aplicacion de intervalo minimo
 # ---------------------------------------------------------------------------
 
+
 class TestMinimumInterval:
     """Tests for minimum inter-request interval / Pruebas de intervalo minimo entre requests."""
 
@@ -154,6 +158,7 @@ class TestMinimumInterval:
 # ---------------------------------------------------------------------------
 # Test 4: Stats tracking / Seguimiento de estadisticas
 # ---------------------------------------------------------------------------
+
 
 class TestStats:
     """Tests for statistics tracking / Pruebas de seguimiento de estadisticas."""
@@ -184,6 +189,7 @@ class TestStats:
 # ---------------------------------------------------------------------------
 # Test 5: Singleton / Singleton
 # ---------------------------------------------------------------------------
+
 
 class TestSingleton:
     """Tests for the global singleton accessor / Pruebas del accessor singleton global."""

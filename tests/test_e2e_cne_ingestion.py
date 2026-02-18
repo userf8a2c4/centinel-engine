@@ -25,11 +25,36 @@ from centinel.api.main import fetch_latest_snapshot, fetch_snapshot_by_hash, ver
 
 SNAPSHOT_DEC03_1625 = {
     "resultados": [
-        {"partido": "PARTIDO LIBERAL DE HONDURAS", "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM", "votos": "1,027,090", "porcentaje": "38.10"},
-        {"partido": "PARTIDO NACIONAL DE HONDURAS", "candidato": "NASRY JUAN ASFURA ZABLAH", "votos": "1,013,050", "porcentaje": "37.58"},
-        {"partido": "PARTIDO LIBERTAD Y REFUNDACION", "candidato": "RIXI RAMONA MONCADA GODOY", "votos": "485,529", "porcentaje": "18.01"},
-        {"partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA", "candidato": "JORGE NELSON AVILA GUTIERREZ", "votos": "22,608", "porcentaje": "0.84"},
-        {"partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS", "candidato": "MARIO ENRIQUE RIVERA CALLEJAS", "votos": "4,500", "porcentaje": "0.17"},
+        {
+            "partido": "PARTIDO LIBERAL DE HONDURAS",
+            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "votos": "1,027,090",
+            "porcentaje": "38.10",
+        },
+        {
+            "partido": "PARTIDO NACIONAL DE HONDURAS",
+            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "votos": "1,013,050",
+            "porcentaje": "37.58",
+        },
+        {
+            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
+            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "votos": "485,529",
+            "porcentaje": "18.01",
+        },
+        {
+            "partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA",
+            "candidato": "JORGE NELSON AVILA GUTIERREZ",
+            "votos": "22,608",
+            "porcentaje": "0.84",
+        },
+        {
+            "partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS",
+            "candidato": "MARIO ENRIQUE RIVERA CALLEJAS",
+            "votos": "4,500",
+            "porcentaje": "0.17",
+        },
     ],
     "estadisticas": {
         "totalizacion_actas": {"actas_totales": "19,152", "actas_divulgadas": "15,310"},
@@ -40,11 +65,36 @@ SNAPSHOT_DEC03_1625 = {
 
 SNAPSHOT_DEC06_0400 = {
     "resultados": [
-        {"partido": "PARTIDO NACIONAL DE HONDURAS", "candidato": "NASRY JUAN ASFURA ZABLAH", "votos": "1,132,321", "porcentaje": "38.01"},
-        {"partido": "PARTIDO LIBERAL DE HONDURAS", "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM", "votos": "1,112,570", "porcentaje": "37.35"},
-        {"partido": "PARTIDO LIBERTAD Y REFUNDACION", "candidato": "RIXI RAMONA MONCADA GODOY", "votos": "543,675", "porcentaje": "18.25"},
-        {"partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA", "candidato": "JORGE NELSON AVILA GUTIERREZ", "votos": "23,398", "porcentaje": "0.79"},
-        {"partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS", "candidato": "MARIO ENRIQUE RIVERA CALLEJAS", "votos": "4,882", "porcentaje": "0.16"},
+        {
+            "partido": "PARTIDO NACIONAL DE HONDURAS",
+            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "votos": "1,132,321",
+            "porcentaje": "38.01",
+        },
+        {
+            "partido": "PARTIDO LIBERAL DE HONDURAS",
+            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "votos": "1,112,570",
+            "porcentaje": "37.35",
+        },
+        {
+            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
+            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "votos": "543,675",
+            "porcentaje": "18.25",
+        },
+        {
+            "partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA",
+            "candidato": "JORGE NELSON AVILA GUTIERREZ",
+            "votos": "23,398",
+            "porcentaje": "0.79",
+        },
+        {
+            "partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS",
+            "candidato": "MARIO ENRIQUE RIVERA CALLEJAS",
+            "votos": "4,882",
+            "porcentaje": "0.16",
+        },
     ],
     "estadisticas": {
         "totalizacion_actas": {"actas_totales": "19,152", "actas_divulgadas": "16,858"},
@@ -55,11 +105,36 @@ SNAPSHOT_DEC06_0400 = {
 
 SNAPSHOT_DEC10_1703 = {
     "resultados": [
-        {"partido": "PARTIDO NACIONAL DE HONDURAS", "candidato": "NASRY JUAN ASFURA ZABLAH", "votos": "1,298,835", "porcentaje": "38.28"},
-        {"partido": "PARTIDO LIBERAL DE HONDURAS", "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM", "votos": "1,256,428", "porcentaje": "37.03"},
-        {"partido": "PARTIDO LIBERTAD Y REFUNDACION", "candidato": "RIXI RAMONA MONCADA GODOY", "votos": "618,448", "porcentaje": "18.23"},
-        {"partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA", "candidato": "JORGE NELSON AVILA GUTIERREZ", "votos": "25,421", "porcentaje": "0.75"},
-        {"partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS", "candidato": "MARIO ENRIQUE RIVERA CALLEJAS", "votos": "5,516", "porcentaje": "0.16"},
+        {
+            "partido": "PARTIDO NACIONAL DE HONDURAS",
+            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "votos": "1,298,835",
+            "porcentaje": "38.28",
+        },
+        {
+            "partido": "PARTIDO LIBERAL DE HONDURAS",
+            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "votos": "1,256,428",
+            "porcentaje": "37.03",
+        },
+        {
+            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
+            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "votos": "618,448",
+            "porcentaje": "18.23",
+        },
+        {
+            "partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA",
+            "candidato": "JORGE NELSON AVILA GUTIERREZ",
+            "votos": "25,421",
+            "porcentaje": "0.75",
+        },
+        {
+            "partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS",
+            "candidato": "MARIO ENRIQUE RIVERA CALLEJAS",
+            "votos": "5,516",
+            "porcentaje": "0.16",
+        },
     ],
     "estadisticas": {
         "totalizacion_actas": {"actas_totales": "19,167", "actas_divulgadas": "19,052"},
@@ -79,6 +154,7 @@ TIMELINE = [
 # Phase 1: Normalization survives all real snapshots
 # ---------------------------------------------------------------------------
 
+
 class TestNormalizationSurvivesAllSnapshots:
     """Every real CNE snapshot must normalize without returning None."""
 
@@ -96,8 +172,11 @@ class TestNormalizationSurvivesAllSnapshots:
     @pytest.mark.parametrize("timestamp,raw", TIMELINE)
     def test_canonical_json_roundtrips(self, timestamp, raw):
         snapshot = normalize_snapshot(
-            raw, department_name="TODOS", timestamp_utc=timestamp,
-            scope="NATIONAL", department_code="00",
+            raw,
+            department_name="TODOS",
+            timestamp_utc=timestamp,
+            scope="NATIONAL",
+            department_code="00",
         )
         canonical = snapshot_to_canonical_json(snapshot)
         parsed = json.loads(canonical)
@@ -108,6 +187,7 @@ class TestNormalizationSurvivesAllSnapshots:
 # ---------------------------------------------------------------------------
 # Phase 2: Storage → hashchain integrity across 3 snapshots
 # ---------------------------------------------------------------------------
+
 
 class TestStorageHashchainIntegrity:
     """Store 3 real snapshots sequentially and verify the hash chain."""
@@ -120,8 +200,11 @@ class TestStorageHashchainIntegrity:
 
         for timestamp, raw in TIMELINE:
             snapshot = normalize_snapshot(
-                raw, department_name="TODOS", timestamp_utc=timestamp,
-                scope="NATIONAL", department_code="00",
+                raw,
+                department_name="TODOS",
+                timestamp_utc=timestamp,
+                scope="NATIONAL",
+                department_code="00",
             )
             assert snapshot is not None, f"Failed to normalize {timestamp}"
             h = store.store_snapshot(snapshot, previous_hash=previous_hash)
@@ -143,8 +226,11 @@ class TestStorageHashchainIntegrity:
 
         for timestamp, raw in TIMELINE:
             snapshot = normalize_snapshot(
-                raw, department_name="TODOS", timestamp_utc=timestamp,
-                scope="NATIONAL", department_code="00",
+                raw,
+                department_name="TODOS",
+                timestamp_utc=timestamp,
+                scope="NATIONAL",
+                department_code="00",
             )
             store.store_snapshot(snapshot)
 
@@ -164,20 +250,25 @@ class TestStorageHashchainIntegrity:
 # Phase 3: API endpoints serve real data without crashing
 # ---------------------------------------------------------------------------
 
+
 class TestApiServesRealData:
     """API functions must return structured data for real CNE snapshots."""
 
     @pytest.fixture()
     def db_connection(self, tmp_path):
         import sqlite3
+
         db_path = tmp_path / "snapshots.db"
         store = LocalSnapshotStore(str(db_path))
         previous_hash = None
 
         for timestamp, raw in TIMELINE:
             snapshot = normalize_snapshot(
-                raw, department_name="TODOS", timestamp_utc=timestamp,
-                scope="NATIONAL", department_code="00",
+                raw,
+                department_name="TODOS",
+                timestamp_utc=timestamp,
+                scope="NATIONAL",
+                department_code="00",
             )
             h = store.store_snapshot(snapshot, previous_hash=previous_hash)
             previous_hash = h
@@ -213,6 +304,7 @@ class TestApiServesRealData:
 # Phase 4: Edge cases — malformed variants of real data
 # ---------------------------------------------------------------------------
 
+
 class TestMalformedVariantsOfRealData:
     """System must not crash on corrupted versions of real CNE data."""
 
@@ -220,8 +312,11 @@ class TestMalformedVariantsOfRealData:
         """CNE could omit estadisticas in a partial response."""
         raw = {"resultados": SNAPSHOT_DEC03_1625["resultados"]}
         snapshot = normalize_snapshot(
-            raw, department_name="TODOS", timestamp_utc="2025-12-03T16:25:27Z",
-            scope="NATIONAL", department_code="00",
+            raw,
+            department_name="TODOS",
+            timestamp_utc="2025-12-03T16:25:27Z",
+            scope="NATIONAL",
+            department_code="00",
         )
         assert snapshot is not None
         assert snapshot.totals.valid_votes == 0  # No stats available
@@ -230,8 +325,11 @@ class TestMalformedVariantsOfRealData:
         """CNE could send only estadisticas without resultados."""
         raw = {"estadisticas": SNAPSHOT_DEC03_1625["estadisticas"]}
         snapshot = normalize_snapshot(
-            raw, department_name="TODOS", timestamp_utc="2025-12-03T16:25:27Z",
-            scope="NATIONAL", department_code="00",
+            raw,
+            department_name="TODOS",
+            timestamp_utc="2025-12-03T16:25:27Z",
+            scope="NATIONAL",
+            department_code="00",
         )
         assert snapshot is not None
         assert snapshot.totals.valid_votes == 2552777
@@ -245,8 +343,11 @@ class TestMalformedVariantsOfRealData:
             "estadisticas": SNAPSHOT_DEC03_1625["estadisticas"],
         }
         snapshot = normalize_snapshot(
-            raw, department_name="TODOS", timestamp_utc="2025-12-03T16:25:27Z",
-            scope="NATIONAL", department_code="00",
+            raw,
+            department_name="TODOS",
+            timestamp_utc="2025-12-03T16:25:27Z",
+            scope="NATIONAL",
+            department_code="00",
         )
         assert snapshot is not None
 
@@ -263,8 +364,11 @@ class TestMalformedVariantsOfRealData:
             },
         }
         snapshot = normalize_snapshot(
-            raw, department_name="TODOS", timestamp_utc="2025-12-03T16:25:27Z",
-            scope="NATIONAL", department_code="00",
+            raw,
+            department_name="TODOS",
+            timestamp_utc="2025-12-03T16:25:27Z",
+            scope="NATIONAL",
+            department_code="00",
         )
         assert snapshot is not None
         assert snapshot.candidates[0].votes == 999999
@@ -273,8 +377,11 @@ class TestMalformedVariantsOfRealData:
         """Data might arrive as a JSON string, not a dict."""
         raw_str = json.dumps(SNAPSHOT_DEC10_1703)
         snapshot = normalize_snapshot(
-            raw_str, department_name="TODOS", timestamp_utc="2025-12-10T17:03:59Z",
-            scope="NATIONAL", department_code="00",
+            raw_str,
+            department_name="TODOS",
+            timestamp_utc="2025-12-10T17:03:59Z",
+            scope="NATIONAL",
+            department_code="00",
         )
         assert snapshot is not None
         assert len(snapshot.candidates) == 5
@@ -283,8 +390,11 @@ class TestMalformedVariantsOfRealData:
         """Data might arrive as bytes from an HTTP response."""
         raw_bytes = json.dumps(SNAPSHOT_DEC10_1703).encode("utf-8")
         snapshot = normalize_snapshot(
-            raw_bytes, department_name="TODOS", timestamp_utc="2025-12-10T17:03:59Z",
-            scope="NATIONAL", department_code="00",
+            raw_bytes,
+            department_name="TODOS",
+            timestamp_utc="2025-12-10T17:03:59Z",
+            scope="NATIONAL",
+            department_code="00",
         )
         assert snapshot is not None
 
@@ -329,9 +439,24 @@ class TestMalformedVariantsOfRealData:
 # Simulated per-department data (CNE sends same structure, different numbers)
 _DEPARTMENT_SNAPSHOT_TEMPLATE = {
     "resultados": [
-        {"partido": "PARTIDO NACIONAL DE HONDURAS", "candidato": "NASRY JUAN ASFURA ZABLAH", "votos": "72,157", "porcentaje": "38.28"},
-        {"partido": "PARTIDO LIBERAL DE HONDURAS", "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM", "votos": "69,802", "porcentaje": "37.03"},
-        {"partido": "PARTIDO LIBERTAD Y REFUNDACION", "candidato": "RIXI RAMONA MONCADA GODOY", "votos": "34,358", "porcentaje": "18.23"},
+        {
+            "partido": "PARTIDO NACIONAL DE HONDURAS",
+            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "votos": "72,157",
+            "porcentaje": "38.28",
+        },
+        {
+            "partido": "PARTIDO LIBERAL DE HONDURAS",
+            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "votos": "69,802",
+            "porcentaje": "37.03",
+        },
+        {
+            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
+            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "votos": "34,358",
+            "porcentaje": "18.23",
+        },
     ],
     "estadisticas": {
         "totalizacion_actas": {"actas_totales": "1,065", "actas_divulgadas": "1,058"},

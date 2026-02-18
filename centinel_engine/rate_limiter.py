@@ -156,8 +156,7 @@ class TokenBucketRateLimiter:
 
         if total_waited > 0:
             logger.debug(
-                "Rate limiter waited %.2fs | Limitador espero %.2fs "
-                "(tokens_remaining=%.1f)",
+                "Rate limiter waited %.2fs | Limitador espero %.2fs " "(tokens_remaining=%.1f)",
                 total_waited,
                 total_waited,
                 self._tokens,

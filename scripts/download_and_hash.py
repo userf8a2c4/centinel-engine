@@ -436,7 +436,9 @@ def process_sources(
             source_id = resolve_source_id(source)
             source_label = source_id
             data_dir, hash_dir = ensure_source_dirs(
-                source_id, data_root=data_root, hash_root=hash_root,
+                source_id,
+                data_root=data_root,
+                hash_root=hash_root,
             )
             if source_label in processed_sources:
                 logger.info("Fuente ya procesada en checkpoint: %s", source_label)

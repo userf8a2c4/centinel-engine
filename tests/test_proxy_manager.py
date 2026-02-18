@@ -28,6 +28,7 @@ from centinel_engine.proxy_manager import (  # noqa: E402
 # Fixtures / Fixtures de prueba
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _reset_singleton() -> None:
     """Reset the global singleton before each test / Reiniciar singleton antes de cada test."""
@@ -63,6 +64,7 @@ class MockProxyRotator:
 # ---------------------------------------------------------------------------
 # Test 1: User-Agent pool / Pool de User-Agents
 # ---------------------------------------------------------------------------
+
 
 class TestUserAgentPool:
     """Tests for the User-Agent pool / Pruebas del pool de User-Agents."""
@@ -110,6 +112,7 @@ class TestUserAgentPool:
 # Test 2: UA rotation / Rotacion de UA
 # ---------------------------------------------------------------------------
 
+
 class TestUARotation:
     """Tests for User-Agent rotation / Pruebas de rotacion de User-Agent."""
 
@@ -141,6 +144,7 @@ class TestUARotation:
 # ---------------------------------------------------------------------------
 # Test 3: Proxy rotation / Rotacion de proxy
 # ---------------------------------------------------------------------------
+
 
 class TestProxyRotation:
     """Tests for proxy rotation behavior / Pruebas de comportamiento de rotacion de proxy."""
@@ -180,6 +184,7 @@ class TestProxyRotation:
 # ---------------------------------------------------------------------------
 # Test 4: Status code notification / Notificacion de codigo de estado
 # ---------------------------------------------------------------------------
+
 
 class TestStatusNotification:
     """Tests for hostile status code handling / Pruebas de manejo de codigos hostiles."""
@@ -225,6 +230,7 @@ class TestStatusNotification:
 # Test 5: Statistics / Estadisticas
 # ---------------------------------------------------------------------------
 
+
 class TestManagerStats:
     """Tests for manager statistics / Pruebas de estadisticas del gestor."""
 
@@ -251,6 +257,7 @@ class TestManagerStats:
 # ---------------------------------------------------------------------------
 # Test 6: Singleton / Singleton
 # ---------------------------------------------------------------------------
+
 
 class TestSingleton:
     """Tests for the global singleton accessor / Pruebas del accessor singleton global."""

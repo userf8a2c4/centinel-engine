@@ -93,12 +93,16 @@ def run_supervisor(command: list[str], logger: logging.Logger) -> int:
         multiplier = max(1, 2 ** (retries - 1))
         if _host_still_hostile(cfg):
             multiplier *= 2
-        cooldown = random_cooldown_seconds(max(20, cfg.cooldown_min_minutes), max(90, cfg.cooldown_max_minutes), multiplier)
+        cooldown = random_cooldown_seconds(
+            max(20, cfg.cooldown_min_minutes), max(90, cfg.cooldown_max_minutes), multiplier
+        )
         cooldown = min(cooldown, 6 * 3600)
         reason = signal.Signals(-returncode).name if returncode < 0 else f"exit_{returncode}"
 
         logger.warning("supervisor_restart retries=%s reason=%s cooldown=%ss", retries, reason, cooldown)
-        alerts.send(3, "supervisor_forced_restart", {"reason": reason, "retries": retries, "cooldown_seconds": cooldown})
+        alerts.send(
+            3, "supervisor_forced_restart", {"reason": reason, "retries": retries, "cooldown_seconds": cooldown}
+        )
         time.sleep(cooldown)
 
     send_admin_alert(config=cfg, triggers=["supervisor_max_retries"], recent_logs=[], state_path="unknown")

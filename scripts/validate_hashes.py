@@ -142,11 +142,13 @@ def _iter_sqlite_entries(connection: sqlite3.Connection) -> Iterable[dict]:
 
     English: Function _iter_sqlite_entries defined in scripts/validate_hashes.py.
     """
-    return connection.execute("""
+    return connection.execute(
+        """
         SELECT department_code, timestamp_utc, table_name, hash, previous_hash
         FROM snapshot_index
         ORDER BY department_code, timestamp_utc
-        """).fetchall()
+        """
+    ).fetchall()
 
 
 def _load_canonical_snapshot(connection: sqlite3.Connection, table_name: str, snapshot_hash: str) -> str | None:

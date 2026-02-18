@@ -53,3 +53,12 @@ To adjust limits, edit the values in `src/centinel/api/main.py`:
 
 The service will send a success ping every 5 minutes. If scraping fails more than
 3 times in a row or a critical error occurs, a failure ping will be sent.
+
+### Healthcheck del worker de pipeline
+
+En despliegue Docker/Compose, el contenedor `centinel-engine` (worker) se valida por **heartbeat reciente** en `data/heartbeat.json` en lugar de un endpoint HTTP.
+
+- El healthcheck falla si no existe heartbeat.
+- El healthcheck falla si el heartbeat supera 10 minutos de antigüedad.
+
+Esto evita inconsistencias cuando el contenedor ejecuta solo `scripts/run_pipeline.py` y no expone API web.

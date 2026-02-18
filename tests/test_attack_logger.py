@@ -21,7 +21,12 @@ def _read_jsonl(path: Path) -> list[dict]:
 
 def test_log_http_request_classifies_flood(tmp_path: Path) -> None:
     """English/Spanish: Burst traffic should be classified as flood."""
-    cfg = AttackLogConfig(log_path=str(tmp_path / "attack_log.jsonl"), max_requests_per_ip=2, honeypot_enabled=False, flood_log_sample_ratio=1)
+    cfg = AttackLogConfig(
+        log_path=str(tmp_path / "attack_log.jsonl"),
+        max_requests_per_ip=2,
+        honeypot_enabled=False,
+        flood_log_sample_ratio=1,
+    )
     logbook = AttackForensicsLogbook(cfg)
     logbook.start()
 

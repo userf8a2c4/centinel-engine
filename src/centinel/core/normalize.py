@@ -301,40 +301,70 @@ def normalize_snapshot(
     registered_voters = _safe_int(
         _first_value(
             raw,
-            totals_map.get("registered_voters", [
-                "registered_voters", "inscritos", "padron",
-                "estadisticas.totalizacion_actas.actas_totales",
-            ]),
+            totals_map.get(
+                "registered_voters",
+                [
+                    "registered_voters",
+                    "inscritos",
+                    "padron",
+                    "estadisticas.totalizacion_actas.actas_totales",
+                ],
+            ),
         )
     )
     total_votes = _safe_int(
         _first_value(
             raw,
-            totals_map.get("total_votes", [
-                "total_votes", "total_votos", "votos_emitidos",
-            ]),
+            totals_map.get(
+                "total_votes",
+                [
+                    "total_votes",
+                    "total_votos",
+                    "votos_emitidos",
+                ],
+            ),
         )
     )
     valid_votes = _safe_int(
         _first_value(
             raw,
-            totals_map.get("valid_votes", [
-                "valid_votes", "votos_validos", "validos",
-                "estadisticas.distribucion_votos.validos",
-            ]),
+            totals_map.get(
+                "valid_votes",
+                [
+                    "valid_votes",
+                    "votos_validos",
+                    "validos",
+                    "estadisticas.distribucion_votos.validos",
+                ],
+            ),
         )
     )
-    null_votes = _safe_int(_first_value(raw, totals_map.get("null_votes", [
-        "null_votes", "votos_nulos", "nulos",
-        "estadisticas.distribucion_votos.nulos",
-    ])))
+    null_votes = _safe_int(
+        _first_value(
+            raw,
+            totals_map.get(
+                "null_votes",
+                [
+                    "null_votes",
+                    "votos_nulos",
+                    "nulos",
+                    "estadisticas.distribucion_votos.nulos",
+                ],
+            ),
+        )
+    )
     blank_votes = _safe_int(
         _first_value(
             raw,
-            totals_map.get("blank_votes", [
-                "blank_votes", "votos_blancos", "blancos",
-                "estadisticas.distribucion_votos.blancos",
-            ]),
+            totals_map.get(
+                "blank_votes",
+                [
+                    "blank_votes",
+                    "votos_blancos",
+                    "blancos",
+                    "estadisticas.distribucion_votos.blancos",
+                ],
+            ),
         )
     )
 

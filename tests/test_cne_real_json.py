@@ -125,6 +125,7 @@ REAL_CNE_SNAPSHOT_FINAL = {
 # _safe_int: comma-separated string numbers
 # ---------------------------------------------------------------------------
 
+
 class TestSafeIntCommaStrings:
     """Verify _safe_int handles CNE-style comma-separated vote strings."""
 
@@ -144,6 +145,7 @@ class TestSafeIntCommaStrings:
 # ---------------------------------------------------------------------------
 # _sanitize_raw_payload: real CNE structure
 # ---------------------------------------------------------------------------
+
 
 class TestSanitizeRealCnePayload:
     """Verify sanitization passes real CNE JSON without rejection."""
@@ -168,6 +170,7 @@ class TestSanitizeRealCnePayload:
 # ---------------------------------------------------------------------------
 # normalize_snapshot: real CNE data end-to-end
 # ---------------------------------------------------------------------------
+
 
 class TestNormalizeRealCneData:
     """End-to-end normalization of real CNE JSON into canonical Snapshot."""

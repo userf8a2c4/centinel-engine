@@ -37,8 +37,6 @@ logger = logging.getLogger("centinel.middleware")
 _CONFIG_PATH = Path(__file__).resolve().parents[3] / "command_center" / "config.yaml"
 
 
-
-
 def _is_production_environment() -> bool:
     """Return True when runtime environment indicates production mode.
     (Retorna True cuando el entorno indica modo producción.)
@@ -47,6 +45,7 @@ def _is_production_environment() -> bool:
         os.getenv(name, "").strip().lower() in {"prod", "production"}
         for name in ("CENTINEL_ENV", "ENV", "ENVIRONMENT", "APP_ENV")
     )
+
 
 def _load_security_config() -> dict[str, Any]:
     """Load the 'security' section from command_center/config.yaml.
@@ -77,6 +76,7 @@ def _load_security_config() -> dict[str, Any]:
 # replace with Redis-backed counters.
 # (NOTA: Intencionalmente simple y en memoria.  Para escalado horizontal
 # reemplazar con contadores respaldados por Redis.)
+
 
 class _SlidingWindowLimiter:
     """Per-IP sliding window rate limiter.
@@ -123,6 +123,7 @@ class _SlidingWindowLimiter:
 # ---------------------------------------------------------------------------
 # IP blocklist helpers (Helpers de blocklist de IPs)
 # ---------------------------------------------------------------------------
+
 
 def _parse_networks(
     raw_list: list[str] | None,
@@ -172,6 +173,7 @@ def _ip_in_blocklist(
 # The middleware class (La clase de middleware)
 # ---------------------------------------------------------------------------
 
+
 class ZeroTrustMiddleware(BaseHTTPMiddleware):
     """FastAPI middleware enforcing Zero Trust principles on every request.
     (Middleware FastAPI que aplica principios Zero Trust en cada request.)
@@ -212,9 +214,7 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
 
         # Headers that should never appear in legitimate CNE polling traffic
         # (Headers que nunca deberían aparecer en tráfico legítimo de polling CNE)
-        self._blocked_headers: set[str] = set(
-            h.lower() for h in zt.get("blocked_headers", [])
-        )
+        self._blocked_headers: set[str] = set(h.lower() for h in zt.get("blocked_headers", []))
 
         if self._enabled:
             logger.info(
@@ -314,6 +314,7 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
 # Helpers (Funciones auxiliares)
 # ---------------------------------------------------------------------------
 
+
 def _extract_client_ip(
     request: Request,
     trusted_proxy_nets: list[ipaddress.IPv4Network | ipaddress.IPv6Network] | None = None,
@@ -346,6 +347,7 @@ def _extract_client_ip(
 # ---------------------------------------------------------------------------
 # Registration helper (Helper de registro)
 # ---------------------------------------------------------------------------
+
 
 def install_zero_trust(app: FastAPI) -> None:
     """Install the Zero Trust middleware on a FastAPI app.

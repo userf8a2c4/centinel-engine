@@ -184,13 +184,9 @@ def check_vital_signs(
             f"consecutive_failures({consecutive_failures}) >= threshold({cons_fail_conservative})"
         )
     if success_rate < min_success_rate and len(success_history) > 0:
-        conservative_reasons.append(
-            f"success_rate({success_rate:.2f}) < min({min_success_rate})"
-        )
+        conservative_reasons.append(f"success_rate({success_rate:.2f}) < min({min_success_rate})")
     if avg_latency > max_avg_latency and len(latency_history) > 0:
-        conservative_reasons.append(
-            f"avg_latency({avg_latency:.2f}s) > max({max_avg_latency}s)"
-        )
+        conservative_reasons.append(f"avg_latency({avg_latency:.2f}s) > max({max_avg_latency}s)")
 
     if conservative_reasons:
         mode = "conservative"
@@ -348,6 +344,7 @@ def save_health_state(
 # ---------------------------------------------------------------------------
 # Integration helpers / Helpers de integracion
 # ---------------------------------------------------------------------------
+
 
 def update_status_after_scrape(
     current_state: Dict[str, Any],

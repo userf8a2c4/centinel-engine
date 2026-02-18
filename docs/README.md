@@ -10,6 +10,7 @@
 - [Límites legales y operativos](LEGAL-AND-OPERATIONAL-BOUNDARIES.md)
 - [Política de seguridad](security.md)
 - [Política de seguridad extendida](security-policy.md)
+- [Gobernanza técnica](governance.md)
 - [Backups y secrets](SECRETS_BACKUP.md)
 - [Setup de anclaje](ANCHOR_SETUP_GUIDE.md)
 - [Reglas](rules.md)
