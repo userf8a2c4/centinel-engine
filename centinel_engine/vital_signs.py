@@ -66,8 +66,6 @@ DEFAULT_HEALTH_STATE: Dict[str, Any] = {
 }
 
 
-
-
 def load_vital_signs_config(env: str = "prod") -> Dict[str, Any]:
     """Load vital-signs thresholds from centralized config storage.
 
@@ -90,6 +88,7 @@ def load_vital_signs_config(env: str = "prod") -> Dict[str, Any]:
     if not isinstance(candidate, dict):
         return dict(DEFAULT_THRESHOLDS)
     return {**DEFAULT_THRESHOLDS, **candidate}
+
 
 def _compute_success_rate(success_history: List[bool]) -> float:
     """Compute success rate from recent history.

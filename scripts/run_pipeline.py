@@ -607,7 +607,6 @@ def update_daily_summary(state, now, anomalies_count):
     state["daily_summary"] = daily
 
 
-
 def perform_cne_preflight_request(
     config: dict[str, Any],
     proxy: dict[str, str] | None,
