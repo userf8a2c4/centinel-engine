@@ -120,8 +120,8 @@ class ProxyAndUAManager:
             self._rotation_count += 1
             self._force_rotation = False
 
-    def rotate_proxy_and_ua(self, force_proxy_rotation: bool = False) -> Tuple[Optional[str], str]:
-        """Return current proxy dict and newly selected User-Agent.
+    def rotate_proxy_and_ua(self, force_proxy_rotation: bool = False) -> Tuple[Optional[Dict[str, str]], str]:
+        """Return current proxy mapping and newly selected User-Agent.
 
         Bilingual: Retorna proxy actual y un User-Agent recién seleccionado.
 
@@ -129,7 +129,7 @@ class ProxyAndUAManager:
             force_proxy_rotation: Force rotation regardless of cadence.
 
         Returns:
-            tuple[Optional[dict[str, str]], str]: Proxy mapping and UA string.
+            tuple[Optional[dict[str, str]], str]: Proxy mapping for `requests` and UA string.
 
         Raises:
             None.
@@ -138,7 +138,10 @@ class ProxyAndUAManager:
             self._request_count += 1
             self._maybe_rotate_proxy(force_proxy_rotation)
             self._last_ua = secrets.choice(self.ua_pool)
-            return self._last_proxy_url, self._last_ua
+            proxy_payload = None
+            if self._last_proxy_url:
+                proxy_payload = {"http": self._last_proxy_url, "https": self._last_proxy_url}
+            return proxy_payload, self._last_ua
 
     def notify_response(self, status_code: int) -> bool:
         """Report response status and return whether rotation is recommended.
@@ -258,7 +261,7 @@ def reset_proxy_ua_manager() -> None:
         _proxy_ua_manager_singleton = None
 
 
-def get_proxy_and_ua() -> Tuple[Optional[str], str]:
+def get_proxy_and_ua() -> Tuple[Optional[Dict[str, str]], str]:
     """Convenience wrapper returning rotated proxy and User-Agent.
 
     Bilingual: Helper que retorna proxy y User-Agent rotados.
