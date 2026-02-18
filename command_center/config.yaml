@@ -349,6 +349,11 @@ security:
     ip_blocklist: []
     #   - "192.168.1.100"
     #   - "10.0.0.0/8"
+    # CIDRs de proxies confiables para respetar X-Forwarded-For.
+    # Trusted proxy CIDRs required to trust X-Forwarded-For.
+    trusted_proxy_cidrs: []
+    #   - "127.0.0.1/32"
+    #   - "10.0.0.0/8"
     # Headers HTTP bloqueados (Blocked HTTP headers).
     blocked_headers: []
     #   - "x-custom-malicious"
