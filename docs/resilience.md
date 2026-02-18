@@ -347,6 +347,23 @@ reglas_auditoria:
 
 ---
 
+## Puntos de extensión futura / Future extension points
+
+- **Arbitrum: anclaje de hashes (stub) / hash anchoring (stub).**
+  - **ES:** Punto reservado para publicar anclajes de integridad fuera de banda, sin activación en el núcleo congelado.
+  - **EN:** Reserved point to publish out-of-band integrity anchors, kept disabled in the frozen core.
+- **Telegram: alertas cifradas (stub) / encrypted alerts (stub).**
+  - **ES:** Canal opcional para notificaciones operativas cifradas; permanece desactivado por defecto.
+  - **EN:** Optional channel for encrypted operational notifications; remains disabled by default.
+- **Cloudflare: protección WAF/CDN (stub) / WAF/CDN protection (stub).**
+  - **ES:** Integración prevista para endurecimiento perimetral cuando exista necesidad operativa demostrada.
+  - **EN:** Planned integration for perimeter hardening when there is demonstrated operational need.
+- **Reglas UPNFM: extensión futura de `rules.yaml` (comentario) / future `rules.yaml` extension (comment).**
+  - **ES:** Espacio documentado para incorporar reglas matemáticas avanzadas validadas externamente, sin alterar el conjunto base actual.
+  - **EN:** Documented space to incorporate externally validated advanced mathematical rules without changing the current base ruleset.
+
+---
+
 ## Seguridad y confidencialidad / Security and confidentiality
 
 **ES:**
