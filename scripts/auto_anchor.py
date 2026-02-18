@@ -35,6 +35,7 @@ from scripts.security.encrypt_secrets import decrypt_secrets
 
 logger = configure_logging("centinel.auto_anchor", log_file="logs/centinel.log")
 
+
 def _load_security_settings() -> dict[str, Any]:
     """/** Carga configuración de seguridad desde config/prod/rules.yaml. / Load security settings from config/prod/rules.yaml. **/"""
     try:

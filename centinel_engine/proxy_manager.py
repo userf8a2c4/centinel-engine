@@ -264,7 +264,6 @@ class ProxyAndUAManager:
             return True
         return False
 
-
     def mark_proxy_bad(self, proxy: Optional[Dict[str, str]] = None) -> None:
         """Mark current proxy as unhealthy and force next rotation when possible.
 
@@ -283,9 +282,7 @@ class ProxyAndUAManager:
             try:
                 self._proxy_rotator._requests_since_rotation = self._proxy_rotator.rotation_every_n
                 self._rotation_count += 1
-                logger.warning(
-                    "proxy_marked_bad | proxy marcado como malo, rotacion forzada en siguiente request"
-                )
+                logger.warning("proxy_marked_bad | proxy marcado como malo, rotacion forzada en siguiente request")
             except Exception as exc:  # noqa: BLE001
                 logger.error("proxy_mark_bad_failed | fallo al marcar proxy malo: %s", exc)
 
