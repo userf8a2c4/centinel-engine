@@ -168,7 +168,7 @@ class TestProxyRotation:
         mgr = ProxyAndUAManager(proxy_rotator=mock, rotation_every_n=100)
         proxy, ua = mgr.rotate_proxy_and_ua()
         assert proxy is not None
-        assert proxy.startswith("http://")
+        assert proxy.get("https", "").startswith("http://")
 
     def test_forced_rotation(self) -> None:
         """force_proxy_rotation=True triggers immediate rotation.

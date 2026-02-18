@@ -1,32 +1,6 @@
-# Rate Limiter Module
-# AUTO-DOC-INDEX
-#
-# ES: Índice rápido
-#   1) Propósito del módulo
-#   2) Componentes principales
-#   3) Puntos de extensión
-#
-# EN: Quick index
-#   1) Module purpose
-#   2) Main components
-#   3) Extension points
-#
-# Secciones / Sections:
-#   - Configuración / Configuration
-#   - Lógica principal / Core logic
-#   - Integraciones / Integrations
+"""Client-side token bucket rate limiter for Centinel.
 
-"""Client-side rate limiter using a token-bucket algorithm for ethical CNE scraping.
-
-Ensures Centinel never exceeds a configurable request rate, complementing
-server-side protections (Cloudflare, PR #397) with a strict local governor.
-The default configuration allows 1 request every 8-12 seconds with a burst of 3.
-
-Bilingual: Limitador de tasa del lado cliente usando algoritmo token-bucket para
-scraping etico del CNE. Garantiza que Centinel nunca exceda una tasa de requests
-configurable, complementando protecciones del lado servidor (Cloudflare, PR #397)
-con un gobernador local estricto. La configuracion por defecto permite 1 request
-cada 8-12 segundos con un burst de 3.
+Bilingual: Limitador de tasa tipo token-bucket del lado cliente para Centinel.
 """
 
 from __future__ import annotations
@@ -34,251 +8,269 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from centinel_engine.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 
-# Default rate-limit parameters / Parametros de rate-limit por defecto
-DEFAULT_RATE_INTERVAL: float = 10.0  # seconds between tokens / segundos entre tokens
-DEFAULT_BURST: int = 3  # max burst size / tamano maximo de burst
-DEFAULT_MIN_INTERVAL: float = 8.0  # minimum wait between requests / espera minima entre requests
-DEFAULT_MAX_INTERVAL: float = 12.0  # maximum wait between requests / espera maxima entre requests
+DEFAULT_RATE_INTERVAL: float = 10.0
+DEFAULT_BURST: int = 3
+DEFAULT_MIN_INTERVAL: float = 8.0
+DEFAULT_MAX_INTERVAL: float = 12.0
 
 
 class TokenBucketRateLimiter:
-    """Thread-safe token-bucket rate limiter for HTTP request throttling.
+    """Throttle requests using a thread-safe token bucket.
 
-    Implements a classic token-bucket algorithm where tokens accumulate at a
-    fixed rate up to a configurable burst capacity. Each call to ``wait()``
-    consumes one token, blocking the caller until a token is available.
-
-    Bilingual: Limitador de tasa token-bucket thread-safe para throttling de
-    requests HTTP. Implementa un algoritmo clasico de token-bucket donde los
-    tokens se acumulan a una tasa fija hasta una capacidad de burst configurable.
-    Cada llamada a ``wait()`` consume un token, bloqueando al llamador hasta que
-    un token este disponible.
+    Bilingual: Limita solicitudes usando un token-bucket thread-safe.
 
     Args:
-        rate_interval: Seconds between token generation (default: 10.0).
-        burst: Maximum number of tokens in the bucket (default: 3).
-        min_interval: Hard minimum seconds between any two requests (default: 8.0).
-        max_interval: Soft upper bound for inter-request delay (default: 12.0).
+        rate_interval: Seconds to refill one token.
+        burst: Maximum token capacity.
+        min_interval: Minimum spacing between requests in seconds.
+        max_interval: Maximum enforced wait in seconds.
+
+    Returns:
+        None: Class constructor.
+
+    Raises:
+        ValueError: If any provided threshold is invalid.
     """
 
     def __init__(
         self,
-        *,
         rate_interval: float = DEFAULT_RATE_INTERVAL,
         burst: int = DEFAULT_BURST,
         min_interval: float = DEFAULT_MIN_INTERVAL,
         max_interval: float = DEFAULT_MAX_INTERVAL,
     ) -> None:
+        self._validate_limits(rate_interval, burst, min_interval, max_interval)
+        self.rate_interval = float(rate_interval)
+        self.burst = int(burst)
+        self.min_interval = float(min_interval)
+        self.max_interval = float(max_interval)
+
+        self._tokens = float(self.burst)
+        self._last_refill = time.monotonic()
+        self._last_request = 0.0
+        self._lock = threading.Lock()
+        self._total_wait = 0.0
+        self._total_waits = 0
+
+    @staticmethod
+    def _validate_limits(rate_interval: float, burst: int, min_interval: float, max_interval: float) -> None:
+        """Validate limiter configuration values.
+
+        Bilingual: Valida valores de configuración del limitador.
+
+        Args:
+            rate_interval: Seconds per token refill.
+            burst: Maximum token count.
+            min_interval: Minimum spacing between calls.
+            max_interval: Maximum allowed sleep window.
+
+        Returns:
+            None: Validation helper.
+
+        Raises:
+            ValueError: If configuration is inconsistent.
+        """
         if rate_interval <= 0:
             raise ValueError("rate_interval must be positive")
         if burst < 1:
             raise ValueError("burst must be >= 1")
         if min_interval < 0:
             raise ValueError("min_interval must be >= 0")
+        if max_interval <= 0:
+            raise ValueError("max_interval must be positive")
+        if min_interval > max_interval:
+            raise ValueError("min_interval must be <= max_interval")
 
-        self._rate_interval: float = rate_interval
-        self._burst: int = burst
-        self._min_interval: float = min_interval
-        self._max_interval: float = max_interval
+    def _refill_tokens(self, now: float) -> None:
+        """Refill tokens according to elapsed monotonic time.
 
-        # Start with full bucket / Iniciar con bucket lleno
-        self._tokens: float = float(burst)
-        self._last_refill: float = time.monotonic()
-        self._last_request: float = 0.0
-        self._lock: threading.Lock = threading.Lock()
+        Bilingual: Rellena tokens según tiempo monotónico transcurrido.
 
-        # Counters for observability / Contadores para observabilidad
-        self._total_waits: int = 0
-        self._total_wait_seconds: float = 0.0
-
-        logger.info(
-            "Rate limiter initialized | Limitador de tasa inicializado: "
-            "interval=%.1fs, burst=%d, min=%.1fs, max=%.1fs",
-            rate_interval,
-            burst,
-            min_interval,
-            max_interval,
-        )
-
-    def _refill(self, now: float) -> None:
-        """Refill tokens based on elapsed time since last refill.
-
-        Bilingual: Rellenar tokens basado en tiempo transcurrido desde ultimo relleno.
-        """
-        elapsed = now - self._last_refill
-        new_tokens = elapsed / self._rate_interval
-        self._tokens = min(self._tokens + new_tokens, float(self._burst))
-        self._last_refill = now
-
-    def wait(self) -> float:
-        """Block until a token is available, then consume it and return wait time.
-
-        Enforces both the token-bucket rate and the hard minimum inter-request
-        interval to guarantee ethical request pacing.
-
-        Bilingual: Bloquea hasta que un token este disponible, lo consume y
-        retorna el tiempo de espera. Aplica tanto la tasa del token-bucket como
-        el intervalo minimo entre requests para garantizar ritmo etico de requests.
+        Args:
+            now: Current monotonic timestamp.
 
         Returns:
-            The number of seconds the caller was blocked (0.0 if a token was
-            immediately available and the minimum interval had elapsed).
-        """
-        total_waited = 0.0
+            None: Internal state update.
 
+        Raises:
+            None.
+        """
+        elapsed = now - self._last_refill
+        if elapsed <= 0:
+            return
+        added_tokens = elapsed / self.rate_interval
+        self._tokens = min(float(self.burst), self._tokens + added_tokens)
+        self._last_refill = now
+
+    def _compute_wait(self, now: float) -> float:
+        """Compute required blocking time for the next request.
+
+        Bilingual: Calcula el tiempo de bloqueo requerido para la siguiente solicitud.
+
+        Args:
+            now: Current monotonic timestamp.
+
+        Returns:
+            float: Sleep duration in seconds.
+
+        Raises:
+            None.
+        """
+        token_wait = 0.0
+        if self._tokens < 1.0:
+            token_wait = (1.0 - self._tokens) * self.rate_interval
+
+        min_gap_wait = max(0.0, self.min_interval - (now - self._last_request))
+        desired_wait = max(token_wait, min_gap_wait)
+        return min(desired_wait, self.max_interval)
+
+    def wait(self) -> float:
+        """Block until next request is allowed and consume one token.
+
+        Bilingual: Bloquea hasta permitir la siguiente solicitud y consume un token.
+
+        Args:
+            None.
+
+        Returns:
+            float: Seconds waited for the call.
+
+        Raises:
+            None.
+        """
         with self._lock:
             now = time.monotonic()
-            self._refill(now)
+            self._refill_tokens(now)
+            wait_seconds = self._compute_wait(now)
 
-            # Enforce hard minimum interval / Aplicar intervalo minimo estricto
-            if self._last_request > 0:
-                since_last = now - self._last_request
-                if since_last < self._min_interval:
-                    gap = self._min_interval - since_last
-                    # Release lock while sleeping / Liberar lock mientras espera
-                    self._lock.release()
-                    try:
-                        time.sleep(gap)
-                        total_waited += gap
-                    finally:
-                        self._lock.acquire()
-                    now = time.monotonic()
-                    self._refill(now)
-
-            # Wait for token availability / Esperar disponibilidad de token
-            while self._tokens < 1.0:
-                deficit = 1.0 - self._tokens
-                sleep_time = deficit * self._rate_interval
-                # Cap sleep to max_interval / Limitar espera a max_interval
-                sleep_time = min(sleep_time, self._max_interval)
-                self._lock.release()
-                try:
-                    time.sleep(sleep_time)
-                    total_waited += sleep_time
-                finally:
-                    self._lock.acquire()
+            if wait_seconds > 0:
+                time.sleep(wait_seconds)
                 now = time.monotonic()
-                self._refill(now)
+                self._refill_tokens(now)
 
-            # Consume one token / Consumir un token
-            self._tokens -= 1.0
-            self._last_request = time.monotonic()
-
-            # Update counters / Actualizar contadores
+            self._tokens = max(0.0, self._tokens - 1.0)
+            self._last_request = now
+            self._total_wait += wait_seconds
             self._total_waits += 1
-            self._total_wait_seconds += total_waited
-
-        if total_waited > 0:
-            logger.debug(
-                "Rate limiter waited %.2fs | Limitador espero %.2fs " "(tokens_remaining=%.1f)",
-                total_waited,
-                total_waited,
-                self._tokens,
-            )
-
-        return total_waited
+            return wait_seconds
 
     @property
-    def tokens_available(self) -> float:
-        """Current number of tokens available (approximate).
+    def stats(self) -> dict[str, Any]:
+        """Expose lightweight runtime metrics.
 
-        Bilingual: Numero actual de tokens disponibles (aproximado).
-        """
-        with self._lock:
-            self._refill(time.monotonic())
-            return self._tokens
+        Bilingual: Expone métricas operativas simples en tiempo real.
 
-    @property
-    def stats(self) -> dict[str, float | int]:
-        """Return rate limiter statistics for monitoring.
+        Args:
+            None.
 
-        Bilingual: Retorna estadisticas del limitador de tasa para monitoreo.
+        Returns:
+            dict[str, Any]: Current limiter configuration and counters.
+
+        Raises:
+            None.
         """
         with self._lock:
             return {
+                "rate_interval": self.rate_interval,
+                "burst": self.burst,
+                "min_interval": self.min_interval,
+                "max_interval": self.max_interval,
+                "tokens": self._tokens,
+                "total_wait_seconds": self._total_wait,
                 "total_waits": self._total_waits,
-                "total_wait_seconds": round(self._total_wait_seconds, 3),
-                "tokens_available": round(self._tokens, 2),
-                "rate_interval": self._rate_interval,
-                "burst": self._burst,
-                "min_interval": self._min_interval,
-                "max_interval": self._max_interval,
             }
 
+    @property
+    def tokens_available(self) -> float:
+        """Return current token availability snapshot.
 
-# ---------------------------------------------------------------------------
-# Module-level singleton / Singleton a nivel de modulo
-# ---------------------------------------------------------------------------
+        Bilingual: Retorna el snapshot actual de tokens disponibles.
 
-_RATE_LIMITER: Optional[TokenBucketRateLimiter] = None
-_SINGLETON_LOCK: threading.Lock = threading.Lock()
+        Args:
+            None.
+
+        Returns:
+            float: Available tokens in bucket.
+
+        Raises:
+            None.
+        """
+        with self._lock:
+            return self._tokens
 
 
-def get_rate_limiter(
-    *,
-    rate_interval: Optional[float] = None,
-    burst: int = DEFAULT_BURST,
-    min_interval: float = DEFAULT_MIN_INTERVAL,
-    max_interval: float = DEFAULT_MAX_INTERVAL,
-    config_file_name: str = "rate_limiter.yaml",
-    config_env: str = "prod",
-) -> TokenBucketRateLimiter:
-    """Return the global rate limiter instance, creating it on first call.
+_rate_limiter_singleton: Optional[TokenBucketRateLimiter] = None
+_rate_limiter_lock = threading.Lock()
 
-    Thread-safe singleton accessor. Subsequent calls return the existing
-    instance regardless of parameters.
 
-    Bilingual: Retorna la instancia global del limitador de tasa, creandola en
-    la primera llamada. Accessor singleton thread-safe. Llamadas subsecuentes
-    retornan la instancia existente independientemente de los parametros.
+def _load_rate_limiter_config(env: str = "prod") -> dict[str, Any]:
+    """Load rate limiter config with safe fallback.
+
+    Bilingual: Carga configuración de rate limiter con fallback seguro.
+
+    Args:
+        env: Configuration environment folder.
+
+    Returns:
+        dict[str, Any]: Parsed limiter configuration.
+
+    Raises:
+        None.
     """
-    global _RATE_LIMITER
-    if _RATE_LIMITER is not None:
-        return _RATE_LIMITER
-    with _SINGLETON_LOCK:
-        if _RATE_LIMITER is not None:
-            return _RATE_LIMITER
+    try:
+        return load_config("rate_limiter.yaml", env=env)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("rate_limiter_config_fallback | usando defaults: %s", exc)
+        return {}
 
-        defaults: dict[str, float | int] = {
-            "capacity": burst,
-            "rate_interval_seconds": DEFAULT_RATE_INTERVAL,
-            "min_interval_seconds": min_interval,
-            "max_interval_seconds": max_interval,
-        }
-        try:
-            loaded_config = load_config(config_file_name, env=config_env)
-            config = {**defaults, **loaded_config}
-        except ValueError as exc:
-            logger.error(
-                "rate_limiter_config_error | error de configuracion rate limiter: %s",
-                exc,
+
+def get_rate_limiter(env: str = "prod") -> TokenBucketRateLimiter:
+    """Return singleton limiter instance.
+
+    Bilingual: Retorna la instancia singleton del limitador.
+
+    Args:
+        env: Configuration environment folder.
+
+    Returns:
+        TokenBucketRateLimiter: Shared limiter instance.
+
+    Raises:
+        None.
+    """
+    global _rate_limiter_singleton
+    with _rate_limiter_lock:
+        if _rate_limiter_singleton is None:
+            config = _load_rate_limiter_config(env)
+            _rate_limiter_singleton = TokenBucketRateLimiter(
+                rate_interval=float(config.get("rate_interval", DEFAULT_RATE_INTERVAL)),
+                burst=int(config.get("burst", DEFAULT_BURST)),
+                min_interval=float(config.get("min_interval", DEFAULT_MIN_INTERVAL)),
+                max_interval=float(config.get("max_interval", DEFAULT_MAX_INTERVAL)),
             )
-            config = dict(defaults)
-        resolved_rate_interval = max(8.0, float(config.get("rate_interval_seconds", DEFAULT_RATE_INTERVAL)))
-        resolved_burst = int(config.get("capacity", burst))
-        resolved_min_interval = float(config.get("min_interval_seconds", min_interval))
-        resolved_max_interval = float(config.get("max_interval_seconds", max_interval))
-
-        _RATE_LIMITER = TokenBucketRateLimiter(
-            rate_interval=resolved_rate_interval if rate_interval is None else max(8.0, rate_interval),
-            burst=resolved_burst,
-            min_interval=resolved_min_interval,
-            max_interval=resolved_max_interval,
-        )
-        return _RATE_LIMITER
+        return _rate_limiter_singleton
 
 
 def reset_rate_limiter() -> None:
-    """Reset the global singleton (mainly for testing).
+    """Reset singleton limiter instance for tests and controlled reload.
 
-    Bilingual: Reinicia el singleton global (principalmente para testing).
+    Bilingual: Reinicia la instancia singleton para pruebas y recarga controlada.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+
+    Raises:
+        None.
     """
-    global _RATE_LIMITER
-    with _SINGLETON_LOCK:
-        _RATE_LIMITER = None
+    global _rate_limiter_singleton
+    with _rate_limiter_lock:
+        _rate_limiter_singleton = None

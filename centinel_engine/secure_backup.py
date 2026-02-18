@@ -1,44 +1,6 @@
-# Secure Backup Module
-# AUTO-DOC-INDEX
-#
-# ES: Índice rápido
-#   1) Propósito del módulo
-#   2) Componentes principales
-#   3) Puntos de extensión
-#
-# EN: Quick index
-#   1) Module purpose
-#   2) Main components
-#   3) Extension points
-#
-# Secciones / Sections:
-#   - Configuración / Configuration
-#   - Lógica principal / Core logic
-#   - Integraciones / Integrations
+"""Encrypted backup utilities for critical Centinel artifacts.
 
-"""Encrypted backup of critical Centinel assets to multiple secure locations.
-
-Backs up ``data/health_state.json`` and the hash-chain files after every
-successful scrape or on a 30-minute timer. Files are encrypted with AES-256
-via Fernet (``cryptography`` library) before writing to:
-  1. Local ``./backups/`` directory (always).
-  2. Dropbox (if ``dropbox`` SDK is available and configured).
-  3. AWS S3 private bucket (if ``boto3`` is available and configured).
-
-All backup operations are fail-safe: errors are logged but never propagate
-to the main scraper pipeline.
-
-Bilingual: Respaldo cifrado de activos criticos de Centinel a multiples
-ubicaciones seguras. Respalda ``data/health_state.json`` y los archivos de
-cadena de hashes despues de cada scrape exitoso o en un temporizador de
-30 minutos. Los archivos se cifran con AES-256 via Fernet (libreria
-``cryptography``) antes de escribir a:
-  1. Directorio local ``./backups/`` (siempre).
-  2. Dropbox (si el SDK ``dropbox`` esta disponible y configurado).
-  3. Bucket S3 privado de AWS (si ``boto3`` esta disponible y configurado).
-
-Todas las operaciones de respaldo son fail-safe: los errores se registran
-pero nunca se propagan al pipeline principal del scraper.
+Bilingual: Utilidades de respaldo cifrado para artefactos críticos de Centinel.
 """
 
 from __future__ import annotations
@@ -54,50 +16,35 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from centinel_engine.cloudflare_hook import apply_cloudflare_protection
-
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Cryptography imports / Imports de criptografia
-# ---------------------------------------------------------------------------
 try:
     from cryptography.fernet import Fernet
 
     _HAS_CRYPTOGRAPHY = True
-except ImportError:
+except Exception:  # noqa: BLE001
+    Fernet = None  # type: ignore[assignment]
     _HAS_CRYPTOGRAPHY = False
-    logger.warning(
-        "cryptography not available, backups will be unencrypted | "
-        "cryptography no disponible, respaldos seran sin cifrar"
-    )
 
-# ---------------------------------------------------------------------------
-# Optional cloud SDK imports / Imports opcionales de SDKs cloud
-# ---------------------------------------------------------------------------
 try:
     import dropbox  # type: ignore[import-untyped]
 
     _HAS_DROPBOX = True
-except ImportError:
+except Exception:  # noqa: BLE001
     _HAS_DROPBOX = False
 
 try:
     import boto3  # type: ignore[import-untyped]
 
     _HAS_BOTO3 = True
-except ImportError:
+except Exception:  # noqa: BLE001
     _HAS_BOTO3 = False
 
-# ---------------------------------------------------------------------------
-# Default paths / Rutas por defecto
-# ---------------------------------------------------------------------------
 DEFAULT_HEALTH_STATE_PATH = Path("data/health_state.json")
 DEFAULT_HASH_CHAIN_DIR = Path("data/hashes")
 DEFAULT_BACKUP_DIR = Path("backups")
-DEFAULT_BACKUP_INTERVAL_SECONDS = 1800  # 30 minutes / 30 minutos
+DEFAULT_BACKUP_INTERVAL_SECONDS = 1800
 
-# Environment variable names / Nombres de variables de entorno
 ENV_BACKUP_KEY = "CENTINEL_BACKUP_KEY"
 ENV_DROPBOX_TOKEN = "CENTINEL_DROPBOX_TOKEN"
 ENV_DROPBOX_FOLDER = "CENTINEL_DROPBOX_FOLDER"
@@ -106,80 +53,120 @@ ENV_S3_PREFIX = "CENTINEL_S3_PREFIX"
 
 
 def _generate_backup_key() -> bytes:
-    """Generate a new Fernet key and log a warning to persist it.
+    """Generate an ephemeral Fernet key when no configured key exists.
 
-    Bilingual: Genera una nueva clave Fernet y registra advertencia para persistirla.
+    Bilingual: Genera una clave Fernet efímera cuando no hay clave configurada.
+
+    Args:
+        None.
+
+    Returns:
+        bytes: Base64-encoded Fernet key.
+
+    Raises:
+        RuntimeError: If cryptography support is unavailable.
     """
+    if not _HAS_CRYPTOGRAPHY:
+        raise RuntimeError("cryptography is required for key generation")
     key = Fernet.generate_key()
-    logger.warning(
-        "Generated ephemeral backup key (set %s to persist) | "
-        "Clave de respaldo efimera generada (configure %s para persistir)",
-        ENV_BACKUP_KEY,
-        ENV_BACKUP_KEY,
-    )
+    logger.warning("backup_key_ephemeral | using temporary key")
     return key
 
 
 def _get_fernet() -> Optional[Any]:
-    """Return a Fernet instance using the configured or ephemeral key.
+    """Build Fernet encryptor from environment key or ephemeral fallback.
 
-    Bilingual: Retorna una instancia Fernet usando la clave configurada o efimera.
+    Bilingual: Crea cifrador Fernet desde entorno o fallback efímero.
+
+    Args:
+        None.
+
+    Returns:
+        Optional[Any]: Fernet instance or None if crypto is unavailable.
+
+    Raises:
+        None.
     """
     if not _HAS_CRYPTOGRAPHY:
         return None
-
-    key_str = os.getenv(ENV_BACKUP_KEY)
-    if key_str:
+    key = os.getenv(ENV_BACKUP_KEY)
+    if key:
         try:
-            return Fernet(key_str.encode("utf-8"))
-        except Exception:
-            logger.error(
-                "Invalid backup key in %s, generating ephemeral | "
-                "Clave de respaldo invalida en %s, generando efimera",
-                ENV_BACKUP_KEY,
-                ENV_BACKUP_KEY,
-            )
+            return Fernet(key.encode("utf-8"))
+        except Exception:  # noqa: BLE001
+            logger.error("backup_key_invalid | ignoring configured key")
     return Fernet(_generate_backup_key())
 
 
 def _encrypt_data(data: bytes, fernet: Optional[Any] = None) -> bytes:
-    """Encrypt raw bytes with Fernet AES-256. Falls back to plaintext if unavailable.
+    """Encrypt payload bytes, or return plaintext when encryption is unavailable.
 
-    Bilingual: Cifra bytes crudos con Fernet AES-256. Retorna texto plano si no disponible.
+    Bilingual: Cifra bytes del payload o retorna texto plano si no hay cifrado.
+
+    Args:
+        data: Raw bytes payload.
+        fernet: Optional Fernet instance.
+
+    Returns:
+        bytes: Encrypted or plaintext payload.
+
+    Raises:
+        None.
     """
-    if fernet is not None:
-        return fernet.encrypt(data)
-    return data
+    return fernet.encrypt(data) if fernet is not None else data
 
 
 def _compute_sha256(data: bytes) -> str:
-    """Compute SHA-256 hex digest of raw bytes.
+    """Compute SHA-256 digest for integrity manifest.
 
-    Bilingual: Calcula digest SHA-256 hexadecimal de bytes crudos.
+    Bilingual: Calcula digest SHA-256 para manifiesto de integridad.
+
+    Args:
+        data: Raw bytes payload.
+
+    Returns:
+        str: Hex-encoded SHA-256 digest.
+
+    Raises:
+        None.
     """
     return hashlib.sha256(data).hexdigest()
 
 
 def _collect_hash_chain_files(hash_dir: Path) -> List[Path]:
-    """Collect all hash JSON files from the hash directory.
+    """Collect hash-chain JSON files sorted by filename.
 
-    Bilingual: Recolecta todos los archivos JSON de hash del directorio de hashes.
+    Bilingual: Recolecta archivos JSON de cadena hash ordenados por nombre.
+
+    Args:
+        hash_dir: Hash directory path.
+
+    Returns:
+        List[Path]: Ordered list of JSON files.
+
+    Raises:
+        None.
     """
     if not hash_dir.exists():
         return []
-    files = sorted(hash_dir.glob("*.json"), key=lambda p: p.name)
-    return files
+    return sorted(hash_dir.glob("*.json"), key=lambda item: item.name)
 
 
-def _build_backup_manifest(
-    files_backed_up: List[str],
-    hashes: Dict[str, str],
-    encrypted: bool,
-) -> Dict[str, Any]:
-    """Build a JSON manifest documenting what was backed up and its integrity hashes.
+def _build_backup_manifest(files_backed_up: List[str], hashes: Dict[str, str], encrypted: bool) -> Dict[str, Any]:
+    """Build backup manifest metadata.
 
-    Bilingual: Construye un manifiesto JSON documentando que fue respaldado y
-    sus hashes de integridad.
+    Bilingual: Construye metadatos del manifiesto de respaldo.
+
+    Args:
+        files_backed_up: Relative filenames included in backup payload.
+        hashes: SHA-256 mapping by filename.
+        encrypted: Whether payload was encrypted.
+
+    Returns:
+        Dict[str, Any]: JSON-serializable manifest.
+
+    Raises:
+        None.
     """
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -190,384 +177,298 @@ def _build_backup_manifest(
     }
 
 
-# ---------------------------------------------------------------------------
-# Backup destinations / Destinos de respaldo
-# ---------------------------------------------------------------------------
+def _backup_to_local(backup_dir: Path, payload: bytes, filename: str, manifest: Dict[str, Any]) -> bool:
+    """Persist backup payload and manifest to local filesystem.
 
+    Bilingual: Persiste payload y manifiesto de respaldo en filesystem local.
 
-def _backup_to_local(
-    backup_dir: Path,
-    payload: bytes,
-    filename: str,
-    manifest: Dict[str, Any],
-) -> bool:
-    """Write encrypted backup and manifest to local directory.
+    Args:
+        backup_dir: Destination backup folder.
+        payload: Backup payload bytes.
+        filename: Backup payload filename.
+        manifest: Backup manifest dictionary.
 
-    Bilingual: Escribe respaldo cifrado y manifiesto al directorio local.
+    Returns:
+        bool: True when both files are written correctly.
+
+    Raises:
+        None.
     """
     try:
         backup_dir.mkdir(parents=True, exist_ok=True)
         backup_path = backup_dir / filename
         manifest_path = backup_dir / f"{filename}.manifest.json"
 
-        # Atomic write / Escritura atomica
-        fd, tmp_path = tempfile.mkstemp(dir=str(backup_dir), suffix=".tmp")
+        fd, temp_path = tempfile.mkstemp(dir=str(backup_dir), suffix=".tmp")
         try:
-            with open(fd, "wb") as f:
-                f.write(payload)
-            Path(tmp_path).replace(backup_path)
-        except BaseException:
-            if Path(tmp_path).exists():
-                Path(tmp_path).unlink()
-            raise
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(payload)
+            Path(temp_path).replace(backup_path)
+        finally:
+            if Path(temp_path).exists():
+                Path(temp_path).unlink(missing_ok=True)
 
-        manifest_path.write_text(
-            json.dumps(manifest, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
-
-        logger.info(
-            "Local backup written | Respaldo local escrito: %s (%d bytes)",
-            backup_path,
-            len(payload),
-        )
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
         return True
-    except Exception as exc:
-        logger.error("Local backup failed | Respaldo local fallo: %s", exc)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("backup_local_failed | %s", exc)
         return False
 
 
-def _backup_to_dropbox(
-    payload: bytes,
-    remote_path: str,
-) -> bool:
-    """Upload encrypted backup to Dropbox.
+def _backup_to_dropbox(payload: bytes, remote_path: str) -> bool:
+    """Upload payload to Dropbox when SDK and credentials are available.
 
-    Bilingual: Sube respaldo cifrado a Dropbox.
+    Bilingual: Sube payload a Dropbox cuando SDK y credenciales están disponibles.
+
+    Args:
+        payload: Backup payload bytes.
+        remote_path: Remote object path.
+
+    Returns:
+        bool: True on successful upload.
+
+    Raises:
+        None.
     """
     if not _HAS_DROPBOX:
-        logger.debug("Dropbox SDK not available, skipping | SDK Dropbox no disponible, omitiendo")
         return False
-
     token = os.getenv(ENV_DROPBOX_TOKEN)
     if not token:
-        logger.debug("Dropbox token not configured, skipping | Token Dropbox no configurado, omitiendo")
         return False
-
     try:
-        dbx = dropbox.Dropbox(token)
         folder = os.getenv(ENV_DROPBOX_FOLDER, "/centinel-backups")
-        full_path = f"{folder}/{remote_path}"
-        dbx.files_upload(
-            payload,
-            full_path,
-            mode=dropbox.files.WriteMode.overwrite,
-        )
-        logger.info(
-            "Dropbox backup uploaded | Respaldo Dropbox subido: %s (%d bytes)",
-            full_path,
-            len(payload),
-        )
+        client = dropbox.Dropbox(token)
+        client.files_upload(payload, f"{folder}/{remote_path}", mode=dropbox.files.WriteMode.overwrite)
         return True
-    except Exception as exc:
-        logger.error("Dropbox backup failed | Respaldo Dropbox fallo: %s", exc)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("backup_dropbox_failed | %s", exc)
         return False
 
 
-def _backup_to_s3(
-    payload: bytes,
-    key: str,
-) -> bool:
-    """Upload encrypted backup to AWS S3 private bucket.
+def _backup_to_s3(payload: bytes, remote_path: str) -> bool:
+    """Upload payload to S3 when SDK and bucket credentials are available.
 
-    Bilingual: Sube respaldo cifrado a bucket S3 privado de AWS.
+    Bilingual: Sube payload a S3 cuando SDK y credenciales están disponibles.
+
+    Args:
+        payload: Backup payload bytes.
+        remote_path: Remote object key suffix.
+
+    Returns:
+        bool: True on successful upload.
+
+    Raises:
+        None.
     """
     if not _HAS_BOTO3:
-        logger.debug("boto3 not available, skipping S3 | boto3 no disponible, omitiendo S3")
         return False
-
     bucket = os.getenv(ENV_S3_BUCKET)
     if not bucket:
-        logger.debug("S3 bucket not configured, skipping | Bucket S3 no configurado, omitiendo")
         return False
-
     try:
         prefix = os.getenv(ENV_S3_PREFIX, "centinel-backups")
-        full_key = f"{prefix}/{key}"
-        s3 = boto3.client("s3")
-        s3.put_object(
-            Bucket=bucket,
-            Key=full_key,
-            Body=payload,
-            ServerSideEncryption="AES256",
-        )
-        logger.info(
-            "S3 backup uploaded | Respaldo S3 subido: s3://%s/%s (%d bytes)",
-            bucket,
-            full_key,
-            len(payload),
-        )
+        key = f"{prefix}/{remote_path}"
+        boto3.client("s3").put_object(Bucket=bucket, Key=key, Body=payload)
         return True
-    except Exception as exc:
-        logger.error("S3 backup failed | Respaldo S3 fallo: %s", exc)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("backup_s3_failed | %s", exc)
         return False
-
-
-# ---------------------------------------------------------------------------
-# Main backup function / Funcion principal de respaldo
-# ---------------------------------------------------------------------------
 
 
 def backup_critical_assets(
-    *,
     health_state_path: Path = DEFAULT_HEALTH_STATE_PATH,
     hash_chain_dir: Path = DEFAULT_HASH_CHAIN_DIR,
-    backup_dir: Path = DEFAULT_BACKUP_DIR / "encrypted",
+    backup_dir: Path = DEFAULT_BACKUP_DIR,
 ) -> Dict[str, Any]:
-    """Back up critical Centinel assets (health state + hash chain) to all configured destinations.
+    """Create encrypted backup of health state and hash-chain files.
 
-    This function is designed to be called after every successful scrape and
-    after ``save_health_state()``. It NEVER raises exceptions -- all errors
-    are caught, logged, and reported in the return dictionary.
-
-    Bilingual: Respalda activos criticos de Centinel (estado de salud + cadena de hashes)
-    a todos los destinos configurados. Esta funcion esta disenada para llamarse despues
-    de cada scrape exitoso y despues de ``save_health_state()``. NUNCA lanza excepciones --
-    todos los errores se capturan, registran y reportan en el diccionario de retorno.
+    Bilingual: Crea respaldo cifrado del estado de salud y archivos de cadena hash.
 
     Args:
-        health_state_path: Path to health_state.json.
-        hash_chain_dir: Directory containing hash chain JSON files.
-        backup_dir: Local backup destination directory.
+        health_state_path: Path to health_state JSON file.
+        hash_chain_dir: Directory containing hash-chain JSON files.
+        backup_dir: Destination backup directory.
 
     Returns:
-        Dictionary with backup results including success/failure per destination.
+        Dict[str, Any]: Backup execution report.
+
+    Raises:
+        None.
     """
-    results: Dict[str, Any] = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+    report: Dict[str, Any] = {
         "local": False,
         "dropbox": False,
         "s3": False,
         "files_backed_up": [],
         "errors": [],
     }
-
     try:
-        # Collect files to back up / Recolectar archivos a respaldar
-        files_to_backup: Dict[str, bytes] = {}
-        file_hashes: Dict[str, str] = {}
-
-        # Health state / Estado de salud
+        files: List[Path] = []
         if health_state_path.exists():
-            data = health_state_path.read_bytes()
-            files_to_backup["health_state.json"] = data
-            file_hashes["health_state.json"] = _compute_sha256(data)
-        else:
-            logger.debug(
-                "Health state not found, skipping | Estado de salud no encontrado, omitiendo: %s",
-                health_state_path,
-            )
+            files.append(health_state_path)
+        files.extend(_collect_hash_chain_files(hash_chain_dir))
+        report["files_backed_up"] = [file.name for file in files]
 
-        # Hash chain files / Archivos de cadena de hashes
-        chain_files = _collect_hash_chain_files(hash_chain_dir)
-        for chain_file in chain_files:
-            try:
-                data = chain_file.read_bytes()
-                relative_name = f"hashes/{chain_file.name}"
-                files_to_backup[relative_name] = data
-                file_hashes[relative_name] = _compute_sha256(data)
-            except OSError as exc:
-                logger.warning(
-                    "Could not read hash file | No se pudo leer archivo hash: %s - %s",
-                    chain_file,
-                    exc,
-                )
+        if not files:
+            return report
 
-        if not files_to_backup:
-            logger.info("No critical assets to back up | No hay activos criticos para respaldar")
-            return results
+        blob: Dict[str, Any] = {}
+        hashes: Dict[str, str] = {}
+        for file in files:
+            content = file.read_bytes()
+            blob[file.name] = content.decode("utf-8", errors="replace")
+            hashes[file.name] = _compute_sha256(content)
 
-        # Build combined backup payload / Construir payload combinado de respaldo
-        combined_payload: Dict[str, str] = {}
-        for name, raw_data in files_to_backup.items():
-            # Store as base64-safe string in JSON structure /
-            # Almacenar como cadena base64-safe en estructura JSON
-            import base64
-
-            combined_payload[name] = base64.b64encode(raw_data).decode("ascii")
-
-        raw_bundle = json.dumps(combined_payload, indent=2, ensure_ascii=False).encode("utf-8")
-
-        # Encrypt the bundle / Cifrar el paquete
+        payload = json.dumps(blob, ensure_ascii=False, indent=2).encode("utf-8")
         fernet = _get_fernet()
-        encrypted = fernet is not None
-        encrypted_bundle = _encrypt_data(raw_bundle, fernet)
+        encrypted_payload = _encrypt_data(payload, fernet=fernet)
 
-        # Build manifest / Construir manifiesto
-        bundle_hash = _compute_sha256(encrypted_bundle)
-        file_hashes["_bundle"] = bundle_hash
-        manifest = _build_backup_manifest(
-            list(files_to_backup.keys()),
-            file_hashes,
-            encrypted=encrypted,
-        )
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        filename = f"centinel_backup_{timestamp}.enc"
+        manifest = _build_backup_manifest(report["files_backed_up"], hashes, encrypted=fernet is not None)
 
-        # Generate timestamped filename / Generar nombre de archivo con timestamp
-        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        ext = ".enc" if encrypted else ".json"
-        filename = f"centinel_backup_{ts}{ext}"
-
-        results["files_backed_up"] = list(files_to_backup.keys())
-
-        # Write to all destinations / Escribir a todos los destinos
-        results["local"] = _backup_to_local(backup_dir, encrypted_bundle, filename, manifest)
-        results["dropbox"] = _backup_to_dropbox(encrypted_bundle, filename)
-        results["s3"] = _backup_to_s3(encrypted_bundle, filename)
-
-        destinations_ok = sum([results["local"], results["dropbox"], results["s3"]])
-        logger.info(
-            "Backup complete | Respaldo completo: %d/%d destinations, %d files, encrypted=%s",
-            destinations_ok,
-            3,
-            len(files_to_backup),
-            encrypted,
-        )
-
-    except Exception as exc:
-        # Never propagate to main pipeline / Nunca propagar al pipeline principal
-        error_msg = f"Backup failed unexpectedly | Respaldo fallo inesperadamente: {exc}"
-        logger.error(error_msg)
-        results["errors"].append(str(exc))
-
-    return results
-
-
-# ---------------------------------------------------------------------------
-# Timed backup scheduler / Programador de respaldo temporizado
-# ---------------------------------------------------------------------------
+        report["local"] = _backup_to_local(backup_dir, encrypted_payload, filename, manifest)
+        report["dropbox"] = _backup_to_dropbox(encrypted_payload, filename)
+        report["s3"] = _backup_to_s3(encrypted_payload, filename)
+        return report
+    except Exception as exc:  # noqa: BLE001
+        report["errors"].append(str(exc))
+        logger.error("backup_critical_assets_failed | %s", exc)
+        return report
 
 
 def backup_critical(
-    *,
     health_state_path: Path = DEFAULT_HEALTH_STATE_PATH,
     hash_chain_dir: Path = DEFAULT_HASH_CHAIN_DIR,
-    backup_dir: Path = DEFAULT_BACKUP_DIR / "encrypted",
+    backup_dir: Path = DEFAULT_BACKUP_DIR,
 ) -> Dict[str, Any]:
-    """Run encrypted critical backup in fail-safe mode for scheduler/post-scrape hooks.
+    """Compatibility wrapper over `backup_critical_assets`.
 
-    Bilingual: Ejecuta respaldo cifrado crítico en modo fail-safe para hooks de scheduler o post-scrape.
+    Bilingual: Wrapper de compatibilidad sobre `backup_critical_assets`.
 
     Args:
-        health_state_path: Path to serialized health state JSON file.
-        hash_chain_dir: Directory with hash-chain artifacts (prefers data/hashes).
-        backup_dir: Output directory for encrypted local bundles.
+        health_state_path: Path to health_state JSON file.
+        hash_chain_dir: Directory containing hash-chain files.
+        backup_dir: Destination backup folder.
 
     Returns:
-        Dictionary with per-destination backup status and metadata.
+        Dict[str, Any]: Backup execution report.
 
     Raises:
-        Never: Errors are captured and returned in the result payload.
+        None.
     """
-    effective_hash_dir = hash_chain_dir if hash_chain_dir.exists() else Path("hashes")
-    # Never break scraper flow / Nunca romper el flujo del scraper
-    try:
-        return backup_critical_assets(
-            health_state_path=health_state_path,
-            hash_chain_dir=effective_hash_dir,
-            backup_dir=backup_dir,
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.error("backup_critical_unexpected_error | error inesperado en backup_critical: %s", exc)
-        return {"local": False, "dropbox": False, "s3": False, "errors": [str(exc)], "files_backed_up": []}
+    return backup_critical_assets(health_state_path, hash_chain_dir, backup_dir)
 
 
 class BackupScheduler:
-    """Runs backup_critical_assets() on a configurable interval in a background thread.
+    """Periodic backup scheduler with explicit trigger and stop controls.
 
-    Bilingual: Ejecuta backup_critical_assets() en un intervalo configurable
-    en un hilo de fondo.
+    Bilingual: Programador periódico de respaldos con trigger explícito y stop.
+
+    Args:
+        interval_seconds: Seconds between periodic backup cycles.
+        health_state_path: Path to health_state JSON file.
+        hash_chain_dir: Directory containing hash-chain files.
+        backup_dir: Destination backup folder.
+
+    Returns:
+        None: Class constructor.
+
+    Raises:
+        ValueError: If interval_seconds is non-positive.
     """
 
     def __init__(
         self,
-        *,
         interval_seconds: int = DEFAULT_BACKUP_INTERVAL_SECONDS,
         health_state_path: Path = DEFAULT_HEALTH_STATE_PATH,
         hash_chain_dir: Path = DEFAULT_HASH_CHAIN_DIR,
-        backup_dir: Path = DEFAULT_BACKUP_DIR / "encrypted",
-        config: Optional[Dict[str, Any]] = None,
+        backup_dir: Path = DEFAULT_BACKUP_DIR,
     ) -> None:
-        self._interval: int = max(interval_seconds, 60)
-        self._health_state_path: Path = health_state_path
-        self._hash_chain_dir: Path = hash_chain_dir
-        self._backup_dir: Path = backup_dir
-        self._stop_event: threading.Event = threading.Event()
+        if interval_seconds <= 0:
+            raise ValueError("interval_seconds must be > 0")
+        self.interval_seconds = interval_seconds
+        self.health_state_path = health_state_path
+        self.hash_chain_dir = hash_chain_dir
+        self.backup_dir = backup_dir
+        self.last_backup_time = 0.0
         self._thread: Optional[threading.Thread] = None
-        self._last_backup_time: float = 0.0
-        self._config: Dict[str, Any] = config or {}
-
-    def start(self) -> None:
-        """Start the background backup timer.
-
-        Bilingual: Inicia el temporizador de respaldo en segundo plano.
-        """
-        if self._thread is not None and self._thread.is_alive():
-            return
-
-        # Apply optional Cloudflare protection hook before scheduler loop /
-        # Aplicar hook opcional de Cloudflare antes del bucle del scheduler.
-        if bool(self._config.get("ENABLE_CLOUDFLARE", False)):
-            apply_cloudflare_protection(self._config)
-        self._stop_event.clear()
-        self._thread = threading.Thread(
-            target=self._run_loop,
-            name="centinel-backup-scheduler",
-            daemon=True,
-        )
-        self._thread.start()
-        logger.info(
-            "Backup scheduler started | Programador de respaldo iniciado: interval=%ds",
-            self._interval,
-        )
-
-    def stop(self) -> None:
-        """Stop the background backup timer.
-
-        Bilingual: Detiene el temporizador de respaldo en segundo plano.
-        """
-        self._stop_event.set()
-        if self._thread is not None:
-            self._thread.join(timeout=5.0)
-        logger.info("Backup scheduler stopped | Programador de respaldo detenido")
-
-    def _run_loop(self) -> None:
-        """Background loop that runs backups at regular intervals.
-
-        Bilingual: Bucle de fondo que ejecuta respaldos a intervalos regulares.
-        """
-        while not self._stop_event.is_set():
-            self._stop_event.wait(timeout=self._interval)
-            if self._stop_event.is_set():
-                break
-            self.trigger_backup()
+        self._stop_event = threading.Event()
 
     def trigger_backup(self) -> Dict[str, Any]:
-        """Manually trigger a backup (also called by the background loop).
+        """Run a backup immediately and update scheduler timestamp.
 
-        Bilingual: Activa un respaldo manualmente (tambien llamado por el bucle de fondo).
+        Bilingual: Ejecuta respaldo inmediato y actualiza timestamp del scheduler.
+
+        Args:
+            None.
+
+        Returns:
+            Dict[str, Any]: Backup execution report.
+
+        Raises:
+            None.
         """
         result = backup_critical_assets(
-            health_state_path=self._health_state_path,
-            hash_chain_dir=self._hash_chain_dir,
-            backup_dir=self._backup_dir,
+            health_state_path=self.health_state_path,
+            hash_chain_dir=self.hash_chain_dir,
+            backup_dir=self.backup_dir,
         )
-        self._last_backup_time = time.monotonic()
+        self.last_backup_time = time.monotonic()
         return result
 
-    @property
-    def last_backup_time(self) -> float:
-        """Monotonic timestamp of the last backup attempt.
+    def _run(self) -> None:
+        """Internal scheduler loop.
 
-        Bilingual: Timestamp monotonico del ultimo intento de respaldo.
+        Bilingual: Loop interno del programador.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
         """
-        return self._last_backup_time
+        while not self._stop_event.is_set():
+            self.trigger_backup()
+            self._stop_event.wait(self.interval_seconds)
+
+    def start(self) -> None:
+        """Start background periodic backup worker.
+
+        Bilingual: Inicia worker en background para respaldo periódico.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+        """
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop_event.clear()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        """Stop background backup worker if running.
+
+        Bilingual: Detiene worker de respaldo en background si está activo.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+        """
+        self._stop_event.set()
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=1.0)
