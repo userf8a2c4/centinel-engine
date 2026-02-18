@@ -428,6 +428,9 @@ arbitrum:
   interval_minutes: 15
   batch_size: 19
   auto_anchor_snapshots: true
+  # Redact tx hash/root/contract identifiers in logs for low-profile operations.
+  # Redacta identificadores tx/root/contrato en logs para operaciones de bajo perfil.
+  log_redact_identifiers: true
 
 # Cadena de custodia verificable — FASE 2.
 # Verifiable custody chain — PHASE 2.

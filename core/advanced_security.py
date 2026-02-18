@@ -46,6 +46,8 @@ except Exception:  # noqa: BLE001
         def net_connections(kind: str = "inet"):
             return []
 
+    psutil = _PsutilFallback()
+
 # Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
 
 from core.http_compat import requests
@@ -112,6 +114,9 @@ class AdvancedSecurityConfig:
     honeypot_host: str = "127.0.0.1"
     honeypot_port: int = 8081
     honeypot_endpoints: list[str] = field(default_factory=lambda: ["/admin", "/login", "/api/v1/results", "/debug"])
+    honeypot_events_path: str = "logs/honeypot_events.jsonl"
+    honeypot_encrypt_events: bool = False
+    honeypot_encryption_key_env: str = "HONEYPOT_LOG_KEY"
     airgap_min_minutes: int = 5
     airgap_max_minutes: int = 30
     backup_provider: str = "local"
@@ -155,6 +160,9 @@ class AdvancedSecurityConfig:
             honeypot_host=str(raw.get("honeypot_host", "127.0.0.1")),
             honeypot_port=int(raw.get("honeypot_port", 8081)),
             honeypot_endpoints=[str(p) for p in raw.get("honeypot_endpoints", ["/admin", "/login"])],
+            honeypot_events_path=str(raw.get("honeypot_events_path", "logs/honeypot_events.jsonl")),
+            honeypot_encrypt_events=bool(raw.get("honeypot_encrypt_events", False)),
+            honeypot_encryption_key_env=str(raw.get("honeypot_encryption_key_env", "HONEYPOT_LOG_KEY")),
             airgap_min_minutes=int(raw.get("airgap_min_minutes", 5)),
             airgap_max_minutes=int(raw.get("airgap_max_minutes", 30)),
             backup_provider=str(raw.get("backup_provider", "local")),
@@ -245,7 +253,18 @@ class HoneypotService:
             LOGGER.warning("honeypot_flask_unavailable error=%s", exc)
         self._thread: threading.Thread | None = None
         self._server: Any = None
-        self.events_path = Path("logs/honeypot_events.jsonl")
+        self.events_path = Path(self.config.honeypot_events_path)
+        self._encrypt_events = bool(self.config.honeypot_encrypt_events)
+        self._fernet: Fernet | None = None
+        if self._encrypt_events:
+            key_value = os.getenv(self.config.honeypot_encryption_key_env, "").strip()
+            if key_value:
+                try:
+                    self._fernet = Fernet(key_value.encode("utf-8"))
+                except Exception as exc:  # noqa: BLE001
+                    LOGGER.warning("honeypot_encrypt_key_invalid env=%s error=%s", self.config.honeypot_encryption_key_env, exc)
+            else:
+                LOGGER.warning("honeypot_encrypt_key_missing env=%s", self.config.honeypot_encryption_key_env)
         self.events_path.parent.mkdir(parents=True, exist_ok=True)
         self._register_routes()
 
@@ -275,7 +294,12 @@ class HoneypotService:
             "classification": "scan" if req.path.count("/") >= 1 else "suspicious",
         }
         with self.events_path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(event, ensure_ascii=False) + "\n")
+            serialized = json.dumps(event, ensure_ascii=False)
+            if self._fernet is not None:
+                encrypted = self._fernet.encrypt(serialized.encode("utf-8")).decode("utf-8")
+                fh.write(encrypted + "\n")
+                return
+            fh.write(serialized + "\n")
 
     def start(self) -> None:
         if not self.config.honeypot_enabled or self.app is None:
