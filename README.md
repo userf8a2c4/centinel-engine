@@ -2,12 +2,12 @@
 
 <sub>Centinela Electrónico Neutral Técnico Íntegro Nacional Electoral Libre.</sub>
 
-[![CI](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml?query=branch%3Adev-v9)
-[![CodeQL](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml?query=branch%3Adev-v9)
-[![Pipeline](https://github.com/userf8a2c4/centinel-engine/actions/workflows/pipeline.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/pipeline.yml?query=branch%3Adev-v9)
-[![Scheduler](https://github.com/userf8a2c4/centinel-engine/actions/workflows/scheduler.yml/badge.svg?branch=dev-v9)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/scheduler.yml?query=branch%3Adev-v9)
-![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+[![Licencia](https://img.shields.io/badge/Licencia-AGPL--3.0-blue)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Last Commit](https://img.shields.io/github/last-commit/userf8a2c4/centinel-engine)
+[![CI](https://img.shields.io/github/actions/workflow/status/userf8a2c4/centinel-engine/ci.yml?label=CI)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml)
+[![CodeQL Advanced](https://img.shields.io/github/actions/workflow/status/userf8a2c4/centinel-engine/codeql.yml?label=CodeQL%20Advanced)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/codeql.yml)
+[![Deploy Streamlit Dashboard](https://img.shields.io/github/actions/workflow/status/userf8a2c4/centinel-engine/deploy-dashboard.yml?label=Deploy%20Streamlit%20Dashboard)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/deploy-dashboard.yml)
 
 Auditoría continua y verificable de datos públicos del CNE. / Continuous, verifiable auditing of CNE public data.
 
