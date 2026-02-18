@@ -36,6 +36,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from centinel_engine.config_loader import load_config
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -62,6 +64,31 @@ DEFAULT_HEALTH_STATE: Dict[str, Any] = {
     "metrics": {},
 }
 
+
+
+
+def load_vital_signs_config(env: str = "prod") -> Dict[str, Any]:
+    """Load vital-signs thresholds from centralized config storage.
+
+    Bilingual: Carga umbrales de signos vitales desde el almacenamiento
+    centralizado de configuración.
+
+    Args:
+        env: Environment folder under ``config``.
+
+    Returns:
+        Vital-sign thresholds dictionary, or defaults when unavailable.
+    """
+    try:
+        loaded = load_config("rules.yaml", env=env)
+    except ValueError as exc:
+        logger.error("vital_signs_config_error | error de config de signos vitales: %s", exc)
+        return dict(DEFAULT_THRESHOLDS)
+
+    candidate = loaded.get("vital_signs", loaded) if isinstance(loaded, dict) else {}
+    if not isinstance(candidate, dict):
+        return dict(DEFAULT_THRESHOLDS)
+    return {**DEFAULT_THRESHOLDS, **candidate}
 
 def _compute_success_rate(success_history: List[bool]) -> float:
     """Compute success rate from recent history.
