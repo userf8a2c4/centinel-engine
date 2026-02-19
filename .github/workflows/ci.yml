@@ -146,4 +146,16 @@ jobs:
 
       - name: Run resilience suite
         run: |
-          python -m pytest tests/resilience/ -v --cov=scripts --cov-report=term-missing
+          python -m pytest tests/resilience/ -v --cov=scripts --cov-report=term-missing --junitxml=resilience.junit.xml
+
+      - name: Build resilience report
+        run: |
+          python scripts/resilience_report.py             --junit-xml resilience.junit.xml             --output artifacts/resilience_report.json             --release-version "${GITHUB_REF_NAME:-local}"
+
+      - name: Upload resilience artifacts
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: resilience-report
+          path: |
+            resilience.junit.xml
+            artifacts/resilience_report.json
