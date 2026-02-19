@@ -44,7 +44,7 @@ jobs:
       - name: Run Bandit scan
         run: |
           set -x
-          if [[ "${GITHUB_REF_NAME}" == dev-v* || "${GITHUB_REF_NAME}" == "work" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" || "${GITHUB_REF_NAME}" == dev-v* || "${GITHUB_REF_NAME}" == "work" ]]; then
             bandit -r . -c bandit.yaml --severity-level medium || true
           else
             bandit -r . -c bandit.yaml --severity-level medium
@@ -53,7 +53,7 @@ jobs:
       - name: Run integrated security suites
         run: |
           set -x
-          if [[ "${GITHUB_REF_NAME}" == dev-v* || "${GITHUB_REF_NAME}" == "work" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" || "${GITHUB_REF_NAME}" == dev-v* || "${GITHUB_REF_NAME}" == "work" ]]; then
             make test-security-all || true
           else
             make test-security-all
