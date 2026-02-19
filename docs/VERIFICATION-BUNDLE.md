@@ -29,12 +29,14 @@ python scripts/verify_evidence_bundle.py --bundle artifacts/evidence_bundle.json
 ## Verificación externa 1-click (snapshot + hash + reglas + versión)
 
 ```bash
-python scripts/verify_snapshot_bundle.py   --snapshot data/snapshot_2026-01-06_21-40-17.json   --hash-record hashes/snapshot_2026-01-06_21-40-17.sha256   --rules command_center/rules.yaml   --pipeline-version v1.0.0
+python scripts/verify_snapshot_bundle.py   --snapshot data/snapshot_2026-01-06_21-40-17.json   --hash-record hashes/snapshot_2026-01-06_21-40-17.sha256   --rules command_center/rules.yaml   --pipeline-version v1.0.0 \
+  --require-signature \
+  --anchor-log logs/anchors/anchor_snapshot_2026-01-06_21-40-17.json
 ```
 
 Salida determinista:
-- `verification=PASS` si snapshot, hashchain, reglas habilitadas y versión son consistentes.
-- `verification=FAIL` + códigos de error si hay desajustes.
+- `verification=PASS` si snapshot, hashchain, reglas habilitadas, firma Ed25519 y versión son consistentes.
+- `verification=FAIL` + códigos de error si hay desajustes (hash, firma, reglas, versión o anclaje).
 
 ## Checklist corto de replicación (periodistas/académicos)
 1. Descargar snapshot, hash record, reglas y reporte de la misma corrida.

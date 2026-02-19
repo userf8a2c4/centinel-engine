@@ -7,8 +7,16 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from centinel.core.custody import verify_hash_record_signature
 
 
 def sha256_file(path: Path) -> str:
@@ -24,10 +32,8 @@ def load_structured(path: Path) -> dict[str, Any]:
         return json.loads(path.read_text(encoding="utf-8"))
 
     if path.suffix.lower() in {".yaml", ".yml"}:
-        try:
-            import yaml  # type: ignore
-        except Exception as exc:  # pragma: no cover - defensive branch
-            raise RuntimeError("PyYAML is required to parse YAML files") from exc
+        import yaml  # type: ignore
+
         parsed = yaml.safe_load(path.read_text(encoding="utf-8"))
         return parsed if isinstance(parsed, dict) else {}
 
@@ -52,6 +58,8 @@ def verify(
     hash_record_path: Path,
     rules_path: Path,
     pipeline_version: str,
+    require_signature: bool,
+    anchor_log_path: Path | None,
 ) -> tuple[bool, list[str]]:
     errors: list[str] = []
 
@@ -81,6 +89,12 @@ def verify(
     if not hash_record.get("chained_hash"):
         errors.append("missing_hashchain")
 
+    has_signature = "operator_signature" in hash_record
+    if require_signature and not has_signature:
+        errors.append("missing_operator_signature")
+    if has_signature and not verify_hash_record_signature(hash_record):
+        errors.append("invalid_operator_signature")
+
     enabled_rules = extract_enabled_rules(rules_payload)
     if not enabled_rules:
         errors.append("no_enabled_rules")
@@ -88,6 +102,14 @@ def verify(
     declared_pipeline = hash_record.get("pipeline_version")
     if declared_pipeline and declared_pipeline != pipeline_version:
         errors.append("pipeline_version_mismatch")
+
+    if anchor_log_path is not None:
+        anchor_log = load_structured(anchor_log_path)
+        anchored_root = anchor_log.get("root_hash")
+        if not anchored_root:
+            errors.append("missing_anchor_root")
+        elif anchored_root != hash_record.get("chained_hash"):
+            errors.append("anchor_mismatch")
 
     return (len(errors) == 0, errors)
 
@@ -98,6 +120,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hash-record", required=True, help="Hash record JSON path")
     parser.add_argument("--rules", required=True, help="Rules config JSON/YAML path")
     parser.add_argument("--pipeline-version", required=True, help="Pipeline version identifier")
+    parser.add_argument("--require-signature", action="store_true", help="Require valid Ed25519 hash record signature")
+    parser.add_argument("--anchor-log", help="Optional anchor log JSON/YAML path for root hash matching")
     return parser.parse_args()
 
 
@@ -108,6 +132,8 @@ def main() -> int:
         hash_record_path=Path(args.hash_record),
         rules_path=Path(args.rules),
         pipeline_version=args.pipeline_version,
+        require_signature=args.require_signature,
+        anchor_log_path=Path(args.anchor_log) if args.anchor_log else None,
     )
     if ok:
         print("verification=PASS")

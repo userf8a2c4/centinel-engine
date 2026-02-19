@@ -9,6 +9,7 @@
 
 ### Fase 2 — Refuerzo criptográfico
 - Firmar digitalmente artefactos de salida por versión de pipeline.
+- Estado actual: hash records firmables desde `scripts/hash.py` y verificables en `verify_snapshot_bundle.py`.
 - Anclar opcionalmente raíces Merkle de corridas críticas.
 - Operar doble canal de verificación: hash local + evidencia pública.
 
@@ -50,6 +51,7 @@
 
 ### Phase 2 — Cryptographic hardening
 - Digitally sign output artifacts per pipeline version.
+- Current status: hash records are signable from `scripts/hash.py` and verifiable in `verify_snapshot_bundle.py`.
 - Optionally anchor critical run Merkle roots.
 - Operate dual-channel verification: local hash + public evidence.
 
