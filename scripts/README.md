@@ -17,6 +17,7 @@ Esta carpeta contiene los ejecutables principales del pipeline:
 - `verify_snapshot_bundle.py`: verificación externa 1-click (snapshot + hashchain + reglas + versión de pipeline), con opción de firma Ed25519 y anclaje.
 - `resilience_report.py`: construye reporte de resiliencia + `resilience_score` desde JUnit y métricas runtime opcionales.
 - `release_gate.py`: ejecuta gate obligatorio de release (lockfile + SBOM versionado) y emite PASS/FAIL.
+- `rule_quality_metrics.py`: calcula métricas por regla (FP/FN, precision, recall, F1) desde casos etiquetados.
 
 Uso típico:
 1. Ejecutar `bootstrap.py` para crear configuración inicial.
@@ -44,6 +45,7 @@ This folder contains the main pipeline executables:
 - `verify_snapshot_bundle.py`: one-click external verification (snapshot + hashchain + rules + pipeline version), with optional Ed25519 signature and anchor checks.
 - `resilience_report.py`: builds resilience report + `resilience_score` from JUnit and optional runtime metrics.
 - `release_gate.py`: runs mandatory release gate (lockfile + versioned SBOM) and emits PASS/FAIL.
+- `rule_quality_metrics.py`: computes per-rule quality metrics (FP/FN, precision, recall, F1) from labeled cases.
 
 Typical usage:
 1. Run `bootstrap.py` to create initial configuration.

@@ -33,6 +33,7 @@
 
 ### Fase 6 — Métricas de precisión auditables
 - Exponer métricas por regla (FP/FN revisables históricamente).
+- Estado actual: métricas por regla automatizadas vía `scripts/rule_quality_metrics.py`.
 - Publicar rúbrica de confianza de anomalías.
 - Hacer validación cruzada con revisión manual de casos etiquetados.
 
@@ -78,6 +79,7 @@
 
 ### Phase 6 — Third-party meaningful quality metrics
 - Expose per-rule quality metrics (historically reviewable FP/FN).
+- Current status: automated per-rule metrics via `scripts/rule_quality_metrics.py`.
 - Publish anomaly confidence rubric.
 - Perform cross-validation with manually reviewed labeled cases.
 
