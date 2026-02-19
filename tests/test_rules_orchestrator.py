@@ -131,14 +131,14 @@ def test_all_rules_enabled_by_default(monkeypatch):
     monkeypatch.setattr(
         "centinel.core.rules_engine.list_rules",
         lambda: [
-            _make_rule_def("no_config_rule", called),
+            _make_rule_def("turnout_impossible", called),
         ],
     )
 
     engine = RulesEngine(config={"rules": {"global_enabled": True}})
     result = engine.run({}, None)
 
-    assert called == ["no_config_rule"]
+    assert called == ["turnout_impossible"]
     assert len(result.alerts) == 1
 
 
@@ -181,3 +181,48 @@ def test_all_legacy_rules_registered():
     }
     for key in expected_original:
         assert key in registered_keys, f"Original rule {key!r} not registered"
+
+
+
+def test_research_rules_disabled_by_default(monkeypatch):
+    """Las reglas research deben quedar behind-flag por defecto.
+
+    English:
+        Research rules should be behind a flag by default.
+    """
+    called: List[str] = []
+    monkeypatch.setattr(
+        "centinel.core.rules_engine.list_rules",
+        lambda: [
+            _make_rule_def("basic_diff", called),
+            _make_rule_def("turnout_impossible", called),
+        ],
+    )
+
+    engine = RulesEngine(config={"rules": {"global_enabled": True}})
+    result = engine.run({}, None)
+
+    assert called == ["turnout_impossible"]
+    assert len(result.alerts) == 1
+
+
+def test_research_rules_enabled_with_flag(monkeypatch):
+    """Con enable_research_rules=true las research pueden ejecutarse.
+
+    English:
+        With enable_research_rules=true, research rules can execute.
+    """
+    called: List[str] = []
+    monkeypatch.setattr(
+        "centinel.core.rules_engine.list_rules",
+        lambda: [
+            _make_rule_def("basic_diff", called),
+            _make_rule_def("turnout_impossible", called),
+        ],
+    )
+
+    engine = RulesEngine(config={"rules": {"global_enabled": True, "enable_research_rules": True}})
+    result = engine.run({}, None)
+
+    assert called == ["basic_diff", "turnout_impossible"]
+    assert len(result.alerts) == 2
