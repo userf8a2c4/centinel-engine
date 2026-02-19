@@ -33,3 +33,15 @@ Continuity without aggressiveness: preserve evidence, reduce load, and maintain 
 - Conteo de eventos `429/503` por ventana operativa.
 - Retries efectivos y recoveries por watchdog.
 - `resilience_score` por release (ponderado por recuperación, no solo por uptime).
+
+
+## Evidencia continua en CI / Continuous CI evidence
+- El workflow de CI ejecuta `tests/resilience/` con salida JUnit XML.
+- Se genera `artifacts/resilience_report.json` vía `scripts/resilience_report.py`.
+- El reporte incluye: cobertura de suite (`tests/failures/errors/skipped`), métricas runtime opcionales (`MTTR`, `429/503`, retries, recoveries) y `resilience_score` por release.
+
+### Ejecución local / Local run
+```bash
+pytest tests/resilience/ -v --junitxml=resilience.junit.xml
+python scripts/resilience_report.py   --junit-xml resilience.junit.xml   --output artifacts/resilience_report.json   --release-version v4.0.0
+```

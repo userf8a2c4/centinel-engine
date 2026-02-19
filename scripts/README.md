@@ -15,6 +15,7 @@ Esta carpeta contiene los ejecutables principales del pipeline:
 - `evidence_bundle.py`: construye un bundle reproducible (manifest + Merkle root) para verificación externa.
 - `verify_evidence_bundle.py`: verifica hashes/merkle de un bundle y retorna PASS/FAIL determinista.
 - `verify_snapshot_bundle.py`: verificación externa 1-click (snapshot + hashchain + reglas + versión de pipeline), con opción de firma Ed25519 y anclaje.
+- `resilience_report.py`: construye reporte de resiliencia + `resilience_score` desde JUnit y métricas runtime opcionales.
 
 Uso típico:
 1. Ejecutar `bootstrap.py` para crear configuración inicial.
@@ -40,6 +41,7 @@ This folder contains the main pipeline executables:
 - `evidence_bundle.py`: builds a reproducible bundle (manifest + Merkle root) for external verification.
 - `verify_evidence_bundle.py`: verifies bundle hashes/merkle and returns deterministic PASS/FAIL.
 - `verify_snapshot_bundle.py`: one-click external verification (snapshot + hashchain + rules + pipeline version), with optional Ed25519 signature and anchor checks.
+- `resilience_report.py`: builds resilience report + `resilience_score` from JUnit and optional runtime metrics.
 
 Typical usage:
 1. Run `bootstrap.py` to create initial configuration.

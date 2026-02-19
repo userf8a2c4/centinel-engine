@@ -21,6 +21,7 @@
 
 ### Fase 4 — Resiliencia demostrable
 - Ejecutar suite de resiliencia en CI y publicar cobertura de fallos recuperados.
+- Estado actual: CI genera `resilience_report.json` y `resilience_score` por release.
 - Reportar MTTR, eventos 429/503, retries efectivos y recoveries de watchdog.
 - Introducir `resilience_score` por release.
 
@@ -64,6 +65,7 @@
 
 ### Phase 4 — Demonstrable resilience
 - Run resilience suite in CI and publish recovered-failure coverage.
+- Current status: CI publishes `resilience_report.json` and release-level `resilience_score`.
 - Report MTTR, 429/503 events, effective retries, and watchdog recoveries.
 - Introduce a release-level `resilience_score`.
 
