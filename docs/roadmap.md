@@ -28,6 +28,7 @@
 ### Fase 5 — Gobernanza y supply-chain
 - Cerrar lockfile íntegro y hashes de artefactos en entorno conectado.
 - Convertir release checklist en gate obligatorio.
+- Estado actual: CI ejecuta `release_gate.py` + SBOM versionado por release.
 - Publicar SBOM versionado por release.
 
 ### Fase 6 — Métricas de precisión auditables
@@ -72,6 +73,7 @@
 ### Phase 5 — Governance and supply-chain
 - Close lockfile integrity and artifact hashing in a connected environment.
 - Turn release checklist into a mandatory gate.
+- Current status: CI runs `release_gate.py` + release-versioned SBOM.
 - Publish release-versioned SBOMs.
 
 ### Phase 6 — Third-party meaningful quality metrics

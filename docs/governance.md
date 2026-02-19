@@ -13,9 +13,9 @@ Establecer controles de gobernanza verificables para minimizar riesgos de cadena
 
 
 ### Gate mínimo por release (obligatorio)
-- `poetry lock --check` en CI.
-- Validación de SBOM adjunta al release.
-- Verificación de bundle de evidencia en modo PASS.
+- `poetry lock --check` en CI (con fallback compatible: `poetry check --lock`).
+- Validación de SBOM versionado por release (`sbom.<release_version>.cyclonedx.json`).
+- Ejecución obligatoria de `scripts/release_gate.py` con resultado PASS y artefacto publicado.
 
 ### Pendientes operativos externos
 - Regenerar `poetry.lock` en entorno con conectividad completa para asegurar hashes de artefactos.
@@ -34,9 +34,9 @@ Define verifiable governance controls to reduce supply-chain, configuration, and
 
 
 ### Minimum release gate (mandatory)
-- `poetry lock --check` in CI.
-- SBOM validation attached to each release.
-- Evidence bundle verification in PASS mode.
+- `poetry lock --check` in CI (with compatible fallback: `poetry check --lock`).
+- Release-versioned SBOM validation (`sbom.<release_version>.cyclonedx.json`).
+- Mandatory `scripts/release_gate.py` execution with PASS result and published artifact.
 
 ### External operational pending items
 - Re-generate `poetry.lock` in a fully connected environment to ensure artifact hashes.
