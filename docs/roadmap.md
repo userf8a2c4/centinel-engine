@@ -15,6 +15,7 @@
 
 ### Fase 3 — Core estable vs reglas experimentales
 - Separar `core_rules` (deterministas) y `research_rules` (flag explícito).
+- Estado actual: separación operativa habilitada con `rules.enable_research_rules` (default: `false`).
 - Definir gate de promoción `research -> core` basado en evidencia reproducible.
 - Mantener trazabilidad de cambios por regla y versión.
 
@@ -57,6 +58,7 @@
 
 ### Phase 3 — Stable core vs experimental rules
 - Separate `core_rules` (deterministic) and `research_rules` (explicit flag).
+- Current status: operational separation enabled with `rules.enable_research_rules` (default: `false`).
 - Define a promotion gate `research -> core` based on reproducible evidence.
 - Keep per-rule/per-version traceability.
 

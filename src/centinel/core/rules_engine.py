@@ -104,6 +104,17 @@ RULE_CONFIG_ALIASES: dict[str, str] = {
 }
 
 
+RESEARCH_RULE_KEYS: set[str] = {
+    "basic_diff",
+    "benford_law",
+    "irreversibility",
+    "ml_outliers",
+    "participation_anomaly",
+    "processing_speed",
+    "trend_shift",
+}
+
+
 @dataclass(frozen=True)
 class RulesEngineResult:
     """Resultado agregado de la ejecución de reglas.
@@ -156,16 +167,25 @@ class RulesEngine:
     def _rule_enabled(self, rule: RuleDefinition) -> bool:
         """Determina si una regla está habilitada según la configuración.
 
-        Todas las reglas están habilitadas por defecto.
+        Regla por defecto:
+        - `core` habilitadas por defecto.
+        - `research` deshabilitadas por defecto hasta activar `enable_research_rules=true`.
 
         English:
             Determine whether a rule is enabled based on configuration.
 
-            All rules are enabled by default.
+            Default behavior:
+            - `core` rules are enabled by default.
+            - `research` rules are disabled by default unless
+              `enable_research_rules=true`.
         """
         rules_config = self.config.get("rules", {})
         if not rules_config.get("global_enabled", True):
             return False
+
+        if rule.config_key in RESEARCH_RULE_KEYS and not rules_config.get("enable_research_rules", False):
+            return False
+
         return self._get_rule_config(rule).get("enabled", True)
 
     # ── hashchain verification ───────────────────────────────────────────
