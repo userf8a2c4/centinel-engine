@@ -171,3 +171,39 @@ def test_write_snapshot_hash_supports_pipeline_version_and_signature(tmp_path: P
     assert payload["pipeline_version"] == "v2.0.0"
     assert payload["operator_signature"]["algorithm"] == "Ed25519"
     assert payload["operator_signature"]["operator_id"] == "phase2-test"
+
+
+
+def test_build_manifest_strict_json_blocks_invalid_snapshot(tmp_path: Path):
+    """Strict JSON validation must block malformed snapshots.
+
+    Validación JSON estricta debe bloquear snapshots malformados.
+    """
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    source_dir = data_dir / "snapshots" / "test_source"
+    source_dir.mkdir(parents=True)
+    bad = source_dir / "snapshot_bad.json"
+    bad.write_text('{"a": 1', encoding="utf-8")
+
+    try:
+        hash_script.build_manifest(data_dir, strict_json=True)
+        assert False, "Expected ValueError for malformed JSON"
+    except ValueError as exc:
+        assert "invalid_json_snapshot" in str(exc)
+
+
+def test_build_manifest_can_skip_strict_json(tmp_path: Path):
+    """Optional flag can keep backward compatibility when needed.
+
+    La bandera opcional mantiene compatibilidad cuando se requiere.
+    """
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    source_dir = data_dir / "snapshots" / "test_source"
+    source_dir.mkdir(parents=True)
+    bad = source_dir / "snapshot_bad.json"
+    bad.write_text('{"a": 1', encoding="utf-8")
+
+    manifest = hash_script.build_manifest(data_dir, strict_json=False)
+    assert len(manifest) == 1

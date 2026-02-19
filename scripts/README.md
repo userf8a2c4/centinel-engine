@@ -18,6 +18,7 @@ Esta carpeta contiene los ejecutables principales del pipeline:
 - `resilience_report.py`: construye reporte de resiliencia + `resilience_score` desde JUnit y métricas runtime opcionales.
 - `release_gate.py`: ejecuta gate obligatorio de release (lockfile + SBOM versionado) y emite PASS/FAIL.
 - `rule_quality_metrics.py`: calcula métricas por regla (FP/FN, precision, recall, F1) desde casos etiquetados.
+- `secrets_audit.py`: audita higiene de secretos y vigencia de rotación (PASS/FAIL).
 
 Uso típico:
 1. Ejecutar `bootstrap.py` para crear configuración inicial.
@@ -46,6 +47,7 @@ This folder contains the main pipeline executables:
 - `resilience_report.py`: builds resilience report + `resilience_score` from JUnit and optional runtime metrics.
 - `release_gate.py`: runs mandatory release gate (lockfile + versioned SBOM) and emits PASS/FAIL.
 - `rule_quality_metrics.py`: computes per-rule quality metrics (FP/FN, precision, recall, F1) from labeled cases.
+- `secrets_audit.py`: audits secrets hygiene and rotation freshness (PASS/FAIL).
 
 Typical usage:
 1. Run `bootstrap.py` to create initial configuration.

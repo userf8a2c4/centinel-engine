@@ -39,6 +39,7 @@
 
 ### Fase 7 — Endurecimiento de seguridad en producción
 - Validación estricta de JSON como bloqueo operativo.
+- Estado actual: validación JSON estricta en hashing + gate de auditoría de secretos en CI.
 - Redacción obligatoria de datos sensibles en logs.
 - Auditoría periódica de secretos y política de rotación.
 
@@ -85,5 +86,6 @@
 
 ### Phase 7 — Stricter production security
 - Enforce strict JSON validation as an operational gate.
+- Current status: strict JSON validation in hashing + secrets audit gate in CI.
 - Mandate sensitive-data redaction in logs.
 - Run periodic secrets audits and rotation policy.

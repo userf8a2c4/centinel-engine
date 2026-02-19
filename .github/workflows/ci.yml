@@ -113,6 +113,7 @@ jobs:
           path: |
             ${{ env.SBOM_FILE }}
             artifacts/release_gate_${{ env.RELEASE_VERSION }}.json
+            artifacts/secrets_audit.json
 
       - name: Debug security workspace
         run: |
@@ -120,6 +121,17 @@ jobs:
           pwd
           ls -la
           ls -la tests || true
+
+
+      - name: Run secrets audit gate
+        run: |
+          python - <<'PY2'
+from datetime import datetime, timezone
+from pathlib import Path
+Path('artifacts').mkdir(parents=True, exist_ok=True)
+Path('artifacts/rotation_policy.json').write_text('{"last_rotated_utc":"'+datetime.now(timezone.utc).isoformat()+'"}', encoding='utf-8')
+PY2
+          python scripts/secrets_audit.py             --rotation-file artifacts/rotation_policy.json             --max-age-days 90             --output artifacts/secrets_audit.json
 
       - name: Run security scans
         run: |

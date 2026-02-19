@@ -138,7 +138,20 @@ def load_previous_chain_hash() -> str:
     return payload.get("chained_hash", "0" * 64)
 
 
-def build_manifest(data_dir: Path = DATA_DIR) -> list[dict[str, Any]]:
+
+
+def validate_json_file(path: Path) -> None:
+    """Validate JSON syntax strictly before hashing.
+
+    Valida sintaxis JSON estricta antes de hashear.
+    """
+    try:
+        json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid_json_snapshot:{path}") from exc
+
+
+def build_manifest(data_dir: Path = DATA_DIR, *, strict_json: bool = True) -> list[dict[str, Any]]:
     """Build manifest for current JSON snapshots.
 
     Construye manifiesto para snapshots JSON actuales.
@@ -149,6 +162,8 @@ def build_manifest(data_dir: Path = DATA_DIR) -> list[dict[str, Any]]:
             LOGGER.warning("hash_skip_unsafe_candidate file=%s", candidate)
             continue
         try:
+            if strict_json:
+                validate_json_file(candidate)
             manifest.append(
                 {
                     "file": str(candidate.relative_to(data_dir)),
@@ -224,6 +239,7 @@ def run_hash_snapshot(
     sign_records: bool = False,
     key_path: Path | None = None,
     operator_id: str | None = None,
+    strict_json: bool = True,
 ) -> int:
     """Generate hash snapshot from data directory.
 
@@ -234,7 +250,7 @@ def run_hash_snapshot(
         LOGGER.warning("hash_data_dir_missing path=%s", DATA_DIR)
         DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    manifest = build_manifest(DATA_DIR)
+    manifest = build_manifest(DATA_DIR, strict_json=strict_json)
     output = write_snapshot_hash(
         manifest,
         HASH_DIR,
@@ -257,6 +273,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sign-records", action="store_true", help="Sign hash records with Ed25519")
     parser.add_argument("--key-path", default=os.getenv("CENTINEL_OPERATOR_KEY_PATH"))
     parser.add_argument("--operator-id", default=os.getenv("CENTINEL_OPERATOR_ID"))
+    parser.add_argument("--no-strict-json", action="store_true", help="Disable strict JSON validation before hashing")
     return parser.parse_args()
 
 
@@ -272,6 +289,7 @@ def main() -> None:
             sign_records=args.sign_records,
             key_path=Path(args.key_path) if args.key_path else None,
             operator_id=args.operator_id,
+            strict_json=not args.no_strict_json,
         )
     )
 

@@ -57,10 +57,26 @@ from __future__ import annotations
 
 import logging
 import logging.handlers
+import re
 
 from centinel.utils.config_loader import load_config
 
-SENSITIVE_KEYS = {"votes", "votos", "payload", "personal_data", "dni", "cedula"}
+SENSITIVE_KEYS = {"votes", "votos", "payload", "personal_data", "dni", "cedula", "api_key", "token", "secret", "password", "private_key", "arbitrum_private_key"}
+
+SECRET_PATTERNS = [
+    re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._-]+"),
+    re.compile(r"(?i)(arbitrum_private_key\s*[=:]\s*)[^\s,;]+"),
+    re.compile(r"(?i)(api[_-]?key\s*[=:]\s*)[^\s,;]+"),
+    re.compile(r"(?i)(token\s*[=:]\s*)[^\s,;]+"),
+]
+
+
+def redact_sensitive_text(text: str) -> str:
+    """Redact inline secret-looking values in plain strings."""
+    redacted = text
+    for pattern in SECRET_PATTERNS:
+        redacted = pattern.sub(r"\1[REDACTED]", redacted)
+    return redacted
 
 
 def _redact_sensitive_fields(data: dict) -> dict:
@@ -82,8 +98,13 @@ class SensitiveLogFilter(logging.Filter):
 
         English: Function filter defined in src/centinel/utils/logging_config.py.
         """
+        if isinstance(record.msg, str):
+            record.msg = redact_sensitive_text(record.msg)
+
         if isinstance(record.args, dict):
             record.args = _redact_sensitive_fields(record.args)
+        elif isinstance(record.args, tuple):
+            record.args = tuple(redact_sensitive_text(str(v)) for v in record.args)
         return True
 
 
