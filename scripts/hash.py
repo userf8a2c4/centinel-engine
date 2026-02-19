@@ -17,7 +17,9 @@ Componentes detectados:
   - load_previous_chain_hash
   - build_manifest
   - write_snapshot_hash
+  - maybe_sign_hash_record
   - run_hash_snapshot
+  - parse_args
   - main
   - bloque_main
 
@@ -71,10 +73,13 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from centinel.core.custody import sign_hash_record
 from centinel.paths import iter_all_hashes, iter_all_snapshots
 
 LOGGER = logging.getLogger("centinel.hash")
@@ -133,7 +138,20 @@ def load_previous_chain_hash() -> str:
     return payload.get("chained_hash", "0" * 64)
 
 
-def build_manifest(data_dir: Path = DATA_DIR) -> list[dict[str, Any]]:
+
+
+def validate_json_file(path: Path) -> None:
+    """Validate JSON syntax strictly before hashing.
+
+    Valida sintaxis JSON estricta antes de hashear.
+    """
+    try:
+        json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid_json_snapshot:{path}") from exc
+
+
+def build_manifest(data_dir: Path = DATA_DIR, *, strict_json: bool = True) -> list[dict[str, Any]]:
     """Build manifest for current JSON snapshots.
 
     Construye manifiesto para snapshots JSON actuales.
@@ -144,6 +162,8 @@ def build_manifest(data_dir: Path = DATA_DIR) -> list[dict[str, Any]]:
             LOGGER.warning("hash_skip_unsafe_candidate file=%s", candidate)
             continue
         try:
+            if strict_json:
+                validate_json_file(candidate)
             manifest.append(
                 {
                     "file": str(candidate.relative_to(data_dir)),
@@ -156,7 +176,31 @@ def build_manifest(data_dir: Path = DATA_DIR) -> list[dict[str, Any]]:
     return manifest
 
 
-def write_snapshot_hash(manifest: list[dict[str, Any]], hash_dir: Path = HASH_DIR) -> Path:
+def maybe_sign_hash_record(
+    payload: dict[str, Any],
+    *,
+    sign_records: bool,
+    key_path: Path | None,
+    operator_id: str | None,
+) -> dict[str, Any]:
+    """Optionally sign hash records with Ed25519 operator signature.
+
+    Firma opcional de registros de hash con firma Ed25519 del operador.
+    """
+    if not sign_records:
+        return payload
+    return sign_hash_record(payload, key_path=key_path, operator_id=operator_id)
+
+
+def write_snapshot_hash(
+    manifest: list[dict[str, Any]],
+    hash_dir: Path = HASH_DIR,
+    *,
+    pipeline_version: str | None = None,
+    sign_records: bool = False,
+    key_path: Path | None = None,
+    operator_id: str | None = None,
+) -> Path:
     """Persist a hash snapshot with timestamps and chained hash.
 
     Persiste un snapshot de hash con timestamps y hash encadenado.
@@ -168,6 +212,8 @@ def write_snapshot_hash(manifest: list[dict[str, Any]], hash_dir: Path = HASH_DI
         "manifest_count": len(manifest),
         "manifest": manifest,
     }
+    if pipeline_version:
+        payload["pipeline_version"] = pipeline_version
     body = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
     payload_hash = hashlib.sha256(body).hexdigest()
     previous = load_previous_chain_hash()
@@ -175,13 +221,26 @@ def write_snapshot_hash(manifest: list[dict[str, Any]], hash_dir: Path = HASH_DI
     payload["hash"] = payload_hash
     payload["previous_hash"] = previous
     payload["chained_hash"] = chained_hash
+    payload = maybe_sign_hash_record(
+        payload,
+        sign_records=sign_records,
+        key_path=key_path,
+        operator_id=operator_id,
+    )
 
     target = hash_dir / f"snapshot_{timestamp}.sha256"
     target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return target
 
 
-def run_hash_snapshot() -> int:
+def run_hash_snapshot(
+    *,
+    pipeline_version: str | None = None,
+    sign_records: bool = False,
+    key_path: Path | None = None,
+    operator_id: str | None = None,
+    strict_json: bool = True,
+) -> int:
     """Generate hash snapshot from data directory.
 
     Genera snapshot de hash desde el directorio data.
@@ -191,10 +250,31 @@ def run_hash_snapshot() -> int:
         LOGGER.warning("hash_data_dir_missing path=%s", DATA_DIR)
         DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    manifest = build_manifest(DATA_DIR)
-    output = write_snapshot_hash(manifest, HASH_DIR)
+    manifest = build_manifest(DATA_DIR, strict_json=strict_json)
+    output = write_snapshot_hash(
+        manifest,
+        HASH_DIR,
+        pipeline_version=pipeline_version,
+        sign_records=sign_records,
+        key_path=key_path,
+        operator_id=operator_id,
+    )
     LOGGER.info("hash_snapshot_written path=%s items=%s", output, len(manifest))
     return 0
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse CLI args for hash snapshot generation.
+
+    Parsea argumentos CLI para generación de hash snapshot.
+    """
+    parser = argparse.ArgumentParser(description="Generate chained hash snapshot records")
+    parser.add_argument("--pipeline-version", default=os.getenv("CENTINEL_PIPELINE_VERSION"))
+    parser.add_argument("--sign-records", action="store_true", help="Sign hash records with Ed25519")
+    parser.add_argument("--key-path", default=os.getenv("CENTINEL_OPERATOR_KEY_PATH"))
+    parser.add_argument("--operator-id", default=os.getenv("CENTINEL_OPERATOR_ID"))
+    parser.add_argument("--no-strict-json", action="store_true", help="Disable strict JSON validation before hashing")
+    return parser.parse_args()
 
 
 def main() -> None:
@@ -202,7 +282,16 @@ def main() -> None:
 
     Punto de entrada CLI.
     """
-    raise SystemExit(run_hash_snapshot())
+    args = parse_args()
+    raise SystemExit(
+        run_hash_snapshot(
+            pipeline_version=args.pipeline_version,
+            sign_records=args.sign_records,
+            key_path=Path(args.key_path) if args.key_path else None,
+            operator_id=args.operator_id,
+            strict_json=not args.no_strict_json,
+        )
+    )
 
 
 if __name__ == "__main__":

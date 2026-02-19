@@ -49,9 +49,11 @@ This policy exclusively covers the source code and data structure contained with
 
 #### 5. PROACTIVE HARDENING (SUGGESTED)
 * **Encrypted secrets:** Use `scripts/encrypt_secrets.py` to encrypt `ARBITRUM_PRIVATE_KEY` or other secrets before storage. Keep `SECRET_ENCRYPTION_KEY` out of the repo.
-* **Strict JSON validation:** Reject invalid structures and log only verification hashes.
-* **Secure logging:** Log rotation and redaction to avoid accidental exposure.
+* **Strict JSON validation:** Reject invalid structures as a blocking condition in hashing/verification stages.
+* **Secure logging:** Mandatory redaction of sensitive values before writing logs.
 * **Rate limiting:** Keep per-IP limits to mitigate abuse of public endpoints.
+* **Secrets audit:** Run `scripts/secrets_audit.py` periodically and enforce rotation metadata age.
+* **Secrets audit:** Run `scripts/secrets_audit.py` periodically and enforce rotation metadata age.
 
 ---
 
