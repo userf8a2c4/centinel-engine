@@ -14,6 +14,7 @@ Esta carpeta contiene los ejecutables principales del pipeline:
 - `validate_hashes.py`: valida la cadena de hashes y el anclaje (o simulación).
 - `evidence_bundle.py`: construye un bundle reproducible (manifest + Merkle root) para verificación externa.
 - `verify_evidence_bundle.py`: verifica hashes/merkle de un bundle y retorna PASS/FAIL determinista.
+- `verify_snapshot_bundle.py`: verificación externa 1-click (snapshot + hashchain + reglas + versión de pipeline).
 
 Uso típico:
 1. Ejecutar `bootstrap.py` para crear configuración inicial.
@@ -38,6 +39,7 @@ This folder contains the main pipeline executables:
 - `validate_hashes.py`: validates the hash chain and anchor (or simulation).
 - `evidence_bundle.py`: builds a reproducible bundle (manifest + Merkle root) for external verification.
 - `verify_evidence_bundle.py`: verifies bundle hashes/merkle and returns deterministic PASS/FAIL.
+- `verify_snapshot_bundle.py`: one-click external verification (snapshot + hashchain + rules + pipeline version).
 
 Typical usage:
 1. Run `bootstrap.py` to create initial configuration.
