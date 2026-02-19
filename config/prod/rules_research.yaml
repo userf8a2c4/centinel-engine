@@ -1,0 +1,4 @@
+# Experimental rules for academic review before promotion to core.
+reglas_research:
+  - apply_benford_law
+  - check_distribution_chi2

@@ -20,6 +20,13 @@ Centinel processes only public CNE data to produce reproducible technical eviden
 - Detección de saltos o cambios atípicos de snapshot.
 - Validaciones de estructura y claves obligatorias.
 
+
+## Rule governance model / Modelo de gobernanza de reglas
+
+- `core`: reglas estables activas en producción, con comportamiento determinista.
+- `research`: reglas experimentales para validación académica/revisión UPNFM.
+- Promoción `research -> core`: requiere reproducibilidad, evidencia histórica y aprobación técnica documentada.
+
 ## UPNFM extension point / Punto de extensión UPNFM
 
 La revisión académica de reglas con UPNFM se mantiene como extensión controlada.
