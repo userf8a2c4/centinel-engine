@@ -1,0 +1,11 @@
+# Stable deterministic rules for production.
+reglas_core:
+  - R-01_integridad_conteo_acumulado
+  - R-02_monotonicidad_temporal
+  - R-03_consistencia_aritmetica
+  - R-04_variacion_atipica
+  - R-05_reescritura_implicita
+  - R-06_variacion_relativa_excesiva
+  - R-07_saltos_escrutinio
+  - R-08_discrepancias_totales
+  - R-09_actas_fuera_de_rango

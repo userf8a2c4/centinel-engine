@@ -43,6 +43,7 @@ make init && make pipeline
 - Rotación de proxy/user-agent y control de rate limit.
 - Reglas básicas para anomalías electorales.
 - Backup seguro multi-destino con cifrado.
+- Verification bundle reproducible (SHA-256 por archivo + Merkle root del lote).
 - Suites de pruebas, seguridad y caos en `tests/`.
 
 ## Navegación rápida / Quick Navigation
@@ -56,6 +57,8 @@ make init && make pipeline
 | Matriz legal / Legal matrix | [`docs/legal_compliance_matrix.md`](docs/legal_compliance_matrix.md) |
 | Arquitectura / Architecture | [`docs/architecture.md`](docs/architecture.md) |
 | Extender reglas UPNFM / Extend UPNFM rules | [`docs/upnfm_integration_guide.md`](docs/upnfm_integration_guide.md) |
+| Modelo core/research de reglas | [`config/prod/rules_core.yaml`](config/prod/rules_core.yaml) / [`config/prod/rules_research.yaml`](config/prod/rules_research.yaml) |
+| Bundle de verificación de evidencia | [`docs/VERIFICATION-BUNDLE.md`](docs/VERIFICATION-BUNDLE.md) |
 
 </details>
 
