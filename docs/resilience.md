@@ -26,3 +26,10 @@ This document describes only active mechanisms in the current flow.
 
 Continuidad sin agresividad: preservar evidencia, reducir carga y mantener trazabilidad.
 Continuity without aggressiveness: preserve evidence, reduce load, and maintain traceability.
+
+
+## Métricas públicas recomendadas / Recommended public metrics
+- MTTR por incidente recuperable.
+- Conteo de eventos `429/503` por ventana operativa.
+- Retries efectivos y recoveries por watchdog.
+- `resilience_score` por release (ponderado por recuperación, no solo por uptime).
