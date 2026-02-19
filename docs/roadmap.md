@@ -1,37 +1,79 @@
 # Roadmap
 
-## Corto plazo
-- Integración completa con Poetry y CI/CD para linting, type-checking y tests.
-- Automatización de despliegue Docker (cron) con volúmenes persistentes.
-- Mejoras de observabilidad: métricas de frescura y alertas automáticas.
-- Cierre de gobernanza técnica: consistencia de licencia, lockfile íntegro y checklist de releases.
+## Fases priorizadas (impacto y ejecución)
 
-## Mediano plazo
-- Validación de datos con firmas y pruebas criptográficas adicionales.
-- Integración con almacenamiento distribuido (IPFS) para snapshots críticos.
-- Alertas multicanal con reglas configurables.
+### Fase 1 — Verificabilidad pública (Top prioridad)
+- Entregar verificación externa de 1 click con `scripts/verify_snapshot_bundle.py`.
+- Publicar por corrida los artefactos mínimos: snapshot, hashchain, reglas activadas y reporte.
+- Mantener checklist corto de replicación para terceros no técnicos.
 
-## Largo plazo
-- Verificación pública en exploradores y paneles ciudadanos.
-- Auditoría colaborativa y herramientas de investigación reproducibles.
-- Dataset histórico abierto con trazabilidad completa y reportes periódicos.
+### Fase 2 — Refuerzo criptográfico
+- Firmar digitalmente artefactos de salida por versión de pipeline.
+- Anclar opcionalmente raíces Merkle de corridas críticas.
+- Operar doble canal de verificación: hash local + evidencia pública.
+
+### Fase 3 — Core estable vs reglas experimentales
+- Separar `core_rules` (deterministas) y `research_rules` (flag explícito).
+- Definir gate de promoción `research -> core` basado en evidencia reproducible.
+- Mantener trazabilidad de cambios por regla y versión.
+
+### Fase 4 — Resiliencia demostrable
+- Ejecutar suite de resiliencia en CI y publicar cobertura de fallos recuperados.
+- Reportar MTTR, eventos 429/503, retries efectivos y recoveries de watchdog.
+- Introducir `resilience_score` por release.
+
+### Fase 5 — Gobernanza y supply-chain
+- Cerrar lockfile íntegro y hashes de artefactos en entorno conectado.
+- Convertir release checklist en gate obligatorio.
+- Publicar SBOM versionado por release.
+
+### Fase 6 — Métricas de precisión auditables
+- Exponer métricas por regla (FP/FN revisables históricamente).
+- Publicar rúbrica de confianza de anomalías.
+- Hacer validación cruzada con revisión manual de casos etiquetados.
+
+### Fase 7 — Endurecimiento de seguridad en producción
+- Validación estricta de JSON como bloqueo operativo.
+- Redacción obligatoria de datos sensibles en logs.
+- Auditoría periódica de secretos y política de rotación.
 
 ---
 
 # Roadmap (English)
 
-## Short term
-- Full Poetry + CI/CD integration for linting, type-checking, and tests.
-- Docker deployment automation (cron) with persistent volumes.
-- Observability improvements: freshness metrics and automated alerts.
-- Technical governance closure: license consistency, lockfile integrity, and release checklist.
+## Prioritized phases (impact-first delivery)
 
-## Mid term
-- Data validation with signatures and additional cryptographic proofs.
-- Distributed storage integration (IPFS) for critical snapshots.
-- Multi-channel alerts with configurable rules.
+### Phase 1 — Public verifiability (Top priority)
+- Deliver one-click external verification with `scripts/verify_snapshot_bundle.py`.
+- Publish per-run minimum artifacts: snapshot, hashchain, enabled rules, and report.
+- Keep a short reproducibility checklist for non-technical third parties.
 
-## Long term
-- Public verification in explorers and civic dashboards.
-- Collaborative auditing and reproducible investigation tooling.
-- Open historical dataset with full traceability and periodic reports.
+### Phase 2 — Cryptographic hardening
+- Digitally sign output artifacts per pipeline version.
+- Optionally anchor critical run Merkle roots.
+- Operate dual-channel verification: local hash + public evidence.
+
+### Phase 3 — Stable core vs experimental rules
+- Separate `core_rules` (deterministic) and `research_rules` (explicit flag).
+- Define a promotion gate `research -> core` based on reproducible evidence.
+- Keep per-rule/per-version traceability.
+
+### Phase 4 — Demonstrable resilience
+- Run resilience suite in CI and publish recovered-failure coverage.
+- Report MTTR, 429/503 events, effective retries, and watchdog recoveries.
+- Introduce a release-level `resilience_score`.
+
+### Phase 5 — Governance and supply-chain
+- Close lockfile integrity and artifact hashing in a connected environment.
+- Turn release checklist into a mandatory gate.
+- Publish release-versioned SBOMs.
+
+### Phase 6 — Third-party meaningful quality metrics
+- Expose per-rule quality metrics (historically reviewable FP/FN).
+- Publish anomaly confidence rubric.
+- Perform cross-validation with manually reviewed labeled cases.
+
+### Phase 7 — Stricter production security
+- Enforce strict JSON validation as an operational gate.
+- Mandate sensitive-data redaction in logs.
+- Run periodic secrets audits and rotation policy.
