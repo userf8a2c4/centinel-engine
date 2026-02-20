@@ -42,6 +42,7 @@ from __future__ import annotations
 import logging
 import secrets
 import threading
+import time
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,30 @@ class ProxyAndUAManager:
         self._last_proxy_url: Optional[str] = None
         self._last_ua: Optional[str] = None
         self._force_rotation = True
+        self._bad_until_by_proxy: Dict[str, float] = {}
+
+    def _extract_proxy_candidates(self) -> list[str]:
+        """Extract proxy candidates from known rotator attributes.
+
+        Bilingual: Extrae proxies candidatos desde atributos conocidos del rotador.
+        """
+        if self.proxy_rotator is None:
+            return []
+
+        raw_candidates: Any = None
+        if hasattr(self.proxy_rotator, "_proxies"):
+            raw_candidates = getattr(self.proxy_rotator, "_proxies")
+        elif hasattr(self.proxy_rotator, "proxies"):
+            raw_candidates = getattr(self.proxy_rotator, "proxies")
+
+        if not isinstance(raw_candidates, Sequence) or isinstance(raw_candidates, (str, bytes)):
+            return []
+
+        proxies: list[str] = []
+        for candidate in raw_candidates:
+            if isinstance(candidate, str) and candidate:
+                proxies.append(candidate)
+        return proxies
 
     def _pick_proxy_url(self) -> Optional[str]:
         """Select proxy URL from rotator, gracefully falling back to direct mode.
@@ -116,8 +141,27 @@ class ProxyAndUAManager:
         """
         if self.proxy_rotator is None:
             return None
+
+        now = time.time()
+        proxies = self._extract_proxy_candidates()
+        if proxies:
+            good_proxies = [proxy for proxy in proxies if self._bad_until_by_proxy.get(proxy, 0.0) <= now]
+            bad_proxies = [proxy for proxy in proxies if self._bad_until_by_proxy.get(proxy, 0.0) > now]
+            # Strict priority: good proxies first / # Prioridad estricta: proxies buenos primero
+            if good_proxies:
+                return secrets.choice(good_proxies)
+            if bad_proxies and secrets.randbelow(100) < 20:
+                return secrets.choice(bad_proxies)
+            return None
+
         try:
-            return self.proxy_rotator.get_proxy_for_request()
+            for _ in range(5):
+                proxy_url = self.proxy_rotator.get_proxy_for_request()
+                if proxy_url is None:
+                    return None
+                if self._bad_until_by_proxy.get(proxy_url, 0.0) <= now:
+                    return proxy_url
+            return None
         except Exception as exc:  # noqa: BLE001
             logger.warning("proxy_rotation_failed | fallback_direct_mode: %s", exc)
             return None
@@ -207,12 +251,19 @@ class ProxyAndUAManager:
             }
 
     def mark_proxy_bad(self, proxy: Optional[Dict[str, str]] = None) -> None:
-        """Mark current proxy as unhealthy and request immediate rotation.
+        """Mark proxy as unhealthy with temporary quarantine and rotate.
 
-        Bilingual: Marca proxy actual como no saludable y fuerza rotación inmediata.
+        Bilingual: Marca proxy como no saludable con cuarentena temporal y fuerza rotación.
         """
-        _ = proxy
         with self._lock:
+            proxy_url: Optional[str] = None
+            if proxy:
+                proxy_url = proxy.get("https") or proxy.get("http")
+            if proxy_url is None:
+                proxy_url = self._last_proxy_url
+            if proxy_url:
+                # Temporary quarantine 4h instead of permanent / # Cuarentena temporal 4h en vez de permanente
+                self._bad_until_by_proxy[proxy_url] = time.time() + 14400
             self._force_rotation = True
 
 
@@ -251,16 +302,16 @@ def reset_proxy_ua_manager() -> None:
 
 
 def get_proxy_and_ua() -> Tuple[Optional[Dict[str, str]], str]:
-    """Convenience wrapper returning rotated proxy and User-Agent.
+    """Return proxy and User-Agent prioritizing healthy proxies.
 
-    Bilingual: Helper que retorna proxy y User-Agent rotados.
+    Bilingual: Retorna proxy y User-Agent priorizando proxies saludables.
     """
     return get_proxy_ua_manager().rotate_proxy_and_ua()
 
 
 def mark_proxy_bad(proxy: Optional[Dict[str, str]] = None) -> None:
-    """Convenience wrapper to mark proxy as bad.
+    """Mark a proxy as temporarily quarantined for resilience.
 
-    Bilingual: Helper para marcar un proxy como defectuoso.
+    Bilingual: Marca un proxy en cuarentena temporal para resiliencia.
     """
     get_proxy_ua_manager().mark_proxy_bad(proxy)
