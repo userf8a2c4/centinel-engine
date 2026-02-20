@@ -10,7 +10,7 @@ Este módulo forma parte de Centinel Engine y está documentado para facilitar
 la navegación, mantenimiento y auditoría técnica.
 
 Componentes detectados:
-  - test_identity_rotator_uses_v1_user_agents
+  - test_identity_rotator_uses_configured_user_agents
   - test_honeypot_logs_request_metadata
   - test_alert_level_1_does_not_call_external
   - test_detect_internal_anomalies_new_file
@@ -28,7 +28,7 @@ This module is part of Centinel Engine and is documented to improve
 navigation, maintenance, and technical auditability.
 
 Detected components:
-  - test_identity_rotator_uses_v1_user_agents
+  - test_identity_rotator_uses_configured_user_agents
   - test_honeypot_logs_request_metadata
   - test_alert_level_1_does_not_call_external
   - test_detect_internal_anomalies_new_file
@@ -56,16 +56,16 @@ from core.advanced_security import (
 )
 
 
-def test_identity_rotator_uses_v1_user_agents(tmp_path: Path) -> None:
+def test_identity_rotator_uses_configured_user_agents(tmp_path: Path) -> None:
     cfg = AdvancedSecurityConfig(
         user_agents_list=[
-            "Mozilla/5.0 (compatible; Centinel-Engine/1.0)",
-            "Centinel-AuditoriaHN/1.0 bot",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0",
         ]
     )
     manager = AdvancedSecurityManager(cfg)
     headers, _ = manager.get_request_profile()
-    assert "/1.0" in headers["User-Agent"]
+    assert headers["User-Agent"] in cfg.user_agents_list
 
 
 def test_honeypot_logs_request_metadata(tmp_path: Path) -> None:

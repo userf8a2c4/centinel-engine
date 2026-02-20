@@ -287,18 +287,35 @@ class IdentityRotator:
     def __init__(self, config: AdvancedSecurityConfig) -> None:
         self.config = config
         self._poll_count = 0
-        self._next_rotation = random.randint(config.rotate_every_min_polls, config.rotate_every_max_polls)
-        self._current_ua = (
-            config.user_agents_list[0] if config.user_agents_list else "Mozilla/5.0 (compatible; Centinel-Engine/1.0)"
-        )
+        self._min_rotation = max(1, int(config.rotate_every_min_polls))
+        self._max_rotation = max(self._min_rotation, int(config.rotate_every_max_polls))
+        self._next_rotation = random.randint(self._min_rotation, self._max_rotation)
+        self._current_ua = "Mozilla/5.0 (compatible; Centinel-Engine/1.0)"
         self._current_proxy = ""
+        # Proactive first-rotation so the first request is not static.
+        # Rotacion proactiva inicial para evitar perfil estatico en el primer request.
+        self._rotate_now()
 
     def _rotate_now(self) -> None:
-        valid = [ua for ua in self.config.user_agents_list if "/1.0" in ua]
-        if valid:
-            self._current_ua = random.choice(valid)
-        self._current_proxy = random.choice(self.config.proxy_list) if self.config.proxy_list else ""
-        self._next_rotation = random.randint(self.config.rotate_every_min_polls, self.config.rotate_every_max_polls)
+        valid_uas = [ua.strip() for ua in self.config.user_agents_list if ua and ua.strip()]
+        if valid_uas:
+            candidate_ua = random.choice(valid_uas)
+            if len(valid_uas) > 1 and candidate_ua == self._current_ua:
+                fallback_pool = [ua for ua in valid_uas if ua != self._current_ua]
+                candidate_ua = random.choice(fallback_pool)
+            self._current_ua = candidate_ua
+
+        valid_proxies = [proxy.strip() for proxy in self.config.proxy_list if proxy and proxy.strip()]
+        if valid_proxies:
+            candidate_proxy = random.choice(valid_proxies)
+            if len(valid_proxies) > 1 and candidate_proxy == self._current_proxy:
+                fallback_pool = [proxy for proxy in valid_proxies if proxy != self._current_proxy]
+                candidate_proxy = random.choice(fallback_pool)
+            self._current_proxy = candidate_proxy
+        else:
+            self._current_proxy = ""
+
+        self._next_rotation = random.randint(self._min_rotation, self._max_rotation)
         self._poll_count = 0
 
     def next_headers(self) -> dict[str, str]:
