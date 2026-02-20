@@ -115,7 +115,12 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def is_safe_http_url(url: str, *, allowed_domains: set[str] | None = None) -> bool:
+def is_safe_http_url(
+    url: str,
+    *,
+    allowed_domains: set[str] | None = None,
+    enforce_public_ip_resolution: bool = False,
+) -> bool:
     """Validate URL safety constraints before requesting.
 
     Valida restricciones de seguridad de URL antes de consultar.
@@ -123,7 +128,12 @@ def is_safe_http_url(url: str, *, allowed_domains: set[str] | None = None) -> bo
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"}:
         return False
-    return is_safe_outbound_url(url, allowed_domains=allowed_domains, require_https=False)
+    return is_safe_outbound_url(
+        url,
+        allowed_domains=allowed_domains,
+        require_https=False,
+        enforce_public_ip_resolution=enforce_public_ip_resolution,
+    )
 
 
 def fetch_json_with_retry(
@@ -136,12 +146,17 @@ def fetch_json_with_retry(
     user_agents: list[str] | None = None,
     proxy_url: str | None = None,
     allowed_domains: set[str] | None = None,
+    enforce_public_ip_resolution: bool = False,
 ) -> dict[str, Any] | None:
     """Fetch JSON from URL with retries.
 
     Descarga JSON desde URL con reintentos.
     """
-    if not is_safe_http_url(url, allowed_domains=allowed_domains):
+    if not is_safe_http_url(
+        url,
+        allowed_domains=allowed_domains,
+        enforce_public_ip_resolution=enforce_public_ip_resolution,
+    ):
         LOGGER.error("collector_unsafe_url_skipped url=%s", url)
         return None
 
@@ -259,6 +274,7 @@ def run_collection(config_path: Path = DEFAULT_CONFIG_PATH, retry_path: Path = D
                 user_agents=user_agents,
                 proxy_url=proxy_url,
                 allowed_domains=allowed_domains or None,
+                enforce_public_ip_resolution=True,
             )
             if payload is not None:
                 fetched_payloads.append(payload)

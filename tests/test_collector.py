@@ -163,3 +163,15 @@ def test_is_safe_http_url_blocks_unsafe_schemes_and_credentials():
 def test_is_safe_http_url_enforces_allowed_domains() -> None:
     assert collector.is_safe_http_url("https://cne.hn/api", allowed_domains={"cne.hn"})
     assert not collector.is_safe_http_url("https://evil.example/api", allowed_domains={"cne.hn"})
+
+
+def test_is_safe_http_url_supports_public_resolution_flag(monkeypatch) -> None:
+    captured = {"enforce": None}
+
+    def _fake_is_safe(url: str, **kwargs):
+        captured["enforce"] = kwargs.get("enforce_public_ip_resolution")
+        return True
+
+    monkeypatch.setattr(collector, "is_safe_outbound_url", _fake_is_safe)
+    assert collector.is_safe_http_url("https://cne.hn/api", enforce_public_ip_resolution=True)
+    assert captured["enforce"] is True

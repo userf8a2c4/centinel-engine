@@ -209,6 +209,7 @@ class AttackForensicsLogbook:
         self._per_ip_routes: dict[str, deque[str]] = defaultdict(lambda: deque(maxlen=self.config.sequence_window_size))
         self._per_ip_flood_counter: dict[str, int] = defaultdict(int)
         self._geo_reader: Any = None
+        self._salt_path = self.path.parent / ".attack_log_salt"
 
         if self.config.geoip_city_db_path:
             try:
@@ -503,11 +504,29 @@ class AttackForensicsLogbook:
         }
 
     def _anonymize_ip(self, ip: str) -> str:
-        salt = os.getenv("ATTACK_LOG_SALT", "")
+        salt = os.getenv("ATTACK_LOG_SALT", "").strip()
         if not salt:
-            salt = hashlib.sha256(self.path.resolve().as_posix().encode("utf-8")).hexdigest()
+            salt = self._load_or_create_local_salt()
         digest = hashlib.sha256(f"{salt}:{ip}".encode("utf-8")).hexdigest()
         return f"anon-{digest[:12]}"
+
+    def _load_or_create_local_salt(self) -> str:
+        try:
+            existing = self._salt_path.read_text(encoding="utf-8").strip()
+            if existing:
+                return existing
+        except OSError:
+            pass
+
+        generated = hashlib.sha256(os.urandom(32)).hexdigest()
+        try:
+            self._salt_path.parent.mkdir(parents=True, exist_ok=True)
+            self._salt_path.write_text(generated, encoding="utf-8")
+            os.chmod(self._salt_path, 0o600)
+        except OSError as exc:
+            LOGGER.warning("failed_to_persist_local_salt path=%s error=%s", self._salt_path, exc)
+            return generated
+        return generated
 
     def _send_summary(self, summary: dict[str, Any]) -> None:
         if self.config.external_summary_channel == "telegram":

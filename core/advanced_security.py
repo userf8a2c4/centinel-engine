@@ -209,6 +209,7 @@ class AdvancedSecurityConfig:
     cpu_baseline_window: int = 6
     alert_sms_webhook: str = ""
     deadman_min_interval_seconds: int = 300
+    deadman_state_path: str = "data/safe_state/advanced_deadman_state.json"
     solidity_contract_paths: list[str] = field(default_factory=lambda: ["contracts/**/*.sol"])
     solidity_blocked_patterns: list[str] = field(default_factory=lambda: ["tx.origin", "delegatecall", "selfdestruct"])
 
@@ -256,6 +257,7 @@ class AdvancedSecurityConfig:
             cpu_baseline_window=int(raw.get("cpu_baseline_window", 6)),
             alert_sms_webhook=str(raw.get("alert_sms_webhook", "")),
             deadman_min_interval_seconds=int(raw.get("deadman_min_interval_seconds", 300)),
+            deadman_state_path=str(raw.get("deadman_state_path", "data/safe_state/advanced_deadman_state.json")),
             solidity_contract_paths=[str(p) for p in raw.get("solidity_contract_paths", ["contracts/**/*.sol"])],
             solidity_blocked_patterns=[
                 str(p) for p in raw.get("solidity_blocked_patterns", ["tx.origin", "delegatecall", "selfdestruct"])
@@ -550,11 +552,16 @@ class BackupManager:
                 for item in os.getenv("BACKUP_GIT_REMOTE_ALLOWLIST", "").split(",")
                 if item.strip()
             }
-            if repo and (not allowed or repo in allowed):
+            if not allowed:
+                LOGGER.warning("backup_github_allowlist_missing repo=%s", repo)
+                return
+            if repo and repo in allowed:
                 subprocess.run(["git", "add", str(archive)], check=True)
                 subprocess.run(["git", "commit", "-m", f"backup: {archive.name}"], check=True)
                 subprocess.run(["git", "push", repo], check=True)
                 return
+            LOGGER.warning("backup_github_repo_not_allowed repo=%s", repo)
+            return
         LOGGER.info("backup_provider_fallback_local provider=%s file=%s", provider, archive)
 
     def _rotate_local_retention(self) -> None:
@@ -586,6 +593,8 @@ class AdvancedSecurityManager:
         self._metrics_started = False
         self._honeypot_events_per_minute: deque[float] = deque(maxlen=500)
         self._last_air_gap_at: float = 0.0
+        self._deadman_state_path = Path(self.config.deadman_state_path)
+        self._restore_deadman_state()
         self.attack_logbook = AttackForensicsLogbook(
             AttackLogConfig.from_yaml(Path("command_center/attack_config.yaml")), self.on_attack_event
         )
@@ -604,6 +613,22 @@ class AdvancedSecurityManager:
             if sig is None:
                 continue
             signal.signal(sig, self._handle_oom_like_signal)
+
+    def _restore_deadman_state(self) -> None:
+        try:
+            payload = json.loads(self._deadman_state_path.read_text(encoding="utf-8"))
+            self._last_air_gap_at = float(payload.get("last_air_gap_at", 0.0))
+        except Exception as exc:
+            LOGGER.warning("failed_to_restore_deadman_state path=%s error=%s", self._deadman_state_path, exc)
+            self._last_air_gap_at = 0.0
+
+    def _persist_deadman_state(self) -> None:
+        self._deadman_state_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "updated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "last_air_gap_at": self._last_air_gap_at,
+        }
+        self._deadman_state_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     def _handle_oom_like_signal(self, signum: int, _frame: Any) -> None:
         self.backups.persist_before_kill(reason=f"signal_{signum}")
@@ -709,6 +734,7 @@ class AdvancedSecurityManager:
             self._safe_alert(1, "air_gap_rate_limited", {"reason": reason})
             return
         self._last_air_gap_at = now
+        self._persist_deadman_state()
         self._safe_alert(3, "air_gap_enter", {"reason": reason})
         gc.collect()
         self.honeypot.stop()

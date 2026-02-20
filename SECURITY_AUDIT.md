@@ -97,3 +97,10 @@
 
 - Los hallazgos previos cerrados se mantienen; esta ronda identifica **riesgos residuales de segunda capa** (hardening avanzado).
 - Prioridad recomendada inmediata: **RT-13**, luego **RT-11/RT-12**.
+
+### Resolución aplicada en esta iteración
+
+- **RT-13 (backup allowlist fail-open)**: ahora `github` backup entra en modo fail-closed si no existe `BACKUP_GIT_REMOTE_ALLOWLIST`.
+- **RT-15 (air-gap cooldown no persistente)**: se persistió `last_air_gap_at` en `deadman_state_path` para mantener cooldown entre reinicios.
+- **RT-14 (salt predecible fallback)**: anonimización ahora usa salt secreto local generado aleatoriamente y persistido (`.attack_log_salt`) cuando no existe `ATTACK_LOG_SALT`.
+- **RT-09 (collector)**: en `run_collection` la validación de endpoints fuerza resolución a IP pública (`enforce_public_ip_resolution=True`) además de allowlist por `cne_domains`.
