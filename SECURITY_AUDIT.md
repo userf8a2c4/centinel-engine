@@ -82,3 +82,18 @@
 - **Cierre total:** RT-01, RT-02, RT-03, RT-04, RT-05, RT-07, RT-10.
 - **Cierre parcial (pendientes de hardening adicional):** RT-06, RT-08, RT-09.
 - **Estado global:** el núcleo está significativamente más robusto, pero aún no es correcto afirmar que *todas* las vulnerabilidades quedaron cerradas al 100%.
+
+## Re-auditoría adicional (hallazgos residuales nuevos)
+
+| ID | Riesgo residual | Severidad | Evidencia técnica | Escenario de abuso | Mitigación recomendada |
+|---|---|---|---|---|---|
+| RT-11 | DNS pinning global por monkeypatch de `socket.getaddrinfo` (riesgo de interferencia cross-thread / disponibilidad) | Media-Alta | `pin_dns_resolution` reemplaza globalmente `socket.getaddrinfo` durante el contexto, aunque con lock. | Bajo carga concurrente, otros threads que resuelvan el mismo host durante la ventana pueden recibir bloqueos inesperados (`gaierror`) y degradar disponibilidad. | Evitar monkeypatch global: usar adapter/transporte dedicado por request/session con resolución pinneada a IP específica. |
+| RT-12 | Bypass potencial por reuso de conexiones persistentes (pooling HTTP) en flujo de validación DNS | Media | La protección actual fija resolución en tiempo de `getaddrinfo`, pero no fuerza conexión nueva ni bind de IP por socket en cada envío. | Si existe conexión persistente previa hacia destino comprometido, el cliente podría reutilizarla sin nueva resolución validada. | Forzar `Connection: close` en canales críticos o usar cliente que permita conectar explícitamente al IP validado preservando `Host`/SNI. |
+| RT-13 | Allowlist de backup remoto opcional (fail-open operacional) | Media-Alta | En provider `github`, si `BACKUP_GIT_REMOTE_ALLOWLIST` está vacía, cualquier `BACKUP_GIT_REPO` es aceptado. | Compromiso de entorno define remoto atacante y exfiltra backups firmemente (`check=True` no evita destino malicioso). | Cambiar a fail-closed: exigir allowlist no vacía para habilitar provider `github`. |
+| RT-14 | Coherencia de anonimización aún débil por derivación determinística basada en path | Media | Si falta `ATTACK_LOG_SALT`, se deriva desde ruta del log (predecible entre despliegues homogéneos). | Correlación de pseudónimos entre nodos con estructura idéntica; reduce garantías de anonimización frente a actor con conocimiento del entorno. | Exigir salt secreto obligatorio (startup fail) o generar/rotar salt criptográfico persistido en secreto del entorno. |
+| RT-15 | Límite de `air_gap` no persiste entre reinicios (bypass por restart) | Media | Rate-limit depende de `_last_air_gap_at` en memoria de proceso. | Un atacante con vector de reinicio frecuente puede volver a disparar air-gap sin respetar cooldown histórico. | Persistir timestamp de último air-gap en estado durable y validar en arranque. |
+
+### Estado de cierre actualizado
+
+- Los hallazgos previos cerrados se mantienen; esta ronda identifica **riesgos residuales de segunda capa** (hardening avanzado).
+- Prioridad recomendada inmediata: **RT-13**, luego **RT-11/RT-12**.
