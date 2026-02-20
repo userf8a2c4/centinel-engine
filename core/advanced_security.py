@@ -82,6 +82,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -540,6 +541,40 @@ class BackupManager:
         self._persist_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
         self.maybe_backup(force=True)
 
+
+    @staticmethod
+    def _normalize_git_remote(remote: str) -> str:
+        value = remote.strip()
+        if not value:
+            return ""
+        parsed = urlparse(value)
+        if parsed.scheme and parsed.netloc:
+            host = parsed.netloc.lower()
+            path = parsed.path.rstrip("/")
+            return f"{parsed.scheme.lower()}://{host}{path}"
+        if value.startswith("git@") and ":" in value:
+            host_path = value.split("@", 1)[1]
+            host, path = host_path.split(":", 1)
+            return f"ssh://{host.lower()}/{path.rstrip('/')}"
+        return value
+
+    def _resolve_repo_push_target(self, repo: str) -> str:
+        repo_name = repo.strip()
+        if not repo_name:
+            return ""
+        if "://" in repo_name or repo_name.startswith("git@"):
+            return repo_name
+        try:
+            resolved = subprocess.check_output(
+                ["git", "remote", "get-url", repo_name],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+        except (subprocess.SubprocessError, OSError):
+            LOGGER.warning("backup_github_remote_resolution_failed repo=%s", repo_name)
+            return ""
+        return resolved
+
     def _upload(self, archive: Path) -> None:
         provider = self.config.backup_provider.lower()
         if provider == "s3" and boto3:
@@ -560,19 +595,24 @@ class BackupManager:
         if provider == "github":
             repo = os.getenv("BACKUP_GIT_REPO", "")
             allowed = {
-                item.strip()
+                self._normalize_git_remote(item)
                 for item in os.getenv("BACKUP_GIT_REMOTE_ALLOWLIST", "").split(",")
                 if item.strip()
             }
             if not allowed:
                 LOGGER.warning("backup_github_allowlist_missing repo=%s", repo)
                 return
-            if repo and repo in allowed:
+            resolved_target = self._resolve_repo_push_target(repo)
+            normalized_target = self._normalize_git_remote(resolved_target)
+            if not normalized_target:
+                LOGGER.warning("backup_github_repo_missing_or_unresolved repo=%s", repo)
+                return
+            if normalized_target in allowed:
                 subprocess.run(["git", "add", str(archive)], check=True)
                 subprocess.run(["git", "commit", "-m", f"backup: {archive.name}"], check=True)
                 subprocess.run(["git", "push", repo], check=True)
                 return
-            LOGGER.warning("backup_github_repo_not_allowed repo=%s", repo)
+            LOGGER.warning("backup_github_repo_not_allowed repo=%s target=%s", repo, normalized_target)
             return
         LOGGER.info("backup_provider_fallback_local provider=%s file=%s", provider, archive)
 

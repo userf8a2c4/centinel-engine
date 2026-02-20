@@ -78,7 +78,6 @@ def test_fetch_json_with_retry_recovers_after_one_failure(monkeypatch):
     monkeypatch.setattr(requests.Session, "get", fake_get)
 
     payload = collector.fetch_json_with_retry(
-        requests.Session(),
         "https://example.test/json",
         timeout_seconds=1.0,
         max_attempts=2,
@@ -92,16 +91,9 @@ def test_fetch_json_with_retry_recovers_after_one_failure(monkeypatch):
 
 
 def test_fetch_json_with_retry_uses_isolated_session(monkeypatch) -> None:
-    session = requests.Session()
-
-    def _blocked_get(*_args, **_kwargs):
-        raise AssertionError("shared session should not be used")
-
-    monkeypatch.setattr(session, "get", _blocked_get)
     monkeypatch.setattr(requests.Session, "get", lambda self, *a, **k: _Response({"ok": True}))
 
     payload = collector.fetch_json_with_retry(
-        session,
         "https://cne.hn/api",
         timeout_seconds=1,
         max_attempts=1,
@@ -198,6 +190,40 @@ def test_is_safe_http_url_supports_public_resolution_flag(monkeypatch) -> None:
     assert captured["enforce"] is True
 
 
+
+
+def test_fetch_json_with_retry_creates_new_session_per_attempt(monkeypatch) -> None:
+    created: list[requests.Session] = []
+
+    real_session = requests.Session
+
+    def _tracking_session(*args, **kwargs):
+        instance = real_session(*args, **kwargs)
+        created.append(instance)
+        return instance
+
+    attempts = {"count": 0}
+
+    def _fake_get(self, *_args, **_kwargs):
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise requests.ConnectionError("retry")
+        return _Response({"ok": True})
+
+    monkeypatch.setattr(requests.Session, "get", _fake_get)
+    monkeypatch.setattr(collector.requests, "Session", _tracking_session)
+
+    payload = collector.fetch_json_with_retry(
+        "https://cne.hn/api",
+        timeout_seconds=1,
+        max_attempts=2,
+        backoff_base=0,
+    )
+
+    assert payload == {"ok": True}
+    assert attempts["count"] == 2
+    assert len(created) == 2
+
 def test_fetch_json_with_retry_uses_dns_pinning_and_connection_close(monkeypatch) -> None:
     called = {"pin": 0, "conn": None}
 
@@ -221,7 +247,6 @@ def test_fetch_json_with_retry_uses_dns_pinning_and_connection_close(monkeypatch
     monkeypatch.setattr(collector, "pin_dns_resolution", lambda _target: _Ctx())
 
     payload = collector.fetch_json_with_retry(
-        requests.Session(),
         "https://cne.hn/api",
         timeout_seconds=1,
         max_attempts=1,

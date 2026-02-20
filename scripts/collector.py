@@ -137,7 +137,6 @@ def is_safe_http_url(
 
 
 def fetch_json_with_retry(
-    session: requests.Session,
     url: str,
     *,
     timeout_seconds: float,
@@ -272,35 +271,33 @@ def run_collection(config_path: Path = DEFAULT_CONFIG_PATH, retry_path: Path = D
     allowed_domains = {str(item).lower() for item in config.get("cne_domains", []) if str(item).strip()}
 
     fetched_payloads: list[dict[str, Any]] = []
-    with requests.Session() as session:
-        for source in sources:
-            endpoint = source.get("endpoint") or endpoints.get(source.get("department_code"))
-            if not endpoint:
-                LOGGER.error("collector_source_without_endpoint source=%s", source)
-                continue
-            proxy_url = rotator.get_proxy_for_request()
-            payload = fetch_json_with_retry(
-                session,
-                str(endpoint),
-                timeout_seconds=timeout_seconds,
-                max_attempts=max_attempts,
-                backoff_base=backoff_base,
-                user_agents=user_agents,
-                proxy_url=proxy_url,
-                allowed_domains=allowed_domains or None,
-                enforce_public_ip_resolution=True,
-            )
-            if payload is not None:
-                fetched_payloads.append(payload)
-                if proxy_url:
-                    rotator.mark_success(proxy_url)
-            elif proxy_url:
-                rotator.mark_failure(proxy_url, "collector_fetch_failed")
+    for source in sources:
+        endpoint = source.get("endpoint") or endpoints.get(source.get("department_code"))
+        if not endpoint:
+            LOGGER.error("collector_source_without_endpoint source=%s", source)
+            continue
+        proxy_url = rotator.get_proxy_for_request()
+        payload = fetch_json_with_retry(
+            str(endpoint),
+            timeout_seconds=timeout_seconds,
+            max_attempts=max_attempts,
+            backoff_base=backoff_base,
+            user_agents=user_agents,
+            proxy_url=proxy_url,
+            allowed_domains=allowed_domains or None,
+            enforce_public_ip_resolution=True,
+        )
+        if payload is not None:
+            fetched_payloads.append(payload)
+            if proxy_url:
+                rotator.mark_success(proxy_url)
+        elif proxy_url:
+            rotator.mark_failure(proxy_url, "collector_fetch_failed")
 
-            if max_jitter > 0:
-                jitter = random.uniform(min_jitter, max_jitter)
-                LOGGER.debug("collector_request_jitter_sleep seconds=%.2f", jitter)
-                time.sleep(jitter)
+        if max_jitter > 0:
+            jitter = random.uniform(min_jitter, max_jitter)
+            LOGGER.debug("collector_request_jitter_sleep seconds=%.2f", jitter)
+            time.sleep(jitter)
 
     expected_count = int(config.get("expected_json_count", 96))
     valid_payloads, invalid_count = validate_collected_payloads(fetched_payloads, expected_count=expected_count)

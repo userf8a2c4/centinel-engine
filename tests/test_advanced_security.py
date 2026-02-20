@@ -214,6 +214,59 @@ def test_backup_github_requires_allowlist(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert called["run"] == 0
 
 
+
+
+def test_backup_github_resolves_remote_url_before_allowlist(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    cfg = AdvancedSecurityConfig(backup_provider="github")
+    manager = AdvancedSecurityManager(cfg)
+    archive = tmp_path / "backup.json"
+    archive.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setenv("BACKUP_GIT_REPO", "origin")
+    monkeypatch.setenv("BACKUP_GIT_REMOTE_ALLOWLIST", "https://github.com/trusted/repo.git")
+    monkeypatch.setattr(
+        "core.advanced_security.subprocess.check_output",
+        lambda *_args, **_kwargs: "https://github.com/trusted/repo.git\n",
+    )
+
+    calls: list[list[str]] = []
+
+    def _fake_run(args, **_kwargs):
+        calls.append(args)
+        return None
+
+    monkeypatch.setattr("core.advanced_security.subprocess.run", _fake_run)
+    manager.backups._upload(archive)
+
+    assert ["git", "push", "origin"] in calls
+
+
+def test_backup_github_blocks_remote_alias_when_url_not_allowlisted(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = AdvancedSecurityConfig(backup_provider="github")
+    manager = AdvancedSecurityManager(cfg)
+    archive = tmp_path / "backup.json"
+    archive.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setenv("BACKUP_GIT_REPO", "origin")
+    monkeypatch.setenv("BACKUP_GIT_REMOTE_ALLOWLIST", "https://github.com/trusted/repo.git")
+    monkeypatch.setattr(
+        "core.advanced_security.subprocess.check_output",
+        lambda *_args, **_kwargs: "https://evil.example/repo.git\n",
+    )
+
+    called = {"run": 0}
+
+    def _fake_run(*_args, **_kwargs):
+        called["run"] += 1
+        return None
+
+    monkeypatch.setattr("core.advanced_security.subprocess.run", _fake_run)
+    manager.backups._upload(archive)
+
+    assert called["run"] == 0
+
 def test_air_gap_rate_limit_persists_across_restarts(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     cfg = AdvancedSecurityConfig(
         deadman_min_interval_seconds=600,

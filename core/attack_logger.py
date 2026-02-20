@@ -91,6 +91,8 @@ from core.http_compat import requests
 from core.security_utils import pin_dns_resolution, resolve_outbound_target, redact_headers
 import yaml
 
+LOGGER = logging.getLogger(__name__)
+
 try:
     from flask import Flask, Request, request
     from werkzeug.serving import make_server
@@ -210,6 +212,7 @@ class AttackForensicsLogbook:
         self._per_ip_flood_counter: dict[str, int] = defaultdict(int)
         self._geo_reader: Any = None
         self._salt_path = self.path.parent / ".attack_log_salt"
+        self._cached_salt: str | None = None
 
         if self.config.geoip_city_db_path:
             try:
@@ -504,11 +507,23 @@ class AttackForensicsLogbook:
         }
 
     def _anonymize_ip(self, ip: str) -> str:
-        salt = os.getenv("ATTACK_LOG_SALT", "").strip()
-        if not salt:
-            salt = self._load_or_create_local_salt()
+        salt = self._get_summary_salt()
         digest = hashlib.sha256(f"{salt}:{ip}".encode("utf-8")).hexdigest()
         return f"anon-{digest[:12]}"
+
+    def _get_summary_salt(self) -> str:
+        if self._cached_salt:
+            return self._cached_salt
+
+        env_salt = os.getenv("ATTACK_LOG_SALT", "").strip()
+        if len(env_salt) >= 16:
+            self._cached_salt = env_salt
+            return env_salt
+        if env_salt:
+            LOGGER.warning("attack_log_salt_too_short_using_local_secret")
+
+        self._cached_salt = self._load_or_create_local_salt()
+        return self._cached_salt
 
     def _load_or_create_local_salt(self) -> str:
         try:

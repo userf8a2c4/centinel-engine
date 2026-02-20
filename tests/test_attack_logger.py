@@ -190,6 +190,12 @@ def test_external_summary_uses_anonymized_ip(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setattr("core.attack_logger.resolve_outbound_target", lambda *a, **k: _Target())
     monkeypatch.setattr("core.attack_logger.pin_dns_resolution", lambda _target: nullcontext())
 
+    class _Target:
+        pass
+
+    monkeypatch.setattr("core.attack_logger.resolve_outbound_target", lambda *a, **k: _Target())
+    monkeypatch.setattr("core.attack_logger.pin_dns_resolution", lambda _target: nullcontext())
+
     logbook.start()
     logbook.log_http_request(ip="198.51.100.10", method="GET", route="/x", headers={"User-Agent": "ua"})
     time.sleep(0.1)
@@ -240,3 +246,15 @@ def test_anonymization_salt_is_generated_and_reused(tmp_path: Path) -> None:
     salt_path = tmp_path / ".attack_log_salt"
     assert salt_path.exists()
     assert salt_path.read_text(encoding="utf-8").strip()
+
+
+def test_anonymization_ignores_short_env_salt(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("ATTACK_LOG_SALT", "short")
+    cfg = AttackLogConfig(log_path=str(tmp_path / "attack_log.jsonl"))
+    logbook = AttackForensicsLogbook(cfg)
+
+    first = logbook._anonymize_ip("198.51.100.88")
+    second = logbook._anonymize_ip("198.51.100.88")
+
+    assert first == second
+    assert (tmp_path / ".attack_log_salt").exists()
