@@ -178,6 +178,12 @@ def test_external_summary_uses_anonymized_ip(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setattr("core.attack_logger.resolve_outbound_target", lambda *a, **k: _Target())
     monkeypatch.setattr("core.attack_logger.pin_dns_resolution", lambda _target: nullcontext())
 
+    class _Target:
+        pass
+
+    monkeypatch.setattr("core.attack_logger.resolve_outbound_target", lambda *a, **k: _Target())
+    monkeypatch.setattr("core.attack_logger.pin_dns_resolution", lambda _target: nullcontext())
+
     logbook.start()
     logbook.log_http_request(ip="198.51.100.10", method="GET", route="/x", headers={"User-Agent": "ua"})
     time.sleep(0.1)

@@ -40,11 +40,31 @@ def test_pin_dns_resolution_blocks_rebinding_to_unpinned_ip(monkeypatch: pytest.
         resolved_ips=frozenset({"149.154.167.220"}),
     )
 
+    with pytest.raises(socket.gaierror):
+        with pin_dns_resolution(target):
+            pass
+
+
+def test_pin_dns_resolution_does_not_monkeypatch_global_getaddrinfo(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = socket.getaddrinfo
+
+    def _fake_getaddrinfo(host, port, *args, **kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("149.154.167.220", port))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo)
+    target = OutboundTarget(
+        url="https://api.telegram.org/bot123/sendMessage",
+        host="api.telegram.org",
+        port=443,
+        resolved_ips=frozenset({"149.154.167.220"}),
+    )
+
     with pin_dns_resolution(target):
-        with pytest.raises(socket.gaierror):
-            socket.getaddrinfo("api.telegram.org", 443)
-        other = socket.getaddrinfo("example.com", 443)
-        assert other[0][4][0] == "93.184.216.34"
+        assert socket.getaddrinfo is _fake_getaddrinfo
+    assert socket.getaddrinfo is _fake_getaddrinfo
+    assert original is not socket.getaddrinfo
 
 
 def test_build_strict_tls_context_sets_tls12_minimum() -> None:

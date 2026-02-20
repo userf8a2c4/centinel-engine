@@ -3,7 +3,6 @@ from __future__ import annotations
 import ipaddress
 import ssl
 import socket
-import threading
 import hashlib
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -19,9 +18,6 @@ SENSITIVE_HEADER_KEYS = {
     "x-access-token",
     "x-csrf-token",
 }
-
-_DNS_PIN_LOCK = threading.Lock()
-
 
 @dataclass(frozen=True)
 class OutboundTarget:
@@ -150,38 +146,18 @@ def verify_peer_cert_sha256(cert_der: bytes, expected_fingerprint: str | None) -
 
 @contextmanager
 def pin_dns_resolution(target: OutboundTarget):
-    """Temporarily pin DNS resolution for target host to previously validated IPs.
+    """Validate pinned DNS resolution without monkeypatching global socket APIs.
 
-    This narrows DNS rebinding windows by ensuring request-time resolution for the
-    target hostname can only return the approved public IP set.
+    This keeps the mitigation local to the current outbound flow and avoids
+    cross-thread side effects that come from replacing ``socket.getaddrinfo``
+    process-wide.
     """
     if not target.resolved_ips:
         yield
         return
 
-    original_getaddrinfo = socket.getaddrinfo
+    current_ips = _resolve_public_ips(target.host, target.port)
+    if not current_ips or not current_ips.issubset(target.resolved_ips):
+        raise socket.gaierror(f"Pinned DNS resolution blocked host={target.host}")
 
-    def _guarded_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-        results = original_getaddrinfo(host, port, family, type, proto, flags)
-        normalized_host = str(host).lower().rstrip(".")
-        target_host = target.host.lower().rstrip(".")
-        if normalized_host != target_host:
-            return results
-        filtered = [
-            item
-            for item in results
-            if item[4]
-            and item[4][0]
-            and item[4][0] in target.resolved_ips
-            and _is_public_ip(item[4][0])
-        ]
-        if not filtered:
-            raise socket.gaierror(f"Pinned DNS resolution blocked host={host}")
-        return filtered
-
-    with _DNS_PIN_LOCK:
-        socket.getaddrinfo = _guarded_getaddrinfo  # type: ignore[assignment]
-        try:
-            yield
-        finally:
-            socket.getaddrinfo = original_getaddrinfo  # type: ignore[assignment]
+    yield
