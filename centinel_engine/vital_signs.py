@@ -63,11 +63,11 @@ DEFAULT_THRESHOLDS: Dict[str, Any] = {
     "consecutive_failures_critical": 5,
     "min_success_rate": 0.70,
     "max_avg_latency": 10.0,
-    "high_pressure_threshold": 6.0,
-    "high_pressure_window_seconds": 300,
-    "hibernation_delay_seconds": 3600,
-    "predictive_window_size": 15,
-    "predictive_failure_ratio": 0.40,
+    "high_pressure_threshold": 12.0,
+    "high_pressure_window_seconds": 1800,
+    "hibernation_delay_seconds": 7200,
+    "predictive_window_size": 20,
+    "predictive_failure_ratio": 0.60,
     "policy_block_window_seconds": 1800,
 }
 
@@ -206,6 +206,10 @@ def predict_mode(config: Dict[str, Any], status: Dict[str, Any]) -> str:
     Returns:
         str: One of `normal`, `conservative`, or `hibernation`.
 
+    Notes:
+        EN: Hibernation requires sustained high pressure above threshold for 30 minutes.
+        ES: Hibernación requiere presión alta sostenida sobre el umbral durante 30 minutos.
+
     Raises:
         None.
     """
@@ -223,6 +227,12 @@ def predict_mode(config: Dict[str, Any], status: Dict[str, Any]) -> str:
 
     if _policy_blocks_exceed_window(status, policy_block_window_seconds):
         return "hibernation"
+
+    high_pressure_since = status.get("high_pressure_since")
+    # Less aggressive hibernation threshold / Umbral de hibernación menos agresivo
+    if pressure > high_pressure_threshold and high_pressure_since is not None:
+        if (time.time() - float(high_pressure_since)) >= high_pressure_window_seconds:
+            return "hibernation"
 
     trend_window = success_history[-predictive_window_size:]
     if trend_window:
@@ -253,6 +263,10 @@ def check_vital_signs(config: Dict[str, Any], status: Dict[str, Any]) -> Dict[st
     """Evaluate health status and return mode + recommended delay.
 
     Bilingual: Evalúa estado de salud y retorna modo + delay recomendado.
+
+    Notes:
+        EN: Uses a 2-hour delay when the system enters hibernation mode.
+        ES: Usa un retardo de 2 horas cuando el sistema entra en modo hibernación.
     """
     baseline = int(_resolve_threshold(config, "baseline_interval_seconds"))
     failures_cons = int(_resolve_threshold(config, "consecutive_failures_conservative"))
