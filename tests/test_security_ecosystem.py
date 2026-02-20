@@ -111,6 +111,7 @@ def test_integrated_flow_detection_to_backup(tmp_path: Path, monkeypatch) -> Non
         anomaly_consecutive_limit=1,
         backup_paths=[str(tmp_path / "*.json")],
         auto_backup_forensic_logs=True,
+        deadman_state_path=str(tmp_path / "deadman_state.json"),
     )
     manager = AdvancedSecurityManager(cfg)
     (tmp_path / "snapshot.json").write_text('{"ok": true}', encoding="utf-8")
