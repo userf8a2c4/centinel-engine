@@ -343,6 +343,7 @@ def update_status_after_scrape(
     latency: float,
     status_code: Optional[int] = None,
     window: int = 50,
+    config: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Update rolling status metrics after each scrape cycle.
 
@@ -369,13 +370,19 @@ def update_status_after_scrape(
     status["request_pressure"] = pressure
 
     now_ts = time.time()
-    if pressure > float(DEFAULT_THRESHOLDS["high_pressure_threshold"]):
-        status.setdefault("high_pressure_since", now_ts)
+    runtime_config = config or {}
+    high_pressure_threshold = float(runtime_config.get("high_pressure_threshold", DEFAULT_THRESHOLDS["high_pressure_threshold"]))
+
+    # English: ensure timestamps are set when threshold is crossed, even if key exists with None. / Español: asegurar timestamp aunque la llave exista con None.
+    if pressure > high_pressure_threshold:
+        if status.get("high_pressure_since") is None:
+            status["high_pressure_since"] = now_ts
     else:
         status["high_pressure_since"] = None
 
     if status_code in {403, 429}:
-        status.setdefault("policy_block_since", now_ts)
+        if status.get("policy_block_since") is None:
+            status["policy_block_since"] = now_ts
     elif success:
         status["policy_block_since"] = None
 

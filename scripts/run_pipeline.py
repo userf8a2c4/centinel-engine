@@ -767,6 +767,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
 
     enable_backup: bool = bool(config.get("ENABLE_BACKUP", True))
     rate_limiter = get_rate_limiter()
+    runtime_vital_config: dict[str, Any] = {**vital_signs.load_vital_signs_config("prod"), **config}
     consecutive_failures: int = 0
     scrape_status: dict[str, Any] = {
         "consecutive_failures": 0,
@@ -788,13 +789,16 @@ def run_pipeline(config: dict[str, Any]) -> None:
 
             # Cumplimiento Ley Transparencia 170-2006: solo datos públicos agregados, rate-limits éticos siempre respetados
             # English: pre-evaluate predictive mode before every request. / Español: pre-evaluar modo predictivo antes de cada request.
-            predicted_mode = vital_signs.predict_mode(config, scrape_status)
+            predicted_mode = vital_signs.predict_mode(runtime_vital_config, scrape_status)
             if predicted_mode == "conservative":
                 time.sleep(900)
             elif predicted_mode == "hibernation":
                 # English: keep loop alive while respecting hibernation. / Español: mantener loop vivo respetando hibernación.
-                backup_state = secure_backup.backup_critical()
-                scrape_status["hash_chain_valid"] = bool(backup_state.get("hash_chain_valid", True))
+                try:
+                    backup_state = secure_backup.backup_critical()
+                    scrape_status["hash_chain_valid"] = bool(backup_state.get("hash_chain_valid", True))
+                except Exception as backup_exc:  # noqa: BLE001
+                    log_event(logger, logging.WARNING, "hibernation_backup_failed", error=str(backup_exc))
                 time.sleep(3600)
 
             # English: reduce effective concurrency under pressure. / Español: reducir concurrencia efectiva bajo presión.
@@ -850,9 +854,10 @@ def run_pipeline(config: dict[str, Any]) -> None:
                     success=False,
                     latency=max(0.0, time.monotonic() - request_started_at),
                     status_code=status_code,
+                    config=runtime_vital_config,
                 )
                 scrape_status["consecutive_failures"] = consecutive_failures
-                vital_state = vital_signs.check_vital_signs(config, scrape_status)
+                vital_state = vital_signs.check_vital_signs(runtime_vital_config, scrape_status)
                 log_event(
                     logger,
                     logging.WARNING,
@@ -879,13 +884,14 @@ def run_pipeline(config: dict[str, Any]) -> None:
                     success=False,
                     latency=latency,
                     status_code=status_code,
+                    config=runtime_vital_config,
                 )
                 scrape_status["consecutive_failures"] = consecutive_failures
                 # Immediate vital-signs recalculation after failures /
                 # Recalculo inmediato de signos vitales tras fallos
                 # Force immediate vital signs evaluation /
                 # Forzar evaluacion inmediata de signos vitales
-                vital_state = vital_signs.check_vital_signs(config, scrape_status)
+                vital_state = vital_signs.check_vital_signs(runtime_vital_config, scrape_status)
                 log_event(
                     logger,
                     logging.WARNING,
@@ -901,6 +907,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
                     success=True,
                     latency=latency,
                     status_code=status_code,
+                    config=runtime_vital_config,
                 )
 
             download_cmd = [sys.executable, "scripts/download_and_hash.py"]
@@ -1023,6 +1030,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
             success=True,
             latency=0.0,
             status_code=200,
+            config=runtime_vital_config,
         )
         update_daily_summary(state, now, len(anomalies))
         state["last_run_at"] = now.isoformat()
