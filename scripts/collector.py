@@ -80,6 +80,7 @@ from urllib.parse import urlparse
 from core.security_utils import is_safe_outbound_url, pin_dns_resolution, resolve_outbound_target
 
 import requests
+import urllib3
 import yaml
 from scipy import stats
 
@@ -126,14 +127,51 @@ def is_safe_http_url(
     Valida restricciones de seguridad de URL antes de consultar.
     """
     parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"}:
+    if parsed.scheme != "https":
         return False
     return is_safe_outbound_url(
         url,
         allowed_domains=allowed_domains,
-        require_https=False,
+        require_https=True,
         enforce_public_ip_resolution=enforce_public_ip_resolution,
     )
+
+
+def _fetch_json_over_pinned_https(
+    target,
+    url: str,
+    *,
+    timeout_seconds: float,
+    request_headers: dict[str, str],
+) -> dict[str, Any]:
+    """Perform HTTPS GET to a pinned IP while preserving hostname validation."""
+    parsed = urlparse(url)
+    path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
+
+    pinned_ip = sorted(target.resolved_ips)[0] if target.resolved_ips else target.host
+    pool = urllib3.HTTPSConnectionPool(
+        host=pinned_ip,
+        port=target.port,
+        assert_hostname=target.host,
+        server_hostname=target.host,
+        cert_reqs="CERT_REQUIRED",
+    )
+    try:
+        response = pool.request(
+            "GET",
+            path,
+            headers=request_headers,
+            timeout=urllib3.Timeout(total=timeout_seconds),
+            retries=False,
+            redirect=False,
+        )
+        if response.status >= 400:
+            raise requests.HTTPError(f"HTTP {response.status} for {url}")
+        return json.loads(response.data.decode("utf-8"))
+    finally:
+        pool.close()
 
 
 def fetch_json_with_retry(
@@ -162,7 +200,7 @@ def fetch_json_with_retry(
     target = resolve_outbound_target(
         url,
         allowed_domains=allowed_domains,
-        require_https=False,
+        require_https=True,
         enforce_public_ip_resolution=enforce_public_ip_resolution,
     )
     if target is None:
@@ -177,14 +215,19 @@ def fetch_json_with_retry(
                 ),
                 "Accept": "application/json",
             }
-            proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+            if proxy_url:
+                LOGGER.warning("collector_proxy_disabled_for_pinned_https proxy=%s", proxy_url)
+                return None
             request_headers = dict(headers)
             request_headers["Connection"] = "close"
-            with requests.Session() as isolated_session:
-                with pin_dns_resolution(target):
-                    response = isolated_session.get(url, timeout=timeout_seconds, headers=request_headers, proxies=proxies)
-                response.raise_for_status()
-                return response.json()
+            request_headers["Host"] = target.host
+            with pin_dns_resolution(target):
+                return _fetch_json_over_pinned_https(
+                    target,
+                    url,
+                    timeout_seconds=timeout_seconds,
+                    request_headers=request_headers,
+                )
         except (requests.RequestException, json.JSONDecodeError, ValueError) as exc:
             LOGGER.warning("collector_fetch_failed attempt=%s/%s url=%s error=%s", attempt, max_attempts, url, exc)
             if attempt == max_attempts:
