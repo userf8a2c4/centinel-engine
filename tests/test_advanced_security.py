@@ -160,3 +160,32 @@ def test_honeypot_encrypts_events_file(monkeypatch: pytest.MonkeyPatch, tmp_path
     raw_line = honeypot.events_path.read_text(encoding="utf-8").strip()
     assert raw_line.startswith("enc:")
     assert "/admin" not in raw_line
+
+
+def test_honeypot_encrypt_requires_key(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    pytest.importorskip("flask")
+    monkeypatch.delenv("HONEYPOT_LOG_KEY", raising=False)
+
+    cfg = AdvancedSecurityConfig(
+        honeypot_enabled=True,
+        honeypot_endpoints=["/admin"],
+        honeypot_encrypt_events=True,
+        honeypot_events_path=str(tmp_path / "honeypot.enc"),
+    )
+    with pytest.raises(RuntimeError, match="honeypot_encrypt_key_missing"):
+        HoneypotService(cfg)
+
+
+def test_air_gap_is_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = AdvancedSecurityConfig(deadman_min_interval_seconds=600)
+    manager = AdvancedSecurityManager(cfg)
+    calls: list[tuple[int, str]] = []
+    monkeypatch.setattr(manager, "verify_integrity", lambda: False)
+    monkeypatch.setattr("core.advanced_security.time.sleep", lambda _s: None)
+    monkeypatch.setattr(manager, "_safe_alert", lambda level, event, metrics: calls.append((level, event)))
+
+    manager.air_gap("flood")
+    manager.air_gap("flood")
+
+    assert (3, "air_gap_enter") in calls
+    assert (1, "air_gap_rate_limited") in calls
