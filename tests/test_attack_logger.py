@@ -41,6 +41,7 @@ Notes:
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 import gzip
 import json
 import time
@@ -146,6 +147,12 @@ def test_external_summary_uses_anonymized_ip(tmp_path: Path, monkeypatch: pytest
 
     monkeypatch.setattr("core.attack_logger.requests.post", _fake_post)
     monkeypatch.setattr("core.attack_logger.is_safe_outbound_url", lambda *a, **k: True)
+
+    class _Target:
+        pass
+
+    monkeypatch.setattr("core.attack_logger.resolve_outbound_target", lambda *a, **k: _Target())
+    monkeypatch.setattr("core.attack_logger.pin_dns_resolution", lambda _target: nullcontext())
 
     logbook.start()
     logbook.log_http_request(ip="198.51.100.10", method="GET", route="/x", headers={"User-Agent": "ua"})

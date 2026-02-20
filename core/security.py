@@ -83,7 +83,7 @@ from typing import Any, Callable
 from urllib import request
 
 import yaml
-from core.security_utils import is_safe_outbound_url, redact_headers
+from core.security_utils import pin_dns_resolution, resolve_outbound_target, redact_headers
 
 try:
     import psutil
@@ -473,13 +473,15 @@ def send_admin_alert(
 
     webhook = os.getenv("DEFENSIVE_WEBHOOK_URL", config.webhook_url)
     if webhook:
-        if not is_safe_outbound_url(webhook, enforce_public_ip_resolution=True):
+        target = resolve_outbound_target(webhook, enforce_public_ip_resolution=True)
+        if target is None:
             raise RuntimeError("webhook_unsafe_destination")
         payload = json.dumps({"text": body}).encode("utf-8")
         req = request.Request(webhook, data=payload, headers={"Content-Type": "application/json"})
-        with request.urlopen(req, timeout=10) as resp:  # nosec B310 - webhook URL from config/env
-            if resp.status >= 400:
-                raise RuntimeError(f"webhook_failed:{resp.status}")
+        with pin_dns_resolution(target):
+            with request.urlopen(req, timeout=10) as resp:  # nosec B310 - webhook URL from config/env
+                if resp.status >= 400:
+                    raise RuntimeError(f"webhook_failed:{resp.status}")
 
 
 def random_cooldown_seconds(min_minutes: int, max_minutes: int, multiplier: float = 1.0) -> int:

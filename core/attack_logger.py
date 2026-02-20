@@ -88,7 +88,7 @@ except Exception:  # noqa: BLE001
     # Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
     psutil = _PsutilFallback()
 from core.http_compat import requests
-from core.security_utils import is_safe_outbound_url, redact_headers
+from core.security_utils import pin_dns_resolution, resolve_outbound_target, redact_headers
 import yaml
 
 try:
@@ -515,17 +515,26 @@ class AttackForensicsLogbook:
             chat_id = os.getenv("TELEGRAM_CHAT_ID", self.config.telegram_chat_id)
             if token and chat_id:
                 url = f"https://api.telegram.org/bot{token}/sendMessage"
-                if is_safe_outbound_url(url, allowed_domains={"api.telegram.org"}, enforce_public_ip_resolution=True):
-                    requests.post(
-                        url,
-                        json={"chat_id": chat_id, "text": json.dumps(summary, ensure_ascii=False)},
-                        timeout=5,
-                    )
+                target = resolve_outbound_target(
+                    url,
+                    allowed_domains={"api.telegram.org"},
+                    enforce_public_ip_resolution=True,
+                )
+                if target is not None:
+                    with pin_dns_resolution(target):
+                        requests.post(
+                            url,
+                            json={"chat_id": chat_id, "text": json.dumps(summary, ensure_ascii=False)},
+                            timeout=5,
+                        )
             return
 
         endpoint = os.getenv("WEBHOOK_URL", self.config.webhook_url)
-        if endpoint and is_safe_outbound_url(endpoint, enforce_public_ip_resolution=True):
-            requests.post(endpoint, json=summary, timeout=5)
+        if endpoint:
+            target = resolve_outbound_target(endpoint, enforce_public_ip_resolution=True)
+            if target is not None:
+                with pin_dns_resolution(target):
+                    requests.post(endpoint, json=summary, timeout=5)
 
 
 class HoneypotServer:

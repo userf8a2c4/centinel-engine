@@ -141,7 +141,7 @@ except Exception:  # noqa: BLE001
 
 from core.attack_logger import AttackForensicsLogbook, AttackLogConfig
 from core.security import DefensiveSecurityManager, SecurityConfig
-from core.security_utils import is_safe_outbound_url, redact_headers
+from core.security_utils import pin_dns_resolution, resolve_outbound_target, redact_headers
 
 try:
     from cryptography.fernet import Fernet
@@ -439,22 +439,30 @@ class AlertManager:
         if not token or not chat_id:
             return False
         url = f"https://api.telegram.org/bot{token}/sendMessage"
-        if not is_safe_outbound_url(url, allowed_domains={"api.telegram.org"}, enforce_public_ip_resolution=True):
-            return False
-        resp = requests.post(
+        target = resolve_outbound_target(
             url,
-            timeout=10,
-            json={"chat_id": chat_id, "text": json.dumps(payload, ensure_ascii=False)},
+            allowed_domains={"api.telegram.org"},
+            enforce_public_ip_resolution=True,
         )
+        if target is None:
+            return False
+        with pin_dns_resolution(target):
+            resp = requests.post(
+                url,
+                timeout=10,
+                json={"chat_id": chat_id, "text": json.dumps(payload, ensure_ascii=False)},
+            )
         return resp.status_code < 300
 
     def _send_sms_webhook(self, payload: dict[str, Any]) -> bool:
         endpoint = os.getenv("SMS_WEBHOOK_URL", "")
         if not endpoint:
             return False
-        if not is_safe_outbound_url(endpoint, enforce_public_ip_resolution=True):
+        target = resolve_outbound_target(endpoint, enforce_public_ip_resolution=True)
+        if target is None:
             return False
-        resp = requests.post(endpoint, timeout=10, json=payload)
+        with pin_dns_resolution(target):
+            resp = requests.post(endpoint, timeout=10, json=payload)
         return resp.status_code < 300
 
 
