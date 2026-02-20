@@ -61,3 +61,24 @@
 
 - Este corte está enfocado al **core actual** que sí ejecuta lógica local (sin depender de integraciones externas pendientes).
 - La severidad combina factibilidad + impacto operacional sobre confidencialidad, integridad y disponibilidad.
+
+## Re-auditoría de cierre (estado actual)
+
+| ID | Estado | Veredicto breve |
+|---|---|---|
+| RT-01 | ✅ Corregido (con mitigación de rebinding) | Validación de esquema/credenciales/host + resolución de IP pública y ejecución bajo DNS pinning en canales salientes críticos. |
+| RT-02 | ✅ Corregido | Cifrado honeypot en modo fail-closed: sin `cryptography` o sin clave válida, el servicio lanza error. |
+| RT-03 | ✅ Corregido | `config_loader` restringe `env`, canonicaliza ruta y bloquea escape fuera de `config/`. |
+| RT-04 | ✅ Corregido | Se redactan headers sensibles antes de persistir eventos forenses/honeypot. |
+| RT-05 | ✅ Corregido | Se elimina salt estático por defecto y se usa derivación por despliegue cuando no hay `ATTACK_LOG_SALT`. |
+| RT-06 | 🟡 Parcial | `check=True` + allowlist opcional en backup Git. Riesgo residual: si allowlist no está configurada, aún acepta cualquier remoto definido en env. |
+| RT-07 | ✅ Corregido (nivel básico) | Se agregó rate-limit temporal al `air_gap` para reducir abuso por triggers consecutivos. |
+| RT-08 | 🟡 Parcial | `starttls` usa contexto TLS por defecto, pero no hay pinning/mTLS ni política criptográfica avanzada por canal. |
+| RT-09 | 🟡 Parcial | Collector ya aplica allowlist por `cne_domains`, pero la validación no fuerza resolución pública/pinning para ese flujo. |
+| RT-10 | ✅ Corregido | Fallos de envío de resumen ya no quedan totalmente silenciosos; ahora se registran con warning. |
+
+### Conclusión ejecutiva
+
+- **Cierre total:** RT-01, RT-02, RT-03, RT-04, RT-05, RT-07, RT-10.
+- **Cierre parcial (pendientes de hardening adicional):** RT-06, RT-08, RT-09.
+- **Estado global:** el núcleo está significativamente más robusto, pero aún no es correcto afirmar que *todas* las vulnerabilidades quedaron cerradas al 100%.
