@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import ipaddress
+import ssl
 import socket
 import threading
+import hashlib
 from contextlib import contextmanager
 from dataclasses import dataclass
 from urllib.parse import urlparse
@@ -126,6 +128,24 @@ def is_safe_outbound_url(
         )
         is not None
     )
+
+
+def build_strict_tls_context() -> ssl.SSLContext:
+    """Create a strict TLS client context with modern defaults."""
+    ctx = ssl.create_default_context()
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    return ctx
+
+
+def verify_peer_cert_sha256(cert_der: bytes, expected_fingerprint: str | None) -> bool:
+    """Validate peer cert against an optional SHA-256 fingerprint."""
+    if not expected_fingerprint:
+        return True
+    normalized = expected_fingerprint.lower().replace(":", "").strip()
+    if not normalized:
+        return True
+    digest = hashlib.sha256(cert_der).hexdigest()
+    return digest == normalized
 
 
 @contextmanager

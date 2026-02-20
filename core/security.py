@@ -83,7 +83,13 @@ from typing import Any, Callable
 from urllib import request
 
 import yaml
-from core.security_utils import pin_dns_resolution, resolve_outbound_target, redact_headers
+from core.security_utils import (
+    build_strict_tls_context,
+    pin_dns_resolution,
+    redact_headers,
+    resolve_outbound_target,
+    verify_peer_cert_sha256,
+)
 
 try:
     import psutil
@@ -466,7 +472,12 @@ def send_admin_alert(
         msg["To"] = recipient
         msg.set_content(body)
         with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as smtp:
-            smtp.starttls(context=ssl.create_default_context())
+            smtp.starttls(context=build_strict_tls_context())
+            expected_smtp_fp = os.getenv("SMTP_TLS_CERT_SHA256", "").strip()
+            if expected_smtp_fp:
+                cert_der = smtp.sock.getpeercert(binary_form=True) if smtp.sock else b""
+                if not cert_der or not verify_peer_cert_sha256(cert_der, expected_smtp_fp):
+                    raise RuntimeError("smtp_tls_cert_fingerprint_mismatch")
             if smtp_user and smtp_pass:
                 smtp.login(smtp_user, smtp_pass)
             smtp.send_message(msg)
@@ -478,8 +489,9 @@ def send_admin_alert(
             raise RuntimeError("webhook_unsafe_destination")
         payload = json.dumps({"text": body}).encode("utf-8")
         req = request.Request(webhook, data=payload, headers={"Content-Type": "application/json"})
+        webhook_ctx = build_strict_tls_context()
         with pin_dns_resolution(target):
-            with request.urlopen(req, timeout=10) as resp:  # nosec B310 - webhook URL from config/env
+            with request.urlopen(req, timeout=10, context=webhook_ctx) as resp:  # nosec B310 - webhook URL from config/env
                 if resp.status >= 400:
                     raise RuntimeError(f"webhook_failed:{resp.status}")
 

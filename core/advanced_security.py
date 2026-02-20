@@ -141,7 +141,13 @@ except Exception:  # noqa: BLE001
 
 from core.attack_logger import AttackForensicsLogbook, AttackLogConfig
 from core.security import DefensiveSecurityManager, SecurityConfig
-from core.security_utils import pin_dns_resolution, resolve_outbound_target, redact_headers
+from core.security_utils import (
+    build_strict_tls_context,
+    pin_dns_resolution,
+    redact_headers,
+    resolve_outbound_target,
+    verify_peer_cert_sha256,
+)
 
 try:
     from cryptography.fernet import Fernet
@@ -430,7 +436,12 @@ class AlertManager:
         msg["To"] = recipient
         msg.set_content(json.dumps(payload, ensure_ascii=False, indent=2))
         with smtplib.SMTP(server, int(os.getenv("SMTP_PORT", "587")), timeout=10) as smtp:
-            smtp.starttls(context=ssl.create_default_context())
+            smtp.starttls(context=build_strict_tls_context())
+            expected_smtp_fp = os.getenv("SMTP_TLS_CERT_SHA256", "").strip()
+            if expected_smtp_fp:
+                cert_der = smtp.sock.getpeercert(binary_form=True) if smtp.sock else b""
+                if not cert_der or not verify_peer_cert_sha256(cert_der, expected_smtp_fp):
+                    raise RuntimeError("smtp_tls_cert_fingerprint_mismatch")
             if user and password:
                 smtp.login(user, password)
             smtp.send_message(msg)
@@ -453,6 +464,7 @@ class AlertManager:
                 url,
                 timeout=10,
                 json={"chat_id": chat_id, "text": json.dumps(payload, ensure_ascii=False)},
+                headers={"Connection": "close"},
             )
         return resp.status_code < 300
 
@@ -464,7 +476,7 @@ class AlertManager:
         if target is None:
             return False
         with pin_dns_resolution(target):
-            resp = requests.post(endpoint, timeout=10, json=payload)
+            resp = requests.post(endpoint, timeout=10, json=payload, headers={"Connection": "close"})
         return resp.status_code < 300
 
 
@@ -618,8 +630,7 @@ class AdvancedSecurityManager:
         try:
             payload = json.loads(self._deadman_state_path.read_text(encoding="utf-8"))
             self._last_air_gap_at = float(payload.get("last_air_gap_at", 0.0))
-        except Exception as exc:
-            LOGGER.warning("failed_to_restore_deadman_state path=%s error=%s", self._deadman_state_path, exc)
+        except Exception:
             self._last_air_gap_at = 0.0
 
     def _persist_deadman_state(self) -> None:

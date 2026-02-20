@@ -77,7 +77,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from core.security_utils import is_safe_outbound_url
+from core.security_utils import is_safe_outbound_url, pin_dns_resolution, resolve_outbound_target
 
 import requests
 import yaml
@@ -160,6 +160,16 @@ def fetch_json_with_retry(
         LOGGER.error("collector_unsafe_url_skipped url=%s", url)
         return None
 
+    target = resolve_outbound_target(
+        url,
+        allowed_domains=allowed_domains,
+        require_https=False,
+        enforce_public_ip_resolution=enforce_public_ip_resolution,
+    )
+    if target is None:
+        LOGGER.error("collector_target_resolution_failed url=%s", url)
+        return None
+
     for attempt in range(1, max_attempts + 1):
         try:
             headers = {
@@ -169,7 +179,10 @@ def fetch_json_with_retry(
                 "Accept": "application/json",
             }
             proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
-            response = session.get(url, timeout=timeout_seconds, headers=headers, proxies=proxies)
+            request_headers = dict(headers)
+            request_headers["Connection"] = "close"
+            with pin_dns_resolution(target):
+                response = session.get(url, timeout=timeout_seconds, headers=request_headers, proxies=proxies)
             response.raise_for_status()
             return response.json()
         except (requests.RequestException, json.JSONDecodeError, ValueError) as exc:

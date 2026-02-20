@@ -175,3 +175,40 @@ def test_is_safe_http_url_supports_public_resolution_flag(monkeypatch) -> None:
     monkeypatch.setattr(collector, "is_safe_outbound_url", _fake_is_safe)
     assert collector.is_safe_http_url("https://cne.hn/api", enforce_public_ip_resolution=True)
     assert captured["enforce"] is True
+
+
+def test_fetch_json_with_retry_uses_dns_pinning_and_connection_close(monkeypatch) -> None:
+    session = requests.Session()
+    called = {"pin": 0, "conn": None}
+
+    class _Target:
+        pass
+
+    def _fake_get(*_args, **kwargs):
+        called["conn"] = kwargs["headers"].get("Connection")
+        return _Response({"ok": True})
+
+    class _Ctx:
+        def __enter__(self):
+            called["pin"] += 1
+            return None
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(session, "get", _fake_get)
+    monkeypatch.setattr(collector, "resolve_outbound_target", lambda *a, **k: _Target())
+    monkeypatch.setattr(collector, "pin_dns_resolution", lambda _target: _Ctx())
+
+    payload = collector.fetch_json_with_retry(
+        session,
+        "https://cne.hn/api",
+        timeout_seconds=1,
+        max_attempts=1,
+        backoff_base=0,
+        enforce_public_ip_resolution=True,
+    )
+
+    assert payload == {"ok": True}
+    assert called["pin"] == 1
+    assert called["conn"] == "close"
