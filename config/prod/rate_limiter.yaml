@@ -2,3 +2,6 @@ capacity: 3
 rate_interval_seconds: 10
 min_interval_seconds: 8
 max_interval_seconds: 12
+
+max_requests_per_hour: 180
+conservative_min_delay_seconds: 900
