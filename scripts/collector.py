@@ -181,10 +181,11 @@ def fetch_json_with_retry(
             proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
             request_headers = dict(headers)
             request_headers["Connection"] = "close"
-            with pin_dns_resolution(target):
-                response = session.get(url, timeout=timeout_seconds, headers=request_headers, proxies=proxies)
-            response.raise_for_status()
-            return response.json()
+            with requests.Session() as isolated_session:
+                with pin_dns_resolution(target):
+                    response = isolated_session.get(url, timeout=timeout_seconds, headers=request_headers, proxies=proxies)
+                response.raise_for_status()
+                return response.json()
         except (requests.RequestException, json.JSONDecodeError, ValueError) as exc:
             LOGGER.warning("collector_fetch_failed attempt=%s/%s url=%s error=%s", attempt, max_attempts, url, exc)
             if attempt == max_attempts:
