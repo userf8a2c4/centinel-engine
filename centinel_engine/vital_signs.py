@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_THRESHOLDS: Dict[str, Any] = {
     "baseline_interval_seconds": 300,
-    "consecutive_failures_conservative": 3,
+    "consecutive_failures_conservative": 2,
     "consecutive_failures_critical": 5,
     "min_success_rate": 0.70,
     "max_avg_latency": 10.0,
@@ -187,9 +187,17 @@ def _policy_blocks_exceed_window(status: Dict[str, Any], window_seconds: int) ->
 
 
 def predict_mode(config: Dict[str, Any], status: Dict[str, Any]) -> str:
-    """Predict resilience mode from pressure and failure trend.
+    """Predict resilience mode with early preventive adaptation.
 
-    Bilingual: Predice modo de resiliencia con presión y tendencia de fallos.
+    Bilingual: Predice modo de resiliencia con adaptación preventiva temprana.
+
+    Rules / Reglas:
+    - Returns `conservative` early when consecutive failures reach 2.
+    - Retorna `conservative` temprano cuando los fallos consecutivos llegan a 2.
+    - Returns `conservative` early when failure trend is >40% over last 15 requests.
+    - Retorna `conservative` temprano cuando la tendencia de fallos es >40% en 15 requests.
+    - Returns `conservative` when pressure stays >6 for 5 minutes.
+    - Retorna `conservative` cuando la presión se mantiene >6 durante 5 minutos.
 
     Args:
         config: Runtime scheduler configuration.
@@ -229,7 +237,21 @@ def predict_mode(config: Dict[str, Any], status: Dict[str, Any]) -> str:
     trend_window = success_history[-predictive_window_size:]
     if trend_window:
         failures = sum(1 for item in trend_window if not item)
+        # Lower threshold for early detection / Umbral más bajo para detección temprana
         if (failures / len(trend_window)) > predictive_failure_ratio:
+            # Prevents full block before reaction / Evita bloqueo completo antes de reaccionar
+            return "conservative"
+
+    # Lower threshold for early detection / Umbral más bajo para detección temprana
+    if consecutive_failures >= int(_resolve_threshold(config, "consecutive_failures_conservative")):
+        # Prevents full block before reaction / Evita bloqueo completo antes de reaccionar
+        return "conservative"
+
+    high_pressure_since = status.get("high_pressure_since")
+    if pressure > high_pressure_threshold and high_pressure_since is not None:
+        if (time.time() - float(high_pressure_since)) >= high_pressure_window_seconds:
+            # Lower threshold for early detection / Umbral más bajo para detección temprana
+            # Prevents full block before reaction / Evita bloqueo completo antes de reaccionar
             return "conservative"
 
     if pressure > high_pressure_threshold:
