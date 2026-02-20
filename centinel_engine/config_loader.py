@@ -39,6 +39,9 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+def _is_safe_env_name(env: str) -> bool:
+    return env.replace("-", "").replace("_", "").isalnum()
+
 
 def load_config(file_name: str, env: str = "prod") -> dict[str, Any]:
     """Load a YAML config map from `config/<env>/<file_name>`.
@@ -58,7 +61,13 @@ def load_config(file_name: str, env: str = "prod") -> dict[str, Any]:
     if not file_name.endswith((".yaml", ".yml")):
         raise ValueError("Config file must end with .yaml or .yml")
 
-    config_path = Path("config") / env / file_name
+    if not _is_safe_env_name(env):
+        raise ValueError("Invalid environment name")
+
+    config_root = Path("config").resolve()
+    config_path = (config_root / env / file_name).resolve()
+    if config_root not in config_path.parents:
+        raise ValueError("Config path escapes config root")
     try:
         payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:

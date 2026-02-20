@@ -160,3 +160,76 @@ def test_honeypot_encrypts_events_file(monkeypatch: pytest.MonkeyPatch, tmp_path
     raw_line = honeypot.events_path.read_text(encoding="utf-8").strip()
     assert raw_line.startswith("enc:")
     assert "/admin" not in raw_line
+
+
+def test_honeypot_encrypt_requires_key(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    pytest.importorskip("flask")
+    monkeypatch.delenv("HONEYPOT_LOG_KEY", raising=False)
+
+    cfg = AdvancedSecurityConfig(
+        honeypot_enabled=True,
+        honeypot_endpoints=["/admin"],
+        honeypot_encrypt_events=True,
+        honeypot_events_path=str(tmp_path / "honeypot.enc"),
+    )
+    with pytest.raises(RuntimeError, match="honeypot_encrypt_key_missing"):
+        HoneypotService(cfg)
+
+
+def test_air_gap_is_rate_limited(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    cfg = AdvancedSecurityConfig(
+        deadman_min_interval_seconds=600,
+        deadman_state_path=str(tmp_path / "deadman_state.json"),
+    )
+    manager = AdvancedSecurityManager(cfg)
+    calls: list[tuple[int, str]] = []
+    monkeypatch.setattr(manager, "verify_integrity", lambda: False)
+    monkeypatch.setattr("core.advanced_security.time.sleep", lambda _s: None)
+    monkeypatch.setattr(manager, "_safe_alert", lambda level, event, metrics: calls.append((level, event)))
+
+    manager.air_gap("flood")
+    manager.air_gap("flood")
+
+    assert (3, "air_gap_enter") in calls
+    assert (1, "air_gap_rate_limited") in calls
+
+
+def test_backup_github_requires_allowlist(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    cfg = AdvancedSecurityConfig(backup_provider="github")
+    manager = AdvancedSecurityManager(cfg)
+    archive = tmp_path / "backup.json"
+    archive.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setenv("BACKUP_GIT_REPO", "origin")
+    monkeypatch.delenv("BACKUP_GIT_REMOTE_ALLOWLIST", raising=False)
+
+    called = {"run": 0}
+
+    def _fake_run(*_args, **_kwargs):
+        called["run"] += 1
+        return None
+
+    monkeypatch.setattr("core.advanced_security.subprocess.run", _fake_run)
+    manager.backups._upload(archive)
+    assert called["run"] == 0
+
+
+def test_air_gap_rate_limit_persists_across_restarts(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    cfg = AdvancedSecurityConfig(
+        deadman_min_interval_seconds=600,
+        deadman_state_path=str(tmp_path / "deadman_state.json"),
+    )
+    monkeypatch.setattr("core.advanced_security.time.sleep", lambda _s: None)
+
+    manager = AdvancedSecurityManager(cfg)
+    monkeypatch.setattr(manager, "verify_integrity", lambda: False)
+    monkeypatch.setattr(manager, "_safe_alert", lambda *_args, **_kwargs: None)
+    manager.air_gap("flood")
+
+    manager2 = AdvancedSecurityManager(cfg)
+    calls: list[tuple[int, str]] = []
+    monkeypatch.setattr(manager2, "verify_integrity", lambda: False)
+    monkeypatch.setattr(manager2, "_safe_alert", lambda level, event, metrics: calls.append((level, event)))
+    manager2.air_gap("flood")
+
+    assert (1, "air_gap_rate_limited") in calls

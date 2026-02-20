@@ -135,6 +135,18 @@ def test_run_collection_writes_report(tmp_path: Path, monkeypatch):
     output_path = tmp_path / "collector_latest.json"
     monkeypatch.setattr(collector, "DEFAULT_OUTPUT_PATH", output_path)
 
+    class _Rotator:
+        def get_proxy_for_request(self):
+            return None
+
+        def mark_success(self, _proxy):
+            return None
+
+        def mark_failure(self, _proxy, _reason):
+            return None
+
+    monkeypatch.setattr(collector, "get_proxy_rotator", lambda _logger: _Rotator())
+
     code = collector.run_collection(config_path=config_path, retry_path=retry_path)
 
     assert code == 0
@@ -146,3 +158,20 @@ def test_is_safe_http_url_blocks_unsafe_schemes_and_credentials():
     assert collector.is_safe_http_url("https://cne.example/api")
     assert not collector.is_safe_http_url("file:///etc/passwd")
     assert not collector.is_safe_http_url("https://user:pass@example.com/private")
+
+
+def test_is_safe_http_url_enforces_allowed_domains() -> None:
+    assert collector.is_safe_http_url("https://cne.hn/api", allowed_domains={"cne.hn"})
+    assert not collector.is_safe_http_url("https://evil.example/api", allowed_domains={"cne.hn"})
+
+
+def test_is_safe_http_url_supports_public_resolution_flag(monkeypatch) -> None:
+    captured = {"enforce": None}
+
+    def _fake_is_safe(url: str, **kwargs):
+        captured["enforce"] = kwargs.get("enforce_public_ip_resolution")
+        return True
+
+    monkeypatch.setattr(collector, "is_safe_outbound_url", _fake_is_safe)
+    assert collector.is_safe_http_url("https://cne.hn/api", enforce_public_ip_resolution=True)
+    assert captured["enforce"] is True
