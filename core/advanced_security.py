@@ -618,7 +618,8 @@ class AdvancedSecurityManager:
         try:
             payload = json.loads(self._deadman_state_path.read_text(encoding="utf-8"))
             self._last_air_gap_at = float(payload.get("last_air_gap_at", 0.0))
-        except Exception:
+        except Exception as exc:
+            LOGGER.warning("failed_to_restore_deadman_state path=%s error=%s", self._deadman_state_path, exc)
             self._last_air_gap_at = 0.0
 
     def _persist_deadman_state(self) -> None:
