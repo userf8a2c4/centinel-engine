@@ -670,6 +670,7 @@ def perform_cne_preflight_request(
     proxy: dict[str, str] | None,
     user_agent: str,
     timeout: float = 10.0,
+    request_headers: dict[str, str] | None = None,
 ) -> int:
     """Perform the preflight CNE request with proxy and User-Agent integration.
 
@@ -681,6 +682,7 @@ def perform_cne_preflight_request(
         proxy: Proxy dictionary for ``requests`` or ``None`` for direct mode.
         user_agent: User-Agent string selected by proxy manager.
         timeout: Timeout in seconds for the preflight request.
+        request_headers: Optional pre-built header mapping for anti-fingerprinting.
 
     Returns:
         HTTP status code from the preflight request.
@@ -701,7 +703,7 @@ def perform_cne_preflight_request(
     if not preflight_url:
         raise ValueError("Missing preflight URL for CNE connectivity check")
 
-    headers: dict[str, str] = {"User-Agent": user_agent}
+    headers: dict[str, str] = dict(request_headers or {"User-Agent": user_agent})
     # Request uses proxy + UA selected for this cycle /
     # El request usa proxy + UA seleccionado para este ciclo
     response = requests.head(
@@ -765,12 +767,15 @@ def run_pipeline(config: dict[str, Any]) -> None:
 
     enable_backup: bool = bool(config.get("ENABLE_BACKUP", True))
     rate_limiter = get_rate_limiter()
+    runtime_vital_config: dict[str, Any] = {**vital_signs.load_vital_signs_config("prod"), **config}
     consecutive_failures: int = 0
     scrape_status: dict[str, Any] = {
         "consecutive_failures": 0,
         "success_history": [],
         "latency_history": [],
         "hash_chain_valid": True,
+        "high_pressure_since": None,
+        "policy_block_since": None,
     }
 
     try:
@@ -782,9 +787,28 @@ def run_pipeline(config: dict[str, Any]) -> None:
             if waited > 0:
                 log_event(logger, logging.DEBUG, "rate_limiter_waited", seconds=round(waited, 2))
 
-            # Select proxy + User-Agent before each CNE request /
-            # Seleccionar proxy + User-Agent antes de cada request al CNE
+            # Cumplimiento Ley Transparencia 170-2006: solo datos públicos agregados, rate-limits éticos siempre respetados
+            # English: pre-evaluate predictive mode before every request. / Español: pre-evaluar modo predictivo antes de cada request.
+            predicted_mode = vital_signs.predict_mode(runtime_vital_config, scrape_status)
+            if predicted_mode == "conservative":
+                time.sleep(900)
+            elif predicted_mode == "hibernation":
+                # English: keep loop alive while respecting hibernation. / Español: mantener loop vivo respetando hibernación.
+                try:
+                    backup_state = secure_backup.backup_critical()
+                    scrape_status["hash_chain_valid"] = bool(backup_state.get("hash_chain_valid", True))
+                except Exception as backup_exc:  # noqa: BLE001
+                    log_event(logger, logging.WARNING, "hibernation_backup_failed", error=str(backup_exc))
+                time.sleep(3600)
+
+            # English: reduce effective concurrency under pressure. / Español: reducir concurrencia efectiva bajo presión.
+            if float(scrape_status.get("request_pressure", 0.0)) > 8.0:
+                config["max_concurrent_requests"] = 1
+
+            # Select proxy + User-Agent + randomized headers before each CNE request /
+            # Seleccionar proxy + User-Agent + headers aleatorios antes de cada request al CNE
             proxy_dict, user_agent = proxy_manager.get_proxy_and_ua()
+            request_headers = proxy_manager.get_proxy_ua_manager().build_request_headers(user_agent)
             proxy_url = (proxy_dict or {}).get("https")
             log_event(
                 logger,
@@ -798,7 +822,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
             status_code: int | None = None
             health_ok = False
             try:
-                status_code = perform_cne_preflight_request(config, proxy_dict, user_agent)
+                status_code = perform_cne_preflight_request(config, proxy_dict, user_agent, request_headers=request_headers)
                 health_ok = status_code < 400
                 consecutive_failures = 0 if health_ok else consecutive_failures + 1
             except (
@@ -822,6 +846,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
                     run_id=run_id,
                     error=str(exc),
                 )
+                rate_limiter.notify_response(status_code, success=False)
                 # Force immediate vital signs evaluation after critical errors /
                 # Forzar evaluacion inmediata de signos vitales tras errores criticos
                 scrape_status = vital_signs.update_status_after_scrape(
@@ -829,9 +854,10 @@ def run_pipeline(config: dict[str, Any]) -> None:
                     success=False,
                     latency=max(0.0, time.monotonic() - request_started_at),
                     status_code=status_code,
+                    config=runtime_vital_config,
                 )
                 scrape_status["consecutive_failures"] = consecutive_failures
-                vital_state = vital_signs.check_vital_signs(config, scrape_status)
+                vital_state = vital_signs.check_vital_signs(runtime_vital_config, scrape_status)
                 log_event(
                     logger,
                     logging.WARNING,
@@ -841,6 +867,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
                     recommended_delay=vital_state.get("recommended_delay_seconds"),
                 )
             latency = max(0.0, time.monotonic() - request_started_at)
+            rate_limiter.notify_response(status_code, success=bool(health_ok))
 
             if status_code in {429, 403} or (status_code is not None and 500 <= status_code <= 599):
                 consecutive_failures += 1
@@ -857,13 +884,14 @@ def run_pipeline(config: dict[str, Any]) -> None:
                     success=False,
                     latency=latency,
                     status_code=status_code,
+                    config=runtime_vital_config,
                 )
                 scrape_status["consecutive_failures"] = consecutive_failures
                 # Immediate vital-signs recalculation after failures /
                 # Recalculo inmediato de signos vitales tras fallos
                 # Force immediate vital signs evaluation /
                 # Forzar evaluacion inmediata de signos vitales
-                vital_state = vital_signs.check_vital_signs(config, scrape_status)
+                vital_state = vital_signs.check_vital_signs(runtime_vital_config, scrape_status)
                 log_event(
                     logger,
                     logging.WARNING,
@@ -871,6 +899,15 @@ def run_pipeline(config: dict[str, Any]) -> None:
                     run_id=run_id,
                     mode=vital_state.get("mode"),
                     recommended_delay=vital_state.get("recommended_delay_seconds"),
+                )
+            else:
+                # English: keep trend windows fresh with successful requests. / Español: mantener ventana de tendencia actualizada con éxitos.
+                scrape_status = vital_signs.update_status_after_scrape(
+                    scrape_status,
+                    success=True,
+                    latency=latency,
+                    status_code=status_code,
+                    config=runtime_vital_config,
                 )
 
             download_cmd = [sys.executable, "scripts/download_and_hash.py"]
@@ -993,6 +1030,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
             success=True,
             latency=0.0,
             status_code=200,
+            config=runtime_vital_config,
         )
         update_daily_summary(state, now, len(anomalies))
         state["last_run_at"] = now.isoformat()

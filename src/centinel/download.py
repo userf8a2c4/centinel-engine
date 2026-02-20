@@ -67,6 +67,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import random
+import ssl
 import string
 import shutil
 import tempfile
@@ -263,12 +265,35 @@ def _is_valid_hex_hash(value: str) -> bool:
     return all(char in hex_chars for char in value)
 
 
+
+def _build_tls_context() -> ssl.SSLContext:
+    """Build a conservative TLS context with shuffled cipher ordering.
+
+    English: Reduce static TLS fingerprinting by rotating cipher order per client.
+    """
+    context = ssl.create_default_context()
+    cipher_groups = [
+        "ECDHE-ECDSA-AES128-GCM-SHA256",
+        "ECDHE-RSA-AES128-GCM-SHA256",
+        "ECDHE-ECDSA-AES256-GCM-SHA384",
+        "ECDHE-RSA-AES256-GCM-SHA384",
+        "ECDHE-ECDSA-CHACHA20-POLY1305",
+        "ECDHE-RSA-CHACHA20-POLY1305",
+    ]
+    # English: shuffle order to reduce deterministic JA3-like signatures. / Español: mezclar orden para reducir firma TLS determinística.
+    random.SystemRandom().shuffle(cipher_groups)
+    try:
+        context.set_ciphers(":".join(cipher_groups))
+    except ssl.SSLError as exc:
+        logger.debug("tls_cipher_shuffle_fallback error=%s", exc)
+    return context
+
 def build_client() -> httpx.AsyncClient:
     """Construye un cliente HTTP con timeout global.
 
     English: Build an HTTP client with a global timeout.
     """
-    return httpx.AsyncClient(timeout=httpx.Timeout(30.0))
+    return httpx.AsyncClient(timeout=httpx.Timeout(30.0), verify=_build_tls_context())
 
 
 async def download_and_hash(
