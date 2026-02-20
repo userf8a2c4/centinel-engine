@@ -140,17 +140,20 @@ except Exception:  # noqa: BLE001
 
 from core.attack_logger import AttackForensicsLogbook, AttackLogConfig
 from core.security import DefensiveSecurityManager, SecurityConfig
+from core.security_utils import (
+    build_strict_tls_context,
+    pin_dns_resolution,
+    redact_headers,
+    resolve_outbound_target,
+    verify_peer_cert_sha256,
+)
 
 try:
     from cryptography.fernet import Fernet
+    _HAS_CRYPTOGRAPHY = True
 except Exception:  # noqa: BLE001
-
-    class Fernet:  # type: ignore[override]
-        def __init__(self, key: bytes) -> None:
-            self.key = key
-
-        def encrypt(self, data: bytes) -> bytes:
-            return data
+    Fernet = None  # type: ignore[assignment]
+    _HAS_CRYPTOGRAPHY = False
 
 
 try:  # optional dependency at runtime
@@ -210,6 +213,8 @@ class AdvancedSecurityConfig:
     cpu_spike_grace_seconds: int = 15
     cpu_baseline_window: int = 6
     alert_sms_webhook: str = ""
+    deadman_min_interval_seconds: int = 300
+    deadman_state_path: str = "data/safe_state/advanced_deadman_state.json"
     solidity_contract_paths: list[str] = field(default_factory=lambda: ["contracts/**/*.sol"])
     solidity_blocked_patterns: list[str] = field(default_factory=lambda: ["tx.origin", "delegatecall", "selfdestruct"])
 
@@ -256,6 +261,8 @@ class AdvancedSecurityConfig:
             cpu_spike_grace_seconds=int(raw.get("cpu_spike_grace_seconds", 15)),
             cpu_baseline_window=int(raw.get("cpu_baseline_window", 6)),
             alert_sms_webhook=str(raw.get("alert_sms_webhook", "")),
+            deadman_min_interval_seconds=int(raw.get("deadman_min_interval_seconds", 300)),
+            deadman_state_path=str(raw.get("deadman_state_path", "data/safe_state/advanced_deadman_state.json")),
             solidity_contract_paths=[str(p) for p in raw.get("solidity_contract_paths", ["contracts/**/*.sol"])],
             solidity_blocked_patterns=[
                 str(p) for p in raw.get("solidity_blocked_patterns", ["tx.origin", "delegatecall", "selfdestruct"])
@@ -327,16 +334,15 @@ class HoneypotService:
         self._encrypt_events = bool(self.config.honeypot_encrypt_events)
         self._fernet: Fernet | None = None
         if self._encrypt_events:
+            if not _HAS_CRYPTOGRAPHY or Fernet is None:
+                raise RuntimeError("honeypot_encrypt_requires_cryptography")
             key_value = os.getenv(self.config.honeypot_encryption_key_env, "").strip()
-            if key_value:
-                try:
-                    self._fernet = Fernet(key_value.encode("utf-8"))
-                except Exception as exc:  # noqa: BLE001
-                    LOGGER.warning(
-                        "honeypot_encrypt_key_invalid env=%s error=%s", self.config.honeypot_encryption_key_env, exc
-                    )
-            else:
-                LOGGER.warning("honeypot_encrypt_key_missing env=%s", self.config.honeypot_encryption_key_env)
+            if not key_value:
+                raise RuntimeError(f"honeypot_encrypt_key_missing:{self.config.honeypot_encryption_key_env}")
+            try:
+                self._fernet = Fernet(key_value.encode("utf-8"))
+            except Exception as exc:  # noqa: BLE001
+                raise RuntimeError(f"honeypot_encrypt_key_invalid:{self.config.honeypot_encryption_key_env}") from exc
         self.events_path.parent.mkdir(parents=True, exist_ok=True)
         self._register_routes()
 
@@ -360,7 +366,7 @@ class HoneypotService:
             "ip": req.remote_addr,
             "method": req.method,
             "route": req.path,
-            "headers": dict(req.headers),
+            "headers": redact_headers(dict(req.headers)),
             "user_agent": req.headers.get("User-Agent", ""),
             "content_length": int(req.content_length or 0),
             "classification": "scan" if req.path.count("/") >= 1 else "suspicious",
@@ -429,7 +435,12 @@ class AlertManager:
         msg["To"] = recipient
         msg.set_content(json.dumps(payload, ensure_ascii=False, indent=2))
         with smtplib.SMTP(server, int(os.getenv("SMTP_PORT", "587")), timeout=10) as smtp:
-            smtp.starttls()
+            smtp.starttls(context=build_strict_tls_context())
+            expected_smtp_fp = os.getenv("SMTP_TLS_CERT_SHA256", "").strip()
+            if expected_smtp_fp:
+                cert_der = smtp.sock.getpeercert(binary_form=True) if smtp.sock else b""
+                if not cert_der or not verify_peer_cert_sha256(cert_der, expected_smtp_fp):
+                    raise RuntimeError("smtp_tls_cert_fingerprint_mismatch")
             if user and password:
                 smtp.login(user, password)
             smtp.send_message(msg)
@@ -439,18 +450,32 @@ class AlertManager:
         chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
         if not token or not chat_id:
             return False
-        resp = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            timeout=10,
-            json={"chat_id": chat_id, "text": json.dumps(payload, ensure_ascii=False)},
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        target = resolve_outbound_target(
+            url,
+            allowed_domains={"api.telegram.org"},
+            enforce_public_ip_resolution=True,
         )
+        if target is None:
+            return False
+        with pin_dns_resolution(target):
+            resp = requests.post(
+                url,
+                timeout=10,
+                json={"chat_id": chat_id, "text": json.dumps(payload, ensure_ascii=False)},
+                headers={"Connection": "close"},
+            )
         return resp.status_code < 300
 
     def _send_sms_webhook(self, payload: dict[str, Any]) -> bool:
         endpoint = os.getenv("SMS_WEBHOOK_URL", "")
         if not endpoint:
             return False
-        resp = requests.post(endpoint, timeout=10, json=payload)
+        target = resolve_outbound_target(endpoint, enforce_public_ip_resolution=True)
+        if target is None:
+            return False
+        with pin_dns_resolution(target):
+            resp = requests.post(endpoint, timeout=10, json=payload, headers={"Connection": "close"})
         return resp.status_code < 300
 
 
@@ -533,11 +558,21 @@ class BackupManager:
                 return
         if provider == "github":
             repo = os.getenv("BACKUP_GIT_REPO", "")
-            if repo:
-                subprocess.run(["git", "add", str(archive)], check=False)
-                subprocess.run(["git", "commit", "-m", f"backup: {archive.name}"], check=False)
-                subprocess.run(["git", "push", repo], check=False)
+            allowed = {
+                item.strip()
+                for item in os.getenv("BACKUP_GIT_REMOTE_ALLOWLIST", "").split(",")
+                if item.strip()
+            }
+            if not allowed:
+                LOGGER.warning("backup_github_allowlist_missing repo=%s", repo)
                 return
+            if repo and repo in allowed:
+                subprocess.run(["git", "add", str(archive)], check=True)
+                subprocess.run(["git", "commit", "-m", f"backup: {archive.name}"], check=True)
+                subprocess.run(["git", "push", repo], check=True)
+                return
+            LOGGER.warning("backup_github_repo_not_allowed repo=%s", repo)
+            return
         LOGGER.info("backup_provider_fallback_local provider=%s file=%s", provider, archive)
 
     def _rotate_local_retention(self) -> None:
@@ -568,6 +603,9 @@ class AdvancedSecurityManager:
         self._cpu_samples: deque[float] = deque(maxlen=max(3, config.cpu_baseline_window))
         self._metrics_started = False
         self._honeypot_events_per_minute: deque[float] = deque(maxlen=500)
+        self._last_air_gap_at: float = 0.0
+        self._deadman_state_path = Path(self.config.deadman_state_path)
+        self._restore_deadman_state()
         self.attack_logbook = AttackForensicsLogbook(
             AttackLogConfig.from_yaml(Path("command_center/attack_config.yaml")), self.on_attack_event
         )
@@ -586,6 +624,21 @@ class AdvancedSecurityManager:
             if sig is None:
                 continue
             signal.signal(sig, self._handle_oom_like_signal)
+
+    def _restore_deadman_state(self) -> None:
+        try:
+            payload = json.loads(self._deadman_state_path.read_text(encoding="utf-8"))
+            self._last_air_gap_at = float(payload.get("last_air_gap_at", 0.0))
+        except Exception:
+            self._last_air_gap_at = 0.0
+
+    def _persist_deadman_state(self) -> None:
+        self._deadman_state_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "updated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "last_air_gap_at": self._last_air_gap_at,
+        }
+        self._deadman_state_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     def _handle_oom_like_signal(self, signum: int, _frame: Any) -> None:
         self.backups.persist_before_kill(reason=f"signal_{signum}")
@@ -686,6 +739,12 @@ class AdvancedSecurityManager:
             self._honeypot_events_per_minute.clear()
 
     def air_gap(self, reason: str) -> None:
+        now = time.time()
+        if now - self._last_air_gap_at < max(1, self.config.deadman_min_interval_seconds):
+            self._safe_alert(1, "air_gap_rate_limited", {"reason": reason})
+            return
+        self._last_air_gap_at = now
+        self._persist_deadman_state()
         self._safe_alert(3, "air_gap_enter", {"reason": reason})
         gc.collect()
         self.honeypot.stop()
