@@ -523,7 +523,8 @@ class AttackForensicsLogbook:
             self._salt_path.parent.mkdir(parents=True, exist_ok=True)
             self._salt_path.write_text(generated, encoding="utf-8")
             os.chmod(self._salt_path, 0o600)
-        except OSError:
+        except OSError as exc:
+            LOGGER.warning("failed_to_persist_local_salt path=%s error=%s", self._salt_path, exc)
             return generated
         return generated
 
