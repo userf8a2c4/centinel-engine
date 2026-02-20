@@ -41,6 +41,7 @@ Notes:
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 import gzip
 import json
 import time
@@ -146,6 +147,12 @@ def test_external_summary_uses_anonymized_ip(tmp_path: Path, monkeypatch: pytest
 
     monkeypatch.setattr("core.attack_logger.requests.post", _fake_post)
 
+    class _Target:
+        pass
+
+    monkeypatch.setattr("core.attack_logger.resolve_outbound_target", lambda *a, **k: _Target())
+    monkeypatch.setattr("core.attack_logger.pin_dns_resolution", lambda _target: nullcontext())
+
     logbook.start()
     logbook.log_http_request(ip="198.51.100.10", method="GET", route="/x", headers={"User-Agent": "ua"})
     time.sleep(0.1)
@@ -166,3 +173,20 @@ def test_honeypot_default_firewall_blocks_public_ips(tmp_path: Path, monkeypatch
     client = honeypot.app.test_client()
     response = client.get("/debug", environ_base={"REMOTE_ADDR": "198.51.100.50"})
     assert response.status_code == 403
+
+
+def test_log_http_request_redacts_sensitive_headers(tmp_path: Path) -> None:
+    cfg = AttackLogConfig(log_path=str(tmp_path / "attack_log.jsonl"), flood_log_sample_ratio=1)
+    logbook = AttackForensicsLogbook(cfg)
+    logbook.start()
+    logbook.log_http_request(
+        ip="198.51.100.20",
+        method="GET",
+        route="/debug",
+        headers={"Authorization": "Bearer secret", "User-Agent": "ua"},
+    )
+    time.sleep(0.1)
+    logbook.stop()
+
+    entries = _read_jsonl(tmp_path / "attack_log.jsonl")
+    assert entries[-1]["headers"]["Authorization"] == "[REDACTED]"
