@@ -67,19 +67,17 @@ def test_fetch_json_with_retry_recovers_after_one_failure(monkeypatch):
 
     Fetch debe reintentar y luego retornar JSON.
     """
-    session = requests.Session()
     state = {"calls": 0}
 
-    def fake_get(*args, **kwargs):
+    def _fake_fetch(*_args, **_kwargs):
         state["calls"] += 1
         if state["calls"] == 1:
             raise requests.ConnectionError("boom")
-        return _Response({"ok": True})
+        return {"ok": True}
 
-    monkeypatch.setattr(session, "get", fake_get)
+    monkeypatch.setattr(collector, "_fetch_json_over_pinned_https", _fake_fetch)
 
     payload = collector.fetch_json_with_retry(
-        session,
         "https://example.test/json",
         timeout_seconds=1.0,
         max_attempts=2,
@@ -88,6 +86,28 @@ def test_fetch_json_with_retry_recovers_after_one_failure(monkeypatch):
 
     assert payload == {"ok": True}
     assert state["calls"] == 2
+
+
+
+
+def test_fetch_json_with_retry_uses_pinned_https_fetch(monkeypatch) -> None:
+    called = {"fetch": 0}
+
+    def _fake_fetch(*_args, **_kwargs):
+        called["fetch"] += 1
+        return {"ok": True}
+
+    monkeypatch.setattr(collector, "_fetch_json_over_pinned_https", _fake_fetch)
+
+    payload = collector.fetch_json_with_retry(
+        "https://cne.hn/api",
+        timeout_seconds=1,
+        max_attempts=1,
+        backoff_base=0,
+    )
+
+    assert payload == {"ok": True}
+    assert called["fetch"] == 1
 
 
 def test_validate_collected_payloads_warns_when_count_is_not_96(caplog):
@@ -135,6 +155,18 @@ def test_run_collection_writes_report(tmp_path: Path, monkeypatch):
     output_path = tmp_path / "collector_latest.json"
     monkeypatch.setattr(collector, "DEFAULT_OUTPUT_PATH", output_path)
 
+    class _Rotator:
+        def get_proxy_for_request(self):
+            return None
+
+        def mark_success(self, _proxy):
+            return None
+
+        def mark_failure(self, _proxy, _reason):
+            return None
+
+    monkeypatch.setattr(collector, "get_proxy_rotator", lambda _logger: _Rotator())
+
     code = collector.run_collection(config_path=config_path, retry_path=retry_path)
 
     assert code == 0
@@ -144,5 +176,78 @@ def test_run_collection_writes_report(tmp_path: Path, monkeypatch):
 def test_is_safe_http_url_blocks_unsafe_schemes_and_credentials():
     """English: URL validator blocks unsafe schemes and credentials. Español: bloquea esquemas inseguros y credenciales."""
     assert collector.is_safe_http_url("https://cne.example/api")
+    assert not collector.is_safe_http_url("http://cne.example/api")
     assert not collector.is_safe_http_url("file:///etc/passwd")
     assert not collector.is_safe_http_url("https://user:pass@example.com/private")
+
+
+def test_is_safe_http_url_enforces_allowed_domains() -> None:
+    assert collector.is_safe_http_url("https://cne.hn/api", allowed_domains={"cne.hn"})
+    assert not collector.is_safe_http_url("https://evil.example/api", allowed_domains={"cne.hn"})
+
+
+def test_is_safe_http_url_supports_public_resolution_flag(monkeypatch) -> None:
+    captured = {"enforce": None}
+
+    def _fake_is_safe(url: str, **kwargs):
+        captured["enforce"] = kwargs.get("enforce_public_ip_resolution")
+        return True
+
+    monkeypatch.setattr(collector, "is_safe_outbound_url", _fake_is_safe)
+    assert collector.is_safe_http_url("https://cne.hn/api", enforce_public_ip_resolution=True)
+    assert captured["enforce"] is True
+
+
+
+
+def test_fetch_json_with_retry_blocks_proxy_for_pinned_https(monkeypatch) -> None:
+    monkeypatch.setattr(collector, "_fetch_json_over_pinned_https", lambda *_a, **_k: {"ok": True})
+
+    payload = collector.fetch_json_with_retry(
+        "https://cne.hn/api",
+        timeout_seconds=1,
+        max_attempts=1,
+        backoff_base=0,
+        proxy_url="http://proxy.local:8080",
+    )
+
+    assert payload is None
+
+
+def test_fetch_json_with_retry_uses_dns_pinning_and_connection_close(monkeypatch) -> None:
+    called = {"pin": 0, "conn": None, "host": None}
+
+    class _Target:
+        host = "cne.hn"
+        resolved_ips = frozenset({"93.184.216.34"})
+        port = 443
+
+    class _Ctx:
+        def __enter__(self):
+            called["pin"] += 1
+            return None
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    def _fake_fetch(_target, _url, *, timeout_seconds, request_headers):
+        called["conn"] = request_headers.get("Connection")
+        called["host"] = request_headers.get("Host")
+        return {"ok": True}
+
+    monkeypatch.setattr(collector, "_fetch_json_over_pinned_https", _fake_fetch)
+    monkeypatch.setattr(collector, "resolve_outbound_target", lambda *a, **k: _Target())
+    monkeypatch.setattr(collector, "pin_dns_resolution", lambda _target: _Ctx())
+
+    payload = collector.fetch_json_with_retry(
+        "https://cne.hn/api",
+        timeout_seconds=1,
+        max_attempts=1,
+        backoff_base=0,
+        enforce_public_ip_resolution=True,
+    )
+
+    assert payload == {"ok": True}
+    assert called["pin"] == 1
+    assert called["conn"] == "close"
+    assert called["host"] == "cne.hn"

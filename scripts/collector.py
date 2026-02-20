@@ -77,7 +77,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from core.security_utils import is_safe_outbound_url, pin_dns_resolution, resolve_outbound_target
+
 import requests
+import urllib3
 import yaml
 from scipy import stats
 
@@ -113,25 +116,65 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def is_safe_http_url(url: str) -> bool:
+def is_safe_http_url(
+    url: str,
+    *,
+    allowed_domains: set[str] | None = None,
+    enforce_public_ip_resolution: bool = False,
+) -> bool:
     """Validate URL safety constraints before requesting.
 
     Valida restricciones de seguridad de URL antes de consultar.
     """
     parsed = urlparse(url)
-    # English/Spanish: allow only http/https and explicit host / solo http/https y host explícito.
-    if parsed.scheme not in {"http", "https"}:
+    if parsed.scheme != "https":
         return False
-    if not parsed.netloc:
-        return False
-    # English/Spanish: disallow embedded credentials in URL / bloquea credenciales embebidas en URL.
-    if parsed.username or parsed.password:
-        return False
-    return True
+    return is_safe_outbound_url(
+        url,
+        allowed_domains=allowed_domains,
+        require_https=True,
+        enforce_public_ip_resolution=enforce_public_ip_resolution,
+    )
+
+
+def _fetch_json_over_pinned_https(
+    target,
+    url: str,
+    *,
+    timeout_seconds: float,
+    request_headers: dict[str, str],
+) -> dict[str, Any]:
+    """Perform HTTPS GET to a pinned IP while preserving hostname validation."""
+    parsed = urlparse(url)
+    path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
+
+    pinned_ip = sorted(target.resolved_ips)[0] if target.resolved_ips else target.host
+    pool = urllib3.HTTPSConnectionPool(
+        host=pinned_ip,
+        port=target.port,
+        assert_hostname=target.host,
+        server_hostname=target.host,
+        cert_reqs="CERT_REQUIRED",
+    )
+    try:
+        response = pool.request(
+            "GET",
+            path,
+            headers=request_headers,
+            timeout=urllib3.Timeout(total=timeout_seconds),
+            retries=False,
+            redirect=False,
+        )
+        if response.status >= 400:
+            raise requests.HTTPError(f"HTTP {response.status} for {url}")
+        return json.loads(response.data.decode("utf-8"))
+    finally:
+        pool.close()
 
 
 def fetch_json_with_retry(
-    session: requests.Session,
     url: str,
     *,
     timeout_seconds: float,
@@ -139,13 +182,29 @@ def fetch_json_with_retry(
     backoff_base: float,
     user_agents: list[str] | None = None,
     proxy_url: str | None = None,
+    allowed_domains: set[str] | None = None,
+    enforce_public_ip_resolution: bool = False,
 ) -> dict[str, Any] | None:
     """Fetch JSON from URL with retries.
 
     Descarga JSON desde URL con reintentos.
     """
-    if not is_safe_http_url(url):
+    if not is_safe_http_url(
+        url,
+        allowed_domains=allowed_domains,
+        enforce_public_ip_resolution=enforce_public_ip_resolution,
+    ):
         LOGGER.error("collector_unsafe_url_skipped url=%s", url)
+        return None
+
+    target = resolve_outbound_target(
+        url,
+        allowed_domains=allowed_domains,
+        require_https=True,
+        enforce_public_ip_resolution=enforce_public_ip_resolution,
+    )
+    if target is None:
+        LOGGER.error("collector_target_resolution_failed url=%s", url)
         return None
 
     for attempt in range(1, max_attempts + 1):
@@ -156,10 +215,19 @@ def fetch_json_with_retry(
                 ),
                 "Accept": "application/json",
             }
-            proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
-            response = session.get(url, timeout=timeout_seconds, headers=headers, proxies=proxies)
-            response.raise_for_status()
-            return response.json()
+            if proxy_url:
+                LOGGER.warning("collector_proxy_disabled_for_pinned_https proxy=%s", proxy_url)
+                return None
+            request_headers = dict(headers)
+            request_headers["Connection"] = "close"
+            request_headers["Host"] = target.host
+            with pin_dns_resolution(target):
+                return _fetch_json_over_pinned_https(
+                    target,
+                    url,
+                    timeout_seconds=timeout_seconds,
+                    request_headers=request_headers,
+                )
         except (requests.RequestException, json.JSONDecodeError, ValueError) as exc:
             LOGGER.warning("collector_fetch_failed attempt=%s/%s url=%s error=%s", attempt, max_attempts, url, exc)
             if attempt == max_attempts:
@@ -243,34 +311,36 @@ def run_collection(config_path: Path = DEFAULT_CONFIG_PATH, retry_path: Path = D
     if not sources:
         LOGGER.warning("collector_no_sources_found config_path=%s", config_path)
 
-    fetched_payloads: list[dict[str, Any]] = []
-    with requests.Session() as session:
-        for source in sources:
-            endpoint = source.get("endpoint") or endpoints.get(source.get("department_code"))
-            if not endpoint:
-                LOGGER.error("collector_source_without_endpoint source=%s", source)
-                continue
-            proxy_url = rotator.get_proxy_for_request()
-            payload = fetch_json_with_retry(
-                session,
-                str(endpoint),
-                timeout_seconds=timeout_seconds,
-                max_attempts=max_attempts,
-                backoff_base=backoff_base,
-                user_agents=user_agents,
-                proxy_url=proxy_url,
-            )
-            if payload is not None:
-                fetched_payloads.append(payload)
-                if proxy_url:
-                    rotator.mark_success(proxy_url)
-            elif proxy_url:
-                rotator.mark_failure(proxy_url, "collector_fetch_failed")
+    allowed_domains = {str(item).lower() for item in config.get("cne_domains", []) if str(item).strip()}
 
-            if max_jitter > 0:
-                jitter = random.uniform(min_jitter, max_jitter)
-                LOGGER.debug("collector_request_jitter_sleep seconds=%.2f", jitter)
-                time.sleep(jitter)
+    fetched_payloads: list[dict[str, Any]] = []
+    for source in sources:
+        endpoint = source.get("endpoint") or endpoints.get(source.get("department_code"))
+        if not endpoint:
+            LOGGER.error("collector_source_without_endpoint source=%s", source)
+            continue
+        proxy_url = rotator.get_proxy_for_request()
+        payload = fetch_json_with_retry(
+            str(endpoint),
+            timeout_seconds=timeout_seconds,
+            max_attempts=max_attempts,
+            backoff_base=backoff_base,
+            user_agents=user_agents,
+            proxy_url=proxy_url,
+            allowed_domains=allowed_domains or None,
+            enforce_public_ip_resolution=True,
+        )
+        if payload is not None:
+            fetched_payloads.append(payload)
+            if proxy_url:
+                rotator.mark_success(proxy_url)
+        elif proxy_url:
+            rotator.mark_failure(proxy_url, "collector_fetch_failed")
+
+        if max_jitter > 0:
+            jitter = random.uniform(min_jitter, max_jitter)
+            LOGGER.debug("collector_request_jitter_sleep seconds=%.2f", jitter)
+            time.sleep(jitter)
 
     expected_count = int(config.get("expected_json_count", 96))
     valid_payloads, invalid_count = validate_collected_payloads(fetched_payloads, expected_count=expected_count)
