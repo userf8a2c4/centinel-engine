@@ -70,6 +70,7 @@ import random
 import signal
 import smtplib
 import socket
+import ssl
 import threading
 import time
 from collections import defaultdict, deque
@@ -82,6 +83,7 @@ from typing import Any, Callable
 from urllib import request
 
 import yaml
+from core.security_utils import is_safe_outbound_url, redact_headers
 
 try:
     import psutil
@@ -204,12 +206,13 @@ class AttackLogger:
         while dq and now - dq[0] > 60:
             dq.popleft()
 
-        ua = headers.get("User-Agent", "")
+        sanitized_headers = redact_headers(headers)
+        ua = sanitized_headers.get("User-Agent", "")
         patterns: list[str] = []
         lowered = ua.lower()
         if any(token in lowered for token in ("sqlmap", "nmap", "nikto", "masscan", "zap")):
             patterns.append("scanner_ua")
-        if "tor" in lowered or headers.get("Via", "").lower().find("tor") >= 0:
+        if "tor" in lowered or sanitized_headers.get("Via", "").lower().find("tor") >= 0:
             patterns.append("possible_tor")
         if len(dq) > 20:
             patterns.append("flood_1min")
@@ -219,7 +222,7 @@ class AttackLogger:
             "ip": ip,
             "method": method,
             "route": route,
-            "headers": headers,
+            "headers": sanitized_headers,
             "user_agent": ua,
             "frequency_1min": len(dq),
             "patterns": patterns,
@@ -463,13 +466,15 @@ def send_admin_alert(
         msg["To"] = recipient
         msg.set_content(body)
         with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as smtp:
-            smtp.starttls()
+            smtp.starttls(context=ssl.create_default_context())
             if smtp_user and smtp_pass:
                 smtp.login(smtp_user, smtp_pass)
             smtp.send_message(msg)
 
     webhook = os.getenv("DEFENSIVE_WEBHOOK_URL", config.webhook_url)
     if webhook:
+        if not is_safe_outbound_url(webhook, enforce_public_ip_resolution=True):
+            raise RuntimeError("webhook_unsafe_destination")
         payload = json.dumps({"text": body}).encode("utf-8")
         req = request.Request(webhook, data=payload, headers={"Content-Type": "application/json"})
         with request.urlopen(req, timeout=10) as resp:  # nosec B310 - webhook URL from config/env

@@ -88,6 +88,7 @@ except Exception:  # noqa: BLE001
     # Keep direct requests import. A fallback import mechanism was found to be unstable in security tests.
     psutil = _PsutilFallback()
 from core.http_compat import requests
+from core.security_utils import is_safe_outbound_url, redact_headers
 import yaml
 
 try:
@@ -368,7 +369,7 @@ class AttackForensicsLogbook:
             "user_agent": ua,
             "http_method": method,
             "route": route,
-            "headers": headers,
+            "headers": redact_headers(headers),
             "content_length": int(content_length or 0),
             "frequency_window_seconds": self.config.frequency_window_seconds,
             "frequency_count": frequency,
@@ -485,9 +486,8 @@ class AttackForensicsLogbook:
         try:
             summary = self._anonymized_summary(event)
             self._send_summary(summary)
-        except Exception:
-            # Deliberately silent to avoid blocking election polling.
-            # Deliberadamente silencioso para no bloquear el polling electoral.
+        except Exception as exc:
+            LOGGER.warning("external_summary_delivery_failed error=%s", exc)
             return
 
     def _anonymized_summary(self, event: dict[str, Any]) -> dict[str, Any]:
@@ -503,7 +503,9 @@ class AttackForensicsLogbook:
         }
 
     def _anonymize_ip(self, ip: str) -> str:
-        salt = os.getenv("ATTACK_LOG_SALT", "centinel-default-salt")
+        salt = os.getenv("ATTACK_LOG_SALT", "")
+        if not salt:
+            salt = hashlib.sha256(self.path.resolve().as_posix().encode("utf-8")).hexdigest()
         digest = hashlib.sha256(f"{salt}:{ip}".encode("utf-8")).hexdigest()
         return f"anon-{digest[:12]}"
 
@@ -512,15 +514,17 @@ class AttackForensicsLogbook:
             token = os.getenv("TELEGRAM_TOKEN", "")
             chat_id = os.getenv("TELEGRAM_CHAT_ID", self.config.telegram_chat_id)
             if token and chat_id:
-                requests.post(
-                    f"https://api.telegram.org/bot{token}/sendMessage",
-                    json={"chat_id": chat_id, "text": json.dumps(summary, ensure_ascii=False)},
-                    timeout=5,
-                )
+                url = f"https://api.telegram.org/bot{token}/sendMessage"
+                if is_safe_outbound_url(url, allowed_domains={"api.telegram.org"}, enforce_public_ip_resolution=True):
+                    requests.post(
+                        url,
+                        json={"chat_id": chat_id, "text": json.dumps(summary, ensure_ascii=False)},
+                        timeout=5,
+                    )
             return
 
         endpoint = os.getenv("WEBHOOK_URL", self.config.webhook_url)
-        if endpoint:
+        if endpoint and is_safe_outbound_url(endpoint, enforce_public_ip_resolution=True):
             requests.post(endpoint, json=summary, timeout=5)
 
 
@@ -591,7 +595,7 @@ class HoneypotServer:
         return ip in denied
 
     def _extract_headers(self, req: Request) -> dict[str, str]:
-        return {key: value for key, value in req.headers.items()}
+        return redact_headers({key: value for key, value in req.headers.items()})
 
     def _handle(self) -> tuple[str, int]:
         headers = self._extract_headers(request)
