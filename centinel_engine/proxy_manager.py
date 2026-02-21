@@ -147,7 +147,7 @@ class ProxyAndUAManager:
         if proxies:
             good_proxies = [proxy for proxy in proxies if self._bad_until_by_proxy.get(proxy, 0.0) <= now]
             bad_proxies = [proxy for proxy in proxies if self._bad_until_by_proxy.get(proxy, 0.0) > now]
-            # Strict priority: good proxies first / # Prioridad estricta: proxies buenos primero
+            # Strict good-first priority / # Prioridad estricta: buenos primero
             if good_proxies:
                 return secrets.choice(good_proxies)
             if bad_proxies and secrets.randbelow(100) < 20:
@@ -262,7 +262,7 @@ class ProxyAndUAManager:
             if proxy_url is None:
                 proxy_url = self._last_proxy_url
             if proxy_url:
-                # Temporary quarantine 4h instead of permanent / # Cuarentena temporal 4h en vez de permanente
+                # Temporary 4-hour quarantine instead of permanent / # Cuarentena temporal de 4 horas en vez de permanente
                 self._bad_until_by_proxy[proxy_url] = time.time() + 14400
             self._force_rotation = True
 
@@ -302,16 +302,17 @@ def reset_proxy_ua_manager() -> None:
 
 
 def get_proxy_and_ua() -> Tuple[Optional[Dict[str, str]], str]:
-    """Return proxy and User-Agent prioritizing healthy proxies.
+    """Return proxy and User-Agent with strict good-first proxy selection.
 
-    Bilingual: Retorna proxy y User-Agent priorizando proxies saludables.
+    Bilingual: Retorna proxy y User-Agent con selección estricta de proxies buenos primero,
+    y fallback controlado del 20% a proxies en cuarentena cuando no hay buenos.
     """
     return get_proxy_ua_manager().rotate_proxy_and_ua()
 
 
 def mark_proxy_bad(proxy: Optional[Dict[str, str]] = None) -> None:
-    """Mark a proxy as temporarily quarantined for resilience.
+    """Quarantine a proxy for 4 hours and force next rotation.
 
-    Bilingual: Marca un proxy en cuarentena temporal para resiliencia.
+    Bilingual: Pone un proxy en cuarentena temporal de 4 horas y fuerza la próxima rotación.
     """
     get_proxy_ua_manager().mark_proxy_bad(proxy)
