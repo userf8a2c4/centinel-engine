@@ -387,7 +387,8 @@ class CNEEndpointHealer:
         if prior_file:
             try:
                 previous_hash = json.loads(prior_file.read_text(encoding="utf-8")).get("chain_hash", "GENESIS")
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, OSError) as exc:
+                self.logger.warning("Failed to read or parse prior hash file %s: %s", prior_file, exc)
                 previous_hash = "GENESIS"
 
         payload = {
