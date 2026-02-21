@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def verify_backup_integrity_on_startup() -> None:
-    """Verify backup integrity before scheduler main loop starts.
+    """Verify full backup chain before scheduler main loop starts.
 
-    Bilingual: Verifica integridad del backup antes de iniciar el loop principal.
+    Bilingual: Verifica la cadena completa de backup antes de iniciar el loop principal.
     """
-    # Verify backup integrity on startup / Verificar integridad backup al arranque
+    # Full chain verification on startup / # Verificación completa de cadena al arranque
     if not secure_backup.verify_last_bundle():
-        logger.critical("Last backup corrupted - halting")
+        logger.critical("Backup chain corrupted - halting")
         sys.exit(1)

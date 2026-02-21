@@ -228,7 +228,7 @@ def predict_mode(config: Dict[str, Any], status: Dict[str, Any]) -> str:
     pressure = _compute_request_pressure(consecutive_failures, avg_latency)
 
     if _policy_blocks_exceed_window(status, policy_block_window_seconds):
-        return "hibernation"
+        return "conservative"
 
     hibernation_pressure_since = status.get("high_pressure_since")
     if pressure > high_pressure_threshold and hibernation_pressure_since is not None:
@@ -264,8 +264,8 @@ def check_vital_signs(config: Dict[str, Any], status: Dict[str, Any]) -> Dict[st
     Bilingual: Evalúa estado de salud y retorna modo + delay recomendado.
 
     Notes:
-        EN: Uses a 2-hour delay when the system enters hibernation mode.
-        ES: Usa un retardo de 2 horas cuando el sistema entra en modo hibernación.
+        EN: Uses a 2-hour delay only for sustained pressure >12 during 30 consecutive minutes.
+        ES: Usa un retardo de 2 horas solo para presión sostenida >12 durante 30 minutos consecutivos.
     """
     baseline = int(_resolve_threshold(config, "baseline_interval_seconds"))
     failures_cons = int(_resolve_threshold(config, "consecutive_failures_conservative"))
@@ -307,7 +307,8 @@ def check_vital_signs(config: Dict[str, Any], status: Dict[str, Any]) -> Dict[st
         conservative_reasons.append("high_request_pressure")
 
     if mode == "hibernation":
-        delay = max(hibernation_delay, baseline * 12)
+        # Less aggressive hibernation for better uptime in election peaks / # Hibernación menos agresiva para mejor uptime en picos electorales
+        delay = hibernation_delay
         actions.extend(["pause_collection", "keep_secure_backup", "validate_hash_chain_local"])
         if _policy_blocks_exceed_window(status, int(_resolve_threshold(config, "policy_block_window_seconds"))):
             logger.warning(
@@ -417,7 +418,7 @@ def update_status_after_scrape(
     else:
         status["conservative_pressure_since"] = None
 
-    # Early detection to react before full block / # Detección temprana para reaccionar antes de bloqueo total
+    # Less aggressive hibernation for better uptime in election peaks / # Hibernación menos agresiva para mejor uptime en picos electorales
     if pressure > high_pressure_threshold:
         if status.get("high_pressure_since") is None:
             status["high_pressure_since"] = now_ts
