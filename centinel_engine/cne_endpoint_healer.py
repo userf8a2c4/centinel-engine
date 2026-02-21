@@ -181,19 +181,25 @@ class CNEEndpointHealer:
         Español: Analiza página principal y bundles Angular para detectar endpoints JSON candidatos.
         """
 
-        # English: Import locally to avoid failing unrelated commands when bs4 is absent.
-        # Español: Importación local para no romper comandos no relacionados si falta bs4.
-        from bs4 import BeautifulSoup
-
         html = self._http_get_text(main_url)
-        soup = BeautifulSoup(html, "html.parser")
 
         bundles: list[str] = []
-        for script in soup.select("script[src]"):
-            src = script.get("src", "").strip()
-            if not src:
-                continue
-            bundles.append(urljoin(main_url, src))
+        try:
+            # English: Prefer BeautifulSoup when available for robust HTML parsing.
+            # Español: Preferir BeautifulSoup cuando está disponible para parseo HTML robusto.
+            from bs4 import BeautifulSoup
+
+            soup = BeautifulSoup(html, "html.parser")
+            for script in soup.select("script[src]"):
+                src = script.get("src", "").strip()
+                if not src:
+                    continue
+                bundles.append(urljoin(main_url, src))
+        except ImportError:
+            # English: Fallback parser keeps auto-discovery operational without extra dependency.
+            # Español: Parser fallback mantiene autodescubrimiento operativo sin dependencia extra.
+            for src in self._extract_script_srcs(html):
+                bundles.append(urljoin(main_url, src))
 
         raw_matches = set(JSON_URL_PATTERN.findall(html))
         for bundle_url in bundles:
@@ -433,6 +439,15 @@ class CNEEndpointHealer:
         return response.json()
 
     @staticmethod
+    def _extract_script_srcs(html: str) -> list[str]:
+        """English: Extract script src URLs from HTML when BeautifulSoup is unavailable.
+        Español: Extrae URLs src de scripts desde HTML cuando BeautifulSoup no está disponible.
+        """
+
+        pattern = re.compile(r"<script[^>]+src=[\"']([^\"']+)[\"']", re.IGNORECASE)
+        return [match.strip() for match in pattern.findall(html) if match.strip()]
+
+    @staticmethod
     def _normalize_url(base_url: str, candidate: str) -> str:
         """English: Normalize relative/protocol-less URLs into absolute URL form.
         Español: Normaliza URLs relativas/sin protocolo a formato absoluto.
@@ -459,6 +474,8 @@ class CNEEndpointHealer:
 
         normalized = unicodedata.normalize("NFKD", value)
         normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+        normalized = re.sub(r"[_\-]+", " ", normalized)
+        normalized = re.sub(r"\s+", " ", normalized)
         return normalized.strip().upper()
 
     @staticmethod

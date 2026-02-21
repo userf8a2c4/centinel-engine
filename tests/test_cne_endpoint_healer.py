@@ -74,3 +74,19 @@ def test_build_resilient_endpoint_set_falls_back_to_existing_endpoints(tmp_path)
     assert any(item.level == "NACIONAL" and item.validation_status == "degraded" for item in selected)
     assert any(item.department == "ATLANTIDA" and item.validation_status == "degraded" for item in selected)
     assert summary["degraded_count"] >= 2
+
+
+def test_extract_script_srcs_fallback_parser_reads_relative_and_absolute_sources(tmp_path):
+    healer = _build_healer(tmp_path)
+
+    html = '<html><head><script src="runtime.js"></script><script src="https://cdn.example.com/main.js"></script></head></html>'
+
+    srcs = healer._extract_script_srcs(html)
+
+    assert srcs == ["runtime.js", "https://cdn.example.com/main.js"]
+
+
+def test_infer_department_matches_urls_with_underscores_and_hyphens(tmp_path):
+    healer = _build_healer(tmp_path)
+
+    assert healer._infer_department("https://x/francisco_morazan-presidencial.json", []) == "FRANCISCO MORAZAN"
