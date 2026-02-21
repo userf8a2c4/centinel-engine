@@ -111,6 +111,8 @@ from src.monitoring.strict_health import (
     is_healthy_strict,
 )
 
+from centinel_engine.cne_endpoint_healer import run_endpoint_healer
+
 if importlib.util.find_spec("rich"):
     from rich.console import Console
     from rich.logging import RichHandler
@@ -825,6 +827,14 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    # English: Run endpoint healer before maintenance actions that may trigger data fetches.
+    # Español: Ejecuta el healer de endpoints antes de acciones de mantenimiento que puedan disparar descargas.
+    try:
+        healer_result = run_endpoint_healer()
+        logger.info("🩺 Endpoint healer executed before command %s: %s", args.command, healer_result)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("⚠️ Endpoint healer failed before command %s: %s", args.command, exc)
 
     try:
         if args.command == "checkpoint-now":
