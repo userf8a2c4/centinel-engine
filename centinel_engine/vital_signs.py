@@ -66,8 +66,8 @@ DEFAULT_THRESHOLDS: Dict[str, Any] = {
     "high_pressure_threshold": 12.0,
     "high_pressure_window_seconds": 1800,
     "hibernation_delay_seconds": 7200,
-    "predictive_window_size": 20,
-    "predictive_failure_ratio": 0.60,
+    "predictive_window_size": 15,
+    "predictive_failure_ratio": 0.40,
     "policy_block_window_seconds": 1800,
 }
 
@@ -198,6 +198,8 @@ def predict_mode(config: Dict[str, Any], status: Dict[str, Any]) -> str:
     - Retorna `conservative` temprano cuando la tendencia de fallos es >40% en 15 requests.
     - Returns `conservative` when pressure stays >6 for 5 minutes.
     - Retorna `conservative` cuando la presión se mantiene >6 durante 5 minutos.
+    - Returns `hibernation` only when pressure stays >12 for 30 consecutive minutes.
+    - Retorna `hibernation` solo cuando la presión se mantiene >12 por 30 minutos consecutivos.
 
     Args:
         config: Runtime scheduler configuration.
@@ -215,8 +217,8 @@ def predict_mode(config: Dict[str, Any], status: Dict[str, Any]) -> str:
     """
     high_pressure_threshold = float(_resolve_threshold(config, "high_pressure_threshold"))
     high_pressure_window_seconds = int(_resolve_threshold(config, "high_pressure_window_seconds"))
-    predictive_window_size = int(_resolve_threshold(config, "predictive_window_size"))
-    predictive_failure_ratio = float(_resolve_threshold(config, "predictive_failure_ratio"))
+    predictive_window_size = 15
+    predictive_failure_ratio = 0.40
     policy_block_window_seconds = int(_resolve_threshold(config, "policy_block_window_seconds"))
 
     success_history = list(status.get("success_history", []))
@@ -228,33 +230,30 @@ def predict_mode(config: Dict[str, Any], status: Dict[str, Any]) -> str:
     if _policy_blocks_exceed_window(status, policy_block_window_seconds):
         return "hibernation"
 
-    high_pressure_since = status.get("high_pressure_since")
-    # Less aggressive hibernation threshold / Umbral de hibernación menos agresivo
-    if pressure > high_pressure_threshold and high_pressure_since is not None:
-        if (time.time() - float(high_pressure_since)) >= high_pressure_window_seconds:
+    hibernation_pressure_since = status.get("high_pressure_since")
+    if pressure > high_pressure_threshold and hibernation_pressure_since is not None:
+        if (time.time() - float(hibernation_pressure_since)) >= high_pressure_window_seconds:
             return "hibernation"
+
+    # Early detection to react before full block / # Detección temprana para reaccionar antes de bloqueo total
+    if consecutive_failures >= 2:
+        return "conservative"
 
     trend_window = success_history[-predictive_window_size:]
     if trend_window:
         failures = sum(1 for item in trend_window if not item)
-        # Lower threshold for early detection / Umbral más bajo para detección temprana
+        # Early detection to react before full block / # Detección temprana para reaccionar antes de bloqueo total
         if (failures / len(trend_window)) > predictive_failure_ratio:
-            # Prevents full block before reaction / Evita bloqueo completo antes de reaccionar
             return "conservative"
 
-    # Lower threshold for early detection / Umbral más bajo para detección temprana
-    if consecutive_failures >= int(_resolve_threshold(config, "consecutive_failures_conservative")):
-        # Prevents full block before reaction / Evita bloqueo completo antes de reaccionar
-        return "conservative"
-
-    high_pressure_since = status.get("high_pressure_since")
-    if pressure > high_pressure_threshold and high_pressure_since is not None:
-        if (time.time() - float(high_pressure_since)) >= high_pressure_window_seconds:
-            # Lower threshold for early detection / Umbral más bajo para detección temprana
-            # Prevents full block before reaction / Evita bloqueo completo antes de reaccionar
+    conservative_pressure_since = status.get("conservative_pressure_since")
+    if pressure > 6.0 and conservative_pressure_since is not None:
+        # Early detection to react before full block / # Detección temprana para reaccionar antes de bloqueo total
+        if (time.time() - float(conservative_pressure_since)) >= 300:
             return "conservative"
 
-    if pressure > high_pressure_threshold:
+    if pressure > 6.0:
+        # Early detection to react before full block / # Detección temprana para reaccionar antes de bloqueo total
         return "conservative"
     return "normal"
 
@@ -379,6 +378,11 @@ def update_status_after_scrape(
     """Update rolling status metrics after each scrape cycle.
 
     Bilingual: Actualiza métricas de estado acumuladas después de cada ciclo.
+
+    EN: Tracks pressure bands for conservative mode (>6 for 5 minutes)
+    and hibernation mode (>12 for 30 consecutive minutes).
+    ES: Registra bandas de presión para modo conservador (>6 por 5 minutos)
+    y modo hibernación (>12 por 30 minutos consecutivos).
     """
     status = dict(current_status)
     history = list(status.get("success_history", []))
@@ -402,9 +406,18 @@ def update_status_after_scrape(
 
     now_ts = time.time()
     runtime_config = config or {}
-    high_pressure_threshold = float(runtime_config.get("high_pressure_threshold", DEFAULT_THRESHOLDS["high_pressure_threshold"]))
+    high_pressure_threshold = float(
+        runtime_config.get("high_pressure_threshold", DEFAULT_THRESHOLDS["high_pressure_threshold"])
+    )
 
-    # English: ensure timestamps are set when threshold is crossed, even if key exists with None. / Español: asegurar timestamp aunque la llave exista con None.
+    # Early detection to react before full block / # Detección temprana para reaccionar antes de bloqueo total
+    if pressure > 6.0:
+        if status.get("conservative_pressure_since") is None:
+            status["conservative_pressure_since"] = now_ts
+    else:
+        status["conservative_pressure_since"] = None
+
+    # Early detection to react before full block / # Detección temprana para reaccionar antes de bloqueo total
     if pressure > high_pressure_threshold:
         if status.get("high_pressure_since") is None:
             status["high_pressure_since"] = now_ts
