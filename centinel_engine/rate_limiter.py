@@ -53,8 +53,8 @@ DEFAULT_BURST: int = 3
 DEFAULT_MIN_INTERVAL: float = 8.0
 DEFAULT_MAX_INTERVAL: float = 12.0
 DEFAULT_MAX_REQUESTS_PER_HOUR: int = 180
-DEFAULT_BACKOFF_JITTER_MIN: float = 0.6
-DEFAULT_BACKOFF_JITTER_MAX: float = 1.8
+DEFAULT_BACKOFF_JITTER_MIN: float = 0.55
+DEFAULT_BACKOFF_JITTER_MAX: float = 1.85
 DEFAULT_CONSERVATIVE_MIN_DELAY_SECONDS: float = 900.0
 DEFAULT_429_WINDOW_SECONDS: float = 300.0
 DEFAULT_429_THRESHOLD: int = 3
@@ -251,7 +251,7 @@ class TokenBucketRateLimiter:
         """Block until next request is allowed and consume one token.
 
         Bilingual: Bloquea hasta permitir la siguiente solicitud y consume un token,
-        aplicando jitter más amplio y sleep aleatorio sutil para romper patrones de timing.
+        aplicando jitter más amplio y sleep aleatorio para romper patrones avanzados de timing.
 
         Args:
             None.
@@ -274,8 +274,8 @@ class TokenBucketRateLimiter:
                 conservative_wait = self.conservative_min_delay_seconds if self._is_conservative_active(now_wall) else 0.0
 
                 wait_seconds = max(core_wait, hourly_wait, adaptive_wait, conservative_wait)
-                # Wider jitter + small random sleep to disrupt timing fingerprinting / # Jitter más amplio + sleep random sutil para romper fingerprinting por timing
-                random_sleep: float = random.uniform(0.0, 3.0)
+                # Wider jitter + random sleep to disrupt advanced timing fingerprinting / # Jitter más amplio + sleep random para romper fingerprinting por timing avanzado
+                random_sleep: float = random.uniform(0.0, 3.2)
                 time.sleep(random_sleep)
                 total_waited += random_sleep
                 if wait_seconds <= 0:
