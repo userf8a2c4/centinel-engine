@@ -381,7 +381,7 @@ class CNEEndpointHealer:
 
         self.hash_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        prior_file = sorted(self.hash_dir.glob("*.json"))[-1] if list(self.hash_dir.glob("*.json")) else None
+        prior_file = (sorted(self.hash_dir.glob("*.json")) or [None])[-1]
 
         previous_hash = "GENESIS"
         if prior_file:
