@@ -243,11 +243,11 @@ class CNEEndpointHealer:
             )
 
             if level in {"NACIONAL", "PRESIDENCIAL"} and national is None:
-                national = EndpointRecord(**{**record.__dict__, "level": "NACIONAL", "department": None})
+                national = replace(record, level="NACIONAL", department=None)
                 continue
 
             if department and department in EXPECTED_DEPARTMENTS and department not in per_department:
-                per_department[department] = EndpointRecord(**{**record.__dict__, "level": "DEPARTAMENTAL"})
+                per_department[department] = replace(record, level="DEPARTAMENTAL")
 
         self.logger.info("✅ Individually validated discovered endpoints: national=%s, departmental=%s", bool(national), len(per_department))
         return national, per_department
