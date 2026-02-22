@@ -90,3 +90,19 @@ def test_infer_department_matches_urls_with_underscores_and_hyphens(tmp_path):
     healer = _build_healer(tmp_path)
 
     assert healer._infer_department("https://x/francisco_morazan-presidencial.json", []) == "FRANCISCO MORAZAN"
+
+
+def test_resolve_animal_mode_thresholds(tmp_path):
+    healer = _build_healer(tmp_path)
+
+    assert healer._resolve_animal_mode(0) == "normal"
+    assert healer._resolve_animal_mode(2) == "caution"
+    assert healer._resolve_animal_mode(5) == "survival"
+
+
+def test_recommended_interval_for_animal_mode(tmp_path):
+    healer = _build_healer(tmp_path)
+
+    assert healer._recommended_interval_for_mode("normal") == 30
+    assert healer._recommended_interval_for_mode("caution") == 20
+    assert healer._recommended_interval_for_mode("survival") == 10
