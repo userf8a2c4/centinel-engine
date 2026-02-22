@@ -31,3 +31,11 @@ node_modules/
 *.pem
 *.key
 secrets.yaml
+
+# Config secrets (never commit encryption keys or tokens) /
+# Secretos de config (nunca commitear claves de cifrado o tokens)
+config/secrets/
+
+# Encrypted backups (local destination) /
+# Backups cifrados (destino local)
+backups/

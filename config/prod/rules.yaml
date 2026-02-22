@@ -1,0 +1,38 @@
+reglas_auditoria:
+  - nombre: "apply_benford_law"
+    descripcion: "Evalúa primer dígito con Ley de Benford y prueba chi-cuadrado."
+    ejemplo_entrada:
+      votes_list: [123, 456, 789, 102, 345, 678, 901, 234, 567, 890]
+    ejemplo_salida:
+      status: "OK"
+      p_value: 0.42
+      detalle: "Benford primer dígito: chi2=5.12, p_value=0.4200, muestras=10."
+  - nombre: "check_distribution_chi2"
+    descripcion: "Compara distribución partido/departamento contra esperados proporcionales."
+    ejemplo_entrada:
+      df_normalized:
+        - departamento: "Atlántida"
+          partido: "PARTIDO A"
+          votos: 1200
+        - departamento: "Atlántida"
+          partido: "PARTIDO B"
+          votos: 800
+        - departamento: "Cortés"
+          partido: "PARTIDO A"
+          votos: 2400
+        - departamento: "Cortés"
+          partido: "PARTIDO B"
+          votos: 1600
+    ejemplo_salida:
+      status: "OK"
+      p_value: 0.18
+      detalle: "Distribución partido/departamento: chi2=3.21, p_value=0.1800, celdas=4."
+
+# Parámetros sugeridos de resiliencia (documentación).
+# Suggested resilience parameters (documentation).
+resiliencia:
+  retry_max: 5
+  backoff_factor: 2
+  max_json_presidenciales: 19
+  chi2_p_critical: 0.01
+  benford_min_samples: 10

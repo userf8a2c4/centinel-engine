@@ -1,0 +1,58 @@
+# Configuración de chaos testing para CNE Honduras.
+# Chaos testing configuration for Honduras CNE.
+
+chaos:
+  # Nivel de severidad: low | medium | high.
+  # Severity level: low | medium | high.
+  level: "low"
+
+  # Duración total del ejercicio (minutos).
+  # Total duration of the exercise (minutes).
+  duration_minutes: 1
+
+  # Probabilidad de falla por request (0-1).
+  # Failure probability per request (0-1).
+  failure_probability: 0.2
+
+  # Escenarios específicos habilitados.
+  # Enabled specific scenarios.
+  scenarios_enabled:
+    - "rate_limit_429"
+    - "timeout_503"
+    - "malformed_json"
+    - "hash_altered"
+    - "proxy_fail"
+    - "watchdog_heartbeat_miss"
+    - "slow_response"
+
+  # Alcance simulado del snapshot.
+  # Simulated snapshot scope.
+  scope: "NATIONAL"
+
+  # Endpoint simulado para respuestas CNE.
+  # Simulated CNE endpoint.
+  base_url: "https://cne.hn/api/snapshot"
+
+  # Timeout por request (segundos).
+  # Per-request timeout (seconds).
+  request_timeout_seconds: 2.0
+
+  # Intervalo de polling (segundos).
+  # Polling interval (seconds).
+  polling_interval_seconds: 0.2
+
+  # Timeout de heartbeat para watchdog (segundos).
+  # Watchdog heartbeat timeout (seconds).
+  heartbeat_timeout_seconds: 1.0
+
+  # Máximo permitido de recuperación (segundos).
+  # Maximum allowed recovery time (seconds).
+  max_recovery_seconds: 2.0
+
+  # Latencia artificial para respuesta lenta (segundos).
+  # Artificial latency for slow response (seconds).
+  slow_response_seconds: 0.3
+
+  # Ruta del reporte generado.
+  # Output report path.
+  report_path: "chaos_report.md"

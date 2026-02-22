@@ -59,8 +59,16 @@ make pipeline
 | [Reglas](docs/rules.md) | [Secretos y respaldos](docs/SECRETS_BACKUP.md) |
 | [Resiliencia (configs)](docs/resilience.md) | [Circuit breaker y low-profile](docs/resilience.md#circuit-breaker-y-low-profile) |
 
+## Cumplimiento Legal – Feb 2026 / Legal Compliance – Feb 2026
+
+Centinel opera exclusivamente sobre datos publicos del CNE conforme a la **Ley de Transparencia y Acceso a la Informacion Publica (Decreto 170-2006)**. No procesa datos personales de votantes. Incluye rate-limiting etico agresivo, pausas reactivas ante errores del servidor, y hashing encadenado SHA-256 para integridad y no repudio.
+
+Centinel operates exclusively on public CNE data pursuant to the **Transparency and Access to Public Information Act (Decree 170-2006)**. It does not process personal voter data. It includes aggressive ethical rate-limiting, reactive pauses on server errors, and chained SHA-256 hashing for integrity and non-repudiation.
+
+Para detalles completos, ver la **[Matriz de Cumplimiento Legal / Legal Compliance Matrix](docs/legal_compliance_matrix.md)**.
+
 ## Descargo / Disclaimer
 
-Este repositorio procesa únicamente datos públicos del CNE y otras fuentes oficiales; documenta hechos técnicos verificables sin interpretación política ni partidaria.
+Datos solo de fuentes publicas CNE, conforme Ley de Transparencia 170-2006. Agnostico politico. Sin interpretacion partidaria.
 
-This repository processes only public CNE and official-source data; it documents technically verifiable facts without political or partisan interpretation.
+Data only from public CNE sources, pursuant to Transparency Law 170-2006. Politically agnostic. No partisan interpretation.

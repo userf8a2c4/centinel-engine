@@ -35,6 +35,9 @@ from scripts.security.encrypt_secrets import decrypt_secrets
 from centinel.core.anchoring_payload import build_diff_summary, compute_anchor_root
 from centinel.core.custody import run_startup_verification
 from centinel.utils.config_loader import load_config
+from centinel_engine.rate_limiter import get_rate_limiter
+from centinel_engine.proxy_manager import get_proxy_and_ua_manager
+from centinel_engine.secure_backup import backup_critical
 
 DATA_DIR = Path("data")
 TEMP_DIR = DATA_DIR / "temp"
@@ -623,11 +626,19 @@ def run_pipeline(config: dict[str, Any]):
     )
     log_event(logger, logging.INFO, "pipeline_start", run_id=run_id)
 
+    # --- Rate-limit + proxy/UA integration / Integracion rate-limit + proxy/UA ---
+    rate_limiter = get_rate_limiter(capacity=3, refill_seconds=10.0)
+    proxy_ua_manager = get_proxy_and_ua_manager("config/prod/proxies.yaml")
+
     try:
         if should_run_stage("healthcheck", start_stage):
             save_pipeline_checkpoint({"run_id": run_id, "stage": "healthcheck", "at": utcnow().isoformat()})
             save_resilience_checkpoint(run_id, "healthcheck")
             maybe_inject_chaos_failure("healthcheck", resilience_settings, chaos_rng)
+            # Ethical rate-limit before CNE access / Rate-limit etico antes de acceso al CNE
+            rate_limiter.wait()
+            proxy_dict, user_agent = proxy_ua_manager.get_proxy_and_ua()
+            log_event(logger, logging.DEBUG, "pre_scrape_stealth", user_agent=user_agent[:40])
             health_ok = check_cne_connectivity(config)
             download_cmd = [sys.executable, "scripts/download_and_hash.py"]
             if not health_ok:
@@ -749,6 +760,8 @@ def run_pipeline(config: dict[str, Any]):
         save_state(state)
         clear_pipeline_checkpoint()
         clear_resilience_checkpoint()
+        # Encrypted backup after successful scrape / Backup cifrado tras scrape exitoso
+        backup_critical()
         log_event(logger, logging.INFO, "pipeline_complete", run_id=run_id)
     except Exception as exc:  # noqa: BLE001
         log_event(
