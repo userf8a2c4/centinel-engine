@@ -706,7 +706,7 @@ class CNEEndpointHealer:
         Español: Determina si el resultado proactivo es seguro para ejecutar fetch de producción.
         """
 
-        return bool(scan_result.get("trusted_for_production", False) and not scan_result.get("safe_mode_active", False))
+        return scan_result.get("trusted_for_production", False) and not scan_result.get("safe_mode_active", False)
 
 
     @staticmethod
