@@ -171,7 +171,7 @@ class CNEEndpointHealer:
         animal_mode = self._resolve_animal_mode(consecutive_failures)
         recommended_interval_minutes = self._recommended_interval_for_mode(animal_mode)
         trusted_for_production = bool(scan_status == "success" and deep_validation_ok and completeness_ok)
-        safe_mode_active = bool((not trusted_for_production) or animal_mode == "survival")
+        safe_mode_active = (not trusted_for_production) or animal_mode == "survival"
         untrusted_reason = None if trusted_for_production else "deep_validation_or_completeness_failed"
 
         result.update(
