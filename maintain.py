@@ -111,7 +111,7 @@ from src.monitoring.strict_health import (
     is_healthy_strict,
 )
 
-from centinel_engine.cne_endpoint_healer import run_endpoint_healer
+from centinel_engine.cne_endpoint_healer import CNEEndpointHealer, run_endpoint_healer
 
 if importlib.util.find_spec("rich"):
     from rich.console import Console
@@ -793,6 +793,49 @@ def command_panic(runtime: RuntimeConfig, logger: logging.Logger) -> None:
     logger.critical("Modo pánico activado. Flag en %s", runtime.panic_flag_path)
 
 
+
+
+def ensure_recent_proactive_scan(logger: logging.Logger, max_age_minutes: int = 30) -> dict[str, Any]:
+    """Español:
+        Verifica y ejecuta un proactive scan si el último escaneo exitoso supera el umbral.
+
+    English:
+        Verify and run a proactive scan when the last successful scan is older than threshold.
+
+    Args:
+        logger: Logger operativo para trazabilidad forense.
+        max_age_minutes: Máxima edad permitida del último escaneo exitoso.
+    """
+
+    config_path = Path("config/prod/endpoints.yaml")
+    healer = CNEEndpointHealer(config_path)
+    config = healer._load_config()
+    last_success = healer._parse_iso8601(config.get("healing", {}).get("last_successful_scan"))
+
+    if last_success is not None:
+        elapsed = datetime.now(timezone.utc) - last_success
+        if elapsed <= timedelta(minutes=max_age_minutes):
+            logger.info("🟩 Proactive endpoint scan vigente (edad=%s minutos)", round(elapsed.total_seconds() / 60, 2))
+            return {
+                "scan_status": "fresh",
+                "trusted_for_production": True,
+                "safe_mode_active": False,
+                "animal_mode": str(config.get("healing", {}).get("animal_mode", "normal")),
+                "recommended_interval_minutes": int(config.get("healing", {}).get("recommended_interval_minutes", config.get("healing", {}).get("interval_minutes", 30))),
+            }
+
+    logger.info("🩺 Ejecutando proactive endpoint scan previo a fetch/auditoría")
+    result = healer.heal_proactive(force=True)
+    logger.info(
+        "🧾 Proactive endpoint scan ejecutado: status=%s mode=%s interval=%s trusted=%s safe_mode=%s",
+        result.get("scan_status", "unknown"),
+        result.get("animal_mode", "normal"),
+        result.get("recommended_interval_minutes", "n/a"),
+        result.get("trusted_for_production", False),
+        result.get("safe_mode_active", False),
+    )
+    return result
+
 def build_parser() -> argparse.ArgumentParser:
     """Create argument parser with subcommands."""
 
@@ -828,8 +871,24 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    # English: Run endpoint healer before maintenance actions that may trigger data fetches.
-    # Español: Ejecuta el healer de endpoints antes de acciones de mantenimiento que puedan disparar descargas.
+    # English: Run proactive gate before any fetch and keep standard endpoint healer execution.
+    # Español: Ejecuta compuerta proactiva antes de cualquier fetch y mantiene el healer estándar.
+    proactive_result: dict[str, Any] = {"trusted_for_production": True, "safe_mode_active": False}
+    try:
+        proactive_result = ensure_recent_proactive_scan(logger, max_age_minutes=30)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("⚠️ Proactive endpoint scan failed before command %s: %s", args.command, exc)
+        proactive_result = {"trusted_for_production": False, "safe_mode_active": True, "scan_status": "error"}
+
+    if args.command != "status" and (not proactive_result.get("trusted_for_production", False) or proactive_result.get("safe_mode_active", False)):
+        logger.error(
+            "⛔ Production fetch guardrail blocked command %s (status=%s mode=%s)",
+            args.command,
+            proactive_result.get("scan_status", "unknown"),
+            proactive_result.get("animal_mode", "unknown"),
+        )
+        return 1
+
     try:
         healer_result = run_endpoint_healer()
         logger.info("🩺 Endpoint healer executed before command %s: %s", args.command, healer_result)
