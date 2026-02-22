@@ -157,6 +157,8 @@ class CNEEndpointHealer:
                 "elapsed_minutes": elapsed_minutes,
                 "animal_mode": str(healing_cfg.get("animal_mode", "normal")),
                 "recommended_interval_minutes": int(healing_cfg.get("recommended_interval_minutes", healing_cfg.get("interval_minutes", 30))),
+                "trusted_for_production": bool(healing_cfg.get("trusted_for_production", False)),
+                "safe_mode_active": bool(healing_cfg.get("safe_mode_active", False)),
             }
 
         result = self.heal()
@@ -168,6 +170,9 @@ class CNEEndpointHealer:
         consecutive_failures = 0 if scan_status == "success" else prior_failures + 1
         animal_mode = self._resolve_animal_mode(consecutive_failures)
         recommended_interval_minutes = self._recommended_interval_for_mode(animal_mode)
+        trusted_for_production = bool(scan_status == "success" and deep_validation_ok and completeness_ok)
+        safe_mode_active = (not trusted_for_production) or animal_mode == "survival"
+        untrusted_reason = None if trusted_for_production else "deep_validation_or_completeness_failed"
 
         result.update(
             {
@@ -179,6 +184,9 @@ class CNEEndpointHealer:
                 "animal_mode": animal_mode,
                 "recommended_interval_minutes": recommended_interval_minutes,
                 "consecutive_failures": consecutive_failures,
+                "trusted_for_production": trusted_for_production,
+                "safe_mode_active": safe_mode_active,
+                "untrusted_reason": untrusted_reason,
             }
         )
 
@@ -199,10 +207,15 @@ class CNEEndpointHealer:
                 "consecutive_failures": consecutive_failures,
                 "animal_mode": animal_mode,
                 "recommended_interval_minutes": recommended_interval_minutes,
+                "trusted_for_production": trusted_for_production,
+                "safe_mode_active": safe_mode_active,
+                "last_untrusted_reason": untrusted_reason,
             }
         )
         if scan_status == "success":
             healing_cfg["last_successful_scan"] = now.isoformat()
+        if trusted_for_production:
+            healing_cfg["last_trusted_scan"] = now.isoformat()
 
         self._persist_full_config(config)
         self.logger.info("🔁 Proactive scan stored with hash=%s status=%s", scan_hash, scan_status)
@@ -270,6 +283,10 @@ class CNEEndpointHealer:
         config["healing"].setdefault("last_successful_scan", None)
         config["healing"].setdefault("consecutive_failures", 0)
         config["healing"].setdefault("animal_mode", "normal")
+        config["healing"].setdefault("safe_mode_active", False)
+        config["healing"].setdefault("trusted_for_production", False)
+        config["healing"].setdefault("last_trusted_scan", None)
+        config["healing"].setdefault("last_untrusted_reason", None)
 
         if not isinstance(config["cne"]["presidential_endpoints"], list):
             raise ValueError("Invalid config: presidential_endpoints must be a list")
@@ -682,6 +699,15 @@ class CNEEndpointHealer:
             }
         }
         return hashlib.sha256(yaml.safe_dump(target, sort_keys=True, allow_unicode=True).encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def is_production_safe(scan_result: dict[str, Any]) -> bool:
+        """English: Determine if proactive scan result is safe for production fetch execution.
+        Español: Determina si el resultado proactivo es seguro para ejecutar fetch de producción.
+        """
+
+        return scan_result.get("trusted_for_production", False) and not scan_result.get("safe_mode_active", False)
+
 
     @staticmethod
     def _resolve_animal_mode(consecutive_failures: int) -> str:

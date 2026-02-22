@@ -106,3 +106,27 @@ def test_recommended_interval_for_animal_mode(tmp_path):
     assert healer._recommended_interval_for_mode("normal") == 30
     assert healer._recommended_interval_for_mode("caution") == 20
     assert healer._recommended_interval_for_mode("survival") == 10
+
+
+def test_is_production_safe_checks_trusted_and_safe_mode(tmp_path):
+    healer = _build_healer(tmp_path)
+
+    assert healer.is_production_safe({"trusted_for_production": True, "safe_mode_active": False}) is True
+    assert healer.is_production_safe({"trusted_for_production": False, "safe_mode_active": False}) is False
+    assert healer.is_production_safe({"trusted_for_production": True, "safe_mode_active": True}) is False
+
+
+def test_heal_proactive_marks_untrusted_when_degraded(tmp_path):
+    healer = _build_healer(tmp_path)
+
+    healer.heal = lambda: {  # type: ignore[assignment]
+        "healthy_count": 0,
+        "degraded_count": 1,
+        "missing_departments": ["ATLANTIDA"],
+    }
+
+    result = healer.heal_proactive(force=True)
+
+    assert result["trusted_for_production"] is False
+    assert result["safe_mode_active"] is True
+    assert result["scan_status"] == "degraded"

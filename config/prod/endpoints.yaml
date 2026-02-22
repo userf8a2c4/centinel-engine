@@ -7,3 +7,7 @@ healing:
   last_successful_scan: null
   consecutive_failures: 0
   animal_mode: normal
+  safe_mode_active: false
+  trusted_for_production: false
+  last_trusted_scan: null
+  last_untrusted_reason: null
