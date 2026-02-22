@@ -2,3 +2,8 @@ cne:
   main_url: "https://resultados2029.cne.hn/"
   presidential_endpoints: []
   config_sha256: ""
+healing:
+  interval_minutes: 30
+  last_successful_scan: null
+  consecutive_failures: 0
+  animal_mode: normal

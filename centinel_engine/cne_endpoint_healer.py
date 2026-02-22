@@ -66,6 +66,19 @@ DEFAULT_HEADERS = {
 }
 
 
+HONEY_BADGER_THRESHOLDS = {
+    "normal": 0,
+    "caution": 2,
+    "survival": 4,
+}
+
+HONEY_BADGER_INTERVALS = {
+    "normal": 30,
+    "caution": 20,
+    "survival": 10,
+}
+
+
 @dataclass(frozen=True)
 class EndpointRecord:
     """English: Canonical endpoint metadata.
@@ -89,18 +102,111 @@ class CNEEndpointHealer:
 
     def __init__(
         self,
-        config_path: Path,
-        env_name: str,
-        hash_dir: Path,
+        config_path: Path | str,
+        env_name: str | None = None,
+        hash_dir: Path | None = None,
         timeout: int = DEFAULT_TIMEOUT,
     ) -> None:
-        self.config_path = config_path
-        self.env_name = env_name
-        self.hash_dir = hash_dir
+        resolved_config_path = Path(config_path)
+        inferred_env = resolved_config_path.parent.name or "default"
+
+        self.config_path = resolved_config_path
+        self.env_name = env_name or inferred_env
+        self.hash_dir = hash_dir or Path("hashes/endpoints")
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update(DEFAULT_HEADERS)
-        self.logger = logging.getLogger(f"cne_endpoint_healer.{env_name}")
+        self.logger = logging.getLogger(f"cne_endpoint_healer.{self.env_name}")
+
+    def heal(self) -> dict[str, Any]:
+        """English: Alias to keep backward compatibility with healer naming used by schedulers.
+        Español: Alias para mantener compatibilidad con el nombre heal usado por schedulers.
+        """
+
+        return self.run()
+
+    def deep_validate(self, healing_result: dict[str, Any]) -> bool:
+        """English: Perform strict post-heal validation checks on endpoint health metrics.
+        Español: Ejecuta validaciones estrictas post-curación sobre métricas de salud de endpoints.
+        """
+
+        has_national = healing_result.get("healthy_count", 0) > 0
+        missing_departments = healing_result.get("missing_departments", [])
+        return bool(has_national and not missing_departments)
+
+    def heal_proactive(self, force: bool = False) -> dict[str, Any]:
+        """English: Execute proactive healing with timing gate, deep validation, and completeness checks.
+        Español: Ejecuta curación proactiva con compuerta temporal, validación profunda y chequeos de completitud.
+        """
+
+        config = self._load_config()
+        healing_cfg = config.setdefault("healing", {})
+        now = datetime.now(timezone.utc)
+
+        last_success_dt = self._parse_iso8601(healing_cfg.get("last_successful_scan"))
+        elapsed_minutes = ((now - last_success_dt).total_seconds() / 60) if last_success_dt else None
+        must_force_by_staleness = elapsed_minutes is None or elapsed_minutes > 45
+
+        if not force and elapsed_minutes is not None and elapsed_minutes <= 30:
+            message = "Skipping proactive scan because last successful scan is still fresh"
+            self.logger.info("🟨 %s (elapsed_minutes=%.2f)", message, elapsed_minutes)
+            return {
+                "environment": self.env_name,
+                "skipped": True,
+                "reason": message,
+                "elapsed_minutes": elapsed_minutes,
+                "animal_mode": str(healing_cfg.get("animal_mode", "normal")),
+                "recommended_interval_minutes": int(healing_cfg.get("recommended_interval_minutes", healing_cfg.get("interval_minutes", 30))),
+            }
+
+        result = self.heal()
+        deep_validation_ok = self.deep_validate(result)
+        completeness_ok = self._is_completeness_ok(result)
+        scan_status = "success" if deep_validation_ok and completeness_ok else "degraded"
+
+        prior_failures = int(healing_cfg.get("consecutive_failures", 0) or 0)
+        consecutive_failures = 0 if scan_status == "success" else prior_failures + 1
+        animal_mode = self._resolve_animal_mode(consecutive_failures)
+        recommended_interval_minutes = self._recommended_interval_for_mode(animal_mode)
+
+        result.update(
+            {
+                "skipped": False,
+                "forced": bool(force or must_force_by_staleness),
+                "deep_validation_ok": deep_validation_ok,
+                "completeness_ok": completeness_ok,
+                "scan_status": scan_status,
+                "animal_mode": animal_mode,
+                "recommended_interval_minutes": recommended_interval_minutes,
+                "consecutive_failures": consecutive_failures,
+            }
+        )
+
+        scan_hash_payload = {
+            "timestamp": now.isoformat(),
+            "environment": self.env_name,
+            "result": result,
+        }
+        scan_hash = hashlib.sha256(json.dumps(scan_hash_payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+        healing_cfg.update(
+            {
+                "interval_minutes": int(healing_cfg.get("interval_minutes", 30)),
+                "last_scan_at": now.isoformat(),
+                "last_scan_status": scan_status,
+                "last_scan_hash": scan_hash,
+                "last_scan_result": result,
+                "consecutive_failures": consecutive_failures,
+                "animal_mode": animal_mode,
+                "recommended_interval_minutes": recommended_interval_minutes,
+            }
+        )
+        if scan_status == "success":
+            healing_cfg["last_successful_scan"] = now.isoformat()
+
+        self._persist_full_config(config)
+        self.logger.info("🔁 Proactive scan stored with hash=%s status=%s", scan_hash, scan_status)
+        return result
 
     def run(self) -> dict[str, Any]:
         """English: Execute full auto-discovery and self-healing cycle.
@@ -156,9 +262,14 @@ class CNEEndpointHealer:
             config = {}
 
         config.setdefault("cne", {})
+        config.setdefault("healing", {})
         config["cne"].setdefault("main_url", "https://resultados2029.cne.hn/")
         config["cne"].setdefault("presidential_endpoints", [])
         config["cne"].setdefault("config_sha256", "")
+        config["healing"].setdefault("interval_minutes", 30)
+        config["healing"].setdefault("last_successful_scan", None)
+        config["healing"].setdefault("consecutive_failures", 0)
+        config["healing"].setdefault("animal_mode", "normal")
 
         if not isinstance(config["cne"]["presidential_endpoints"], list):
             raise ValueError("Invalid config: presidential_endpoints must be a list")
@@ -373,12 +484,16 @@ class CNEEndpointHealer:
 
         config["cne"]["presidential_endpoints"] = [record.__dict__ for record in endpoints]
         config["cne"]["config_sha256"] = self._config_hash(config)
-        self.config_path.parent.mkdir(parents=True, exist_ok=True)
-        self.config_path.write_text(
-            yaml.safe_dump(config, sort_keys=False, allow_unicode=True),
-            encoding="utf-8",
-        )
+        self._persist_full_config(config)
         self.logger.info("💾 Config healed and saved to %s", self.config_path)
+
+    def _persist_full_config(self, config: dict[str, Any]) -> None:
+        """English: Persist complete endpoint configuration including healing metadata.
+        Español: Persiste la configuración completa de endpoints incluyendo metadatos de curación.
+        """
+
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        self.config_path.write_text(yaml.safe_dump(config, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
     def _write_hash_history(self, endpoints: list[EndpointRecord], changed: bool, summary: dict[str, Any]) -> Path:
         """English: Save timestamped hash-chain record for endpoint integrity audits.
@@ -567,6 +682,55 @@ class CNEEndpointHealer:
             }
         }
         return hashlib.sha256(yaml.safe_dump(target, sort_keys=True, allow_unicode=True).encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _resolve_animal_mode(consecutive_failures: int) -> str:
+        """English: Map failure streak to Honey-Badger operational mode.
+        Español: Mapea racha de fallos al modo operativo Tejón (Honey-Badger).
+        """
+
+        if consecutive_failures >= HONEY_BADGER_THRESHOLDS["survival"]:
+            return "survival"
+        if consecutive_failures >= HONEY_BADGER_THRESHOLDS["caution"]:
+            return "caution"
+        return "normal"
+
+    @staticmethod
+    def _recommended_interval_for_mode(mode: str) -> int:
+        """English: Return recommended proactive interval for the selected animal mode.
+        Español: Devuelve intervalo proactivo recomendado para el modo animal seleccionado.
+        """
+
+        return int(HONEY_BADGER_INTERVALS.get(mode, 30))
+
+
+    @staticmethod
+    def _parse_iso8601(value: Any) -> datetime | None:
+        """English: Parse ISO-8601 timestamps from persisted healing metadata.
+        Español: Parsea timestamps ISO-8601 desde metadatos persistidos de curación.
+        """
+
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            return value.astimezone(timezone.utc)
+        if isinstance(value, str):
+            normalized = value.replace("Z", "+00:00")
+            try:
+                return datetime.fromisoformat(normalized).astimezone(timezone.utc)
+            except ValueError:
+                return None
+        return None
+
+    @staticmethod
+    def _is_completeness_ok(result: dict[str, Any]) -> bool:
+        """English: Validate completeness: no missing departments and no degraded entries.
+        Español: Valida completitud: sin departamentos faltantes y sin entradas degradadas.
+        """
+
+        missing_departments = result.get("missing_departments", [])
+        degraded_count = int(result.get("degraded_count", 0))
+        return not missing_departments and degraded_count == 0
 
 
 def run_endpoint_healer_for_env(env: str) -> dict[str, Any]:
