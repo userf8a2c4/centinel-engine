@@ -82,7 +82,6 @@ from core.security_utils import is_safe_outbound_url, pin_dns_resolution, resolv
 import requests
 import urllib3
 import yaml
-from scipy import stats
 
 from centinel.proxy_handler import get_proxy_rotator
 from centinel.schemas import validate_snapshot
@@ -271,6 +270,8 @@ def detect_statistical_anomalies(payloads: list[dict[str, Any]]) -> list[dict[st
     totals = [entry["totals"]["total_votes"] for entry in payloads if isinstance(entry.get("totals"), dict)]
     if len(totals) < 3:
         return []
+
+    from scipy import stats
 
     zscores = stats.zscore(totals)
     anomalies: list[dict[str, Any]] = []
