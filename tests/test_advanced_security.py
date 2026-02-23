@@ -145,6 +145,7 @@ def test_honeypot_encrypts_events_file(monkeypatch: pytest.MonkeyPatch, tmp_path
 
     monkeypatch.setenv("HONEYPOT_LOG_KEY", "unit-test-key")
     monkeypatch.setattr("core.advanced_security.Fernet", FakeFernet)
+    monkeypatch.setattr("core.advanced_security._HAS_CRYPTOGRAPHY", True)
 
     cfg = AdvancedSecurityConfig(
         honeypot_enabled=True,
@@ -165,6 +166,8 @@ def test_honeypot_encrypts_events_file(monkeypatch: pytest.MonkeyPatch, tmp_path
 def test_honeypot_encrypt_requires_key(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     pytest.importorskip("flask")
     monkeypatch.delenv("HONEYPOT_LOG_KEY", raising=False)
+    monkeypatch.setattr("core.advanced_security._HAS_CRYPTOGRAPHY", True)
+    monkeypatch.setattr("core.advanced_security.Fernet", lambda key: None)
 
     cfg = AdvancedSecurityConfig(
         honeypot_enabled=True,
