@@ -153,7 +153,7 @@ from core.security_utils import (
 try:
     from cryptography.fernet import Fernet
     _HAS_CRYPTOGRAPHY = True
-except Exception:  # noqa: BLE001
+except BaseException:  # noqa: BLE001 – PanicException (pyo3) is not an Exception subclass
     Fernet = None  # type: ignore[assignment]
     _HAS_CRYPTOGRAPHY = False
 

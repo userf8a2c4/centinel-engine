@@ -79,7 +79,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from centinel.core.custody import sign_hash_record
+# Lazy import – custody pulls in cryptography which may not be installed
+# in lightweight CI test environments. Imported on first use.
+# from centinel.core.custody import sign_hash_record
 from centinel.paths import iter_all_hashes, iter_all_snapshots
 
 LOGGER = logging.getLogger("centinel.hash")
@@ -189,6 +191,7 @@ def maybe_sign_hash_record(
     """
     if not sign_records:
         return payload
+    from centinel.core.custody import sign_hash_record  # lazy import
     return sign_hash_record(payload, key_path=key_path, operator_id=operator_id)
 
 

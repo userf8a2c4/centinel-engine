@@ -83,8 +83,11 @@ import requests
 import urllib3
 import yaml
 
-from centinel.proxy_handler import get_proxy_rotator
-from centinel.schemas import validate_snapshot
+# Lazy imports – these modules pull in heavy optional deps (httpx, etc.)
+# that may not be installed in lightweight CI test environments.
+# Imported on first use in the functions that need them.
+# from centinel.proxy_handler import get_proxy_rotator
+# from centinel.schemas import validate_snapshot
 
 LOGGER = logging.getLogger("centinel.collector")
 DEFAULT_CONFIG_PATH = Path("command_center/config.yaml")
@@ -243,6 +246,8 @@ def validate_collected_payloads(
 
     Valida payloads contra el esquema canónico.
     """
+    from centinel.schemas import validate_snapshot  # lazy import
+
     valid_payloads: list[dict[str, Any]] = []
     invalid_count = 0
     for payload in payloads:
@@ -307,6 +312,7 @@ def run_collection(config_path: Path = DEFAULT_CONFIG_PATH, retry_path: Path = D
         scraping_profile.get("user_agents", []) if isinstance(scraping_profile.get("user_agents"), list) else []
     )
     user_agents = [str(agent) for agent in user_agents if str(agent).strip()]
+    from centinel.proxy_handler import get_proxy_rotator  # lazy import
     rotator = get_proxy_rotator(LOGGER)
 
     if not sources:
