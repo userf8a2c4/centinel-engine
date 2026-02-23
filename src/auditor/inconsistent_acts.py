@@ -130,7 +130,7 @@ class InconsistentActsTracker:
 
         previous = self.snapshots[-1]
         self.snapshots.append(snapshot)
-        change = self.analyze_change(asdict(previous))
+        change = self.analyze_change(previous)
 
         # English/Español: classify votes strictly on the resolution boundary / clasificar votos estrictamente en la frontera de resolución.
         if change.delta_actas > 0:
@@ -142,7 +142,7 @@ class InconsistentActsTracker:
 
         self.events.append(change)
 
-    def analyze_change(self, previous_snapshot: dict) -> ChangeEvent:
+    def analyze_change(self, previous_snapshot: SnapshotRecord | dict[str, Any]) -> ChangeEvent:
         """Analyze delta between previous snapshot and latest loaded snapshot.
 
         Analiza el delta entre snapshot previo y el último cargado.
@@ -151,7 +151,7 @@ class InconsistentActsTracker:
             raise ValueError("No snapshot loaded to analyze changes against.")
 
         current = self.snapshots[-1]
-        previous = SnapshotRecord(**previous_snapshot)
+        previous = previous_snapshot if isinstance(previous_snapshot, SnapshotRecord) else SnapshotRecord(**previous_snapshot)
 
         previous_count = int(previous.inconsistent_count)
         current_count = int(current.inconsistent_count)
