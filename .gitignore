@@ -18,6 +18,8 @@ command_center/configs/history/
 # Test / coverage artifacts
 .coverage
 *.junit.xml
+artifacts/
+sbom.*.cyclonedx.json
 
 # Archivos temporales
 *.log
