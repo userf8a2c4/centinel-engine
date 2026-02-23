@@ -7,14 +7,14 @@
 
 ## Español (principal)
 
-### ¿Qué es Sentinel?
-Sentinel es un sistema técnico independiente para observar y auditar datos electorales públicos en Honduras. Registra, normaliza y verifica cambios en datos publicados para producir reportes técnicos reproducibles y trazables.
+### ¿Qué es Centinel?
+Centinel es un sistema técnico independiente para observar y auditar datos electorales públicos en Honduras. Registra, normaliza y verifica cambios en datos publicados para producir reportes técnicos reproducibles y trazables.
 
 ### ¿Por qué importa?
 La integridad electoral requiere evidencia verificable. Sentinel aporta transparencia técnica mediante snapshots, hashes encadenados y análisis de anomalías con enfoque ciudadano y neutral.
 
 ### Estado actual
-- **AUDIT ACTIVE**
+- **EN DESARROLLO**
 - **Dashboard:** [Streamlit](https://centinel.streamlit.app/)
 
 ### Primeros pasos (5 minutos)
@@ -38,14 +38,14 @@ Gracias a la comunidad cívica, periodistas de datos y personas voluntarias que 
 
 ## English
 
-### What is Sentinel?
-Sentinel is an independent technical system to observe and audit public electoral data in Honduras. It records, normalizes, and verifies changes in published data to produce reproducible, traceable technical reports.
+### What is Centinel?
+Centinel is an independent technical system to observe and audit public electoral data in Honduras. It records, normalizes, and verifies changes in published data to produce reproducible, traceable technical reports.
 
 ### Why does it matter?
 Electoral integrity needs verifiable evidence. Sentinel provides technical transparency through snapshots, chained hashes, and anomaly analysis with a neutral, civic-first focus.
 
 ### Current status
-- **AUDIT ACTIVE**
+- **IN DEVELOPMENT**
 - **Dashboard:** [Streamlit](https://centinel.streamlit.app/)
 
 ### Quick start (5 minutes)
