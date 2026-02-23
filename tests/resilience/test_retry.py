@@ -61,11 +61,15 @@ from centinel.downloader import (
 from scripts.download_and_hash import build_request_headers
 
 
-def test_retry_policy_computes_exponential_backoff_with_jitter() -> None:
+def test_retry_policy_computes_exponential_backoff_with_jitter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Español: Valida backoff exponencial con jitter determinístico.
 
     English: Validate exponential backoff with deterministic jitter.
     """
+    import centinel.downloader as _dl
+
     policy = RetryPolicy(
         max_attempts=3,
         backoff_base=1.0,
@@ -75,17 +79,15 @@ def test_retry_policy_computes_exponential_backoff_with_jitter() -> None:
         jitter_max=0.1,
     )
 
+    # compute_delay uses _secure_random.uniform (secrets.SystemRandom),
+    # not random.uniform.
     values = iter([0.1, 1.05])
 
     def fake_uniform(*_: Any) -> float:
         return next(values)
 
-    original_uniform = random.uniform
-    random.uniform = fake_uniform
-    try:
-        delay = policy.compute_delay(2)
-    finally:
-        random.uniform = original_uniform
+    monkeypatch.setattr(_dl._secure_random, "uniform", fake_uniform)
+    delay = policy.compute_delay(2)
 
     assert delay == pytest.approx(2.0 * 1.05)
 

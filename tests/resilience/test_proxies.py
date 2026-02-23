@@ -73,25 +73,26 @@ class _DummyClient:
 def test_proxy_validation_rejects_403_and_errors(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
+    kwargs_logger,
 ) -> None:
     """Español: Valida rechazo de proxy 403 y errores de conexión en validación.
 
     English: Validate rejection of 403 proxies and connection errors during validation.
     """
-    responses = {
+    resp_map = {
         "http://proxy-1.local:8080": 200,
         "http://proxy-2.local:8080": 403,
     }
     errors = {"http://proxy-3.local:8080": httpx.RequestError("boom")}
 
     def dummy_client(*_args, **_kwargs):
-        return _DummyClient(responses, errors)
+        return _DummyClient(resp_map, errors)
 
     monkeypatch.setattr(proxy_handler.httpx, "Client", dummy_client)
 
-    validator = proxy_handler.ProxyValidator(test_url="https://cne.hn/health")
+    validator = proxy_handler.ProxyValidator(test_url="https://cne.hn/health", logger=kwargs_logger)
     with caplog.at_level("WARNING"):
-        validated = validator.validate(list(responses.keys()) + list(errors.keys()))
+        validated = validator.validate(list(resp_map.keys()) + list(errors.keys()))
 
     assert [proxy.url for proxy in validated] == ["http://proxy-1.local:8080"]
     assert "proxy_validation_failed" in caplog.text
@@ -100,6 +101,7 @@ def test_proxy_validation_rejects_403_and_errors(
 
 def test_proxy_rotator_round_robin_and_fallback_to_direct(
     caplog: pytest.LogCaptureFixture,
+    kwargs_logger,
 ) -> None:
     """Español: Verifica rotación round-robin y fallback a directo si fallan.
 
@@ -115,6 +117,7 @@ def test_proxy_rotator_round_robin_and_fallback_to_direct(
         proxy_urls=[proxy.url for proxy in proxies],
         rotation_strategy="round_robin",
         rotation_every_n=1,
+        logger=kwargs_logger,
     )
 
     first = rotator.get_proxy_for_request()
@@ -134,6 +137,7 @@ def test_proxy_rotator_round_robin_and_fallback_to_direct(
 
 def test_proxy_rotator_refreshes_pool_when_empty(
     monkeypatch: pytest.MonkeyPatch,
+    kwargs_logger,
 ) -> None:
     """Español: Asegura refresco de pool y recuperación cuando hay proxies válidos.
 
@@ -145,6 +149,7 @@ def test_proxy_rotator_refreshes_pool_when_empty(
         proxy_urls=["http://proxy-1.local:8080"],
         rotation_strategy="round_robin",
         rotation_every_n=1,
+        logger=kwargs_logger,
     )
 
     class DummyValidator:

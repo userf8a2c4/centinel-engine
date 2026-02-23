@@ -65,13 +65,16 @@ def test_circuit_breaker_transitions_logs_and_cooldown_recovery() -> None:
     assert breaker.record_failure(now + timedelta(seconds=1)) is True
     assert breaker.state == "OPEN"
 
-    assert breaker.should_log_open_wait(now) is True
+    # The breaker opened at now + 1s, so _next_log_at == now + 1s.
+    # Pass a time >= _next_log_at to trigger the first log.
+    assert breaker.should_log_open_wait(now + timedelta(seconds=1)) is True
     assert breaker.should_log_open_wait(now + timedelta(seconds=5)) is False
     assert breaker.consume_open_alert() is True
     assert breaker.consume_open_alert() is False
 
     assert breaker.allow_request(now + timedelta(seconds=10)) is False
-    assert breaker.seconds_until_half_open(now + timedelta(seconds=10)) == 20.0
+    # Breaker opened at now + 1s; half_open_after = 30s → target = now + 31s
+    assert breaker.seconds_until_half_open(now + timedelta(seconds=10)) == 21.0
     assert breaker.allow_request(now + timedelta(seconds=31)) is True
     assert breaker.state == "HALF_OPEN"
 
