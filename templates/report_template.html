@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<!--
+  EN: Professional PDF report template for Centinel Engine.
+      Rendered via Jinja2 + WeasyPrint to produce centinel_audit_{timestamp}.pdf.
+  ES: Plantilla profesional de reporte PDF para Centinel Engine.
+      Renderizada con Jinja2 + WeasyPrint para producir centinel_audit_{timestamp}.pdf.
+-->
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>C.E.N.T.I.N.E.L. &mdash; Informe de Auditoria Electoral</title>
+  <style>
+    /* EN: Page and base typography / ES: Pagina y tipografia base */
+    @page {
+      size: A4;
+      margin: 2cm 1.8cm 2.5cm 1.8cm;
+      @bottom-left  { content: "Centinel Engine &mdash; Auditoria Independiente"; font-size: 8px; color: #94A3B8; }
+      @bottom-right { content: "Pagina " counter(page) " / " counter(pages); font-size: 8px; color: #94A3B8; }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 10pt;
+      color: #0F172A;
+      line-height: 1.5;
+    }
+
+    /* EN: Cover section / ES: Seccion de portada */
+    .cover {
+      text-align: center;
+      padding: 4cm 1cm 2cm;
+      page-break-after: always;
+    }
+    .cover h1 {
+      font-size: 22pt;
+      color: #0B1F3B;
+      margin-bottom: 0.4cm;
+      letter-spacing: -0.02em;
+    }
+    .cover .subtitle {
+      font-size: 11pt;
+      color: #475569;
+      margin-bottom: 1.2cm;
+    }
+    .cover .meta-table {
+      margin: 0 auto;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+    .cover .meta-table td {
+      padding: 4px 12px;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    .cover .meta-table td:first-child {
+      font-weight: bold;
+      color: #334155;
+      text-align: right;
+    }
+    .cover .meta-table td:last-child {
+      font-family: "Courier New", Courier, monospace;
+      color: #0F172A;
+      text-align: left;
+    }
+
+    /* EN: Status badge / ES: Insignia de estado */
+    .status-badge {
+      display: inline-block;
+      padding: 6px 24px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 11pt;
+      color: white;
+      margin: 0.8cm 0;
+    }
+    .status-integral  { background-color: #10B981; }
+    .status-comprometido { background-color: #D62728; }
+
+    /* EN: Section headers / ES: Encabezados de seccion */
+    h2 {
+      font-size: 13pt;
+      color: #0B1F3B;
+      border-bottom: 2px solid #2D79C7;
+      padding-bottom: 4px;
+      margin: 1cm 0 0.4cm;
+    }
+    h3 {
+      font-size: 11pt;
+      color: #1F2937;
+      margin: 0.6cm 0 0.3cm;
+    }
+
+    /* EN: Tables / ES: Tablas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.3cm 0 0.6cm;
+      font-size: 9pt;
+    }
+    thead th {
+      background-color: #0B1F3B;
+      color: white;
+      padding: 6px 8px;
+      text-align: left;
+      font-weight: 600;
+    }
+    tbody td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    tbody tr:nth-child(even) { background-color: #F8FAFC; }
+    tbody tr.alert-row { background-color: #FEF2F2; }
+
+    /* EN: Chart images / ES: Imagenes de graficos */
+    .chart-container {
+      text-align: center;
+      margin: 0.4cm 0;
+    }
+    .chart-container img {
+      max-width: 100%;
+      height: auto;
+    }
+    .chart-caption {
+      font-size: 8pt;
+      color: #64748B;
+      margin-top: 2px;
+    }
+
+    /* EN: Hash display / ES: Mostrar hash */
+    .hash-block {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 8pt;
+      background: #F1F5F9;
+      padding: 8px 12px;
+      border-left: 3px solid #2D79C7;
+      margin: 0.3cm 0;
+      word-break: break-all;
+    }
+
+    /* EN: QR section / ES: Seccion QR */
+    .qr-section {
+      text-align: center;
+      margin: 0.6cm 0;
+    }
+    .qr-section img {
+      width: 3cm;
+      height: 3cm;
+    }
+    .qr-section p {
+      font-size: 8pt;
+      color: #64748B;
+    }
+
+    /* EN: Methodology / ES: Metodologia */
+    .methodology {
+      font-size: 9pt;
+      color: #475569;
+      margin: 0.4cm 0;
+    }
+
+    /* EN: Disclaimer / ES: Descargo de responsabilidad */
+    .disclaimer {
+      font-size: 8pt;
+      color: #94A3B8;
+      border-top: 1px solid #E2E8F0;
+      padding-top: 0.3cm;
+      margin-top: 1cm;
+    }
+
+    /* EN: Utility / ES: Utilidad */
+    .page-break { page-break-before: always; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .mono { font-family: "Courier New", Courier, monospace; }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================ -->
+  <!-- EN: Cover page / ES: Pagina de portada                       -->
+  <!-- ============================================================ -->
+  <div class="cover">
+    <h1>C.E.N.T.I.N.E.L.</h1>
+    <p class="subtitle">
+      Centro de Vigilancia Electoral &mdash; Informe de Integridad Transaccional
+    </p>
+
+    <div class="status-badge {{ 'status-integral' if status == 'INTEGRAL' else 'status-comprometido' }}">
+      ESTATUS: {{ status | upper }}
+    </div>
+
+    <table class="meta-table">
+      <tr><td>Fecha / Date</td><td>{{ report_date }}</td></tr>
+      <tr><td>Generado por / Generated by</td><td>{{ generated_by }}</td></tr>
+      <tr><td>Hash raiz / Root hash</td><td>{{ root_hash }}</td></tr>
+      <tr><td>Hash snapshot / Snapshot hash</td><td>{{ snapshot_hash }}</td></tr>
+      <tr><td>Snapshots procesados</td><td>{{ snapshot_count }}</td></tr>
+      <tr><td>Fuente / Source</td><td>{{ source }}</td></tr>
+    </table>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- EN: Executive summary / ES: Resumen ejecutivo                -->
+  <!-- ============================================================ -->
+  <h2>1. Resumen Ejecutivo / Executive Summary</h2>
+  <p>{{ executive_summary }}</p>
+
+  <!-- EN: KPI table / ES: Tabla de KPIs -->
+  {% if kpi_rows %}
+  <table>
+    <thead>
+      <tr>
+        {% for header in kpi_rows[0] %}
+        <th>{{ header }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in kpi_rows[1:] %}
+      <tr>
+        {% for cell in row %}
+        <td>{{ cell }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ============================================================ -->
+  <!-- EN: Topology check / ES: Verificacion topologica             -->
+  <!-- ============================================================ -->
+  <h2>2. Integridad Topologica / Topology Integrity</h2>
+  <p>{{ topology_summary }}</p>
+  {% if topology_rows %}
+  <table>
+    <thead><tr>{% for h in topology_rows[0] %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in topology_rows[1:] %}
+      <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if waterfall_chart %}
+  <div class="chart-container">
+    <img src="data:image/png;base64,{{ waterfall_chart }}" alt="Waterfall de discrepancia">
+    <p class="chart-caption">EN: Waterfall chart showing aggregation discrepancy / ES: Cascada de discrepancia de agregacion.</p>
+  </div>
+  {% endif %}
+
+  <!-- ============================================================ -->
+  <!-- EN: Anomalies / ES: Anomalias                                -->
+  <!-- ============================================================ -->
+  <div class="page-break"></div>
+  <h2>3. Anomalias Detectadas / Detected Anomalies</h2>
+  {% if anomaly_rows %}
+  <table>
+    <thead>
+      <tr>{% for h in anomaly_rows[0] %}<th>{{ h }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for row in anomaly_rows[1:] %}
+      <tr class="{{ 'alert-row' if 'ROLLBACK' in row[-1]|string else '' }}">
+        {% for cell in row %}<td>{{ cell }}</td>{% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ============================================================ -->
+  <!-- EN: Charts / ES: Graficos                                    -->
+  <!-- ============================================================ -->
+  <h2>4. Graficos Avanzados / Advanced Charts</h2>
+
+  {% if benford_chart %}
+  <div class="chart-container">
+    <img src="data:image/png;base64,{{ benford_chart }}" alt="Benford analysis">
+    <p class="chart-caption">EN: Benford first-digit analysis with 95% CI / ES: Analisis Benford primer digito con IC 95%.</p>
+  </div>
+  {% endif %}
+
+  {% if timeline_chart %}
+  <div class="chart-container">
+    <img src="data:image/png;base64,{{ timeline_chart }}" alt="Vote timeline">
+    <p class="chart-caption">EN: Vote count timeline with anomaly markers / ES: Timeline de votos con marcadores de anomalia.</p>
+  </div>
+  {% endif %}
+
+  {% if heatmap_chart %}
+  <div class="chart-container">
+    <img src="data:image/png;base64,{{ heatmap_chart }}" alt="Risk heatmap">
+    <p class="chart-caption">EN: Risk heatmap by department and hour / ES: Mapa de calor de riesgos por departamento y hora.</p>
+  </div>
+  {% endif %}
+
+  <!-- ============================================================ -->
+  <!-- EN: Snapshots / ES: Snapshots                                -->
+  <!-- ============================================================ -->
+  <div class="page-break"></div>
+  <h2>5. Snapshots Recientes / Recent Snapshots</h2>
+  {% if snapshot_rows %}
+  <table>
+    <thead><tr>{% for h in snapshot_rows[0] %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in snapshot_rows[1:] %}
+      <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ============================================================ -->
+  <!-- EN: Active rules / ES: Reglas activas                        -->
+  <!-- ============================================================ -->
+  <h2>6. Reglas Activas / Active Rules</h2>
+  <ul>
+    {% for rule in rules_list %}
+    <li>{{ rule }}</li>
+    {% endfor %}
+  </ul>
+
+  <!-- ============================================================ -->
+  <!-- EN: Thresholds used / ES: Umbrales utilizados                -->
+  <!-- ============================================================ -->
+  <h2>7. Umbrales Utilizados / Thresholds Used</h2>
+  <div class="hash-block">
+    {% for key, value in thresholds.items() %}
+    {{ key }}: {{ value }}<br>
+    {% endfor %}
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- EN: Cryptographic verification / ES: Verificacion criptografica -->
+  <!-- ============================================================ -->
+  <h2>8. Verificacion Criptografica / Cryptographic Verification</h2>
+  <div class="hash-block">
+    Root Hash (SHA-256): {{ root_hash }}<br>
+    Snapshot Hash: {{ snapshot_hash }}<br>
+    Report Hash: {{ report_hash }}
+  </div>
+
+  {% if qr_image %}
+  <div class="qr-section">
+    <img src="data:image/png;base64,{{ qr_image }}" alt="QR verification">
+    <p>EN: Scan to validate the root hash / ES: Escanee para validar el hash raiz.</p>
+  </div>
+  {% endif %}
+
+  <!-- ============================================================ -->
+  <!-- EN: Conclusions / ES: Conclusiones                           -->
+  <!-- ============================================================ -->
+  <h2>9. Conclusiones del Auditor / Auditor Conclusions</h2>
+  <p>{{ conclusions }}</p>
+
+  <!-- ============================================================ -->
+  <!-- EN: Methodology / ES: Metodologia                            -->
+  <!-- ============================================================ -->
+  <h2>10. Metodologia / Methodology</h2>
+  <div class="methodology">
+    <p>
+      <strong>ES:</strong> Este reporte resume unicamente datos publicos agregados del CNE
+      a nivel nacional y por departamento (18). No se incluyen mesas, actas ni votos
+      individuales.  Las metricas se calculan sobre snapshots JSON publicos encadenados
+      por hash SHA-256 para detectar cambios entre capturas sucesivas.
+    </p>
+    <p>
+      <strong>EN:</strong> This report summarizes only public, aggregated CNE data at national
+      and departmental levels (18). It excludes precinct tables, actas, or individual votes.
+      Metrics are computed from public JSON snapshots linked by SHA-256 hashing to detect
+      changes between successive captures.
+    </p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- EN: Disclaimer / ES: Descargo de responsabilidad             -->
+  <!-- ============================================================ -->
+  <div class="disclaimer">
+    <p>
+      <strong>ES:</strong> Datos exclusivamente de fuentes publicas del CNE, conforme Ley de
+      Transparencia 170-2006.  Sistema completamente agnostico a partidos politicos: solo muestra
+      lo que trae el JSON del CNE.  No sustituye procesos oficiales.
+    </p>
+    <p>
+      <strong>EN:</strong> Data sourced exclusively from public CNE endpoints per Transparency Law
+      170-2006.  System is fully party-agnostic: it only displays what the CNE JSON contains.
+      Does not replace official processes.
+    </p>
+  </div>
+
+</body>
+</html>

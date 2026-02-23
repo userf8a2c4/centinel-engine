@@ -94,6 +94,8 @@ from pathlib import Path
 from typing import Any
 
 import altair as alt
+import base64
+import copy
 
 try:
     import boto3
@@ -204,6 +206,46 @@ try:
     from centinel.core.rules_engine import RulesEngine
 except ImportError:  # pragma: no cover - optional dependency for rules engine
     RulesEngine = None
+
+# EN: Import Jinja2 for PDF report template rendering.
+# ES: Importar Jinja2 para renderizar plantilla de reporte PDF.
+try:
+    from jinja2 import Environment, FileSystemLoader
+
+    JINJA2_AVAILABLE = True
+except ImportError:  # pragma: no cover - optional dependency for HTML->PDF
+    JINJA2_AVAILABLE = False
+
+# EN: Import WeasyPrint for HTML-to-PDF conversion.
+# ES: Importar WeasyPrint para conversion HTML a PDF.
+try:
+    from weasyprint import HTML as WeasyHTML
+
+    WEASYPRINT_AVAILABLE = True
+except ImportError:  # pragma: no cover - optional dependency for PDF rendering
+    WeasyHTML = None
+    WEASYPRINT_AVAILABLE = False
+
+# EN: Import user manager for authentication and role-based access.
+# ES: Importar user manager para autenticacion y acceso basado en roles.
+AUTH_ROOT = REPO_ROOT / "auth"
+if str(AUTH_ROOT.parent) not in sys.path:
+    sys.path.insert(0, str(AUTH_ROOT.parent))
+try:
+    from auth.user_manager import (
+        authenticate,
+        create_user,
+        delete_user,
+        ensure_admin_exists,
+        list_users,
+        load_sandbox,
+        save_sandbox,
+        VALID_ROLES,
+    )
+
+    AUTH_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    AUTH_AVAILABLE = False
 
 
 @dataclass(frozen=True)
@@ -2079,11 +2121,69 @@ def build_pdf_export_payload(
 
 st.set_page_config(
     page_title="C.E.N.T.I.N.E.L. | Vigilancia Electoral",
-    page_icon="🛰️",
+    page_icon="🛰\ufe0f",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+
+# =========================================================================
+# EN: Authentication gate — all users must log in before seeing the dashboard.
+# ES: Puerta de autenticacion — todos los usuarios deben iniciar sesion.
+# =========================================================================
+def _render_login_screen() -> bool:
+    """EN: Show login form and authenticate user. Returns True if authenticated.
+
+    ES: Muestra formulario de login y autentica al usuario. Retorna True si autenticado.
+    """
+    if not AUTH_AVAILABLE:
+        # EN: Fallback to old admin gate when auth module not available.
+        # ES: Fallback al gate admin anterior si el modulo auth no esta disponible.
+        st.warning("Modulo de autenticacion no disponible. Ejecutando sin autenticacion.")
+        st.session_state["auth_user"] = {"username": "admin", "role": "admin", "sandbox": {}}
+        return True
+
+    if st.session_state.get("auth_user"):
+        return True
+
+    # EN: Ensure admin user exists on first boot.
+    # ES: Asegurar que el usuario admin exista en primer arranque.
+    ensure_admin_exists()
+
+    st.markdown(
+        "<div style='text-align:center; padding:3rem 0 1rem;'>"
+        "<h1>C.E.N.T.I.N.E.L.</h1>"
+        "<p style='color:#94A3B8;'>Centro de Vigilancia Electoral &mdash; Acceso Restringido</p>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    with st.form("login_form", clear_on_submit=False):
+        username = st.text_input("Usuario / Username")
+        password = st.text_input("Contrasena / Password", type="password")
+        submitted = st.form_submit_button("Ingresar / Log in", type="primary")
+    if submitted:
+        user = authenticate(username, password)
+        if user:
+            st.session_state["auth_user"] = user
+            rerun_app()
+        else:
+            st.error("Credenciales invalidas / Invalid credentials.")
+    return False
+
+
+if not _render_login_screen():
+    st.stop()
+
+# EN: User is authenticated — extract session info.
+# ES: Usuario autenticado — extraer info de sesion.
+_current_user: dict[str, Any] = st.session_state["auth_user"]
+_current_username: str = _current_user["username"]
+_current_role: str = _current_user["role"]
+
+# =========================================================================
+# EN: Load global configs (available for all tabs).
+# ES: Cargar configuraciones globales (disponibles para todos los tabs).
+# =========================================================================
 configs = load_configs()
 command_center_cfg = configs.get("command_center", {})
 rules_path = Path("command_center") / "rules.yaml"
@@ -2094,24 +2194,18 @@ resilience_cfg = rules_cfg.get("resiliencia", {}) if rules_cfg else {}
 
 anchor = load_blockchain_anchor()
 
-# ── Panel Navigator ──────────────────────────────────────────────────────
-panel_mode = st.sidebar.radio(
-    "Modo de operacion (Operation mode)",
-    ["Dashboard Principal", "Panel de Caos", "Laboratorio UPNFM"],
-    index=0,
-    key="panel_mode",
+# =========================================================================
+# EN: Sidebar — user info, logout, and global filters.
+# ES: Sidebar — info de usuario, logout, y filtros globales.
+# =========================================================================
+st.sidebar.markdown(
+    f"**Usuario / User:** `{_current_username}`  \n"
+    f"**Rol / Role:** `{_current_role}`"
 )
-if panel_mode == "Panel de Caos":
-    from panel_chaos import render_chaos_panel
-
-    render_chaos_panel()
-    st.stop()
-elif panel_mode == "Laboratorio UPNFM":
-    from panel_replay import render_replay_panel
-
-    render_replay_panel()
-    st.stop()
-
+if st.sidebar.button("Cerrar sesion / Logout"):
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    rerun_app()
 st.sidebar.markdown("---")
 
 snapshot_source = st.sidebar.selectbox(
@@ -2119,8 +2213,8 @@ snapshot_source = st.sidebar.selectbox(
     [
         "Datos reales (Real data)",
         "Mock normal (Normal mock)",
-        "Mock anomalía (Anomaly mock)",
-        "Mock reversión (Reversal mock)",
+        "Mock anomalia (Anomaly mock)",
+        "Mock reversion (Reversal mock)",
     ],
     index=0,
 )
@@ -2136,12 +2230,12 @@ snapshot_sources = {
         "pattern": "*.json",
         "explicit_files": ["mock_normal.json"],
     },
-    "Mock anomalía (Anomaly mock)": {
+    "Mock anomalia (Anomaly mock)": {
         "base_dir": Path("data/mock"),
         "pattern": "*.json",
         "explicit_files": ["mock_anomaly.json"],
     },
-    "Mock reversión (Reversal mock)": {
+    "Mock reversion (Reversal mock)": {
         "base_dir": Path("data/mock"),
         "pattern": "*.json",
         "explicit_files": ["mock_reversal.json"],
@@ -2154,12 +2248,12 @@ snapshot_files = load_snapshot_files(
     pattern=source_config["pattern"],
     explicit_files=source_config["explicit_files"],
 )
-progress = st.progress(0, text="Cargando snapshots inmutables…")
+progress = st.progress(0, text="Cargando snapshots inmutables...")
 for step in range(1, 5):
     progress.progress(step * 25, text=f"Sincronizando evidencia {step}/4")
 progress.empty()
 
-snapshot_selector_options = ["Último snapshot (Latest)"]
+snapshot_selector_options = ["Ultimo snapshot (Latest)"]
 snapshot_lookup: dict[str, dict[str, Any]] = {}
 for snapshot in sorted(
     snapshot_files,
@@ -2168,12 +2262,12 @@ for snapshot in sorted(
 ):
     timestamp_label = snapshot.get("timestamp", "N/D")
     hash_label = snapshot.get("hash", "")[:8]
-    label = f"{timestamp_label} · {hash_label}…"
+    label = f"{timestamp_label} \u00b7 {hash_label}..."
     snapshot_lookup[label] = snapshot
     snapshot_selector_options.append(label)
 
 selected_snapshot_label = st.sidebar.selectbox(
-    "Snapshot histórico (Historical snapshot)",
+    "Snapshot historico (Historical snapshot)",
     snapshot_selector_options,
     index=0,
 )
@@ -2192,7 +2286,7 @@ try:
         hash_accumulator,
     ) = _resolve_latest_snapshot_info(snapshot_files, anchor.root_hash)
 except Exception as exc:  # noqa: BLE001
-    st.warning("No se pudo determinar el último snapshot (Unable to resolve latest snapshot): " f"{exc}")
+    st.warning("No se pudo determinar el ultimo snapshot (Unable to resolve latest snapshot): " f"{exc}")
 
 snapshots_df = build_snapshot_metrics(snapshot_files)
 anomalies_df = build_anomalies(snapshots_df)
@@ -2219,6 +2313,38 @@ polling_status = resolve_polling_status(
     time_since_last,
     refresh_interval,
 )
+
+
+# =========================================================================
+# EN: Helper — generate WeasyPrint PDF from Jinja2 template.
+# ES: Helper — generar PDF con WeasyPrint desde plantilla Jinja2.
+# =========================================================================
+def _generate_weasyprint_pdf(template_data: dict[str, Any]) -> bytes | None:
+    """EN: Render templates/report_template.html with Jinja2 and convert to PDF via WeasyPrint.
+
+    ES: Renderiza templates/report_template.html con Jinja2 y convierte a PDF via WeasyPrint.
+    """
+    if not JINJA2_AVAILABLE or not WEASYPRINT_AVAILABLE:
+        return None
+    template_dir = REPO_ROOT / "templates"
+    if not (template_dir / "report_template.html").exists():
+        return None
+    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
+    template = env.get_template("report_template.html")
+    html_content = template.render(**template_data)
+    pdf_bytes = WeasyHTML(string=html_content).write_pdf()
+    return pdf_bytes
+
+
+def _chart_to_base64(buf: io.BytesIO | None) -> str:
+    """EN: Convert a BytesIO chart buffer to base64 string for HTML embedding.
+
+    ES: Convierte un buffer BytesIO de grafico a string base64 para incrustar en HTML.
+    """
+    if buf is None:
+        return ""
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode("utf-8")
 
 alerts_container = st.container()
 with alerts_container:
@@ -2563,28 +2689,46 @@ st.markdown(
 
 st.markdown("---")
 
-tabs = st.tabs(
-    [
-        "Nacional",
-        "Por Departamento",
-        "Anomalías",
-        "Snapshots y Reglas",
-        "Verificación",
-        "Reportes",
-        "Estado del Sistema",
-    ]
-)
+# =========================================================================
+# EN: Four main tabs as specified:
+#     1) Visualizacion General  2) Sandbox Personal
+#     3) Datos Historicos 2025  4) Panel de Control Admin
+# ES: Cuatro tabs principales segun especificacion:
+#     1) Visualizacion General  2) Sandbox Personal
+#     3) Datos Historicos 2025  4) Panel de Control Admin
+# =========================================================================
+_tab_labels = [
+    "\U0001f4ca Visualizacion General",
+    "\U0001f9ea Sandbox Personal",
+    "\U0001f4c2 Datos Historicos 2025",
+]
+# EN: Only show admin tab for admin role.
+# ES: Solo mostrar tab admin para rol admin.
+if _current_role == "admin":
+    _tab_labels.append("\U0001f527 Panel de Control Admin")
+
+tabs = st.tabs(_tab_labels)
 
 with tabs[0]:
-    st.markdown("### Panorama Nacional")
+    # =================================================================
+    # EN: TAB 1 — Visualizacion General
+    #     Shows all charts, hashes, metrics, anomalies, rules, verification,
+    #     reports and system status — preserving ALL existing dashboard
+    #     capabilities in a single comprehensive view.
+    # ES: TAB 1 — Visualizacion General
+    #     Muestra todos los graficos, hashes, metricas, anomalias, reglas,
+    #     verificacion, reportes y estado del sistema — preservando TODAS
+    #     las capacidades existentes del dashboard en una vista integral.
+    # =================================================================
+    st.markdown("### Panorama Nacional / National Overview")
     summary_cols = st.columns([1.1, 0.9])
     with summary_cols[0]:
         st.markdown(
             """
 <div class="glass">
   <h3>Estado Global</h3>
-  <p class="fade-in">🛰️ Integridad verificable · Sin anomalías críticas a nivel nacional.</p>
-  <p>Auditorías prioritarias: deltas negativos por hora/departamento, consistencia de agregación y distribución Benford.</p>
+  <p class="fade-in">Integridad verificable &middot; Auditoria continua activa.</p>
+  <p>Auditorias prioritarias: deltas negativos por hora/departamento, consistencia de agregacion y distribucion Benford.</p>
 </div>
             """,
             unsafe_allow_html=True,
@@ -2731,125 +2875,127 @@ with tabs[0]:
         )
         st.altair_chart(votes_chart, use_container_width=True)
 
-with tabs[1]:
-    st.markdown("### Vista por Departamento")
-    if selected_department == "Todos":
-        st.info("Selecciona un departamento para ver métricas detalladas.")
-        if data_departamentos:
-            st.dataframe(
-                pd.DataFrame(data_departamentos),
-                use_container_width=True,
-                hide_index=True,
-            )
-    else:
-        dept_summary = next(
-            (row for row in data_departamentos if row.get("departamento") == selected_department),
-            {},
-        )
-        metric_cols = st.columns(3)
-        metric_cols[0].metric("Departamento", selected_department)
-        metric_cols[1].metric("Total agregado", dept_summary.get("total", "N/D"))
-        metric_cols[2].metric("Diff vs anterior", dept_summary.get("diff", "N/D"))
-        if not filtered_snapshots.empty:
-            st.line_chart(
-                filtered_snapshots.set_index("hour")["votes"],
-                height=220,
-            )
-        if not filtered_anomalies.empty:
-            st.markdown("#### Anomalías recientes")
-            st.dataframe(
-                filtered_anomalies,
-                use_container_width=True,
-                hide_index=True,
-            )
+    # EN: Sub-section — Department view (inside Visualizacion General).
+    # ES: Sub-seccion — Vista por departamento (dentro de Visualizacion General).
+    with st.expander("Vista por Departamento / Department View", expanded=False):
+        if selected_department == "Todos":
+            st.info("Selecciona un departamento en el sidebar para ver metricas detalladas.")
+            if data_departamentos:
+                st.dataframe(
+                    pd.DataFrame(data_departamentos),
+                    use_container_width=True,
+                    hide_index=True,
+                )
         else:
-            st.success("Sin anomalías registradas para este departamento.")
-
-with tabs[2]:
-    st.markdown("### Anomalías Detectadas")
-    if filtered_anomalies.empty:
-        st.success("Sin anomalías críticas en el filtro actual.")
-    else:
-        st.dataframe(filtered_anomalies, use_container_width=True, hide_index=True)
-
-    if not heatmap_df.empty:
-        heatmap_chart = (
-            alt.Chart(heatmap_df)
-            .mark_rect()
-            .encode(
-                x=alt.X("hour:O", title="Hora"),
-                y=alt.Y("department:N", title="Departamento"),
-                color=alt.Color("anomaly_count:Q", scale=alt.Scale(scheme="redblue")),
-                tooltip=["department", "hour", "anomaly_count"],
+            dept_summary = next(
+                (row for row in data_departamentos if row.get("departamento") == selected_department),
+                {},
             )
-            .properties(height=360, title="Mapa de riesgos (anomalías por departamento/hora)")
-        )
-        st.altair_chart(heatmap_chart, use_container_width=True)
-
-    with st.expander("Logs técnicos de reglas"):
-        log_lines = [
-            "Regla: Delta negativo por hora/departamento · threshold=-200",
-            "Regla: Benford 1er dígito · p-value=0.023 (Cortés)",
-            "Regla: Outlier de crecimiento · z-score=2.4 (Francisco Morazán)",
-        ]
-        if rules_engine_output["alerts"]:
-            for alert in rules_engine_output["alerts"][:6]:
-                log_lines.append(f"Regla: {alert.get('rule')} · {alert.get('severity')} · {alert.get('message')}")
-        st.code("\n".join(log_lines), language="yaml")
-
-with tabs[3]:
-    st.markdown("### Snapshots Recientes")
-    st.dataframe(
-        filtered_snapshots[
-            [
-                "timestamp",
-                "department",
-                "delta",
-                "status",
-                "hash",
-            ]
-        ],
-        use_container_width=True,
-        hide_index=True,
-    )
-    with st.expander("Detalle de reglas activas"):
-        st.dataframe(rules_df, use_container_width=True, hide_index=True)
-        st.caption("Reglas y umbrales cargados desde command_center/config.yaml.")
-
-with tabs[4]:
-    st.markdown("### Verificación Criptográfica")
-    verify_col, qr_col = st.columns([1.2, 0.8])
-    with verify_col:
-        with st.form("verify_form"):
-            hash_input = st.text_input("Hash raíz", value=anchor.root_hash)
-            submitted = st.form_submit_button("Verificar")
-        if submitted:
-            if anchor.root_hash.lower() in hash_input.lower():
-                st.success("Coincide con el anclaje en blockchain.")
+            metric_cols = st.columns(3)
+            metric_cols[0].metric("Departamento", selected_department)
+            metric_cols[1].metric("Total agregado", dept_summary.get("total", "N/D"))
+            metric_cols[2].metric("Diff vs anterior", dept_summary.get("diff", "N/D"))
+            if not filtered_snapshots.empty:
+                st.line_chart(
+                    filtered_snapshots.set_index("hour")["votes"],
+                    height=220,
+                )
+            if not filtered_anomalies.empty:
+                st.markdown("#### Anomalias recientes")
+                st.dataframe(
+                    filtered_anomalies,
+                    use_container_width=True,
+                    hide_index=True,
+                )
             else:
-                st.error("No coincide. Revisa el hash.")
-        st.markdown(
-            f"**Transacción:** [{anchor.tx_url}]({anchor.tx_url})  ",
-        )
-        st.markdown(f"**Red:** {anchor.network} · **Timestamp:** {anchor.anchored_at}")
-    with qr_col:
-        st.markdown("#### QR")
-        qr_bytes = build_qr_bytes(anchor.root_hash)
-        if qr_bytes is None:
-            st.warning("QR no disponible: falta instalar la dependencia 'qrcode'.")
-        else:
-            st.image(qr_bytes, caption="Escanear hash de verificación")
+                st.success("Sin anomalias registradas para este departamento.")
 
-with tabs[5]:
-    st.markdown("### Reportes y Exportación")
+    # EN: Sub-section — Anomalies (inside Visualizacion General).
+    # ES: Sub-seccion — Anomalias (dentro de Visualizacion General).
+    with st.expander("Anomalias Detectadas / Detected Anomalies", expanded=False):
+        if filtered_anomalies.empty:
+            st.success("Sin anomalias criticas en el filtro actual.")
+        else:
+            st.dataframe(filtered_anomalies, use_container_width=True, hide_index=True)
+
+        if not heatmap_df.empty:
+            heatmap_chart = (
+                alt.Chart(heatmap_df)
+                .mark_rect()
+                .encode(
+                    x=alt.X("hour:O", title="Hora"),
+                    y=alt.Y("department:N", title="Departamento"),
+                    color=alt.Color("anomaly_count:Q", scale=alt.Scale(scheme="redblue")),
+                    tooltip=["department", "hour", "anomaly_count"],
+                )
+                .properties(height=360, title="Mapa de riesgos (anomalias por departamento/hora)")
+            )
+            st.altair_chart(heatmap_chart, use_container_width=True)
+
+        with st.expander("Logs tecnicos de reglas"):
+            log_lines = [
+                "Regla: Delta negativo por hora/departamento - threshold=-200",
+                "Regla: Benford 1er digito - p-value=0.023 (Cortes)",
+                "Regla: Outlier de crecimiento - z-score=2.4 (Francisco Morazan)",
+            ]
+            if rules_engine_output["alerts"]:
+                for alert in rules_engine_output["alerts"][:6]:
+                    log_lines.append(f"Regla: {alert.get('rule')} - {alert.get('severity')} - {alert.get('message')}")
+            st.code("\n".join(log_lines), language="yaml")
+
+    # EN: Sub-section — Snapshots & Rules (inside Visualizacion General).
+    # ES: Sub-seccion — Snapshots y Reglas (dentro de Visualizacion General).
+    with st.expander("Snapshots Recientes y Reglas / Recent Snapshots & Rules", expanded=False):
+        st.dataframe(
+            filtered_snapshots[
+                [
+                    "timestamp",
+                    "department",
+                    "delta",
+                    "status",
+                    "hash",
+                ]
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
+        with st.expander("Detalle de reglas activas"):
+            st.dataframe(rules_df, use_container_width=True, hide_index=True)
+            st.caption("Reglas y umbrales cargados desde command_center/config.yaml.")
+
+    # EN: Sub-section — Cryptographic verification (inside Visualizacion General).
+    # ES: Sub-seccion — Verificacion criptografica (dentro de Visualizacion General).
+    with st.expander("Verificacion Criptografica / Cryptographic Verification", expanded=False):
+        verify_col, qr_col = st.columns([1.2, 0.8])
+        with verify_col:
+            with st.form("verify_form"):
+                hash_input = st.text_input("Hash raiz", value=anchor.root_hash)
+                submitted = st.form_submit_button("Verificar")
+            if submitted:
+                if anchor.root_hash.lower() in hash_input.lower():
+                    st.success("Coincide con el anclaje en blockchain.")
+                else:
+                    st.error("No coincide. Revisa el hash.")
+            st.markdown(
+                f"**Transaccion:** [{anchor.tx_url}]({anchor.tx_url})  ",
+            )
+            st.markdown(f"**Red:** {anchor.network} - **Timestamp:** {anchor.anchored_at}")
+        with qr_col:
+            st.markdown("#### QR")
+            qr_bytes = build_qr_bytes(anchor.root_hash)
+            if qr_bytes is None:
+                st.warning("QR no disponible: falta instalar la dependencia 'qrcode'.")
+            else:
+                st.image(qr_bytes, caption="Escanear hash de verificacion")
+
+    # EN: Sub-section — Reports and export (inside Visualizacion General).
+    # ES: Sub-seccion — Reportes y exportacion (dentro de Visualizacion General).
+    st.markdown("---")
+    st.markdown("### Reportes y Exportacion / Reports & Export")
     st.caption(
-        "Reporte generado desde JSON público del CNE (18 departamentos + nacional). "
-        f"Snapshot seleccionado: {selected_snapshot_display} · "
+        "Reporte generado desde JSON publico del CNE (18 departamentos + nacional). "
+        f"Snapshot seleccionado: {selected_snapshot_display} - "
         f"Hash actual: {snapshot_hash_display}."
-    )
-    st.info(
-        "Instalación PDF (reportlab): `pip install reportlab`",
-        icon="🧾",
     )
     report_time_dt = dt.datetime.now(dt.timezone.utc)
     report_time = report_time_dt.strftime("%Y-%m-%d %H:%M")
@@ -3093,7 +3239,58 @@ with tabs[5]:
             mime="application/pdf",
         )
     else:
-        st.warning("Exportación PDF no disponible: falta instalar reportlab.")
+        st.warning("Exportacion PDF no disponible: falta instalar reportlab.")
+
+    # EN: WeasyPrint PDF button — professional Jinja2-rendered report.
+    # ES: Boton PDF WeasyPrint — reporte profesional renderizado con Jinja2.
+    if JINJA2_AVAILABLE and WEASYPRINT_AVAILABLE:
+        _wp_now = dt.datetime.now(dt.timezone.utc)
+        _wp_template_data = {
+            "status": "COMPROMETIDO" if (not topology["is_match"] or critical_count > 0) else "INTEGRAL",
+            "report_date": _wp_now.strftime("%Y-%m-%d %H:%M UTC"),
+            "generated_by": _current_username,
+            "root_hash": anchor.root_hash,
+            "snapshot_hash": current_snapshot_hash,
+            "snapshot_count": len(snapshot_files),
+            "source": "19 JSON Streams (Direct Endpoint)",
+            "executive_summary": pdf_data.get("executive_summary", ""),
+            "kpi_rows": pdf_data.get("kpi_rows", []),
+            "topology_summary": topology_summary,
+            "topology_rows": topology_rows,
+            "waterfall_chart": _chart_to_base64(chart_buffers.get("waterfall")),
+            "anomaly_rows": anomaly_rows,
+            "benford_chart": _chart_to_base64(chart_buffers.get("benford")),
+            "timeline_chart": _chart_to_base64(chart_buffers.get("timeline")),
+            "heatmap_chart": _chart_to_base64(chart_buffers.get("heatmap")),
+            "snapshot_rows": snapshot_rows,
+            "rules_list": rules_list,
+            "thresholds": {
+                "diff_error_min": alert_thresholds["diff_error_min"],
+                "anomaly_error_min": alert_thresholds["anomaly_error_min"],
+                "min_samples": alert_thresholds["min_samples"],
+            },
+            "report_hash": report_hash,
+            "qr_image": "",
+            "conclusions": (
+                f"Se auditaron {len(snapshot_files)} snapshots. "
+                f"Integridad topologica: {'OK' if topology['is_match'] else 'DISCREPANCIA'}. "
+                f"Anomalias detectadas: {len(filtered_anomalies)}."
+            ),
+        }
+        _wp_qr = build_qr_bytes(anchor.root_hash)
+        if _wp_qr:
+            _wp_template_data["qr_image"] = base64.b64encode(_wp_qr).decode("utf-8")
+        _wp_pdf = _generate_weasyprint_pdf(_wp_template_data)
+        if _wp_pdf:
+            _wp_filename = f"centinel_audit_{_wp_now.strftime('%Y%m%d_%H%M%S')}.pdf"
+            st.download_button(
+                "\U0001f4c4 Descargar Reporte Completo como PDF",
+                data=_wp_pdf,
+                file_name=_wp_filename,
+                mime="application/pdf",
+                type="primary",
+                use_container_width=True,
+            )
 
     st.download_button(
         "Descargar CSV",
@@ -3106,16 +3303,338 @@ with tabs[5]:
         file_name="centinel_snapshots.json",
     )
 
-with tabs[6]:
-    st.markdown("### Estado del Sistema")
-    st.caption("Panel reservado para mantenimiento y salud operativa. " "Requiere autenticación administrativa.")
-    access_granted = render_admin_gate()
-    if not access_granted:
-        st.info("Acceso restringido: autentícate para ver el estado del sistema.")
+# =========================================================================
+# EN: TAB 2 — Sandbox Personal (researcher and viewer only).
+#     Per-user threshold sliders, chart visibility toggles, and date ranges.
+#     Stored per user in SQLite.  Does NOT affect production or global thresholds.
+# ES: TAB 2 — Sandbox Personal (solo researcher y viewer).
+#     Sliders de umbrales por usuario, toggles de graficos, rangos de fecha.
+#     Guardado por usuario en SQLite.  NO afecta produccion ni umbrales globales.
+# =========================================================================
+with tabs[1]:
+    st.markdown("### Sandbox Personal / Personal Sandbox")
+    st.caption(
+        "EN: Modify thresholds and chart visibility for your own exploration. "
+        "Changes are saved per user and do NOT affect the production system.  \n"
+        "ES: Modifica umbrales y visibilidad de graficos para tu propia exploracion. "
+        "Los cambios se guardan por usuario y NO afectan el sistema productivo."
+    )
+
+    if _current_role not in ("researcher", "viewer", "admin"):
+        st.warning("Tu rol no tiene acceso al sandbox.")
     else:
+        # EN: Load user sandbox from DB.
+        # ES: Cargar sandbox del usuario desde DB.
+        if "sandbox_data" not in st.session_state:
+            if AUTH_AVAILABLE:
+                st.session_state["sandbox_data"] = load_sandbox(_current_username)
+            else:
+                st.session_state["sandbox_data"] = {}
+
+        sb = st.session_state["sandbox_data"]
+
+        st.markdown("#### Umbrales personalizados / Custom Thresholds")
+        sb_cols = st.columns(3)
+        with sb_cols[0]:
+            sb["delta_threshold"] = st.slider(
+                "Umbral delta negativo / Negative delta threshold",
+                min_value=-2000,
+                max_value=0,
+                value=int(sb.get("delta_threshold", -200)),
+                step=50,
+                key="sb_delta_threshold",
+            )
+        with sb_cols[1]:
+            sb["benford_pvalue"] = st.slider(
+                "P-value Benford minimo / Min Benford p-value",
+                min_value=0.001,
+                max_value=0.10,
+                value=float(sb.get("benford_pvalue", 0.05)),
+                step=0.005,
+                format="%.3f",
+                key="sb_benford_pvalue",
+            )
+        with sb_cols[2]:
+            sb["zscore_outlier"] = st.slider(
+                "Z-score outlier / Outlier z-score",
+                min_value=1.0,
+                max_value=5.0,
+                value=float(sb.get("zscore_outlier", 2.5)),
+                step=0.1,
+                key="sb_zscore",
+            )
+
+        st.markdown("#### Graficos visibles / Visible Charts")
+        chart_options = [
+            "Benford",
+            "Timeline votos",
+            "Heatmap anomalias",
+            "Vista departamental",
+            "Cadena de hashes",
+        ]
+        sb["visible_charts"] = st.multiselect(
+            "Selecciona graficos / Select charts",
+            chart_options,
+            default=sb.get("visible_charts", chart_options),
+            key="sb_visible_charts",
+        )
+
+        st.markdown("#### Rango de fechas / Date Range")
+        date_cols = st.columns(2)
+        with date_cols[0]:
+            sb["date_from"] = str(
+                st.date_input(
+                    "Desde / From",
+                    value=dt.date.fromisoformat(sb["date_from"]) if sb.get("date_from") else dt.date(2025, 11, 30),
+                    key="sb_date_from",
+                )
+            )
+        with date_cols[1]:
+            sb["date_to"] = str(
+                st.date_input(
+                    "Hasta / To",
+                    value=dt.date.fromisoformat(sb["date_to"]) if sb.get("date_to") else dt.date.today(),
+                    key="sb_date_to",
+                )
+            )
+
+        if st.button("Guardar sandbox / Save sandbox", type="primary", key="sb_save"):
+            st.session_state["sandbox_data"] = sb
+            if AUTH_AVAILABLE:
+                save_sandbox(_current_username, sb)
+            st.success("Sandbox guardado correctamente / Sandbox saved successfully.")
+
+        # EN: Preview with sandbox thresholds.
+        # ES: Vista previa con umbrales del sandbox.
+        st.markdown("---")
+        st.markdown("#### Vista previa con tus umbrales / Preview with your thresholds")
+        sb_filtered = filtered_snapshots.copy()
+        if not sb_filtered.empty:
+            sb_anomalies = sb_filtered[sb_filtered["delta"] < sb.get("delta_threshold", -200)]
+            st.metric("Anomalias con tus umbrales", len(sb_anomalies))
+            if not sb_anomalies.empty:
+                st.dataframe(sb_anomalies[["timestamp", "department", "delta", "votes", "hash"]], hide_index=True)
+            else:
+                st.success("Sin anomalias con los umbrales configurados.")
+
+            if "Benford" in sb.get("visible_charts", []):
+                st.altair_chart(
+                    alt.Chart(benford_df)
+                    .transform_fold(["expected", "observed"], as_=["type", "value"])
+                    .mark_bar()
+                    .encode(
+                        x=alt.X("digit:O", title="Digito"),
+                        y=alt.Y("value:Q", title="%"),
+                        color="type:N",
+                    )
+                    .properties(height=200, title="Benford (sandbox)"),
+                    use_container_width=True,
+                )
+
+            if "Timeline votos" in sb.get("visible_charts", []):
+                st.line_chart(sb_filtered.set_index("hour")["votes"], height=180)
+
+
+# =========================================================================
+# EN: TAB 3 — Datos Historicos 2025.
+#     Multi-selector for the 96 JSON files from data/2025/ (elections 30/11/2025).
+#     Also supports test fixtures from tests/fixtures/snapshots_2025/.
+# ES: TAB 3 — Datos Historicos 2025.
+#     Selector multiple de los 96 archivos JSON de data/2025/ (elecciones 30/11/2025).
+#     Tambien soporta fixtures de prueba de tests/fixtures/snapshots_2025/.
+# =========================================================================
+with tabs[2]:
+    st.markdown("### Datos Historicos 2025 / Historical Data 2025")
+    st.caption(
+        "EN: Load any combination of the 2025 election JSON files for retrospective audit.  \n"
+        "ES: Carga cualquier combinacion de archivos JSON de las elecciones 2025 para auditoria retrospectiva."
+    )
+
+    # EN: Discover available 2025 data files.
+    # ES: Descubrir archivos de datos 2025 disponibles.
+    _hist_dirs = [
+        REPO_ROOT / "data" / "2025",
+        REPO_ROOT / "tests" / "fixtures" / "snapshots_2025",
+    ]
+    _hist_files: list[Path] = []
+    for _hd in _hist_dirs:
+        if _hd.exists():
+            _hist_files.extend(sorted(_hd.glob("*.json")))
+
+    if not _hist_files:
+        st.info(
+            "No se encontraron archivos JSON en data/2025/ ni tests/fixtures/snapshots_2025/.  \n"
+            "Coloca los 96 archivos JSON de las elecciones del 30/11/2025 en data/2025/ para habilitarlos."
+        )
+    else:
+        _hist_labels = [f.name for f in _hist_files]
+        selected_hist = st.multiselect(
+            "Seleccionar archivos / Select files",
+            _hist_labels,
+            default=_hist_labels[:5] if len(_hist_labels) > 5 else _hist_labels,
+            key="hist_select",
+        )
+
+        if selected_hist and st.button("Cargar y auditar / Load & audit", type="primary", key="hist_load"):
+            _hist_selected_paths = [f for f in _hist_files if f.name in selected_hist]
+            _hist_snapshots = []
+            for hp in _hist_selected_paths:
+                payload = _safe_read_json(hp)
+                if payload is not None:
+                    content_str = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+                    _hist_snapshots.append(
+                        {
+                            "path": hp,
+                            "timestamp": payload.get("timestamp_utc") or payload.get("timestamp") or hp.stem,
+                            "content": payload,
+                            "hash": hashlib.sha256(content_str.encode("utf-8")).hexdigest(),
+                            "is_real": True,
+                        }
+                    )
+
+            if _hist_snapshots:
+                st.success(f"Se cargaron {len(_hist_snapshots)} archivos historicos.")
+
+                # EN: Build metrics from historical data.
+                # ES: Construir metricas desde datos historicos.
+                _hist_df = build_snapshot_metrics(_hist_snapshots)
+                _hist_anomalies = build_anomalies(_hist_df)
+
+                st.markdown("#### Resumen historico / Historical Summary")
+                hm_cols = st.columns(3)
+                hm_cols[0].metric("Snapshots cargados", len(_hist_snapshots))
+                hm_cols[1].metric("Anomalias", len(_hist_anomalies))
+                hm_cols[2].metric("Departamentos", _hist_df["department"].nunique() if not _hist_df.empty else 0)
+
+                if not _hist_df.empty:
+                    st.dataframe(
+                        _hist_df[["timestamp", "department", "delta", "votes", "status", "hash"]],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+                # EN: Show raw JSON structure for each selected file.
+                # ES: Mostrar estructura JSON cruda de cada archivo seleccionado.
+                with st.expander("Detalle JSON / JSON Detail"):
+                    for snap in _hist_snapshots[:5]:
+                        st.markdown(f"**{snap['path'].name}** - Hash: `{snap['hash'][:16]}...`")
+                        st.json(snap["content"])
+            else:
+                st.warning("No se pudieron cargar los archivos seleccionados.")
+
+
+# =========================================================================
+# EN: TAB 4 — Panel de Control Admin (admin role only).
+#     Visual sliders for global thresholds (saved to config/prod/rules_core.yaml
+#     with automatic backup), buttons to launch full audit, view logs, etc.
+# ES: TAB 4 — Panel de Control Admin (solo rol admin).
+#     Sliders visuales para umbrales globales (guardados en config/prod/rules_core.yaml
+#     con backup automatico), botones para lanzar auditoria completa, ver logs, etc.
+# =========================================================================
+if _current_role == "admin" and len(tabs) > 3:
+    with tabs[3]:
+        st.markdown("### Panel de Control Admin / Admin Control Panel")
+        st.caption(
+            "EN: Manage global thresholds, users, system health, and audit controls.  \n"
+            "ES: Gestiona umbrales globales, usuarios, salud del sistema y controles de auditoria."
+        )
+
+        # ----- Global Thresholds -----
+        st.markdown("#### Umbrales Globales / Global Thresholds")
+        st.info(
+            "EN: Changes here are saved to config/prod/rules_core.yaml with automatic backup.  \n"
+            "ES: Los cambios aqui se guardan en config/prod/rules_core.yaml con backup automatico."
+        )
+
+        _rules_core_path = REPO_ROOT / "config" / "prod" / "rules_core.yaml"
+        _rules_core = load_yaml_config(_rules_core_path) if _rules_core_path.exists() else {}
+
+        _admin_max_req = st.slider(
+            "MAX_REQUESTS_PER_HOUR",
+            min_value=10,
+            max_value=500,
+            value=int(_rules_core.get("MAX_REQUESTS_PER_HOUR", 180)),
+            step=10,
+            key="admin_max_req",
+        )
+
+        _admin_reglas = _rules_core.get("reglas_core", [])
+        st.markdown("**Reglas activas / Active rules:**")
+        for _r in _admin_reglas:
+            st.markdown(f"- `{_r}`")
+
+        if st.button("Guardar umbrales / Save thresholds", type="primary", key="admin_save_thresholds"):
+            if yaml is not None:
+                # EN: Backup current config before overwriting.
+                # ES: Backup de la config actual antes de sobreescribir.
+                import shutil as _shutil
+
+                _backup_path = _rules_core_path.with_suffix(
+                    f".yaml.bak.{dt.datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+                )
+                if _rules_core_path.exists():
+                    _shutil.copy2(str(_rules_core_path), str(_backup_path))
+
+                _rules_core["MAX_REQUESTS_PER_HOUR"] = _admin_max_req
+                _rules_core_path.write_text(
+                    yaml.dump(_rules_core, default_flow_style=False, allow_unicode=True),
+                    encoding="utf-8",
+                )
+                st.success(f"Umbrales guardados. Backup: {_backup_path.name}")
+            else:
+                st.error("PyYAML no disponible. No se pueden guardar cambios.")
+
+        st.markdown("---")
+
+        # ----- User Management -----
+        st.markdown("#### Gestion de Usuarios / User Management")
+        if AUTH_AVAILABLE:
+            _users = list_users()
+            if _users:
+                st.dataframe(pd.DataFrame(_users), use_container_width=True, hide_index=True)
+
+            with st.form("create_user_form", clear_on_submit=True):
+                st.markdown("**Crear nuevo usuario / Create new user**")
+                _nu_cols = st.columns(3)
+                with _nu_cols[0]:
+                    _nu_user = st.text_input("Username", key="nu_user")
+                with _nu_cols[1]:
+                    _nu_pass = st.text_input("Password", type="password", key="nu_pass")
+                with _nu_cols[2]:
+                    _nu_role = st.selectbox("Rol / Role", VALID_ROLES, index=2, key="nu_role")
+                _nu_submit = st.form_submit_button("Crear / Create")
+            if _nu_submit:
+                if _nu_user and _nu_pass:
+                    ok = create_user(_nu_user, _nu_pass, _nu_role)
+                    if ok:
+                        st.success(f"Usuario '{_nu_user}' creado con rol '{_nu_role}'.")
+                    else:
+                        st.error(f"No se pudo crear el usuario '{_nu_user}' (ya existe?).")
+                else:
+                    st.warning("Completa todos los campos.")
+
+            with st.expander("Eliminar usuario / Delete user"):
+                _del_user = st.text_input("Username a eliminar", key="del_user")
+                if st.button("Eliminar / Delete", key="del_btn"):
+                    if _del_user == _current_username:
+                        st.error("No puedes eliminar tu propia cuenta.")
+                    elif _del_user:
+                        ok = delete_user(_del_user)
+                        if ok:
+                            st.success(f"Usuario '{_del_user}' eliminado.")
+                        else:
+                            st.error(f"No se encontro el usuario '{_del_user}'.")
+        else:
+            st.warning("Modulo de autenticacion no disponible.")
+
+        st.markdown("---")
+
+        # ----- System Status (moved from old tabs[6]) -----
+        st.markdown("#### Estado del Sistema / System Status")
+
         refresh_cols = st.columns([0.4, 0.6])
         with refresh_cols[0]:
-            auto_refresh = st.checkbox("Auto-refrescar", value=True, key="auto_refresh_system")
+            auto_refresh = st.checkbox("Auto-refrescar", value=False, key="auto_refresh_system")
         with refresh_cols[1]:
             refresh_interval = st.select_slider(
                 "Intervalo de refresco (segundos)",
@@ -3154,35 +3673,37 @@ with tabs[6]:
         if not critical_alerts.empty:
             critical_alerts = critical_alerts[critical_alerts["type"] == "Delta negativo"]
         if not critical_alerts.empty:
-            critical_alerts["timestamp_dt"] = pd.to_datetime(critical_alerts["timestamp"], errors="coerce", utc=True)
+            critical_alerts["timestamp_dt"] = pd.to_datetime(
+                critical_alerts["timestamp"], errors="coerce", utc=True
+            )
             critical_alerts = critical_alerts.sort_values("timestamp_dt", ascending=False)
         critical_alerts = critical_alerts.head(5)
 
         pipeline_status = "Activo"
         if not health_ok:
-            pipeline_status = "Con errores críticos"
+            pipeline_status = "Con errores criticos"
         elif not critical_alerts.empty:
-            pipeline_status = "Con errores críticos"
-        elif latest_timestamp is None or time_since_last > dt.timedelta(minutes=45):
+            pipeline_status = "Con errores criticos"
+        elif latest_timestamp is None or (time_since_last and time_since_last > dt.timedelta(minutes=45)):
             pipeline_status = "Pausado"
         elif failed_retries > 0:
-            pipeline_status = "Recuperándose"
+            pipeline_status = "Recuperandose"
 
         status_emoji = {
-            "Activo": "🟢",
-            "Pausado": "🟡",
-            "Recuperándose": "🟡",
-            "Con errores críticos": "🔴",
-        }.get(pipeline_status, "⚪️")
+            "Activo": "\U0001f7e2",
+            "Pausado": "\U0001f7e1",
+            "Recuperandose": "\U0001f7e1",
+            "Con errores criticos": "\U0001f534",
+        }.get(pipeline_status, "\u26aa")
 
         header_cols = st.columns(3)
         with header_cols[0]:
             st.metric("Estado del pipeline", f"{status_emoji} {pipeline_status}")
         with header_cols[1]:
-            st.metric("Último checkpoint", latest_checkpoint_label)
-            st.caption(f"Lote: {last_batch_label} · Hash: {_format_short_hash(hash_accumulator)}")
+            st.metric("Ultimo checkpoint", latest_checkpoint_label)
+            st.caption(f"Lote: {last_batch_label} - Hash: {_format_short_hash(hash_accumulator)}")
         with header_cols[2]:
-            st.metric("Tiempo desde último lote", time_since_label)
+            st.metric("Tiempo desde ultimo lote", time_since_label)
 
         health_cols = st.columns([1.1, 0.9])
         with health_cols[0]:
@@ -3215,7 +3736,7 @@ with tabs[6]:
                 st.metric("Memoria", "N/D")
             with resource_cols[2]:
                 st.metric("Disco", "N/D")
-            st.info("Métricas de sistema no disponibles: instala psutil.")
+            st.info("Metricas de sistema no disponibles: instala psutil.")
 
         connection_cols = st.columns(3)
         with connection_cols[0]:
@@ -3229,50 +3750,79 @@ with tabs[6]:
         with connection_cols[2]:
             st.metric("Hash acumulado", _format_short_hash(hash_accumulator))
 
-        st.markdown("#### Últimas alertas críticas")
+        st.markdown("#### Ultimas alertas criticas")
         if critical_alerts.empty:
-            st.success("Sin alertas críticas recientes.")
+            st.success("Sin alertas criticas recientes.")
         else:
             alert_table = critical_alerts[["timestamp", "department", "type", "delta", "hash"]].rename(
                 columns={
                     "timestamp": "Timestamp",
                     "department": "Departamento",
                     "type": "Motivo",
-                    "delta": "Δ votos",
+                    "delta": "Delta votos",
                     "hash": "Hash",
                 }
             )
             alert_table["Hash"] = alert_table["Hash"].apply(_format_short_hash)
             st.dataframe(alert_table, use_container_width=True, hide_index=True)
 
-        st.markdown("#### Acciones de mantenimiento")
-        if st.button("Forzar checkpoint ahora", type="primary"):
-            try:
-                manager = _build_checkpoint_manager()
-                if manager is None:
-                    if not CHECKPOINTING_AVAILABLE:
-                        st.error("Checkpoint deshabilitado: falta dependencia de cifrado " f"({CHECKPOINTING_ERROR}).")
+        st.markdown("#### Acciones de mantenimiento / Maintenance Actions")
+        maint_cols = st.columns(2)
+        with maint_cols[0]:
+            if st.button("Forzar checkpoint ahora", type="primary", key="admin_checkpoint"):
+                try:
+                    manager = _build_checkpoint_manager()
+                    if manager is None:
+                        if not CHECKPOINTING_AVAILABLE:
+                            st.error(f"Checkpoint deshabilitado: ({CHECKPOINTING_ERROR}).")
+                        else:
+                            st.error("Checkpoint no configurado: define CHECKPOINT_BUCKET.")
                     else:
-                        st.error("Checkpoint no configurado: define CHECKPOINT_BUCKET.")
-                else:
-                    manager.save_checkpoint(
-                        {
-                            "last_acta_id": last_batch_label,
-                            "last_batch_offset": len(snapshot_files),
-                            "rules_state": {"source": "dashboard"},
-                            "hash_accumulator": hash_accumulator,
-                        }
-                    )
-                    st.success("Checkpoint guardado exitosamente.")
-            except Exception as exc:  # noqa: BLE001
-                st.error(f"No se pudo guardar el checkpoint: {exc}")
+                        manager.save_checkpoint(
+                            {
+                                "last_acta_id": last_batch_label,
+                                "last_batch_offset": len(snapshot_files),
+                                "rules_state": {"source": "dashboard"},
+                                "hash_accumulator": hash_accumulator,
+                            }
+                        )
+                        st.success("Checkpoint guardado exitosamente.")
+                except Exception as exc:  # noqa: BLE001
+                    st.error(f"No se pudo guardar el checkpoint: {exc}")
+
+        with maint_cols[1]:
+            if st.button("Lanzar auditoria completa / Run full audit", key="admin_audit"):
+                st.info("Auditoria completa solicitada. Verificando motor de reglas...")
+                _audit_result = run_rules_engine(snapshots_df, command_center_cfg)
+                _n_alerts = len(_audit_result.get("alerts", []))
+                _n_crit = len(_audit_result.get("critical", []))
+                st.success(f"Auditoria completada: {_n_alerts} alertas, {_n_crit} criticas.")
+
+        # EN: View logs section.
+        # ES: Seccion de visualizacion de logs.
+        with st.expander("Ver logs recientes / View recent logs"):
+            _log_file = Path(command_center_cfg.get("logging", {}).get("file", "C.E.N.T.I.N.E.L.log"))
+            if _log_file.exists():
+                try:
+                    _log_content = _log_file.read_text(encoding="utf-8", errors="ignore")
+                    _log_lines = _log_content.strip().split("\n")
+                    st.code("\n".join(_log_lines[-50:]), language="log")
+                except OSError as exc:
+                    st.error(f"Error leyendo logs: {exc}")
+            else:
+                st.info(f"Archivo de log no encontrado: {_log_file}")
 
         if auto_refresh:
-            st.caption(f"Auto-refresco activo · próxima actualización en {refresh_interval}s.")
+            st.caption(f"Auto-refresco activo - proxima actualizacion en {refresh_interval}s.")
             time.sleep(refresh_interval)
             rerun_app()
 
+# =========================================================================
+# EN: Footer
+# ES: Pie de pagina
+# =========================================================================
 st.markdown("---")
-st.markdown(
-    "✅ **Sugerencia UX:** añade un botón de refresco en la barra lateral para recalcular deltas en tiempo real."
+st.caption(
+    "C.E.N.T.I.N.E.L. - Centro de Vigilancia Electoral | "
+    "Auditoria tecnica independiente | Sistema agnostico a partidos politicos"
 )

@@ -22,6 +22,8 @@ scipy>=1.11.4,<2.0.0           # Estadística avanzada: Benford, chi-squared, te
 scikit-learn>=1.5.0,<2.0.0     # Detección de outliers (Isolation Forest)
 qrcode[pil]>=7.4.2             # Generación de QR para verificación de hashes
 reportlab>=4.2.5               # Generación de PDFs institucionales
+Jinja2>=3.1.0,<4.0.0           # Renderizado de plantillas HTML para reportes PDF
+WeasyPrint>=62.0,<64.0         # Conversión HTML a PDF profesional (requiere cairo)
 
 # Utilidades generales
 python-dateutil>=2.8.2,<3.0.0  # Manejo robusto de timestamps y fechas
