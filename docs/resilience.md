@@ -39,9 +39,22 @@ Continuity without aggressiveness: preserve evidence, reduce load, and maintain 
 - El workflow de CI ejecuta `tests/resilience/` con salida JUnit XML.
 - Se genera `artifacts/resilience_report.json` vía `scripts/resilience_report.py`.
 - El reporte incluye: cobertura de suite (`tests/failures/errors/skipped`), métricas runtime opcionales (`MTTR`, `429/503`, retries, recoveries) y `resilience_score` por release.
+- Se puede consolidar un reporte institucional multi-release con `scripts/institutional_transparency_report.py`.
 
 ### Ejecución local / Local run
 ```bash
 pytest tests/resilience/ -v --junitxml=resilience.junit.xml
-python scripts/resilience_report.py   --junit-xml resilience.junit.xml   --output artifacts/resilience_report.json   --release-version v4.0.0
+python scripts/resilience_report.py \
+  --junit-xml resilience.junit.xml \
+  --output artifacts/resilience_report_v4.0.0.json \
+  --release-version v4.0.0
+
+python scripts/resilience_report.py \
+  --junit-xml resilience.junit.xml \
+  --output artifacts/resilience_report_v4.1.0.json \
+  --release-version v4.1.0
+
+python scripts/institutional_transparency_report.py \
+  --resilience-reports artifacts/resilience_report_v4.0.0.json artifacts/resilience_report_v4.1.0.json \
+  --output artifacts/institutional_transparency_report.json
 ```
