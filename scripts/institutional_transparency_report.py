@@ -24,7 +24,13 @@ def _runtime(report: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_transparency_report(report_paths: list[Path], output: Path) -> dict[str, Any]:
-    reports = [_read_report(path) for path in report_paths]
+    reports = []
+    for path in report_paths:
+        try:
+            reports.append(_read_report(path))
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Warning: Skipping invalid report file '{path}': {e}", file=sys.stderr)
+            continue
     if not reports:
         raise ValueError("At least one resilience report is required")
 
