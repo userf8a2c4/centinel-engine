@@ -82,7 +82,10 @@ from core.security_utils import is_safe_outbound_url, pin_dns_resolution, resolv
 import requests
 import urllib3
 import yaml
-from scipy import stats
+try:
+    from scipy import stats  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover – scipy optional at import time
+    stats = None  # type: ignore[assignment]
 
 from centinel.proxy_handler import get_proxy_rotator
 from centinel.schemas import validate_snapshot
@@ -268,6 +271,8 @@ def detect_statistical_anomalies(payloads: list[dict[str, Any]]) -> list[dict[st
 
     Calcula anomalías simples por z-score sobre votos totales.
     """
+    if stats is None:
+        return []
     totals = [entry["totals"]["total_votes"] for entry in payloads if isinstance(entry.get("totals"), dict)]
     if len(totals) < 3:
         return []
