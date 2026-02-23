@@ -81,6 +81,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
+from auditor.inconsistent_acts import InconsistentActsTracker
 from scripts import analyze_rules
 from scripts.cli import load_snapshots, normalize_snapshots, write_normalized_outputs
 
@@ -223,6 +224,22 @@ def write_report(report_path: Path, normalized_dir: Path) -> Path:
     return report_path
 
 
+def write_inconsistent_forensic_report(report_path: Path, snapshots: List[Dict[str, Any]]) -> Path:
+    """Generate special-scrutiny forensic report from replay snapshots.
+
+    Genera reporte forense de escrutinio especial desde snapshots del replay.
+    """
+    tracker = InconsistentActsTracker()
+    for snapshot in snapshots:
+        ts_raw = snapshot.get("meta", {}).get("timestamp_utc")
+        parsed_ts = datetime.fromisoformat(str(ts_raw).replace("Z", "+00:00")) if ts_raw else datetime.now(timezone.utc)
+        tracker.load_snapshot(snapshot, parsed_ts)
+
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(tracker.generate_forensic_report(), encoding="utf-8")
+    return report_path
+
+
 def run_replay(
     data_dir: Path,
     output_dir: Path,
@@ -230,7 +247,7 @@ def run_replay(
     report_path: Path,
     department: str,
     year: int,
-) -> Tuple[Path, Path]:
+) -> Tuple[Path, Path, Path]:
     """Ejecuta el replay completo y devuelve rutas clave.
 
     Run the full replay and return key paths.
@@ -247,7 +264,11 @@ def run_replay(
         analyze_rules.run_audit(str(normalized_dir))
 
     report_file = write_report(report_path, normalized_dir)
-    return normalized_dir, report_file
+    forensic_file = write_inconsistent_forensic_report(
+        report_path.with_name("inconsistent_acts_forensic.md"),
+        normalized,
+    )
+    return normalized_dir, report_file, forensic_file
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -300,7 +321,7 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
-    normalized_dir, report_file = run_replay(
+    normalized_dir, report_file, forensic_file = run_replay(
         data_dir=Path(args.data_dir),
         output_dir=Path(args.output_dir),
         analysis_dir=Path(args.analysis_dir),
@@ -313,6 +334,7 @@ def main() -> None:
         "normalized_dir": str(normalized_dir),
         "analysis_dir": str(Path(args.analysis_dir)),
         "report": str(report_file),
+        "inconsistent_acts_report": str(forensic_file),
     }
     print(json.dumps(summary, indent=2, ensure_ascii=False))
 
