@@ -15,6 +15,10 @@ anomalies_report.json
 # Config history (auto-archived by config_loader)
 command_center/configs/history/
 
+# Test / coverage artifacts
+.coverage
+*.junit.xml
+
 # Archivos temporales
 *.log
 *.tmp
