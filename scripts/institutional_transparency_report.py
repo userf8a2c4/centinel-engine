@@ -18,17 +18,28 @@ def _num(value: Any) -> float | None:
     return float(value) if isinstance(value, (int, float)) else None
 
 
+def _runtime(report: dict[str, Any]) -> dict[str, Any]:
+    runtime = report.get("runtime_metrics")
+    return runtime if isinstance(runtime, dict) else {}
+
+
 def build_transparency_report(report_paths: list[Path], output: Path) -> dict[str, Any]:
-    reports = [_read_report(path) for path in report_paths]
+    reports = []
+    for path in report_paths:
+        try:
+            reports.append(_read_report(path))
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Warning: Skipping invalid report file '{path}': {e}", file=sys.stderr)
+            continue
     if not reports:
         raise ValueError("At least one resilience report is required")
 
     release_versions = [r.get("release_version", "unknown") for r in reports]
     scores = [_num(r.get("resilience_score")) for r in reports]
-    mttr_values = [_num(r.get("runtime_metrics", {}).get("mttr_seconds")) for r in reports]
-    events_429 = [_num(r.get("runtime_metrics", {}).get("http_429_events")) for r in reports]
-    events_503 = [_num(r.get("runtime_metrics", {}).get("http_503_events")) for r in reports]
-    recoveries = [_num(r.get("runtime_metrics", {}).get("watchdog_recoveries")) for r in reports]
+    mttr_values = [_num(_runtime(r).get("mttr_seconds")) for r in reports]
+    events_429 = [_num(_runtime(r).get("http_429_events")) for r in reports]
+    events_503 = [_num(_runtime(r).get("http_503_events")) for r in reports]
+    recoveries = [_num(_runtime(r).get("watchdog_recoveries")) for r in reports]
 
     def _avg(values: list[float | None]) -> float | None:
         clean = [v for v in values if v is not None]
