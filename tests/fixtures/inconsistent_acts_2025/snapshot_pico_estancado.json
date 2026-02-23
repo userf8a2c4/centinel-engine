@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "timestamp_utc": "2025-11-30T23:05:00Z",
+    "source": "cne_hn_public_json"
+  },
+  "totals": {
+    "actasInconsistentes": 2773,
+    "total_votes": 1215000
+  },
+  "candidates": [
+    {"candidate_id": "cand_1", "votes": 517500},
+    {"candidate_id": "cand_2", "votes": 435100},
+    {"candidate_id": "cand_3", "votes": 262400}
+  ]
+}
