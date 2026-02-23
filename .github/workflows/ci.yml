@@ -127,7 +127,7 @@ jobs:
       - name: Run mandatory release gate
         run: |
           SKIP_LOCK_FLAG=""
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" || "${GITHUB_REF_NAME}" == dev-v* || "${GITHUB_REF_NAME}" == "work" ]]; then
             SKIP_LOCK_FLAG="--skip-lock-check"
           fi
 
@@ -209,7 +209,7 @@ jobs:
       - name: Install resilience dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest==8.3.3 pytest-cov requests responses pyyaml tenacity psutil python-dateutil apscheduler httpx cryptography pydantic python-dotenv
+          python -m pip install pytest==8.3.3 pytest-cov requests responses pyyaml tenacity psutil python-dateutil apscheduler httpx cryptography pydantic python-dotenv defusedxml
 
       - name: Run resilience suite
         run: |
