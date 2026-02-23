@@ -209,7 +209,7 @@ jobs:
       - name: Install resilience dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest==8.3.3 pytest-cov requests responses pyyaml tenacity psutil python-dateutil apscheduler
+          python -m pip install pytest==8.3.3 pytest-cov requests responses pyyaml tenacity psutil python-dateutil apscheduler httpx cryptography pydantic python-dotenv
 
       - name: Run resilience suite
         run: |

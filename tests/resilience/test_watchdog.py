@@ -35,6 +35,7 @@ Notes:
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -64,7 +65,7 @@ def test_watchdog_heartbeat_miss_triggers_failure_and_recovery_log(
     stale_time = datetime.now(timezone.utc) - timedelta(minutes=5)
     timestamp = stale_time.timestamp()
     heartbeat_path.touch()
-    Path(config.heartbeat_path).utime((timestamp, timestamp))
+    os.utime(config.heartbeat_path, (timestamp, timestamp))
 
     ok, reason = watchdog._check_heartbeat(config)
     assert ok is False

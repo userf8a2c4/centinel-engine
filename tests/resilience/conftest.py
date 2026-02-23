@@ -10,6 +10,7 @@ Este módulo forma parte de Centinel Engine y está documentado para facilitar
 la navegación, mantenimiento y auditoría técnica.
 
 Componentes detectados:
+  - _install_stub_modules
   - mock_responses
   - retry_config_path
   - retry_config
@@ -27,6 +28,7 @@ This module is part of Centinel Engine and is documented to improve
 navigation, maintenance, and technical auditability.
 
 Detected components:
+  - _install_stub_modules
   - mock_responses
   - retry_config_path
   - retry_config
@@ -39,8 +41,52 @@ Notes:
 - Prioritize operational clarity and behavior traceability.
 """
 
+# ---------------------------------------------------------------------------
+# Stub heavy optional dependencies that are NOT installed in CI.
+# This block MUST execute before any test module is collected so that
+# transitive imports (e.g. scripts.run_pipeline → anchor.arbitrum_anchor →
+# eth_account) resolve to lightweight stubs instead of raising
+# ModuleNotFoundError.
+# ---------------------------------------------------------------------------
 from __future__ import annotations
 
+import importlib.util
+import sys
+import types
+from unittest.mock import MagicMock
+
+
+def _install_stub_modules() -> None:
+    """Pre-seed ``sys.modules`` with stubs for heavyweight packages
+    that are not required by the resilience test suite.
+
+    Only modules that cannot be imported are stubbed; if the real
+    package is available it is left untouched.
+    """
+    _STUB_MODULES = [
+        # Blockchain / Web3 stack (heavy, not needed by resilience tests)
+        "eth_account",
+        "eth_utils",
+        "web3",
+    ]
+    for name in _STUB_MODULES:
+        if name in sys.modules:
+            continue
+        if importlib.util.find_spec(name) is not None:
+            continue
+        mod = types.ModuleType(name)
+        mod.__spec__ = None  # type: ignore[attr-defined]
+        mod.__path__ = []  # type: ignore[attr-defined]
+        # Attribute access returns a MagicMock so ``from pkg import X`` works.
+        mod.__getattr__ = lambda self, _n=name: MagicMock()  # type: ignore[assignment]
+        sys.modules[name] = mod
+
+
+_install_stub_modules()
+
+# ---------------------------------------------------------------------------
+
+import logging
 from pathlib import Path
 
 import pytest
@@ -167,6 +213,35 @@ def proxies_config_path(tmp_path: Path) -> Path:
     config_path = tmp_path / "proxies.yaml"
     config_path.write_text(yaml.safe_dump(payload), encoding="utf-8")
     return config_path
+
+
+class _KwargsLogger(logging.Logger):
+    """Logger subclass that tolerates structlog-style keyword arguments.
+
+    The production code calls ``self.logger.warning("msg", key=val)`` which
+    the stdlib Logger rejects.  This subclass captures kwargs into the
+    ``extra`` dict so the calls succeed without requiring structlog.
+    """
+
+    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, stacklevel=1, **kwargs):
+        if kwargs:
+            extra = {**(extra or {}), **kwargs}
+        super()._log(level, msg, args, exc_info=exc_info, extra=extra, stack_info=stack_info, stacklevel=stacklevel)
+
+
+@pytest.fixture()
+def kwargs_logger() -> logging.Logger:
+    """Provide a logger that accepts extra keyword arguments.
+
+    Created via the logging manager so it propagates to root and
+    is captured by pytest's ``caplog`` fixture.
+    """
+    prev_class = logging.getLoggerClass()
+    logging.setLoggerClass(_KwargsLogger)
+    logger = logging.getLogger("centinel.test.proxy")
+    logging.setLoggerClass(prev_class)
+    logger.setLevel(logging.DEBUG)
+    return logger
 
 
 @pytest.fixture()
