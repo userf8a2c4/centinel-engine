@@ -113,7 +113,7 @@ def authenticate(username: str, password: str, db_path: Path | None = None) -> d
         ).fetchone()
         if row is None:
             return None
-        if row["password"] != _hash_password(password):
+        if not hashlib.compare_digest(row["password"], _hash_password(password)):
             return None
         return {
             "username": row["username"],
