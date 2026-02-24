@@ -179,6 +179,35 @@ def delete_user(username: str, db_path: Path | None = None) -> bool:
         conn.close()
 
 
+def change_password(
+    username: str,
+    current_password: str,
+    new_password: str,
+    db_path: Path | None = None,
+) -> bool:
+    """EN: Change a user's password after verifying the current one. Returns True on success.
+
+    ES: Cambia la contrasena de un usuario tras verificar la actual. Retorna True si tiene exito.
+    """
+    conn = _get_connection(db_path)
+    try:
+        row = conn.execute(
+            "SELECT password FROM users WHERE username=?", (username,)
+        ).fetchone()
+        if row is None:
+            return False
+        if row["password"] != _hash_password(current_password):
+            return False
+        conn.execute(
+            "UPDATE users SET password=? WHERE username=?",
+            (_hash_password(new_password), username),
+        )
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------------------
 # EN: Sandbox persistence
 # ES: Persistencia de sandbox
