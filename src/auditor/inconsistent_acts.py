@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from math import sqrt
@@ -80,20 +81,35 @@ class InconsistentActsTracker:
         self,
         *,
         config_path: str | Path = "config/inconsistent_key.json",
+        runtime_config_path: str | Path = "config.json",
         bulk_resolution_threshold: int = 300,
         stagnation_cycles_threshold: int = 6,
         prolonged_stagnation_cycles: int = 12,
         high_impact_resolution_ratio: float = 0.10,
+        progressive_injection_threshold: int = 800,
+        min_consecutive_injections: int = 5,
+        high_inconsistent_threshold: int = 1000,
+        run_test_pvalue_threshold: float = 0.05,
     ) -> None:
         """Initialize tracker with persistent key detection and thresholds.
 
         Inicializa el rastreador con detección persistente de clave y umbrales.
         """
         self.config_path = Path(config_path)
+        self.runtime_config_path = Path(runtime_config_path)
+        runtime_config = self._load_runtime_config()
         self.bulk_resolution_threshold = bulk_resolution_threshold
         self.stagnation_cycles_threshold = stagnation_cycles_threshold
         self.prolonged_stagnation_cycles = prolonged_stagnation_cycles
         self.high_impact_resolution_ratio = high_impact_resolution_ratio
+        self.progressive_injection_threshold = int(
+            runtime_config.get("progressive_injection_threshold", progressive_injection_threshold)
+        )
+        self.min_consecutive_injections = int(
+            runtime_config.get("min_consecutive_injections", min_consecutive_injections)
+        )
+        self.high_inconsistent_threshold = int(runtime_config.get("high_inconsistent_threshold", high_inconsistent_threshold))
+        self.run_test_pvalue_threshold = float(runtime_config.get("run_test_pvalue_threshold", run_test_pvalue_threshold))
 
         self.detected_inconsistent_key = self._load_persisted_key()
         self.snapshots: list[SnapshotRecord] = []
@@ -101,6 +117,9 @@ class InconsistentActsTracker:
         self.normal_votes: dict[str, int] = {}
         self.special_scrutiny_votes: dict[str, int] = {}
         self.stagnation_cycles = 0
+        self.injection_history: list[dict[str, Any]] = []
+        self.realtime_alerts: list[dict[str, Any]] = []
+        self.logger = logging.getLogger(__name__)
 
     def load_snapshot(self, json_data: dict, timestamp: datetime) -> None:
         """Load one JSON snapshot and classify vote deltas by layer.
@@ -141,6 +160,111 @@ class InconsistentActsTracker:
                 self.normal_votes[candidate] = self.normal_votes.get(candidate, 0) + delta
 
         self.events.append(change)
+
+        delta_total = change.impacted_total_votes
+        if inconsistent_count > self.high_inconsistent_threshold and delta_total < self.progressive_injection_threshold:
+            # English/Español: track low-delta injection while inconsistent acts remain high / registrar inyección de delta bajo con AI altas.
+            self.injection_history.append(
+                {
+                    "timestamp": snapshot.timestamp,
+                    "delta_total": delta_total,
+                    "delta_por_candidato": change.delta_votos_por_candidato,
+                    "inconsistent_count_en_ese_momento": inconsistent_count,
+                }
+            )
+
+            if len(self.injection_history) >= self.min_consecutive_injections:
+                progressive = self.detect_progressive_injection()
+                if progressive and progressive.get("detected"):
+                    self.logger.critical(progressive["description"])
+                    self.realtime_alerts.append(progressive)
+        else:
+            # English/Español: only consecutive windows count / solo cuentan ventanas consecutivas.
+            self.injection_history.clear()
+
+    def detect_progressive_injection(self) -> dict[str, Any] | None:
+        """Detect sustained low-delta injections under high inconsistency backlog.
+
+        Detecta inyecciones sostenidas de bajo delta bajo una alta cola de inconsistencias.
+        """
+        if len(self.injection_history) < self.min_consecutive_injections:
+            return None
+
+        candidate_net: dict[str, int] = {}
+        deltas = [float(item["delta_total"]) for item in self.injection_history]
+        for item in self.injection_history:
+            for candidate, delta in item["delta_por_candidato"].items():
+                candidate_net[candidate] = candidate_net.get(candidate, 0) + int(delta)
+
+        stats = self.run_injection_statistical_tests(deltas)
+        statistically_unlikely = bool(
+            stats["improbable"] or stats["autocorrelation_lag1"] > 0.5 or stats["run_test_pvalue"] < self.run_test_pvalue_threshold
+        )
+        detection = {
+            "detected": statistically_unlikely,
+            "start_timestamp": self.injection_history[0]["timestamp"],
+            "end_timestamp": self.injection_history[-1]["timestamp"],
+            "cycles_count": len(self.injection_history),
+            "avg_delta_per_cycle": sum(deltas) / len(deltas),
+            "net_swing": candidate_net,
+            "z_score_acumulado": stats["z_score_acumulado"],
+            "z_score_pvalue": stats["z_score_pvalue"],
+            "run_test_pvalue": stats["run_test_pvalue"],
+            "autocorrelation_lag1": stats["autocorrelation_lag1"],
+            "description": (
+                "Patrón de inyección progresiva detectado: "
+                f"{len(self.injection_history)} ciclos consecutivos con delta <{self.progressive_injection_threshold} "
+                f"mientras AI >{self.high_inconsistent_threshold}"
+            ),
+        }
+        return detection if detection["detected"] else None
+
+    def run_injection_statistical_tests(self, deltas: list[float]) -> dict[str, float | bool]:
+        """Run improbability tests over progressive injection deltas.
+
+        Ejecuta pruebas de improbabilidad sobre deltas de inyección progresiva.
+        """
+        if not deltas:
+            return {
+                "z_score_acumulado": 0.0,
+                "z_score_pvalue": 1.0,
+                "run_test_pvalue": 1.0,
+                "autocorrelation_lag1": 0.0,
+                "variance": 0.0,
+                "improbable": False,
+            }
+
+        historical = [float(event.impacted_total_votes) for event in self.events if event.impacted_total_votes > 0]
+        baseline = historical[:-len(deltas)] if len(historical) > len(deltas) else historical
+        if len(baseline) < 2:
+            baseline = deltas
+
+        baseline_mean = sum(baseline) / len(baseline)
+        baseline_var = sum((value - baseline_mean) ** 2 for value in baseline) / max(len(baseline) - 1, 1)
+        baseline_sigma = sqrt(max(baseline_var, 1e-9))
+
+        # English/Español: cumulative z-score against dynamic baseline / z-score acumulado contra línea base dinámica.
+        observed_sum = sum(deltas)
+        expected_sum = baseline_mean * len(deltas)
+        z_score = (observed_sum - expected_sum) / (baseline_sigma * sqrt(len(deltas)))
+        z_pvalue = float(2 * (1 - norm.cdf(abs(z_score))))
+
+        run_pvalue = self._runs_test_pvalue(deltas)
+        autocorr = self._autocorrelation_lag1(deltas)
+        deltas_variance = sum((value - (sum(deltas) / len(deltas))) ** 2 for value in deltas) / max(len(deltas) - 1, 1)
+        # English/Español: near-zero variance in consecutive micro-deltas is itself non-random / varianza casi cero en micro-deltas consecutivos ya es no aleatoria.
+        improbable = bool(
+            z_pvalue < 0.01 or run_pvalue < self.run_test_pvalue_threshold or (len(deltas) >= self.min_consecutive_injections and deltas_variance < 1.0)
+        )
+
+        return {
+            "z_score_acumulado": float(z_score),
+            "z_score_pvalue": z_pvalue,
+            "run_test_pvalue": run_pvalue,
+            "autocorrelation_lag1": autocorr,
+            "variance": float(deltas_variance),
+            "improbable": improbable,
+        }
 
     def analyze_change(self, previous_snapshot: SnapshotRecord | dict[str, Any]) -> ChangeEvent:
         """Analyze delta between previous snapshot and latest loaded snapshot.
@@ -394,8 +518,45 @@ z = \frac{\hat{p}_{special} - \hat{p}_{normal}}{\sqrt{\hat{p}(1-\hat{p})(\frac{1
             f"## Anomalies / Anomalías\n"
             f"```json\n{json.dumps([asdict(anomaly) for anomaly in anomalies], indent=2, default=str, ensure_ascii=False)}\n```\n\n"
             f"## Equations / Ecuaciones\n{latex_block}\n\n"
+            f"## 5. Detección de Inyección Progresiva Controlada\n"
+            f"{self._render_progressive_injection_section()}\n\n"
             f"## Source hashes SHA-256 / Hashes de fuente SHA-256\n{hashes}\n"
         )
+
+    def _render_progressive_injection_section(self) -> str:
+        """Render progressive injection section for forensic markdown report.
+
+        Renderiza la sección de inyección progresiva para el reporte forense en markdown.
+        """
+        detection = self.detect_progressive_injection()
+        if not detection:
+            return "Patrón detectado en: N/A"
+
+        net_swing = ", ".join(f"{candidate} {delta:+d} votos" for candidate, delta in sorted(detection["net_swing"].items()))
+        return (
+            f"Patrón detectado en: {detection['start_timestamp']} – {detection['end_timestamp']}  \n"
+            f"Ciclos consecutivos: {detection['cycles_count']}  \n"
+            f"Delta promedio por ciclo: {detection['avg_delta_per_cycle']:.2f} votos  \n"
+            f"Swing neto acumulado: {net_swing}  \n"
+            f"Z-score acumulativo: {detection['z_score_acumulado']:+.3f} "
+            f"(p = {detection['z_score_pvalue']:.5f})  \n"
+            f"Test de runs (Wald-Wolfowitz): p = {detection['run_test_pvalue']:.5f} "
+            f"(no aleatoriedad si <0.05)  \n"
+            f"Autocorrelación lag-1: {detection['autocorrelation_lag1']:.3f} "
+            f"(persistencia si >0.4)  \n"
+            "Referencia histórica: comparar contra ventanas previas del mismo proceso electoral para validar desviación estructural"
+        )
+
+    def _load_runtime_config(self) -> dict[str, Any]:
+        """Load optional runtime thresholds from config.json.
+
+        Carga umbrales opcionales en tiempo de ejecución desde config.json.
+        """
+        if not self.runtime_config_path.exists():
+            return {}
+        payload = json.loads(self.runtime_config_path.read_text(encoding="utf-8"))
+        section = payload.get("inconsistent_acts", payload)
+        return section if isinstance(section, dict) else {}
 
     def _load_persisted_key(self) -> str | None:
         """Load previously detected key from config file.
@@ -583,3 +744,46 @@ z = \frac{\hat{p}_{special} - \hat{p}_{normal}}{\sqrt{\hat{p}(1-\hat{p})(\frac{1
         ss_res = sum((y - (slope * x + intercept)) ** 2 for x, y in zip(x_values, y_values))
         r2 = 1 - (ss_res / ss_tot) if ss_tot else 0.0
         return {"slope": slope, "intercept": intercept, "r2": r2}
+
+    def _runs_test_pvalue(self, values: list[float]) -> float:
+        """Compute Wald-Wolfowitz runs-test p-value using median split.
+
+        Calcula p-value de Wald-Wolfowitz usando separación por mediana.
+        """
+        if len(values) < 3:
+            return 1.0
+        median = sorted(values)[len(values) // 2]
+        signs = [1 if value >= median else 0 for value in values]
+        n1 = sum(signs)
+        n2 = len(signs) - n1
+        if n1 == 0 or n2 == 0:
+            return 1.0
+
+        runs = 1
+        for previous, current in zip(signs, signs[1:]):
+            if current != previous:
+                runs += 1
+
+        mean_runs = 1 + (2 * n1 * n2) / (n1 + n2)
+        variance_runs = (2 * n1 * n2 * (2 * n1 * n2 - n1 - n2)) / (((n1 + n2) ** 2) * (n1 + n2 - 1))
+        if variance_runs <= 0:
+            return 1.0
+        z_score = (runs - mean_runs) / sqrt(variance_runs)
+        return float(2 * (1 - norm.cdf(abs(z_score))))
+
+    def _autocorrelation_lag1(self, values: list[float]) -> float:
+        """Compute lag-1 autocorrelation for injection delta persistence.
+
+        Calcula autocorrelación lag-1 para persistencia en deltas de inyección.
+        """
+        if len(values) < 2:
+            return 0.0
+        x = values[:-1]
+        y = values[1:]
+        x_mean = sum(x) / len(x)
+        y_mean = sum(y) / len(y)
+        numerator = sum((xi - x_mean) * (yi - y_mean) for xi, yi in zip(x, y))
+        denominator = sqrt(sum((xi - x_mean) ** 2 for xi in x) * sum((yi - y_mean) ** 2 for yi in y))
+        if denominator == 0:
+            return 0.0
+        return float(numerator / denominator)
