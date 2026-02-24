@@ -1123,6 +1123,157 @@ def run_rules_engine(snapshot_df: pd.DataFrame, config: dict) -> dict:
     return {"alerts": result.alerts, "critical": result.critical_alerts}
 
 
+def run_table_consistency_check(snapshot_files: list[dict]) -> dict:
+    """EN: Run table-consistency analysis across all loaded snapshots.
+
+    Inspects each snapshot for mesa-level data and checks:
+    1) valid + null + blank == total (±tolerance)
+    2) sum of candidate votes == valid votes
+    Returns a dict with summary metrics and per-mesa detail rows.
+
+    ES: Ejecuta analisis de consistencia de actas sobre todos los snapshots.
+    Inspecciona cada snapshot buscando datos a nivel de mesa y verifica:
+    1) validos + nulos + blancos == total (±tolerancia)
+    2) suma de candidatos == votos validos
+    Retorna dict con metricas resumen y detalle por mesa.
+    """
+    tolerance = 1
+    detail_rows: list[dict] = []
+    total_mesas_checked = 0
+    total_mismatch_total = 0
+    total_mismatch_valid = 0
+    departments_affected: set[str] = set()
+
+    for snap in snapshot_files:
+        content = snap.get("content", {}) if isinstance(snap, dict) else {}
+        if not content:
+            continue
+        # EN: Try to extract department-level entries with mesa detail.
+        # ES: Intentar extraer entradas por departamento con detalle de mesa.
+        dept_entries = content.get("departamentos") or content.get("departments") or []
+        if isinstance(dept_entries, dict):
+            dept_entries = [{"department": k, **v} for k, v in dept_entries.items() if isinstance(v, dict)]
+        if not isinstance(dept_entries, list):
+            dept_entries = []
+
+        # EN: Also check top-level mesas/actas.
+        # ES: Tambien revisar mesas/actas de nivel superior.
+        sources = []
+        for dept in dept_entries:
+            if not isinstance(dept, dict):
+                continue
+            dept_name = dept.get("nombre") or dept.get("department") or dept.get("departamento") or "N/D"
+            mesas = dept.get("mesas") or dept.get("actas") or dept.get("tables") or []
+            if isinstance(mesas, dict):
+                mesas = list(mesas.values())
+            if isinstance(mesas, list):
+                sources.append((dept_name, [m for m in mesas if isinstance(m, dict)]))
+
+        top_mesas = content.get("mesas") or content.get("actas") or content.get("tables") or []
+        if isinstance(top_mesas, dict):
+            top_mesas = list(top_mesas.values())
+        if isinstance(top_mesas, list):
+            top_level = [m for m in top_mesas if isinstance(m, dict)]
+            if top_level:
+                top_dept = content.get("departamento") or content.get("department") or "NACIONAL"
+                sources.append((top_dept, top_level))
+
+        for dept_name, mesas in sources:
+            for mesa in mesas:
+                mesa_code = (
+                    mesa.get("codigo") or mesa.get("codigo_mesa")
+                    or mesa.get("mesa_id") or mesa.get("id") or mesa.get("code") or "SIN_CODIGO"
+                )
+                totals = mesa.get("totals") or {}
+                valid = _safe_int(
+                    totals.get("valid_votes") or totals.get("validos")
+                    or mesa.get("votos_validos"), -1
+                )
+                null_v = _safe_int(
+                    totals.get("null_votes") or totals.get("nulos")
+                    or mesa.get("votos_nulos"), -1
+                )
+                blank = _safe_int(
+                    totals.get("blank_votes") or totals.get("blancos")
+                    or mesa.get("votos_blancos"), -1
+                )
+                total = _safe_int(
+                    totals.get("total_votes") or totals.get("total")
+                    or mesa.get("total_votes") or mesa.get("votos_emitidos"), -1
+                )
+
+                # EN: Extract candidate votes from mesa.
+                # ES: Extraer votos por candidato de la mesa.
+                cand_votes: dict[str, int] = {}
+                cands = mesa.get("candidatos") or mesa.get("candidates") or mesa.get("resultados") or {}
+                if isinstance(cands, dict):
+                    for k, v in cands.items():
+                        try:
+                            cand_votes[str(k)] = int(str(v).replace(",", "").split(".")[0])
+                        except (ValueError, TypeError):
+                            pass
+                elif isinstance(cands, list):
+                    for entry in cands:
+                        if isinstance(entry, dict):
+                            name = entry.get("name") or entry.get("nombre") or entry.get("candidato") or "?"
+                            votes = entry.get("votes") or entry.get("votos")
+                            try:
+                                cand_votes[str(name)] = int(str(votes).replace(",", "").split(".")[0])
+                            except (ValueError, TypeError):
+                                pass
+
+                total_mesas_checked += 1
+                issues: list[str] = []
+
+                # EN: Check 1 — valid + null + blank vs total.
+                # ES: Chequeo 1 — validos + nulos + blancos vs total.
+                components = [v for v in (valid, null_v, blank) if v >= 0]
+                if total >= 0 and components:
+                    expected_total = sum(components)
+                    diff_total = abs(total - expected_total)
+                    if diff_total > tolerance:
+                        issues.append(f"Total descuadrado: {expected_total} vs {total} (diff={diff_total})")
+                        total_mismatch_total += 1
+
+                # EN: Check 2 — sum of candidates vs valid votes.
+                # ES: Chequeo 2 — suma de candidatos vs votos validos.
+                if valid >= 0 and cand_votes:
+                    cand_sum = sum(cand_votes.values())
+                    diff_valid = cand_sum - valid
+                    if diff_valid != 0:
+                        issues.append(f"Candidatos: {cand_sum} vs validos: {valid} (diff={diff_valid:+d})")
+                        total_mismatch_valid += 1
+
+                if issues:
+                    departments_affected.add(dept_name)
+                    detail_rows.append({
+                        "departamento": dept_name,
+                        "mesa": str(mesa_code),
+                        "validos": valid if valid >= 0 else "N/D",
+                        "nulos": null_v if null_v >= 0 else "N/D",
+                        "blancos": blank if blank >= 0 else "N/D",
+                        "total": total if total >= 0 else "N/D",
+                        "sum_candidatos": sum(cand_votes.values()) if cand_votes else "N/D",
+                        "inconsistencias": " | ".join(issues),
+                        "severidad": "CRITICAL",
+                    })
+
+    total_inconsistent = total_mismatch_total + total_mismatch_valid
+    return {
+        "total_mesas_checked": total_mesas_checked,
+        "total_inconsistent": total_inconsistent,
+        "total_mismatch_total": total_mismatch_total,
+        "total_mismatch_valid": total_mismatch_valid,
+        "departments_affected": sorted(departments_affected),
+        "detail_rows": detail_rows,
+        "integrity_pct": (
+            round(100.0 * (1 - total_inconsistent / max(1, total_mesas_checked)), 2)
+            if total_mesas_checked > 0
+            else 100.0
+        ),
+    }
+
+
 def create_pdf_charts(
     benford_df: pd.DataFrame,
     votes_df: pd.DataFrame,
@@ -2296,6 +2447,10 @@ rules_df = build_rules_table(command_center_cfg)
 
 rules_engine_output = run_rules_engine(snapshots_df, command_center_cfg)
 
+# EN: Run table consistency (actas inconsistentes) analysis.
+# ES: Ejecutar analisis de consistencia de actas (actas inconsistentes).
+actas_consistency = run_table_consistency_check(snapshot_files)
+
 failed_retries = 0
 rate_limit_failures = 0
 try:
@@ -2621,6 +2776,17 @@ with alert_focus_container:
         emit_toast("Alertas críticas del motor de reglas activas.", icon="🚨")
     if rules_engine_output.get("alerts"):
         st.warning("Alertas de reglas en revisión: " f"{len(rules_engine_output['alerts'])} eventos.")
+    if actas_consistency["total_inconsistent"] > 0:
+        _actas_msg = (
+            f"Actas inconsistentes: {actas_consistency['total_inconsistent']} mesas con descuadre "
+            f"aritmetico en {len(actas_consistency['departments_affected'])} departamento(s). "
+            f"Integridad: {actas_consistency['integrity_pct']:.1f}%."
+        )
+        if actas_consistency["total_inconsistent"] >= 5:
+            st.error(_actas_msg)
+            emit_toast(_actas_msg, icon="\U0001f6a8")
+        else:
+            st.warning(_actas_msg)
 
 if not filtered_anomalies.empty:
     st.markdown("<div class='alert-bar'>", unsafe_allow_html=True)
@@ -2640,13 +2806,14 @@ st.markdown(
     "<div class='section-subtitle'>Indicadores clave de integridad, velocidad y cobertura operacional.</div>",
     unsafe_allow_html=True,
 )
-kpi_cols = st.columns(5)
+kpi_cols = st.columns(6)
 kpis = [
     ("Snapshots", str(len(snapshot_files)), "Ingesta verificada"),
-    ("Deltas negativos", str(critical_count), "Alertas críticas"),
+    ("Deltas negativos", str(critical_count), "Alertas criticas"),
+    ("Actas inconsist.", str(actas_consistency["total_inconsistent"]), f"{actas_consistency['integrity_pct']:.0f}% integridad"),
     ("Reglas activas", str(len(rules_df)), "Motor de reglas"),
     ("Deptos monitoreados", "18", "Cobertura nacional"),
-    ("Hash raíz", anchor.root_hash[:12] + "…", "Evidencia on-chain"),
+    ("Hash raiz", anchor.root_hash[:12] + "...", "Evidencia on-chain"),
 ]
 for col, (label, value, caption) in zip(kpi_cols, kpis):
     with col:
@@ -2943,6 +3110,103 @@ with tabs[0]:
                     log_lines.append(f"Regla: {alert.get('rule')} - {alert.get('severity')} - {alert.get('message')}")
             st.code("\n".join(log_lines), language="yaml")
 
+    # EN: Sub-section — Actas Inconsistentes (inside Visualizacion General).
+    #     Dedicated panel for table-consistency checks: arithmetic mismatches
+    #     at the mesa/acta level across all loaded snapshots.
+    # ES: Sub-seccion — Actas Inconsistentes (dentro de Visualizacion General).
+    #     Panel dedicado para chequeos de consistencia de actas: descuadres
+    #     aritmeticos a nivel de mesa/acta en todos los snapshots cargados.
+    _actas_label = (
+        f"\u26a0\ufe0f Actas Inconsistentes ({actas_consistency['total_inconsistent']})"
+        if actas_consistency["total_inconsistent"] > 0
+        else "\u2705 Actas Consistentes (0 inconsistencias)"
+    )
+    with st.expander(_actas_label, expanded=actas_consistency["total_inconsistent"] > 0):
+        _ac = actas_consistency
+        if _ac["total_mesas_checked"] == 0:
+            st.info(
+                "No se encontraron datos a nivel de mesa/acta en los snapshots cargados. "
+                "Este analisis requiere que los JSON incluyan el campo 'mesas', 'actas' o "
+                "'tables' con detalle por mesa."
+            )
+        else:
+            # EN: Summary metrics row.
+            # ES: Fila de metricas resumen.
+            ac_cols = st.columns(4)
+            ac_cols[0].metric("Mesas analizadas", f"{_ac['total_mesas_checked']:,}")
+            ac_cols[1].metric(
+                "Descuadres de total",
+                f"{_ac['total_mismatch_total']:,}",
+                delta=f"-{_ac['total_mismatch_total']}" if _ac['total_mismatch_total'] > 0 else None,
+                delta_color="inverse",
+            )
+            ac_cols[2].metric(
+                "Descuadres candidatos vs validos",
+                f"{_ac['total_mismatch_valid']:,}",
+                delta=f"-{_ac['total_mismatch_valid']}" if _ac['total_mismatch_valid'] > 0 else None,
+                delta_color="inverse",
+            )
+            ac_cols[3].metric("Integridad actas", f"{_ac['integrity_pct']:.1f}%")
+
+            if _ac["departments_affected"]:
+                st.warning(
+                    f"Departamentos con actas inconsistentes: "
+                    f"{', '.join(_ac['departments_affected'])}"
+                )
+
+            if _ac["detail_rows"]:
+                _actas_df = pd.DataFrame(_ac["detail_rows"])
+                st.markdown("##### Detalle por mesa / Per-table detail")
+                st.dataframe(
+                    _actas_df[
+                        [
+                            "departamento",
+                            "mesa",
+                            "validos",
+                            "nulos",
+                            "blancos",
+                            "total",
+                            "sum_candidatos",
+                            "inconsistencias",
+                            "severidad",
+                        ]
+                    ],
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+                # EN: Bar chart — inconsistencies by department.
+                # ES: Grafico de barras — inconsistencias por departamento.
+                _dept_counts = _actas_df.groupby("departamento").size().reset_index(name="inconsistencias")
+                _dept_chart = (
+                    alt.Chart(_dept_counts)
+                    .mark_bar(color="#E53E3E")
+                    .encode(
+                        x=alt.X("inconsistencias:Q", title="Actas inconsistentes"),
+                        y=alt.Y("departamento:N", sort="-x", title="Departamento"),
+                        tooltip=["departamento", "inconsistencias"],
+                    )
+                    .properties(
+                        height=max(120, len(_dept_counts) * 28),
+                        title="Actas inconsistentes por departamento",
+                    )
+                )
+                st.altair_chart(_dept_chart, use_container_width=True)
+
+                # EN: Download inconsistent actas as CSV.
+                # ES: Descargar actas inconsistentes como CSV.
+                st.download_button(
+                    "Descargar actas inconsistentes (CSV)",
+                    data=_actas_df.to_csv(index=False),
+                    file_name="centinel_actas_inconsistentes.csv",
+                    mime="text/csv",
+                )
+            else:
+                st.success(
+                    f"Todas las {_ac['total_mesas_checked']:,} mesas verificadas son "
+                    "aritmeticamente consistentes."
+                )
+
     # EN: Sub-section — Snapshots & Rules (inside Visualizacion General).
     # ES: Sub-seccion — Snapshots y Reglas (dentro de Visualizacion General).
     with st.expander("Snapshots Recientes y Reglas / Recent Snapshots & Rules", expanded=False):
@@ -3104,7 +3368,7 @@ with tabs[0]:
         topology_alert = ""
 
     benford_deviation = (benford_df["observed"] - benford_df["expected"]).abs().max()
-    if critical_count > 0 or not topology["is_match"] or benford_deviation > 5:
+    if critical_count > 0 or not topology["is_match"] or benford_deviation > 5 or actas_consistency["total_inconsistent"] > 0:
         status_badge = {"label": "ESTATUS: COMPROMETIDO", "color": "#B22222"}
     else:
         status_badge = {"label": "ESTATUS: VERIFICADO", "color": "#008000"}
@@ -3131,8 +3395,14 @@ with tabs[0]:
         "executive_summary": (
             "CENTINEL ha auditado "
             f"{len(snapshot_files)} snapshots de 19 flujos de datos JSON. "
-            f"Se detectaron {db_inconsistencies} inconsistencias de base de datos "
-            f"y {stat_deviations} desviaciones estadísticas."
+            f"Se detectaron {db_inconsistencies} inconsistencias de base de datos, "
+            f"{stat_deviations} desviaciones estadísticas"
+            + (
+                f" y {actas_consistency['total_inconsistent']} actas con descuadre aritmetico"
+                if actas_consistency["total_inconsistent"] > 0
+                else ""
+            )
+            + "."
         ),
         "forensic_summary": forensic_summary,
         "kpi_rows": [
@@ -3271,10 +3541,18 @@ with tabs[0]:
             },
             "report_hash": report_hash,
             "qr_image": "",
+            "actas_consistency": {
+                "total_mesas": actas_consistency["total_mesas_checked"],
+                "inconsistentes": actas_consistency["total_inconsistent"],
+                "integridad_pct": actas_consistency["integrity_pct"],
+                "departamentos": actas_consistency["departments_affected"],
+            },
             "conclusions": (
                 f"Se auditaron {len(snapshot_files)} snapshots. "
                 f"Integridad topologica: {'OK' if topology['is_match'] else 'DISCREPANCIA'}. "
-                f"Anomalias detectadas: {len(filtered_anomalies)}."
+                f"Anomalias detectadas: {len(filtered_anomalies)}. "
+                f"Actas inconsistentes: {actas_consistency['total_inconsistent']} "
+                f"de {actas_consistency['total_mesas_checked']} verificadas."
             ),
         }
         _wp_qr = build_qr_bytes(anchor.root_hash)

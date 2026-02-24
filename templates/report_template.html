@@ -270,9 +270,37 @@
   {% endif %}
 
   <!-- ============================================================ -->
+  <!-- EN: Actas Inconsistentes / ES: Actas Inconsistentes          -->
+  <!-- ============================================================ -->
+  {% if actas_consistency %}
+  <h2>4. Actas Inconsistentes / Inconsistent Tally Sheets</h2>
+  <p>
+    <strong>Mesas verificadas / Tables checked:</strong> {{ actas_consistency.total_mesas }}&emsp;
+    <strong>Inconsistentes / Inconsistent:</strong> {{ actas_consistency.inconsistentes }}&emsp;
+    <strong>Integridad / Integrity:</strong> {{ actas_consistency.integridad_pct }}%
+  </p>
+  {% if actas_consistency.departamentos %}
+  <p>
+    <strong>Departamentos afectados / Affected departments:</strong>
+    {{ actas_consistency.departamentos | join(', ') }}
+  </p>
+  {% endif %}
+  {% if actas_consistency.inconsistentes == 0 %}
+  <p style="color: #10B981; font-weight: bold;">
+    Todas las mesas son aritmeticamente consistentes. / All tables are arithmetically consistent.
+  </p>
+  {% else %}
+  <p style="color: #D62728; font-weight: bold;">
+    Se detectaron {{ actas_consistency.inconsistentes }} mesas con descuadre aritmetico. /
+    {{ actas_consistency.inconsistentes }} tables with arithmetic mismatch were detected.
+  </p>
+  {% endif %}
+  {% endif %}
+
+  <!-- ============================================================ -->
   <!-- EN: Charts / ES: Graficos                                    -->
   <!-- ============================================================ -->
-  <h2>4. Graficos Avanzados / Advanced Charts</h2>
+  <h2>5. Graficos Avanzados / Advanced Charts</h2>
 
   {% if benford_chart %}
   <div class="chart-container">
@@ -299,7 +327,7 @@
   <!-- EN: Snapshots / ES: Snapshots                                -->
   <!-- ============================================================ -->
   <div class="page-break"></div>
-  <h2>5. Snapshots Recientes / Recent Snapshots</h2>
+  <h2>6. Snapshots Recientes / Recent Snapshots</h2>
   {% if snapshot_rows %}
   <table>
     <thead><tr>{% for h in snapshot_rows[0] %}<th>{{ h }}</th>{% endfor %}</tr></thead>
@@ -314,7 +342,7 @@
   <!-- ============================================================ -->
   <!-- EN: Active rules / ES: Reglas activas                        -->
   <!-- ============================================================ -->
-  <h2>6. Reglas Activas / Active Rules</h2>
+  <h2>7. Reglas Activas / Active Rules</h2>
   <ul>
     {% for rule in rules_list %}
     <li>{{ rule }}</li>
@@ -324,7 +352,7 @@
   <!-- ============================================================ -->
   <!-- EN: Thresholds used / ES: Umbrales utilizados                -->
   <!-- ============================================================ -->
-  <h2>7. Umbrales Utilizados / Thresholds Used</h2>
+  <h2>8. Umbrales Utilizados / Thresholds Used</h2>
   <div class="hash-block">
     {% for key, value in thresholds.items() %}
     {{ key }}: {{ value }}<br>
@@ -334,7 +362,7 @@
   <!-- ============================================================ -->
   <!-- EN: Cryptographic verification / ES: Verificacion criptografica -->
   <!-- ============================================================ -->
-  <h2>8. Verificacion Criptografica / Cryptographic Verification</h2>
+  <h2>9. Verificacion Criptografica / Cryptographic Verification</h2>
   <div class="hash-block">
     Root Hash (SHA-256): {{ root_hash }}<br>
     Snapshot Hash: {{ snapshot_hash }}<br>
@@ -351,19 +379,21 @@
   <!-- ============================================================ -->
   <!-- EN: Conclusions / ES: Conclusiones                           -->
   <!-- ============================================================ -->
-  <h2>9. Conclusiones del Auditor / Auditor Conclusions</h2>
+  <h2>10. Conclusiones del Auditor / Auditor Conclusions</h2>
   <p>{{ conclusions }}</p>
 
   <!-- ============================================================ -->
   <!-- EN: Methodology / ES: Metodologia                            -->
   <!-- ============================================================ -->
-  <h2>10. Metodologia / Methodology</h2>
+  <h2>11. Metodologia / Methodology</h2>
   <div class="methodology">
     <p>
-      <strong>ES:</strong> Este reporte resume unicamente datos publicos agregados del CNE
-      a nivel nacional y por departamento (18). No se incluyen mesas, actas ni votos
-      individuales.  Las metricas se calculan sobre snapshots JSON publicos encadenados
-      por hash SHA-256 para detectar cambios entre capturas sucesivas.
+      <strong>ES:</strong> Este reporte resume datos publicos del CNE a nivel nacional,
+      por departamento (18) y, cuando disponible, a nivel de mesa/acta.  Las metricas
+      se calculan sobre snapshots JSON publicos encadenados por hash SHA-256 para
+      detectar cambios entre capturas sucesivas.  La seccion de actas inconsistentes
+      verifica la consistencia aritmetica (validos+nulos+blancos vs total, y suma
+      de candidatos vs votos validos) en cada mesa disponible.
     </p>
     <p>
       <strong>EN:</strong> This report summarizes only public, aggregated CNE data at national
