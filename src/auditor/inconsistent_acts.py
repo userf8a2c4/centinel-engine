@@ -1,6 +1,15 @@
 """Forensic tracking for inconsistent acts and special scrutiny votes.
 
 Módulo de seguimiento forense para actas inconsistentes y votos de escrutinio especial.
+
+Capacidades forenses / Forensic capabilities:
+- Separación de votos normales vs escrutinio especial
+- Detección de inyección progresiva controlada
+- Velocidad de resolución anómala (actas/minuto)
+- Distribución asimétrica en resoluciones (sesgo hacia un candidato)
+- Patrón hold-and-release (estancamiento → resolución masiva)
+- Benford's Law sobre votos de escrutinio especial
+- Detección de apagón comunicacional con cambio de tendencia
 """
 
 from __future__ import annotations
@@ -9,12 +18,12 @@ import hashlib
 import json
 import logging
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
-from math import sqrt
+from datetime import datetime, timedelta, timezone
+from math import log10, sqrt
 from pathlib import Path
 from typing import Any
 
-from scipy.stats import binomtest, chi2, norm
+from scipy.stats import binomtest, chi2, chisquare, norm
 
 
 @dataclass
@@ -77,6 +86,13 @@ class InconsistentActsTracker:
         "inconsistencias",
     )
 
+    # Resolución manual realista: ~2 actas/minuto por mesa de escrutinio.
+    # Un valor superior indica procesamiento automatizado o irregular.
+    DEFAULT_MAX_RESOLUTION_RATE = 10.0  # actas por minuto
+
+    # Umbral de gap temporal para considerar un apagón comunicacional.
+    DEFAULT_BLACKOUT_GAP_MINUTES = 30
+
     def __init__(
         self,
         *,
@@ -90,6 +106,8 @@ class InconsistentActsTracker:
         min_consecutive_injections: int = 5,
         high_inconsistent_threshold: int = 1000,
         run_test_pvalue_threshold: float = 0.05,
+        max_resolution_rate: float | None = None,
+        blackout_gap_minutes: int | None = None,
     ) -> None:
         """Initialize tracker with persistent key detection and thresholds.
 
@@ -110,6 +128,12 @@ class InconsistentActsTracker:
         )
         self.high_inconsistent_threshold = int(runtime_config.get("high_inconsistent_threshold", high_inconsistent_threshold))
         self.run_test_pvalue_threshold = float(runtime_config.get("run_test_pvalue_threshold", run_test_pvalue_threshold))
+        self.max_resolution_rate = float(
+            runtime_config.get("max_resolution_rate", max_resolution_rate or self.DEFAULT_MAX_RESOLUTION_RATE)
+        )
+        self.blackout_gap_minutes = int(
+            runtime_config.get("blackout_gap_minutes", blackout_gap_minutes or self.DEFAULT_BLACKOUT_GAP_MINUTES)
+        )
 
         self.detected_inconsistent_key = self._load_persisted_key()
         self.snapshots: list[SnapshotRecord] = []
@@ -266,6 +290,275 @@ class InconsistentActsTracker:
             "improbable": improbable,
         }
 
+    def detect_resolution_velocity_anomalies(self) -> list[dict[str, Any]]:
+        """Detect resolutions that exceed the maximum plausible rate (actas/minute).
+
+        Detecta resoluciones que exceden la tasa máxima plausible (actas/minuto).
+        Un comité de escrutinio especial revisa cada acta manualmente: lectura de votos,
+        verificación de firmas, cotejo con copias de partidos. Tasas superiores a
+        ~2-3 actas/minuto por mesa son físicamente implausibles para un proceso humano.
+        """
+        anomalies: list[dict[str, Any]] = []
+        for i in range(1, len(self.snapshots)):
+            prev = self.snapshots[i - 1]
+            curr = self.snapshots[i]
+            delta_actas = max(prev.inconsistent_count - curr.inconsistent_count, 0)
+            if delta_actas == 0:
+                continue
+            elapsed_seconds = (curr.timestamp - prev.timestamp).total_seconds()
+            if elapsed_seconds <= 0:
+                continue
+            elapsed_minutes = elapsed_seconds / 60.0
+            rate = delta_actas / elapsed_minutes
+            if rate > self.max_resolution_rate:
+                anomalies.append({
+                    "timestamp": curr.timestamp,
+                    "delta_actas": delta_actas,
+                    "elapsed_minutes": round(elapsed_minutes, 2),
+                    "rate_per_minute": round(rate, 2),
+                    "threshold": self.max_resolution_rate,
+                    "description": (
+                        f"Velocidad de resolución anómala: {rate:.1f} actas/min "
+                        f"({delta_actas} actas en {elapsed_minutes:.1f} min). "
+                        f"Umbral plausible: {self.max_resolution_rate} actas/min."
+                    ),
+                })
+        return anomalies
+
+    def detect_asymmetric_benefit(self) -> dict[str, Any] | None:
+        """Detect disproportionate benefit to one candidate in special scrutiny.
+
+        Detecta beneficio desproporcionado a un candidato en escrutinio especial.
+        Compara la distribución de votos en actas de escrutinio especial contra
+        la distribución en actas normales. Si un candidato recibe un porcentaje
+        significativamente mayor en escrutinio especial, esto indica sesgo dirigido.
+        """
+        if not self.special_scrutiny_votes or not self.normal_votes:
+            return None
+
+        special_total = sum(self.special_scrutiny_votes.values())
+        normal_total = sum(self.normal_votes.values())
+        if special_total == 0 or normal_total == 0:
+            return None
+
+        special_props = self._proportions(self.special_scrutiny_votes)
+        normal_props = self._proportions(self.normal_votes)
+
+        max_swing_candidate = None
+        max_swing = 0.0
+        swings: dict[str, float] = {}
+
+        for candidate in sorted(set(special_props) | set(normal_props)):
+            sp = special_props.get(candidate, 0.0)
+            np_ = normal_props.get(candidate, 0.0)
+            swing = sp - np_
+            swings[candidate] = swing
+            if swing > max_swing:
+                max_swing = swing
+                max_swing_candidate = candidate
+
+        if max_swing_candidate is None or max_swing < 0.02:
+            return None
+
+        beneficiary_special = self.special_scrutiny_votes.get(max_swing_candidate, 0)
+        beneficiary_normal = self.normal_votes.get(max_swing_candidate, 0)
+        p_special = beneficiary_special / special_total
+        p_normal = beneficiary_normal / normal_total
+        p_pool = (beneficiary_special + beneficiary_normal) / (special_total + normal_total)
+        denom = sqrt(max(p_pool * (1 - p_pool) * ((1 / special_total) + (1 / normal_total)), 1e-12))
+        z_score = (p_special - p_normal) / denom if denom else 0.0
+        z_pvalue = float(2 * (1 - norm.cdf(abs(z_score))))
+
+        extra_votes = int(max_swing * special_total)
+
+        return {
+            "beneficiary": max_swing_candidate,
+            "swing_pp": round(max_swing * 100, 2),
+            "special_proportion": round(p_special * 100, 2),
+            "normal_proportion": round(p_normal * 100, 2),
+            "z_score": round(z_score, 3),
+            "z_pvalue": z_pvalue,
+            "estimated_extra_votes": extra_votes,
+            "all_swings_pp": {c: round(s * 100, 2) for c, s in sorted(swings.items())},
+            "significant": z_pvalue < 0.01,
+            "description": (
+                f"Beneficio asimétrico detectado: {max_swing_candidate} recibe "
+                f"{p_special:.1%} en escrutinio especial vs {p_normal:.1%} en normal "
+                f"(+{max_swing:.1%} pp, z={z_score:+.3f}, p={z_pvalue:.5f}). "
+                f"Votos extra estimados: ~{extra_votes:,}."
+            ),
+        }
+
+    def detect_hold_and_release(self) -> list[dict[str, Any]]:
+        """Detect hold-and-release patterns: stagnation followed by bulk resolution.
+
+        Detecta patrones retener-y-soltar: estancamiento seguido de resolución masiva.
+        Este patrón es indicativo de manipulación coordinada: se detiene el procesamiento
+        de actas inconsistentes (hold) y luego se liberan muchas a la vez (release),
+        típicamente en horarios de baja vigilancia o durante apagones comunicacionales.
+        """
+        patterns: list[dict[str, Any]] = []
+        if len(self.events) < 2:
+            return patterns
+
+        stagnation_start: int | None = None
+        stagnation_count = 0
+
+        for i, event in enumerate(self.events):
+            if event.event_type in ("stagnation", "no_change"):
+                if stagnation_start is None:
+                    stagnation_start = i
+                stagnation_count += 1
+            else:
+                if (
+                    stagnation_count >= self.stagnation_cycles_threshold
+                    and event.delta_actas > 0
+                    and event.is_bulk_resolution
+                ):
+                    stag_start_ts = self.events[stagnation_start].timestamp if stagnation_start is not None else event.timestamp
+                    patterns.append({
+                        "stagnation_start": stag_start_ts,
+                        "stagnation_cycles": stagnation_count,
+                        "release_timestamp": event.timestamp,
+                        "released_actas": event.delta_actas,
+                        "released_votes": event.impacted_total_votes,
+                        "vote_distribution": dict(event.pct_por_candidato),
+                        "description": (
+                            f"Patrón hold-and-release: {stagnation_count} ciclos de estancamiento "
+                            f"seguidos de resolución masiva de {event.delta_actas} actas "
+                            f"({event.impacted_total_votes} votos) en {event.timestamp}."
+                        ),
+                    })
+                stagnation_start = None
+                stagnation_count = 0
+
+        return patterns
+
+    def detect_benford_special_scrutiny(self) -> dict[str, Any] | None:
+        """Apply Benford's Law to vote counts from special scrutiny resolutions.
+
+        Aplica la Ley de Benford a conteos de votos de resoluciones de escrutinio especial.
+        Los datos electorales reales siguen la distribución de Benford para el primer
+        dígito. Datos fabricados o manipulados tienden a desviarse significativamente.
+        """
+        resolution_vote_deltas: list[int] = []
+        for event in self.events:
+            if event.delta_actas > 0:
+                for delta in event.delta_votos_por_candidato.values():
+                    if delta > 0:
+                        resolution_vote_deltas.append(delta)
+
+        if len(resolution_vote_deltas) < 10:
+            return None
+
+        digits: list[int] = []
+        for value in resolution_vote_deltas:
+            if value > 0:
+                digits.append(int(str(abs(value))[0]))
+
+        if len(digits) < 10:
+            return None
+
+        observed = [0] * 9
+        for d in digits:
+            observed[d - 1] += 1
+
+        n = len(digits)
+        expected = [n * log10(1 + 1 / d) for d in range(1, 10)]
+
+        chi_result = chisquare(observed, f_exp=expected)
+
+        digit_table: dict[int, dict[str, float]] = {}
+        for d in range(1, 10):
+            obs_pct = observed[d - 1] / n * 100
+            exp_pct = expected[d - 1] / n * 100
+            digit_table[d] = {
+                "observed_pct": round(obs_pct, 2),
+                "expected_pct": round(exp_pct, 2),
+                "deviation_pp": round(obs_pct - exp_pct, 2),
+            }
+
+        return {
+            "n_samples": n,
+            "chi2_statistic": round(float(chi_result.statistic), 4),
+            "chi2_pvalue": float(chi_result.pvalue),
+            "significant": bool(chi_result.pvalue < 0.05),
+            "digit_analysis": digit_table,
+            "description": (
+                f"Benford's Law test sobre {n} deltas de votos en escrutinio especial: "
+                f"χ²={chi_result.statistic:.4f}, p={chi_result.pvalue:.5f}. "
+                + ("Desviación significativa detectada." if chi_result.pvalue < 0.05 else "Sin desviación significativa.")
+            ),
+        }
+
+    def detect_blackout_windows(self) -> list[dict[str, Any]]:
+        """Detect communication blackout windows followed by trend shifts.
+
+        Detecta ventanas de apagón comunicacional seguidas de cambios de tendencia.
+        Un apagón es un gap temporal inusualmente largo entre snapshots consecutivos.
+        Si después del gap la tendencia de un candidato cambia significativamente,
+        esto indica que durante el apagón se alteraron datos.
+        """
+        blackouts: list[dict[str, Any]] = []
+        if len(self.snapshots) < 2:
+            return blackouts
+
+        gap_threshold = timedelta(minutes=self.blackout_gap_minutes)
+
+        for i in range(1, len(self.snapshots)):
+            prev = self.snapshots[i - 1]
+            curr = self.snapshots[i]
+            gap = curr.timestamp - prev.timestamp
+
+            if gap < gap_threshold:
+                continue
+
+            # Calcular proporciones antes y después del gap.
+            pre_total = sum(prev.candidate_votes.values())
+            post_total = sum(curr.candidate_votes.values())
+            if pre_total == 0 or post_total == 0:
+                continue
+
+            pre_props = {c: v / pre_total for c, v in prev.candidate_votes.items()}
+            post_props = {c: v / post_total for c, v in curr.candidate_votes.items()}
+
+            trend_shifts: dict[str, float] = {}
+            for candidate in sorted(set(pre_props) | set(post_props)):
+                shift = post_props.get(candidate, 0.0) - pre_props.get(candidate, 0.0)
+                if abs(shift) > 0.005:
+                    trend_shifts[candidate] = round(shift * 100, 3)
+
+            delta_inconsistent = prev.inconsistent_count - curr.inconsistent_count
+            delta_votes = {
+                c: curr.candidate_votes.get(c, 0) - prev.candidate_votes.get(c, 0)
+                for c in sorted(set(prev.candidate_votes) | set(curr.candidate_votes))
+            }
+
+            blackouts.append({
+                "gap_start": prev.timestamp,
+                "gap_end": curr.timestamp,
+                "gap_minutes": round(gap.total_seconds() / 60, 1),
+                "inconsistent_before": prev.inconsistent_count,
+                "inconsistent_after": curr.inconsistent_count,
+                "delta_inconsistent": delta_inconsistent,
+                "delta_votes": delta_votes,
+                "trend_shifts_pp": trend_shifts,
+                "description": (
+                    f"Apagón comunicacional de {gap.total_seconds() / 60:.0f} min "
+                    f"({prev.timestamp} → {curr.timestamp}). "
+                    f"AI: {prev.inconsistent_count} → {curr.inconsistent_count} "
+                    f"(Δ={delta_inconsistent}). "
+                    + (
+                        "Cambios de tendencia: "
+                        + ", ".join(f"{c}: {s:+.3f}pp" for c, s in trend_shifts.items())
+                        if trend_shifts
+                        else "Sin cambio de tendencia significativo."
+                    )
+                ),
+            })
+
+        return blackouts
+
     def analyze_change(self, previous_snapshot: SnapshotRecord | dict[str, Any]) -> ChangeEvent:
         """Analyze delta between previous snapshot and latest loaded snapshot.
 
@@ -410,6 +703,9 @@ class InconsistentActsTracker:
         """Detect high-severity forensic anomalies over events and vote deltas.
 
         Detecta anomalías forenses de alta severidad sobre eventos y deltas de voto.
+        Incluye: outliers 3σ, resoluciones de alto impacto, resoluciones masivas,
+        estancamiento prolongado, sesgo estadístico, velocidad anómala, asimetría,
+        hold-and-release, Benford, y apagones comunicacionales.
         """
         anomalies: list[Anomaly] = []
         special_deltas = [event.impacted_total_votes for event in self.events if event.delta_actas > 0]
@@ -484,6 +780,90 @@ class InconsistentActsTracker:
                         )
                     )
 
+        # Velocidad de resolución anómala.
+        for velocity in self.detect_resolution_velocity_anomalies():
+            anomalies.append(
+                Anomaly(
+                    kind="anomalous_resolution_velocity",
+                    severity="critical",
+                    message=velocity["description"],
+                    timestamp=velocity["timestamp"],
+                    metadata={
+                        "rate_per_minute": velocity["rate_per_minute"],
+                        "delta_actas": velocity["delta_actas"],
+                        "elapsed_minutes": velocity["elapsed_minutes"],
+                    },
+                )
+            )
+
+        # Beneficio asimétrico.
+        asymmetry = self.detect_asymmetric_benefit()
+        if asymmetry and asymmetry["significant"]:
+            anomalies.append(
+                Anomaly(
+                    kind="asymmetric_benefit",
+                    severity="critical",
+                    message=asymmetry["description"],
+                    timestamp=self.snapshots[-1].timestamp if self.snapshots else datetime.now(timezone.utc),
+                    metadata={
+                        "beneficiary": asymmetry["beneficiary"],
+                        "swing_pp": asymmetry["swing_pp"],
+                        "z_score": asymmetry["z_score"],
+                        "estimated_extra_votes": asymmetry["estimated_extra_votes"],
+                    },
+                )
+            )
+
+        # Patrones hold-and-release.
+        for pattern in self.detect_hold_and_release():
+            anomalies.append(
+                Anomaly(
+                    kind="hold_and_release",
+                    severity="critical",
+                    message=pattern["description"],
+                    timestamp=pattern["release_timestamp"],
+                    metadata={
+                        "stagnation_cycles": pattern["stagnation_cycles"],
+                        "released_actas": pattern["released_actas"],
+                        "released_votes": pattern["released_votes"],
+                    },
+                )
+            )
+
+        # Benford sobre escrutinio especial.
+        benford = self.detect_benford_special_scrutiny()
+        if benford and benford["significant"]:
+            anomalies.append(
+                Anomaly(
+                    kind="benford_deviation",
+                    severity="critical",
+                    message=benford["description"],
+                    timestamp=self.snapshots[-1].timestamp if self.snapshots else datetime.now(timezone.utc),
+                    metadata={
+                        "chi2_statistic": benford["chi2_statistic"],
+                        "chi2_pvalue": benford["chi2_pvalue"],
+                        "n_samples": benford["n_samples"],
+                    },
+                )
+            )
+
+        # Apagones comunicacionales.
+        for blackout in self.detect_blackout_windows():
+            if blackout["trend_shifts_pp"]:
+                anomalies.append(
+                    Anomaly(
+                        kind="blackout_with_trend_shift",
+                        severity="critical",
+                        message=blackout["description"],
+                        timestamp=blackout["gap_end"],
+                        metadata={
+                            "gap_minutes": blackout["gap_minutes"],
+                            "delta_inconsistent": blackout["delta_inconsistent"],
+                            "trend_shifts_pp": blackout["trend_shifts_pp"],
+                        },
+                    )
+                )
+
         return anomalies
 
     def generate_forensic_report(self) -> str:
@@ -506,22 +886,45 @@ z = \frac{\hat{p}_{special} - \hat{p}_{normal}}{\sqrt{\hat{p}(1-\hat{p})(\frac{1
 \]
 """.strip()
 
-        return (
+        sections = [
             f"# Forensic Report: Inconsistent Acts / Reporte Forense: Actas Inconsistentes\n\n"
             f"Generated at / Generado en: `{generated_at}`\n\n"
-            f"## Detected key / Clave detectada\n"
-            f"- `{self.detected_inconsistent_key}`\n\n"
-            f"## Special scrutiny cumulative / Acumulado escrutinio especial\n"
-            f"- `{json.dumps(self.get_special_scrutiny_cumulative(), ensure_ascii=False)}`\n\n"
-            f"## Statistical tests / Pruebas estadísticas\n"
-            f"```json\n{json.dumps(stats, indent=2, ensure_ascii=False)}\n```\n\n"
-            f"## Anomalies / Anomalías\n"
-            f"```json\n{json.dumps([asdict(anomaly) for anomaly in anomalies], indent=2, default=str, ensure_ascii=False)}\n```\n\n"
-            f"## Equations / Ecuaciones\n{latex_block}\n\n"
+            f"## 1. Clave detectada / Detected key\n"
+            f"- `{self.detected_inconsistent_key}`\n",
+
+            f"## 2. Acumulado escrutinio especial / Special scrutiny cumulative\n"
+            f"```json\n{json.dumps(self.get_special_scrutiny_cumulative(), indent=2, ensure_ascii=False)}\n```\n",
+
+            f"## 3. Pruebas estadísticas / Statistical tests\n"
+            f"```json\n{json.dumps(stats, indent=2, ensure_ascii=False)}\n```\n",
+
+            f"## 4. Anomalías detectadas / Detected anomalies\n"
+            f"```json\n{json.dumps([asdict(a) for a in anomalies], indent=2, default=str, ensure_ascii=False)}\n```\n",
+
             f"## 5. Detección de Inyección Progresiva Controlada\n"
-            f"{self._render_progressive_injection_section()}\n\n"
-            f"## Source hashes SHA-256 / Hashes de fuente SHA-256\n{hashes}\n"
-        )
+            f"{self._render_progressive_injection_section()}\n",
+
+            f"## 6. Velocidad de Resolución / Resolution Velocity\n"
+            f"{self._render_velocity_section()}\n",
+
+            f"## 7. Beneficio Asimétrico / Asymmetric Benefit\n"
+            f"{self._render_asymmetry_section()}\n",
+
+            f"## 8. Patrón Hold-and-Release\n"
+            f"{self._render_hold_and_release_section()}\n",
+
+            f"## 9. Ley de Benford en Escrutinio Especial / Benford's Law\n"
+            f"{self._render_benford_section()}\n",
+
+            f"## 10. Apagones Comunicacionales / Communication Blackouts\n"
+            f"{self._render_blackout_section()}\n",
+
+            f"## Ecuaciones / Equations\n{latex_block}\n",
+
+            f"## Hashes de fuente SHA-256 / Source hashes SHA-256\n{hashes}\n",
+        ]
+
+        return "\n".join(sections)
 
     def _render_progressive_injection_section(self) -> str:
         """Render progressive injection section for forensic markdown report.
@@ -546,6 +949,103 @@ z = \frac{\hat{p}_{special} - \hat{p}_{normal}}{\sqrt{\hat{p}(1-\hat{p})(\frac{1
             f"(persistencia si >0.4)  \n"
             "Referencia histórica: comparar contra ventanas previas del mismo proceso electoral para validar desviación estructural"
         )
+
+    def _render_velocity_section(self) -> str:
+        """Render resolution velocity analysis section.
+
+        Renderiza la sección de análisis de velocidad de resolución.
+        """
+        anomalies = self.detect_resolution_velocity_anomalies()
+        if not anomalies:
+            return "No se detectaron resoluciones con velocidad anómala."
+        lines = [f"Se detectaron {len(anomalies)} ciclos con velocidad de resolución anómala:\n"]
+        for a in anomalies:
+            lines.append(
+                f"- **{a['timestamp']}**: {a['delta_actas']} actas en {a['elapsed_minutes']} min "
+                f"= {a['rate_per_minute']} actas/min (umbral: {a['threshold']})"
+            )
+        return "\n".join(lines)
+
+    def _render_asymmetry_section(self) -> str:
+        """Render asymmetric benefit analysis section.
+
+        Renderiza la sección de análisis de beneficio asimétrico.
+        """
+        result = self.detect_asymmetric_benefit()
+        if not result:
+            return "No se detectó beneficio asimétrico significativo entre escrutinio especial y normal."
+        lines = [
+            f"**Beneficiario principal**: {result['beneficiary']}  ",
+            f"Proporción en escrutinio especial: {result['special_proportion']}%  ",
+            f"Proporción en voto normal: {result['normal_proportion']}%  ",
+            f"Swing: +{result['swing_pp']} pp  ",
+            f"Z-score: {result['z_score']:+.3f} (p = {result['z_pvalue']:.5f})  ",
+            f"Votos extra estimados: ~{result['estimated_extra_votes']:,}  ",
+            f"Significativo: {'Sí' if result['significant'] else 'No'}  \n",
+            "Swings por candidato (pp):  ",
+        ]
+        for c, s in sorted(result["all_swings_pp"].items()):
+            lines.append(f"- {c}: {s:+.2f} pp")
+        return "\n".join(lines)
+
+    def _render_hold_and_release_section(self) -> str:
+        """Render hold-and-release pattern section.
+
+        Renderiza la sección de patrones hold-and-release.
+        """
+        patterns = self.detect_hold_and_release()
+        if not patterns:
+            return "No se detectaron patrones hold-and-release."
+        lines = [f"Se detectaron {len(patterns)} patrones hold-and-release:\n"]
+        for p in patterns:
+            lines.append(
+                f"- Estancamiento desde {p['stagnation_start']} ({p['stagnation_cycles']} ciclos) "
+                f"→ resolución masiva en {p['release_timestamp']}: "
+                f"{p['released_actas']} actas, {p['released_votes']} votos"
+            )
+        return "\n".join(lines)
+
+    def _render_benford_section(self) -> str:
+        """Render Benford's Law analysis section.
+
+        Renderiza la sección de análisis de Ley de Benford.
+        """
+        result = self.detect_benford_special_scrutiny()
+        if not result:
+            return "Datos insuficientes para test de Benford (se requieren ≥10 deltas positivos)."
+        lines = [
+            f"Muestras analizadas: {result['n_samples']}  ",
+            f"χ² = {result['chi2_statistic']:.4f}, p = {result['chi2_pvalue']:.5f}  ",
+            f"Resultado: {'**Desviación significativa**' if result['significant'] else 'Sin desviación significativa'}  \n",
+            "| Dígito | Observado % | Esperado % | Desviación pp |",
+            "|--------|------------|------------|---------------|",
+        ]
+        for d, info in sorted(result["digit_analysis"].items()):
+            lines.append(f"| {d} | {info['observed_pct']:.2f} | {info['expected_pct']:.2f} | {info['deviation_pp']:+.2f} |")
+        return "\n".join(lines)
+
+    def _render_blackout_section(self) -> str:
+        """Render blackout detection section.
+
+        Renderiza la sección de detección de apagones comunicacionales.
+        """
+        blackouts = self.detect_blackout_windows()
+        if not blackouts:
+            return "No se detectaron apagones comunicacionales significativos."
+        lines = [f"Se detectaron {len(blackouts)} ventanas de apagón:\n"]
+        for b in blackouts:
+            lines.append(
+                f"### Apagón: {b['gap_start']} → {b['gap_end']} ({b['gap_minutes']} min)\n"
+                f"- AI antes: {b['inconsistent_before']}, después: {b['inconsistent_after']} "
+                f"(Δ = {b['delta_inconsistent']})"
+            )
+            if b["trend_shifts_pp"]:
+                lines.append("- Cambios de tendencia:")
+                for c, s in sorted(b["trend_shifts_pp"].items()):
+                    lines.append(f"  - {c}: {s:+.3f} pp")
+            else:
+                lines.append("- Sin cambio de tendencia significativo")
+        return "\n".join(lines)
 
     def _load_runtime_config(self) -> dict[str, Any]:
         """Load optional runtime thresholds from config.json.
