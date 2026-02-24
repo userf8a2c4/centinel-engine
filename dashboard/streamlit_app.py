@@ -234,6 +234,7 @@ if str(AUTH_ROOT.parent) not in sys.path:
 try:
     from auth.user_manager import (
         authenticate,
+        change_password,
         create_user,
         delete_user,
         ensure_admin_exists,
@@ -2279,57 +2280,26 @@ st.set_page_config(
 
 
 # =========================================================================
-# EN: Authentication gate — all users must log in before seeing the dashboard.
-# ES: Puerta de autenticacion — todos los usuarios deben iniciar sesion.
+# EN: Non-blocking sidebar authentication widget.
+#     The dashboard is publicly visible. Authenticated users get access to
+#     Sandbox, Historical Data, and Admin tabs.
+# ES: Widget de autenticacion no-bloqueante en el sidebar.
+#     El dashboard es publicamente visible. Los usuarios autenticados
+#     obtienen acceso a los tabs de Sandbox, Datos Historicos y Admin.
 # =========================================================================
-def _render_login_screen() -> bool:
-    """EN: Show login form and authenticate user. Returns True if authenticated.
-
-    ES: Muestra formulario de login y autentica al usuario. Retorna True si autenticado.
-    """
-    if not AUTH_AVAILABLE:
-        # EN: Fallback to old admin gate when auth module not available.
-        # ES: Fallback al gate admin anterior si el modulo auth no esta disponible.
-        st.warning("Modulo de autenticacion no disponible. Ejecutando sin autenticacion.")
-        st.session_state["auth_user"] = {"username": "admin", "role": "admin", "sandbox": {}}
-        return True
-
-    if st.session_state.get("auth_user"):
-        return True
-
-    # EN: Ensure admin user exists on first boot.
-    # ES: Asegurar que el usuario admin exista en primer arranque.
+if AUTH_AVAILABLE:
     ensure_admin_exists()
 
-    st.markdown(
-        "<div style='text-align:center; padding:3rem 0 1rem;'>"
-        "<h1>C.E.N.T.I.N.E.L.</h1>"
-        "<p style='color:#94A3B8;'>Centro de Vigilancia Electoral &mdash; Acceso Restringido</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-    with st.form("login_form", clear_on_submit=False):
-        username = st.text_input("Usuario / Username")
-        password = st.text_input("Contrasena / Password", type="password")
-        submitted = st.form_submit_button("Ingresar / Log in", type="primary")
-    if submitted:
-        user = authenticate(username, password)
-        if user:
-            st.session_state["auth_user"] = user
-            rerun_app()
-        else:
-            st.error("Credenciales invalidas / Invalid credentials.")
-    return False
+_is_authenticated: bool = bool(st.session_state.get("auth_user"))
 
-
-if not _render_login_screen():
-    st.stop()
-
-# EN: User is authenticated — extract session info.
-# ES: Usuario autenticado — extraer info de sesion.
-_current_user: dict[str, Any] = st.session_state["auth_user"]
-_current_username: str = _current_user["username"]
-_current_role: str = _current_user["role"]
+if _is_authenticated:
+    _current_user: dict[str, Any] = st.session_state["auth_user"]
+    _current_username: str = _current_user["username"]
+    _current_role: str = _current_user["role"]
+else:
+    _current_user = {}
+    _current_username = ""
+    _current_role = ""
 
 # =========================================================================
 # EN: Load global configs (available for all tabs).
@@ -2349,14 +2319,52 @@ anchor = load_blockchain_anchor()
 # EN: Sidebar — user info, logout, and global filters.
 # ES: Sidebar — info de usuario, logout, y filtros globales.
 # =========================================================================
-st.sidebar.markdown(
-    f"**Usuario / User:** `{_current_username}`  \n"
-    f"**Rol / Role:** `{_current_role}`"
-)
-if st.sidebar.button("Cerrar sesion / Logout"):
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    rerun_app()
+if _is_authenticated:
+    st.sidebar.markdown(
+        f"**Usuario / User:** `{_current_username}`  \n"
+        f"**Rol / Role:** `{_current_role}`"
+    )
+    # EN: Password change widget for authenticated users.
+    # ES: Widget de cambio de contrasena para usuarios autenticados.
+    if AUTH_AVAILABLE:
+        with st.sidebar.expander("Cambiar contrasena / Change password"):
+            _cp_current = st.text_input("Contrasena actual / Current password", type="password", key="cp_current")
+            _cp_new = st.text_input("Nueva contrasena / New password", type="password", key="cp_new")
+            _cp_confirm = st.text_input("Confirmar / Confirm", type="password", key="cp_confirm")
+            if st.button("Cambiar / Change", key="cp_submit"):
+                if not _cp_current or not _cp_new:
+                    st.warning("Completa todos los campos / Fill all fields.")
+                elif _cp_new != _cp_confirm:
+                    st.error("Las contrasenas no coinciden / Passwords don't match.")
+                elif len(_cp_new) < 6:
+                    st.error("Minimo 6 caracteres / Minimum 6 characters.")
+                else:
+                    if change_password(_current_username, _cp_current, _cp_new):
+                        st.success("Contrasena cambiada / Password changed.")
+                    else:
+                        st.error("Contrasena actual incorrecta / Current password incorrect.")
+    if st.sidebar.button("Cerrar sesion / Logout"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        rerun_app()
+else:
+    st.sidebar.markdown("**Modo publico / Public mode**")
+    st.sidebar.caption(
+        "EN: Log in to access Sandbox, Historical Data, and Admin features.  \n"
+        "ES: Inicia sesion para acceder a Sandbox, Datos Historicos y funciones Admin."
+    )
+    if AUTH_AVAILABLE:
+        with st.sidebar.form("sidebar_login", clear_on_submit=False):
+            _login_user = st.text_input("Usuario / Username")
+            _login_pass = st.text_input("Contrasena / Password", type="password")
+            _login_submit = st.form_submit_button("Ingresar / Log in", type="primary")
+        if _login_submit:
+            _auth_result = authenticate(_login_user, _login_pass)
+            if _auth_result:
+                st.session_state["auth_user"] = _auth_result
+                rerun_app()
+            else:
+                st.sidebar.error("Credenciales invalidas / Invalid credentials.")
 st.sidebar.markdown("---")
 
 snapshot_source = st.sidebar.selectbox(
@@ -2864,15 +2872,14 @@ st.markdown("---")
 #     1) Visualizacion General  2) Sandbox Personal
 #     3) Datos Historicos 2025  4) Panel de Control Admin
 # =========================================================================
-_tab_labels = [
-    "\U0001f4ca Visualizacion General",
-    "\U0001f9ea Sandbox Personal",
-    "\U0001f4c2 Datos Historicos 2025",
-]
-# EN: Only show admin tab for admin role.
-# ES: Solo mostrar tab admin para rol admin.
-if _current_role == "admin":
-    _tab_labels.append("\U0001f527 Panel de Control Admin")
+_tab_labels = ["\U0001f4ca Visualizacion General"]
+if _is_authenticated:
+    _tab_labels.append("\U0001f9ea Sandbox Personal")
+    _tab_labels.append("\U0001f4c2 Datos Historicos 2025")
+    # EN: Only show admin tab for admin role.
+    # ES: Solo mostrar tab admin para rol admin.
+    if _current_role == "admin":
+        _tab_labels.append("\U0001f527 Panel de Control Admin")
 
 tabs = st.tabs(_tab_labels)
 
@@ -3589,7 +3596,8 @@ with tabs[0]:
 #     Sliders de umbrales por usuario, toggles de graficos, rangos de fecha.
 #     Guardado por usuario en SQLite.  NO afecta produccion ni umbrales globales.
 # =========================================================================
-with tabs[1]:
+if _is_authenticated:
+  with tabs[1]:
     st.markdown("### Sandbox Personal / Personal Sandbox")
     st.caption(
         "EN: Modify thresholds and chart visibility for your own exploration. "
@@ -3721,7 +3729,8 @@ with tabs[1]:
 #     Selector multiple de los 96 archivos JSON de data/2025/ (elecciones 30/11/2025).
 #     Tambien soporta fixtures de prueba de tests/fixtures/snapshots_2025/.
 # =========================================================================
-with tabs[2]:
+if _is_authenticated:
+  with tabs[2]:
     st.markdown("### Datos Historicos 2025 / Historical Data 2025")
     st.caption(
         "EN: Load any combination of the 2025 election JSON files for retrospective audit.  \n"
@@ -3809,7 +3818,7 @@ with tabs[2]:
 #     Sliders visuales para umbrales globales (guardados en config/prod/rules_core.yaml
 #     con backup automatico), botones para lanzar auditoria completa, ver logs, etc.
 # =========================================================================
-if _current_role == "admin" and len(tabs) > 3:
+if _is_authenticated and _current_role == "admin" and len(tabs) > 3:
     with tabs[3]:
         st.markdown("### Panel de Control Admin / Admin Control Panel")
         st.caption(
@@ -3848,7 +3857,7 @@ if _current_role == "admin" and len(tabs) > 3:
                 import shutil as _shutil
 
                 _backup_path = _rules_core_path.with_suffix(
-                    f".yaml.bak.{dt.datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+                    f".yaml.bak.{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d_%H%M%S')}"
                 )
                 if _rules_core_path.exists():
                     _shutil.copy2(str(_rules_core_path), str(_backup_path))

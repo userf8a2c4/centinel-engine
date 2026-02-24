@@ -12,6 +12,7 @@ ES: Autenticacion de usuarios y gestion de roles para el dashboard de Centinel E
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import sqlite3
@@ -113,7 +114,7 @@ def authenticate(username: str, password: str, db_path: Path | None = None) -> d
         ).fetchone()
         if row is None:
             return None
-        if not hashlib.compare_digest(row["password"], _hash_password(password)):
+        if not hmac.compare_digest(row["password"], _hash_password(password)):
             return None
         return {
             "username": row["username"],
@@ -196,6 +197,36 @@ def load_sandbox(username: str, db_path: Path | None = None) -> dict[str, Any]:
         if row is None:
             return {}
         return json.loads(row["sandbox"] or "{}")
+    finally:
+        conn.close()
+
+
+def change_password(
+    username: str,
+    current_password: str,
+    new_password: str,
+    db_path: Path | None = None,
+) -> bool:
+    """EN: Change a user's password after verifying the current one. Returns True on success.
+
+    ES: Cambia la contrasena de un usuario tras verificar la actual. Retorna True si tiene exito.
+    """
+    conn = _get_connection(db_path)
+    try:
+        row = conn.execute(
+            "SELECT password FROM users WHERE username=?",
+            (username,),
+        ).fetchone()
+        if row is None:
+            return False
+        if not hmac.compare_digest(row["password"], _hash_password(current_password)):
+            return False
+        conn.execute(
+            "UPDATE users SET password=? WHERE username=?",
+            (_hash_password(new_password), username),
+        )
+        conn.commit()
+        return True
     finally:
         conn.close()
 
