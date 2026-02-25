@@ -2289,6 +2289,9 @@ st.set_page_config(
 # =========================================================================
 if AUTH_AVAILABLE:
     ensure_admin_exists()
+    # EN: Ensure a default UPNFM researcher account exists for sandbox demos.
+    # ES: Asegurar que existe una cuenta UPNFM de investigador para demos del sandbox.
+    create_user("upnfm", "upnfm2026", role="researcher")
 
 _is_authenticated: bool = bool(st.session_state.get("auth_user"))
 
@@ -2557,7 +2560,7 @@ css = """
                     var(--bg);
         color: var(--text);
     }
-    .block-container { max-width: 1280px; padding-top: 2rem; }
+    .block-container { max-width: 1200px; padding-top: 1.5rem; padding-left: 2rem; padding-right: 2rem; }
     section[data-testid="stSidebar"] { background: rgba(10, 15, 25, 0.98); border-right: 1px solid var(--border); }
     section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] label { color: var(--text); }
     .glass {
@@ -2600,16 +2603,16 @@ css = """
     }
     .hero-meta {
         display: flex;
-        gap: 1rem;
+        gap: 0.6rem 1rem;
         flex-wrap: wrap;
-        font-size: 0.82rem;
+        font-size: 0.78rem;
         color: var(--muted);
     }
     .hero-stack { display: flex; flex-direction: column; gap: 1.2rem; }
     .hero-side { height: 100%; display: flex; align-items: stretch; }
-    .status-card { height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
-    .status-card h3 { margin-top: 0.2rem; margin-bottom: 0.6rem; font-size: 1.4rem; }
-    .status-card .section-subtitle { margin-bottom: 0.2rem; }
+    .status-card { height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 1.2rem; }
+    .status-card h3 { margin-top: 0.2rem; margin-bottom: 0.4rem; font-size: 1.2rem; }
+    .status-card .section-subtitle { margin-bottom: 0.15rem; font-size: 0.85rem; }
     .alert-bar { margin-top: 0.4rem; }
     .kpi {
         background: var(--panel-soft);
@@ -2618,13 +2621,13 @@ css = """
         border: 1px solid var(--border);
         box-shadow: var(--shadow);
     }
-    .kpi h4 { margin: 0; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); }
-    .kpi p { margin: 0.45rem 0 0.2rem; font-size: 1.5rem; font-weight: 600; }
+    .kpi h4 { margin: 0; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+    .kpi p { margin: 0.35rem 0 0.2rem; font-size: 1.3rem; font-weight: 600; word-break: break-all; }
     .kpi span { font-size: 0.78rem; color: var(--muted); }
     .badge { display: inline-block; padding: 0.28rem 0.72rem; border-radius: 999px; background: rgba(79, 155, 247, 0.2); color: var(--text); font-size: 0.75rem; border: 1px solid rgba(79, 155, 247, 0.4); }
     .section-title { margin-top: 1.8rem; font-size: 1.15rem; font-weight: 600; }
     .section-subtitle { color: var(--muted); font-size: 0.9rem; }
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.9rem; }
+    .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; }
     .micro-card {
         background: rgba(15, 23, 42, 0.75);
         border-radius: 14px;
@@ -2712,7 +2715,7 @@ selected_snapshot_display = (
 )
 snapshot_hash_display = current_snapshot_hash[:12] + "…" if current_snapshot_hash != "N/D" else "N/D"
 
-hero_cols = st.columns([0.74, 0.26])
+hero_cols = st.columns([0.65, 0.35])
 with hero_cols[0]:
     st.markdown(
         """
@@ -2814,7 +2817,6 @@ st.markdown(
     "<div class='section-subtitle'>Indicadores clave de integridad, velocidad y cobertura operacional.</div>",
     unsafe_allow_html=True,
 )
-kpi_cols = st.columns(6)
 kpis = [
     ("Snapshots", str(len(snapshot_files)), "Ingesta verificada"),
     ("Deltas negativos", str(critical_count), "Alertas criticas"),
@@ -2823,7 +2825,10 @@ kpis = [
     ("Deptos monitoreados", "18", "Cobertura nacional"),
     ("Hash raiz", anchor.root_hash[:12] + "...", "Evidencia on-chain"),
 ]
-for col, (label, value, caption) in zip(kpi_cols, kpis):
+kpi_row1 = st.columns(3)
+kpi_row2 = st.columns(3)
+kpi_all_cols = list(kpi_row1) + list(kpi_row2)
+for col, (label, value, caption) in zip(kpi_all_cols, kpis):
     with col:
         st.markdown(
             f"""
@@ -2895,7 +2900,7 @@ with tabs[0]:
     #     las capacidades existentes del dashboard en una vista integral.
     # =================================================================
     st.markdown("### Panorama Nacional / National Overview")
-    summary_cols = st.columns([1.1, 0.9])
+    summary_cols = st.columns(2)
     with summary_cols[0]:
         st.markdown(
             """
@@ -2976,7 +2981,7 @@ with tabs[0]:
             min(st.session_state.timeline_index, range_indices[1]),
         )
 
-        play_cols = st.columns([0.12, 0.12, 0.2, 0.56])
+        play_cols = st.columns([1, 1, 1, 3])
         with play_cols[0]:
             if st.button("◀️"):
                 st.session_state.timeline_index = max(
@@ -3013,7 +3018,7 @@ with tabs[0]:
         )
         st.altair_chart(timeline_chart, use_container_width=True)
 
-    chart_cols = st.columns(2)
+    chart_cols = st.columns([1, 1])
     with chart_cols[0]:
         benford_chart = (
             alt.Chart(benford_df)
@@ -3237,7 +3242,7 @@ with tabs[0]:
     # EN: Sub-section — Cryptographic verification (inside Visualizacion General).
     # ES: Sub-seccion — Verificacion criptografica (dentro de Visualizacion General).
     with st.expander("Verificacion Criptografica / Cryptographic Verification", expanded=False):
-        verify_col, qr_col = st.columns([1.2, 0.8])
+        verify_col, qr_col = st.columns([3, 2])
         with verify_col:
             with st.form("verify_form"):
                 hash_input = st.text_input("Hash raiz", value=anchor.root_hash)
@@ -3276,11 +3281,12 @@ with tabs[0]:
     snapshots_real = filtered_snapshots.copy()
     if "is_real" in snapshots_real.columns:
         snapshots_real = snapshots_real[snapshots_real["is_real"]]
+    _snap_cols = [c for c in ["timestamp", "department", "delta", "status", "hash"] if c in snapshots_real.columns]
     snapshot_rows = [
         ["Timestamp", "Dept", "Δ", "Estado", "Hash"],
-    ] + snapshots_real[
-        ["timestamp", "department", "delta", "status", "hash"]
-    ].head(10).values.tolist()
+    ]
+    if _snap_cols and not snapshots_real.empty:
+        snapshot_rows += snapshots_real[_snap_cols].head(10).values.tolist()
 
     anomalies_sorted = filtered_anomalies.copy()
     if not anomalies_sorted.empty:
@@ -3459,62 +3465,69 @@ with tabs[0]:
     }
 
     if REPORTLAB_AVAILABLE:
-        export_pdf_bytes = generate_pdf_report(
-            data_nacional,
-            data_departamentos,
-            current_snapshot_hash,
-            previous_snapshot_hash,
-            snapshot_diffs,
-        )
-        st.download_button(
-            "Exportar Reporte PDF",
-            data=export_pdf_bytes,
-            file_name="centinel_reporte_auditoria.pdf",
-            mime="application/pdf",
-        )
-        use_enhanced_pdf = plt is not None and qrcode is not None
-        if use_enhanced_pdf:
-            from centinel_pdf_report import CentinelPDFReport
+        try:
+            export_pdf_bytes = generate_pdf_report(
+                data_nacional,
+                data_departamentos,
+                current_snapshot_hash,
+                previous_snapshot_hash,
+                snapshot_diffs,
+            )
+            st.download_button(
+                "Exportar Reporte PDF",
+                data=export_pdf_bytes,
+                file_name="centinel_reporte_auditoria.pdf",
+                mime="application/pdf",
+            )
+        except Exception as _pdf_exc:  # noqa: BLE001
+            st.warning(f"No se pudo generar el PDF basico: {_pdf_exc}")
 
-            report_data = {
-                **pdf_data,
-                "timestamp_utc": report_time_dt,
-                "root_hash": anchor.root_hash,
-                "status": ("COMPROMETIDO" if (not topology["is_match"] or critical_count > 0) else "INTEGRAL"),
-                "source": pdf_data.get("input_source", "Endpoint JSON CNE"),
-                "topology_check": {
-                    "total_national": topology["national_total"],
-                    "department_total": topology["department_total"],
-                    "is_match": topology["is_match"],
-                },
-                "anomalies": [
-                    {
-                        "department": row.get("department"),
-                        "hour": row.get("hour"),
-                        "anomaly": 1,
-                    }
-                    for _, row in filtered_anomalies.iterrows()
-                ],
-                "benford": {
-                    "observed": (benford_df.sort_values("digit")["observed"].tolist() if not benford_df.empty else []),
-                    "sample_size": max(len(filtered_snapshots), 1),
-                },
-                "time_series": {"values": filtered_snapshots["votes"].tolist()},
-                "snapshots": snapshots_real.head(5).to_dict(orient="records"),
-            }
+        try:
+            use_enhanced_pdf = plt is not None and qrcode is not None
+            if use_enhanced_pdf:
+                from dashboard.centinel_pdf_report import CentinelPDFReport
 
-            buffer = io.BytesIO()
-            CentinelPDFReport().generate(report_data, buffer)
-            pdf_bytes = buffer.getvalue()
-        else:
-            pdf_bytes = build_pdf_report(pdf_data, chart_buffers)
-        dept_label = selected_department if selected_department != "Todos" else "nacional"
-        st.download_button(
-            f"Descargar Informe PDF ({dept_label})",
-            data=pdf_bytes,
-            file_name=f"centinel_informe_{dept_label.lower().replace(' ', '_')}.pdf",
-            mime="application/pdf",
-        )
+                report_data = {
+                    **pdf_data,
+                    "timestamp_utc": report_time_dt,
+                    "root_hash": anchor.root_hash,
+                    "status": ("COMPROMETIDO" if (not topology["is_match"] or critical_count > 0) else "INTEGRAL"),
+                    "source": pdf_data.get("input_source", "Endpoint JSON CNE"),
+                    "topology_check": {
+                        "total_national": topology["national_total"],
+                        "department_total": topology["department_total"],
+                        "is_match": topology["is_match"],
+                    },
+                    "anomalies": [
+                        {
+                            "department": row.get("department"),
+                            "hour": row.get("hour"),
+                            "anomaly": 1,
+                        }
+                        for _, row in filtered_anomalies.iterrows()
+                    ],
+                    "benford": {
+                        "observed": (benford_df.sort_values("digit")["observed"].tolist() if not benford_df.empty else []),
+                        "sample_size": max(len(filtered_snapshots), 1),
+                    },
+                    "time_series": {"values": filtered_snapshots["votes"].tolist() if not filtered_snapshots.empty else []},
+                    "snapshots": snapshots_real.head(5).to_dict(orient="records") if not snapshots_real.empty else [],
+                }
+
+                buffer = io.BytesIO()
+                CentinelPDFReport().generate(report_data, buffer)
+                pdf_bytes = buffer.getvalue()
+            else:
+                pdf_bytes = build_pdf_report(pdf_data, chart_buffers)
+            dept_label = selected_department if selected_department != "Todos" else "nacional"
+            st.download_button(
+                f"Descargar Informe PDF ({dept_label})",
+                data=pdf_bytes,
+                file_name=f"centinel_informe_{dept_label.lower().replace(' ', '_')}.pdf",
+                mime="application/pdf",
+            )
+        except Exception as _pdf_exc:  # noqa: BLE001
+            st.warning(f"No se pudo generar el informe PDF avanzado: {_pdf_exc}")
     else:
         st.warning("Exportacion PDF no disponible: falta instalar reportlab.")
 

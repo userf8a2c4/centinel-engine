@@ -21,7 +21,12 @@
         "Candidato B": 48250,
         "Candidato C": 21000,
         "Candidato D": 14550
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "CO-N01", "votos_validos": 285, "votos_nulos": 5, "votos_blancos": 3, "total_votes": 293, "candidatos": {"Candidato A": 114, "Candidato B": 95, "Candidato C": 48, "Candidato D": 28}},
+        {"codigo_mesa": "CO-N02", "votos_validos": 290, "votos_nulos": 6, "votos_blancos": 4, "total_votes": 300, "candidatos": {"Candidato A": 116, "Candidato B": 97, "Candidato C": 49, "Candidato D": 28}},
+        {"codigo_mesa": "CO-N03", "votos_validos": 275, "votos_nulos": 4, "votos_blancos": 2, "total_votes": 281, "candidatos": {"Candidato A": 110, "Candidato B": 92, "Candidato C": 46, "Candidato D": 27}}
+      ]
     },
     {
       "nombre": "Francisco Morazán",
@@ -33,7 +38,11 @@
         "Candidato B": 62000,
         "Candidato C": 27500,
         "Candidato D": 13800
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "FM-N01", "votos_validos": 300, "votos_nulos": 5, "votos_blancos": 3, "total_votes": 308, "candidatos": {"Candidato A": 120, "Candidato B": 100, "Candidato C": 50, "Candidato D": 30}},
+        {"codigo_mesa": "FM-N02", "votos_validos": 295, "votos_nulos": 4, "votos_blancos": 3, "total_votes": 302, "candidatos": {"Candidato A": 118, "Candidato B": 99, "Candidato C": 49, "Candidato D": 29}}
+      ]
     },
     {
       "nombre": "Olancho",
@@ -45,7 +54,10 @@
         "Candidato B": 33600,
         "Candidato C": 19200,
         "Candidato D": 11400
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "OL-N01", "votos_validos": 260, "votos_nulos": 4, "votos_blancos": 2, "total_votes": 266, "candidatos": {"Candidato A": 104, "Candidato B": 87, "Candidato C": 44, "Candidato D": 25}}
+      ]
     },
     {
       "nombre": "Santa Bárbara",
@@ -57,7 +69,11 @@
         "Candidato B": 19650,
         "Candidato C": 15600,
         "Candidato D": 10750
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "SB-N01", "votos_validos": 240, "votos_nulos": 3, "votos_blancos": 2, "total_votes": 245, "candidatos": {"Candidato A": 96, "Candidato B": 80, "Candidato C": 40, "Candidato D": 24}},
+        {"codigo_mesa": "SB-N02", "votos_validos": 250, "votos_nulos": 5, "votos_blancos": 3, "total_votes": 258, "candidatos": {"Candidato A": 100, "Candidato B": 83, "Candidato C": 42, "Candidato D": 25}}
+      ]
     }
   ],
   "notas": "Mock normal con progresión estable y sin anomalías críticas (Normal mock with stable progression)."
