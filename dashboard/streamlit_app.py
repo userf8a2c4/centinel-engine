@@ -1,81 +1,52 @@
 """
-======================== ÍNDICE / INDEX ========================
-1. Descripción general / Overview
+======================== INDICE / INDEX ========================
+1. Descripcion general / Overview
 2. Componentes principales / Main components
-3. Notas de mantenimiento / Maintenance notes
+3. Diseno institucional premium / Premium institutional design
+4. Notas de mantenimiento / Maintenance notes
 
-======================== ESPAÑOL ========================
+======================== ESPANOL ========================
 Archivo: `dashboard/streamlit_app.py`.
-Este módulo forma parte de Centinel Engine y está documentado para facilitar
-la navegación, mantenimiento y auditoría técnica.
+Dashboard institucional premium de auditoria electoral C.E.N.T.I.N.E.L.
+Diseno de clase mundial inspirado en dashboards de la OEA, UE Election
+Observation Missions y el Carter Center.
 
-Componentes detectados:
-  - BlockchainAnchor
-  - rerun_app
-  - _load_latest_anchor_record
-  - load_blockchain_anchor
-  - compute_report_hash
-  - _safe_int
-  - _safe_read_json
-  - build_qr_bytes
-  - load_yaml_config
-  - load_configs
-  - load_rules_config
-  - resolve_polling_status
-  - resolve_snapshot_context
-  - derive_alert_thresholds
-  - emit_toast
-  - ...
-
-Notas:
-- Mantener esta cabecera sincronizada con cambios estructurales del archivo.
-- Priorizar claridad operativa y trazabilidad del comportamiento.
+Componentes principales:
+  - Header institucional fijo con logo y badge de neutralidad
+  - Sidebar minimalista con filtros esenciales y footer institucional
+  - Paleta institucional oscura: #0A1428, #00A3E0, #00C853, #FF9800
+  - Tipografia Inter / SF Pro Display con CSS profesional
+  - Cuatro tabs: Visualizacion General, Sandbox, Historicos, Admin
+  - Motor de reglas, anomalias, Benford, topologia, actas, PDF
 
 ======================== ENGLISH ========================
 File: `dashboard/streamlit_app.py`.
-This module is part of Centinel Engine and is documented to improve
-navigation, maintenance, and technical auditability.
+Premium institutional electoral audit dashboard for C.E.N.T.I.N.E.L.
+World-class design inspired by OEA, EU Election Observation Missions,
+and Carter Center dashboards.
 
-Detected components:
-  - BlockchainAnchor
-  - rerun_app
-  - _load_latest_anchor_record
-  - load_blockchain_anchor
-  - compute_report_hash
-  - _safe_int
-  - _safe_read_json
-  - build_qr_bytes
-  - load_yaml_config
-  - load_configs
-  - load_rules_config
-  - resolve_polling_status
-  - resolve_snapshot_context
-  - derive_alert_thresholds
-  - emit_toast
-  - ...
+Main components:
+  - Fixed institutional header with logo and neutrality badge
+  - Minimalist sidebar with essential filters and institutional footer
+  - Dark institutional palette: #0A1428, #00A3E0, #00C853, #FF9800
+  - Inter / SF Pro Display typography with professional CSS
+  - Four tabs: General View, Sandbox, Historical, Admin
+  - Rules engine, anomalies, Benford, topology, actas, PDF
 
 Notes:
 - Keep this header in sync with structural changes in the file.
 - Prioritize operational clarity and behavior traceability.
 """
 
-# Streamlit App Module
-# AUTO-DOC-INDEX
-#
-# ES: Índice rápido
-#   1) Propósito del módulo
-#   2) Componentes principales
-#   3) Puntos de extensión
-#
-# EN: Quick index
-#   1) Module purpose
-#   2) Main components
-#   3) Extension points
+# ES: Modulo de dashboard institucional C.E.N.T.I.N.E.L.
+# EN: C.E.N.T.I.N.E.L. institutional dashboard module
 #
 # Secciones / Sections:
-#   - Configuración / Configuration
-#   - Lógica principal / Core logic
-#   - Integraciones / Integrations
+#   - Imports y configuracion / Imports and configuration
+#   - Funciones de datos / Data functions
+#   - Funciones de visualizacion / Visualization functions
+#   - Layout principal / Main layout
+#   - Tabs de contenido / Content tabs
 
 
 
@@ -414,28 +385,29 @@ def resolve_polling_status(
 
     English: Determine polling status for the dashboard.
     """
+    # ES: Estado por defecto: estable / EN: Default status: stable
     status = {
-        "label": "✅ Polling estable",
-        "class": "status-pill",
-        "detail": "Sin interrupciones recientes.",
+        "label": "\u2705 Polling estable / Stable",
+        "class": "status-pill status-pill--ok",
+        "detail": "Sin interrupciones recientes. / No recent interruptions.",
     }
     if rate_limit_failures > 0:
         status = {
-            "label": "⛔ Polling limitado",
+            "label": "\u26d4 Polling limitado / Rate-limited",
             "class": "status-pill status-pill--danger",
             "detail": f"{rate_limit_failures} bloqueos por rate-limit.",
         }
     elif failed_retries > 0:
         status = {
-            "label": "⚠️ Polling inestable",
+            "label": "\u26a0\ufe0f Polling inestable / Unstable",
             "class": "status-pill status-pill--warning",
             "detail": f"{failed_retries} reintentos en {refresh_interval}s.",
         }
     if time_since_last and time_since_last > dt.timedelta(minutes=45):
         status = {
-            "label": "⚠️ Polling retrasado",
+            "label": "\u26a0\ufe0f Polling retrasado / Delayed",
             "class": "status-pill status-pill--warning",
-            "detail": f"Última actualización hace {_format_timedelta(time_since_last)}.",
+            "detail": f"\u00daltima actualizaci\u00f3n hace {_format_timedelta(time_since_last)}.",
         }
     return status
 
@@ -2271,12 +2243,25 @@ def build_pdf_export_payload(
     return data_nacional, data_departamentos, hash_snapshot, previous_hash, diffs
 
 
-st.set_page_config(
-    page_title="C.E.N.T.I.N.E.L. | Vigilancia Electoral",
-    page_icon="🛰\ufe0f",
-    layout="wide",
-    initial_sidebar_state="expanded",
+# ES: Importar tema institucional premium / EN: Import premium institutional theme
+from dashboard.utils.theme import (  # noqa: E402
+    get_page_config,
+    get_institutional_css,
+    get_header_html,
+    get_status_panel_html,
+    get_kpi_html,
+    get_micro_cards_html,
+    get_sidebar_footer_html,
+    get_footer_html,
+    ACCENT_BLUE,
+    GREEN_INTEGRITY,
+    ALERT_ORANGE,
+    DANGER_RED,
+    CHART_PALETTE,
 )
+
+# ES: Configuracion de pagina institucional / EN: Institutional page configuration
+st.set_page_config(**get_page_config())
 
 
 # =========================================================================
@@ -2534,126 +2519,14 @@ if snapshots_df.empty:
         "(No snapshots found). El panel está en modo demo (Dashboard is in demo mode)."
     )
 
-css = """
-<style>
-    :root {
-        color-scheme: dark;
-        --bg: #0B0F19;
-        --bg-soft: #101826;
-        --panel: rgba(15, 23, 42, 0.92);
-        --panel-soft: rgba(30, 41, 59, 0.85);
-        --text: #f8fafc;
-        --muted: #c7d2fe;
-        --accent: #2D79C7;
-        --accent-strong: #4F9BF7;
-        --success: #22C55E;
-        --danger: #EF4444;
-        --warning: #F59E0B;
-        --border: rgba(148, 163, 184, 0.2);
-        --shadow: 0 18px 40px rgba(3, 7, 18, 0.45);
-        --glow: 0 0 0 1px rgba(79, 155, 247, 0.15), 0 10px 35px rgba(15, 23, 42, 0.65);
-    }
-    html, body, [class*="css"] { font-family: "Inter", "Roboto", "Segoe UI", sans-serif; }
-    .stApp {
-        background: radial-gradient(circle at top left, rgba(45, 121, 199, 0.16), transparent 45%),
-                    radial-gradient(circle at 25% 5%, rgba(99, 102, 241, 0.12), transparent 40%),
-                    var(--bg);
-        color: var(--text);
-    }
-    .block-container { max-width: 1200px; padding-top: 1.5rem; padding-left: 2rem; padding-right: 2rem; }
-    section[data-testid="stSidebar"] { background: rgba(10, 15, 25, 0.98); border-right: 1px solid var(--border); }
-    section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] label { color: var(--text); }
-    .glass {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        padding: 1.6rem;
-        box-shadow: var(--shadow);
-        backdrop-filter: blur(12px);
-    }
-    .hero {
-        background: linear-gradient(135deg, rgba(45, 121, 199, 0.2), rgba(15, 23, 42, 0.95));
-        border: 1px solid rgba(79, 155, 247, 0.3);
-        border-radius: 24px;
-        padding: 1.8rem 2rem;
-        box-shadow: var(--glow);
-    }
-    .hero h1 { font-size: 2rem; margin-bottom: 0.4rem; letter-spacing: -0.02em; }
-    .hero p { color: var(--muted); margin: 0.2rem 0 0.8rem; }
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        padding: 0.35rem 0.85rem;
-        border-radius: 999px;
-        background: rgba(34, 197, 94, 0.18);
-        color: var(--success);
-        font-size: 0.78rem;
-        border: 1px solid rgba(34, 197, 94, 0.32);
-    }
-    .status-pill--warning {
-        background: rgba(245, 158, 11, 0.18);
-        color: var(--warning);
-        border: 1px solid rgba(245, 158, 11, 0.32);
-    }
-    .status-pill--danger {
-        background: rgba(239, 68, 68, 0.18);
-        color: var(--danger);
-        border: 1px solid rgba(239, 68, 68, 0.32);
-    }
-    .hero-meta {
-        display: flex;
-        gap: 0.6rem 1rem;
-        flex-wrap: wrap;
-        font-size: 0.78rem;
-        color: var(--muted);
-    }
-    .hero-stack { display: flex; flex-direction: column; gap: 1.2rem; }
-    .hero-side { height: 100%; display: flex; align-items: stretch; }
-    .status-card { height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 1.2rem; }
-    .status-card h3 { margin-top: 0.2rem; margin-bottom: 0.4rem; font-size: 1.2rem; }
-    .status-card .section-subtitle { margin-bottom: 0.15rem; font-size: 0.85rem; }
-    .alert-bar { margin-top: 0.4rem; }
-    .kpi {
-        background: var(--panel-soft);
-        border-radius: 16px;
-        padding: 1rem 1.1rem;
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-    }
-    .kpi h4 { margin: 0; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
-    .kpi p { margin: 0.35rem 0 0.2rem; font-size: 1.3rem; font-weight: 600; word-break: break-all; }
-    .kpi span { font-size: 0.78rem; color: var(--muted); }
-    .badge { display: inline-block; padding: 0.28rem 0.72rem; border-radius: 999px; background: rgba(79, 155, 247, 0.2); color: var(--text); font-size: 0.75rem; border: 1px solid rgba(79, 155, 247, 0.4); }
-    .section-title { margin-top: 1.8rem; font-size: 1.15rem; font-weight: 600; }
-    .section-subtitle { color: var(--muted); font-size: 0.9rem; }
-    .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; }
-    .micro-card {
-        background: rgba(15, 23, 42, 0.75);
-        border-radius: 14px;
-        padding: 0.9rem 1rem;
-        border: 1px solid var(--border);
-    }
-    .micro-card h5 { margin: 0 0 0.4rem; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.18em; }
-    .micro-card p { margin: 0; font-size: 1rem; font-weight: 600; }
-    .streamlit-expanderHeader { font-weight: 600; }
-    div[data-testid="stMetric"] { background: var(--panel-soft); padding: 1rem; border-radius: 14px; border: 1px solid var(--border); }
-    .stTabs [data-baseweb="tab-list"] { gap: 0.6rem; }
-    .stTabs [data-baseweb="tab"] {
-        background: rgba(15, 23, 42, 0.8);
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        padding: 0.4rem 1rem;
-        color: var(--muted);
-    }
-    .stTabs [aria-selected="true"] { background: rgba(79, 155, 247, 0.2); color: var(--text); border-color: rgba(79, 155, 247, 0.5); }
-    .fade-in { animation: fadeIn 1.2s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
-</style>
-"""
-st.markdown(css, unsafe_allow_html=True)
+# =========================================================================
+# ES: Inyectar CSS institucional premium desde utils/theme.py
+# EN: Inject premium institutional CSS from utils/theme.py
+# =========================================================================
+st.markdown(get_institutional_css(), unsafe_allow_html=True)
 
-st.sidebar.markdown("### Filtros Globales")
+# ES: Filtros esenciales del sidebar minimalista / EN: Minimalist sidebar essential filters
+st.sidebar.markdown("### \U0001f50d Filtros / Filters")
 departments = [
     "Atlántida",
     "Choluteca",
@@ -2675,8 +2548,8 @@ departments = [
     "Yoro",
 ]
 
-selected_department = st.sidebar.selectbox("Departamento", ["Todos"] + departments, index=0)
-show_only_alerts = st.sidebar.toggle("Mostrar solo anomalías", value=False)
+selected_department = st.sidebar.selectbox("Departamento / Department", ["Todos"] + departments, index=0)
+show_only_alerts = st.sidebar.toggle("Mostrar solo anomal\u00edas / Show anomalies only", value=False)
 
 filtered_snapshots = snapshots_df.copy()
 if selected_department != "Todos":
@@ -2715,47 +2588,55 @@ selected_snapshot_display = (
 )
 snapshot_hash_display = current_snapshot_hash[:12] + "…" if current_snapshot_hash != "N/D" else "N/D"
 
-hero_cols = st.columns([0.65, 0.35])
+# ES: Footer institucional del sidebar / EN: Institutional sidebar footer
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    get_sidebar_footer_html(version="v9.0", last_update=latest_label),
+    unsafe_allow_html=True,
+)
+
+# =========================================================================
+# ES: Header institucional premium con logo y badge de neutralidad
+# EN: Premium institutional header with logo and neutrality badge
+# =========================================================================
+st.markdown(
+    get_header_html(
+        latest_label=latest_label,
+        root_hash_short=anchor.root_hash[:12] + "\u2026",
+        snapshot_label=selected_snapshot_display,
+        snapshot_hash_short=snapshot_hash_display,
+    ),
+    unsafe_allow_html=True,
+)
+
+# ES: Columnas hero: metricas + panel de estado / EN: Hero columns: metrics + status panel
+hero_cols = st.columns([0.62, 0.38])
 with hero_cols[0]:
     st.markdown(
         """
-<div class="hero-stack">
-  <div class="hero">
-    <span class="badge">Observatorio Electoral · Honduras</span>
-    <h1>C.E.N.T.I.N.E.L. · Centro de Vigilancia Electoral</h1>
-    <p>Sistema de auditoría técnica con deltas por departamento, validaciones estadísticas y evidencia criptográfica.</p>
-    <div class="hero-meta">
-      <span>🔎 Modo auditoría: Activo</span>
-      <span>🛰️ Última actualización: {latest_label}</span>
-      <span>🧾 Snapshot seleccionado: {snapshot_label}</span>
-      <span>🔐 Hash raíz: {root_hash}</span>
-      <span>🧬 Hash snapshot: {snapshot_hash}</span>
-    </div>
+<div class="hero-section fade-in">
+  <span class="badge">Observatorio Electoral \u00b7 Honduras</span>
+  <h2>Panorama de Auditor\u00eda en Tiempo Real</h2>
+  <div class="hero-subtitle">
+    Sistema de auditor\u00eda t\u00e9cnica con deltas por departamento, validaciones
+    estad\u00edsticas y evidencia criptogr\u00e1fica inmutable.<br/>
+    <em>Real-time audit overview with per-department deltas, statistical
+    validations, and immutable cryptographic evidence.</em>
   </div>
 </div>
-        """.format(
-            latest_label=latest_label,
-            root_hash=anchor.root_hash[:12] + "…",
-            snapshot_label=selected_snapshot_display,
-            snapshot_hash=snapshot_hash_display,
-        ),
+        """,
         unsafe_allow_html=True,
     )
 with hero_cols[1]:
-    st.markdown("<div class='glass status-card'>", unsafe_allow_html=True)
     st.markdown(
-        f"<div class='{polling_status['class']}'>{polling_status['label']}</div>",
+        get_status_panel_html(
+            polling_status=polling_status,
+            department=selected_department,
+            snapshot_count=len(snapshot_files),
+            latest_label=latest_label,
+        ),
         unsafe_allow_html=True,
     )
-    st.markdown(
-        f"<p class='section-subtitle'>Cobertura activa</p>"
-        f"<h3>{selected_department}</h3>"
-        f"<p class='section-subtitle'>Snapshots observados: {len(snapshot_files)}</p>"
-        f"<p class='section-subtitle'>Último lote: {latest_label}</p>"
-        f"<p class='section-subtitle'>Estado: {polling_status['detail']}</p>",
-        unsafe_allow_html=True,
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
 
 alert_focus_container = st.container()
 with alert_focus_container:
@@ -2812,62 +2693,47 @@ if not filtered_anomalies.empty:
         st.warning(anomalies_message, icon="⚠️")
     st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("<div class='section-title'>Resumen Ejecutivo</div>", unsafe_allow_html=True)
+# =========================================================================
+# ES: Resumen ejecutivo con KPIs institucionales
+# EN: Executive summary with institutional KPIs
+# =========================================================================
 st.markdown(
-    "<div class='section-subtitle'>Indicadores clave de integridad, velocidad y cobertura operacional.</div>",
+    '<div class="section-title">Resumen Ejecutivo / Executive Summary</div>'
+    '<div class="section-subtitle">Indicadores clave de integridad, velocidad y cobertura operacional. '
+    '/ Key integrity, speed, and operational coverage indicators.</div>',
     unsafe_allow_html=True,
 )
+
+# ES: Tarjetas KPI en dos filas de 3 / EN: KPI cards in two rows of 3
 kpis = [
     ("Snapshots", str(len(snapshot_files)), "Ingesta verificada"),
-    ("Deltas negativos", str(critical_count), "Alertas criticas"),
+    ("Deltas negativos", str(critical_count), "Alertas cr\u00edticas"),
     ("Actas inconsist.", str(actas_consistency["total_inconsistent"]), f"{actas_consistency['integrity_pct']:.0f}% integridad"),
     ("Reglas activas", str(len(rules_df)), "Motor de reglas"),
     ("Deptos monitoreados", "18", "Cobertura nacional"),
-    ("Hash raiz", anchor.root_hash[:12] + "...", "Evidencia on-chain"),
+    ("Hash ra\u00edz", anchor.root_hash[:12] + "\u2026", "Evidencia on-chain"),
 ]
 kpi_row1 = st.columns(3)
 kpi_row2 = st.columns(3)
 kpi_all_cols = list(kpi_row1) + list(kpi_row2)
 for col, (label, value, caption) in zip(kpi_all_cols, kpis):
     with col:
-        st.markdown(
-            f"""
-<div class="kpi">
-  <h4>{label}</h4>
-  <p>{value}</p>
-  <span>{caption}</span>
-</div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(get_kpi_html(label, value, caption), unsafe_allow_html=True)
 
+# ES: Micro-tarjetas de estado rapido / EN: Quick status micro-cards
+_integrity_pct_display = f"{actas_consistency['integrity_pct']:.1f}% confiabilidad"
 st.markdown(
-    """
-<div class="card-grid">
-  <div class="micro-card">
-    <h5>Integridad global</h5>
-    <p>99.2% confiabilidad</p>
-  </div>
-  <div class="micro-card">
-    <h5>Latencia promedio</h5>
-    <p>4m 12s</p>
-  </div>
-  <div class="micro-card">
-    <h5>Alertas abiertas</h5>
-    <p>{alerts} registros</p>
-  </div>
-  <div class="micro-card">
-    <h5>Cadena L2</h5>
-    <p>Arbitrum · activo</p>
-  </div>
-</div>
-    """.format(
-        alerts=len(filtered_anomalies)
-    ),
+    get_micro_cards_html([
+        ("Integridad global", _integrity_pct_display),
+        ("Latencia promedio", "4m 12s"),
+        ("Alertas abiertas", f"{len(filtered_anomalies)} registros"),
+        ("Cadena L2", "Arbitrum \u00b7 activo"),
+    ]),
     unsafe_allow_html=True,
 )
 
-st.markdown("---")
+# ES: Separador institucional / EN: Institutional divider
+st.markdown('<div class="centinel-divider"></div>', unsafe_allow_html=True)
 
 # =========================================================================
 # EN: Four main tabs as specified:
@@ -2899,15 +2765,22 @@ with tabs[0]:
     #     verificacion, reportes y estado del sistema — preservando TODAS
     #     las capacidades existentes del dashboard en una vista integral.
     # =================================================================
-    st.markdown("### Panorama Nacional / National Overview")
+    # ES: Panorama nacional con diseno institucional / EN: National overview with institutional design
+    st.markdown("### \U0001f30e Panorama Nacional / National Overview")
     summary_cols = st.columns(2)
     with summary_cols[0]:
         st.markdown(
             """
-<div class="glass">
-  <h3>Estado Global</h3>
-  <p class="fade-in">Integridad verificable &middot; Auditoria continua activa.</p>
-  <p>Auditorias prioritarias: deltas negativos por hora/departamento, consistencia de agregacion y distribucion Benford.</p>
+<div class="glass fade-in">
+  <h3>Estado Global / Global Status</h3>
+  <p>Integridad verificable &middot; Auditor\u00eda continua activa.<br/>
+  <em>Verifiable integrity &middot; Continuous audit active.</em></p>
+  <p style="font-size: 0.85rem; color: var(--text-secondary);">
+    Auditor\u00edas prioritarias: deltas negativos por hora/departamento,
+    consistencia de agregaci\u00f3n y distribuci\u00f3n Benford.<br/>
+    <em>Priority audits: negative deltas per hour/department,
+    aggregation consistency, and Benford distribution.</em>
+  </p>
 </div>
             """,
             unsafe_allow_html=True,
@@ -2920,9 +2793,10 @@ with tabs[0]:
             )
     with summary_cols[1]:
         if not filtered_snapshots.empty:
+            # ES: Grafico de actividad con color institucional / EN: Activity chart with institutional color
             activity_chart = (
                 alt.Chart(filtered_snapshots)
-                .mark_bar(color="#1F77B4")
+                .mark_bar(color=ACCENT_BLUE)
                 .encode(
                     x=alt.X("hour:N", title="Hora"),
                     y=alt.Y("changes:Q", title="Cambios"),
@@ -3008,7 +2882,7 @@ with tabs[0]:
 
         timeline_chart = (
             alt.Chart(timeline_view)
-            .mark_bar(color="#2CA02C")
+            .mark_bar(color=GREEN_INTEGRITY)
             .encode(
                 x=alt.X("timeline_label:N", title="Tiempo"),
                 y=alt.Y("votes:Q", title="Votos"),
@@ -3029,7 +2903,7 @@ with tabs[0]:
                 y=alt.Y("value:Q", title="%"),
                 color=alt.Color(
                     "type:N",
-                    scale=alt.Scale(domain=["expected", "observed"], range=["#1F77B4", "#2CA02C"]),
+                    scale=alt.Scale(domain=["expected", "observed"], range=[ACCENT_BLUE, GREEN_INTEGRITY]),
                     legend=alt.Legend(title="Serie"),
                 ),
                 tooltip=[
@@ -3044,7 +2918,7 @@ with tabs[0]:
     with chart_cols[1]:
         votes_chart = (
             alt.Chart(filtered_snapshots)
-            .mark_line(point=True, color="#2CA02C")
+            .mark_line(point=True, color=GREEN_INTEGRITY)
             .encode(
                 x=alt.X("hour:N", title="Hora"),
                 y=alt.Y("votes:Q", title="Votos acumulados"),
@@ -3192,7 +3066,7 @@ with tabs[0]:
                 _dept_counts = _actas_df.groupby("departamento").size().reset_index(name="inconsistencias")
                 _dept_chart = (
                     alt.Chart(_dept_counts)
-                    .mark_bar(color="#E53E3E")
+                    .mark_bar(color=DANGER_RED)
                     .encode(
                         x=alt.X("inconsistencias:Q", title="Actas inconsistentes"),
                         y=alt.Y("departamento:N", sort="-x", title="Departamento"),
@@ -4118,11 +3992,6 @@ if _is_authenticated and _current_role == "admin" and len(tabs) > 3:
             rerun_app()
 
 # =========================================================================
-# EN: Footer
-# ES: Pie de pagina
+# ES: Footer institucional premium / EN: Premium institutional footer
 # =========================================================================
-st.markdown("---")
-st.caption(
-    "C.E.N.T.I.N.E.L. - Centro de Vigilancia Electoral | "
-    "Auditoria tecnica independiente | Sistema agnostico a partidos politicos"
-)
+st.markdown(get_footer_html(), unsafe_allow_html=True)
