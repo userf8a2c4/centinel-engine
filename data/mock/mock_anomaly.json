@@ -21,7 +21,12 @@
         "Candidato B": 60200,
         "Candidato C": 21400,
         "Candidato D": 11800
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "CO-A01", "votos_validos": 280, "votos_nulos": 5, "votos_blancos": 3, "total_votes": 288, "candidatos": {"Candidato A": 112, "Candidato B": 96, "Candidato C": 44, "Candidato D": 28}},
+        {"codigo_mesa": "CO-A02", "votos_validos": 295, "votos_nulos": 6, "votos_blancos": 4, "total_votes": 305, "candidatos": {"Candidato A": 118, "Candidato B": 99, "Candidato C": 49, "Candidato D": 29}},
+        {"codigo_mesa": "CO-A03", "votos_validos": 310, "votos_nulos": 7, "votos_blancos": 3, "total_votes": 325, "candidatos": {"Candidato A": 124, "Candidato B": 104, "Candidato C": 52, "Candidato D": 30}}
+      ]
     },
     {
       "nombre": "Francisco Morazán",
@@ -34,7 +39,12 @@
         "Candidato C": 21000,
         "Candidato D": 9300
       },
-      "alerta": "Delta anormal >15% en Candidato B (Abnormal delta >15% for Candidate B)."
+      "alerta": "Delta anormal >15% en Candidato B (Abnormal delta >15% for Candidate B).",
+      "mesas": [
+        {"codigo_mesa": "FM-A01", "votos_validos": 300, "votos_nulos": 5, "votos_blancos": 3, "total_votes": 308, "candidatos": {"Candidato A": 80, "Candidato B": 160, "Candidato C": 40, "Candidato D": 20}},
+        {"codigo_mesa": "FM-A02", "votos_validos": 290, "votos_nulos": 4, "votos_blancos": 2, "total_votes": 296, "candidatos": {"Candidato A": 77, "Candidato B": 155, "Candidato C": 38, "Candidato D": 20}},
+        {"codigo_mesa": "FM-A03", "votos_validos": 275, "votos_nulos": 6, "votos_blancos": 3, "total_votes": 290, "candidatos": {"Candidato A": 73, "Candidato B": 147, "Candidato C": 36, "Candidato D": 19}}
+      ]
     },
     {
       "nombre": "Olancho",
@@ -46,7 +56,11 @@
         "Candidato B": 32100,
         "Candidato C": 18200,
         "Candidato D": 16200
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "OL-A01", "votos_validos": 260, "votos_nulos": 4, "votos_blancos": 2, "total_votes": 266, "candidatos": {"Candidato A": 104, "Candidato B": 87, "Candidato C": 44, "Candidato D": 25}},
+        {"codigo_mesa": "OL-A02", "votos_validos": 270, "votos_nulos": 5, "votos_blancos": 3, "total_votes": 285, "candidatos": {"Candidato A": 108, "Candidato B": 90, "Candidato C": 45, "Candidato D": 27}}
+      ]
     },
     {
       "nombre": "Santa Bárbara",
@@ -59,7 +73,12 @@
         "Candidato C": -3200,
         "Candidato D": 17900
       },
-      "rollback": "Se removieron actas duplicadas; votos negativos simulados (Rollback simulated with negative votes)."
+      "rollback": "Se removieron actas duplicadas; votos negativos simulados (Rollback simulated with negative votes).",
+      "mesas": [
+        {"codigo_mesa": "SB-A01", "votos_validos": 240, "votos_nulos": 3, "votos_blancos": 2, "total_votes": 245, "candidatos": {"Candidato A": 96, "Candidato B": 80, "Candidato C": 40, "Candidato D": 24}},
+        {"codigo_mesa": "SB-A02", "votos_validos": 200, "votos_nulos": 4, "votos_blancos": 2, "total_votes": 220, "candidatos": {"Candidato A": 80, "Candidato B": 70, "Candidato C": -30, "Candidato D": 80}},
+        {"codigo_mesa": "SB-A03", "votos_validos": 255, "votos_nulos": 5, "votos_blancos": 3, "total_votes": 263, "candidatos": {"Candidato A": 102, "Candidato B": 85, "Candidato C": 42, "Candidato D": 26}}
+      ]
     }
   ],
   "observaciones": [

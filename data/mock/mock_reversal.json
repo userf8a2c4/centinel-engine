@@ -21,7 +21,11 @@
         "Candidato B": 48600,
         "Candidato C": 25500,
         "Candidato D": 14600
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "CO-R01", "votos_validos": 290, "votos_nulos": 5, "votos_blancos": 3, "total_votes": 298, "candidatos": {"Candidato A": 116, "Candidato B": 97, "Candidato C": 49, "Candidato D": 28}},
+        {"codigo_mesa": "CO-R02", "votos_validos": 280, "votos_nulos": 4, "votos_blancos": 2, "total_votes": 286, "candidatos": {"Candidato A": 112, "Candidato B": 94, "Candidato C": 47, "Candidato D": 27}}
+      ]
     },
     {
       "nombre": "Francisco Morazán",
@@ -33,7 +37,11 @@
         "Candidato B": 64200,
         "Candidato C": 31200,
         "Candidato D": 14000
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "FM-R01", "votos_validos": 305, "votos_nulos": 6, "votos_blancos": 3, "total_votes": 314, "candidatos": {"Candidato A": 122, "Candidato B": 102, "Candidato C": 51, "Candidato D": 30}},
+        {"codigo_mesa": "FM-R02", "votos_validos": 295, "votos_nulos": 5, "votos_blancos": 4, "total_votes": 304, "candidatos": {"Candidato A": 118, "Candidato B": 99, "Candidato C": 49, "Candidato D": 29}}
+      ]
     },
     {
       "nombre": "Olancho",
@@ -45,7 +53,10 @@
         "Candidato B": 30000,
         "Candidato C": 22000,
         "Candidato D": 13100
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "OL-R01", "votos_validos": 265, "votos_nulos": 4, "votos_blancos": 2, "total_votes": 271, "candidatos": {"Candidato A": 106, "Candidato B": 88, "Candidato C": 44, "Candidato D": 27}}
+      ]
     },
     {
       "nombre": "Santa Bárbara",
@@ -57,7 +68,11 @@
         "Candidato B": 19600,
         "Candidato C": 15700,
         "Candidato D": 11200
-      }
+      },
+      "mesas": [
+        {"codigo_mesa": "SB-R01", "votos_validos": 245, "votos_nulos": 3, "votos_blancos": 2, "total_votes": 250, "candidatos": {"Candidato A": 98, "Candidato B": 82, "Candidato C": 41, "Candidato D": 24}},
+        {"codigo_mesa": "SB-R02", "votos_validos": 255, "votos_nulos": 5, "votos_blancos": 3, "total_votes": 263, "candidatos": {"Candidato A": 102, "Candidato B": 85, "Candidato C": 42, "Candidato D": 26}}
+      ]
     }
   ],
   "irreversibilidad": {
