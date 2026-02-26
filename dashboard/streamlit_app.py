@@ -2249,8 +2249,6 @@ from dashboard.utils.theme import (  # noqa: E402
     get_institutional_css,
     get_header_html,
     get_status_panel_html,
-    get_kpi_html,
-    get_micro_cards_html,
     get_sidebar_footer_html,
     get_footer_html,
     ACCENT_BLUE,
@@ -2259,6 +2257,9 @@ from dashboard.utils.theme import (  # noqa: E402
     DANGER_RED,
     CHART_PALETTE,
 )
+
+# ES: Importar tarjetas KPI institucionales / EN: Import institutional KPI cards
+from dashboard.utils.kpi_cards import render_executive_summary  # noqa: E402
 
 # ES: Configuracion de pagina institucional / EN: Institutional page configuration
 st.set_page_config(**get_page_config())
@@ -2694,42 +2695,80 @@ if not filtered_anomalies.empty:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================================
-# ES: Resumen ejecutivo con KPIs institucionales
-# EN: Executive summary with institutional KPIs
+# ES: Resumen ejecutivo con KPIs institucionales de grado OEA/UE/Carter
+#     Center. 6 tarjetas con sparklines, deltas semanticos y tooltips.
+# EN: Executive summary with OEA/EU/Carter Center grade institutional
+#     KPIs. 6 cards with sparklines, semantic deltas, and tooltips.
 # =========================================================================
-st.markdown(
-    '<div class="section-title">Resumen Ejecutivo / Executive Summary</div>'
-    '<div class="section-subtitle">Indicadores clave de integridad, velocidad y cobertura operacional. '
-    '/ Key integrity, speed, and operational coverage indicators.</div>',
-    unsafe_allow_html=True,
-)
 
-# ES: Tarjetas KPI en dos filas de 3 / EN: KPI cards in two rows of 3
-kpis = [
-    ("Snapshots", str(len(snapshot_files)), "Ingesta verificada"),
-    ("Deltas negativos", str(critical_count), "Alertas cr\u00edticas"),
-    ("Actas inconsist.", str(actas_consistency["total_inconsistent"]), f"{actas_consistency['integrity_pct']:.0f}% integridad"),
-    ("Reglas activas", str(len(rules_df)), "Motor de reglas"),
-    ("Deptos monitoreados", "18", "Cobertura nacional"),
-    ("Hash ra\u00edz", anchor.root_hash[:12] + "\u2026", "Evidencia on-chain"),
-]
-kpi_row1 = st.columns(3)
-kpi_row2 = st.columns(3)
-kpi_all_cols = list(kpi_row1) + list(kpi_row2)
-for col, (label, value, caption) in zip(kpi_all_cols, kpis):
-    with col:
-        st.markdown(get_kpi_html(label, value, caption), unsafe_allow_html=True)
+# ES: Construir datos de sparklines desde snapshots reales (ultimas 12 horas)
+# EN: Build sparkline data from real snapshots (last 12 hours)
+def _build_spark_data_12h(df: pd.DataFrame, column: str = "votes") -> list[float]:
+    """ES: Agrega valores por hora de las ultimas 12 horas para sparklines.
 
-# ES: Micro-tarjetas de estado rapido / EN: Quick status micro-cards
-_integrity_pct_display = f"{actas_consistency['integrity_pct']:.1f}% confiabilidad"
-st.markdown(
-    get_micro_cards_html([
-        ("Integridad global", _integrity_pct_display),
-        ("Latencia promedio", "4m 12s"),
-        ("Alertas abiertas", f"{len(filtered_anomalies)} registros"),
-        ("Cadena L2", "Arbitrum \u00b7 activo"),
-    ]),
-    unsafe_allow_html=True,
+    EN: Aggregate values by hour for the last 12 hours for sparklines.
+    """
+    if df.empty or column not in df.columns:
+        return []
+    try:
+        tmp = df.copy()
+        tmp["_ts"] = pd.to_datetime(tmp["timestamp"], errors="coerce", utc=True)
+        tmp = tmp.dropna(subset=["_ts"])
+        if tmp.empty:
+            return []
+        cutoff = tmp["_ts"].max() - pd.Timedelta(hours=12)
+        tmp = tmp[tmp["_ts"] >= cutoff]
+        tmp["_hour"] = tmp["_ts"].dt.floor("h")
+        hourly = tmp.groupby("_hour")[column].sum().sort_index().tolist()
+        return hourly[-12:] if len(hourly) > 12 else hourly
+    except Exception:  # noqa: BLE001
+        return []
+
+
+_spark_snapshots = _build_spark_data_12h(filtered_snapshots, "votes")
+_spark_deltas = _build_spark_data_12h(filtered_snapshots, "delta")
+
+# ES: Sparkline de integridad: porcentaje de consistencia por hora
+# EN: Integrity sparkline: consistency percentage per hour
+_spark_integrity: list[float] = []
+if not filtered_snapshots.empty and "delta" in filtered_snapshots.columns:
+    try:
+        _tmp_int = filtered_snapshots.copy()
+        _tmp_int["_ts"] = pd.to_datetime(_tmp_int["timestamp"], errors="coerce", utc=True)
+        _tmp_int = _tmp_int.dropna(subset=["_ts"])
+        if not _tmp_int.empty:
+            _cutoff_int = _tmp_int["_ts"].max() - pd.Timedelta(hours=12)
+            _tmp_int = _tmp_int[_tmp_int["_ts"] >= _cutoff_int]
+            _tmp_int["_hour"] = _tmp_int["_ts"].dt.floor("h")
+            for _, grp in _tmp_int.groupby("_hour"):
+                ok = (grp["delta"] >= 0).sum()
+                total = len(grp)
+                _spark_integrity.append(round(100.0 * ok / max(1, total), 1))
+            _spark_integrity = _spark_integrity[-12:]
+    except Exception:  # noqa: BLE001
+        _spark_integrity = []
+
+# ES: Calcular minutos desde la ultima actualizacion / EN: Minutes since last update
+_minutes_since_update: float | None = None
+if time_since_last is not None:
+    _minutes_since_update = time_since_last.total_seconds() / 60.0
+
+# ES: Calcular integridad global / EN: Compute global integrity
+_global_integrity_pct = actas_consistency["integrity_pct"]
+
+# ES: Renderizar seccion completa / EN: Render complete section
+render_executive_summary(
+    snapshot_count=len(snapshot_files),
+    integrity_pct=_global_integrity_pct,
+    critical_count=critical_count,
+    actas_inconsistent=actas_consistency["total_inconsistent"],
+    actas_total_checked=actas_consistency["total_mesas_checked"],
+    rules_count=len(rules_df),
+    minutes_since_update=_minutes_since_update,
+    anchor_root_hash=anchor.root_hash,
+    spark_snapshots=_spark_snapshots if _spark_snapshots else None,
+    spark_integrity=_spark_integrity if _spark_integrity else None,
+    spark_deltas=_spark_deltas if _spark_deltas else None,
 )
 
 # ES: Separador institucional / EN: Institutional divider

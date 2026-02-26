@@ -318,39 +318,10 @@ def get_institutional_css() -> str:
     }}
 
     /* ============================================================
-       ES: Tarjetas KPI / EN: KPI cards
+       ES: Tarjetas KPI — estilos principales en kpi_cards.py
+       EN: KPI cards — main styles in kpi_cards.py
+       Los estilos .kpi-card-lg se inyectan via get_kpi_grid_css().
        ============================================================ */
-    .kpi-card {{
-        background: var(--panel-soft);
-        border-radius: var(--radius);
-        padding: 20px 24px;
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }}
-    .kpi-card:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
-    }}
-    .kpi-card h4 {{
-        margin: 0;
-        font-size: 0.68rem;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        color: var(--text-muted);
-        font-weight: 600;
-    }}
-    .kpi-card .kpi-value {{
-        margin: 8px 0 4px;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text);
-        word-break: break-all;
-    }}
-    .kpi-card .kpi-caption {{
-        font-size: 0.76rem;
-        color: var(--text-secondary);
-    }}
 
     /* ============================================================
        ES: Pildoras de estado / EN: Status pills
