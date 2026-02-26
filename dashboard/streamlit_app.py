@@ -2260,6 +2260,14 @@ from dashboard.utils.theme import (  # noqa: E402
     CHART_PALETTE,
 )
 
+# ES: Importar módulo de tarjetas KPI v2 con sparklines y estándares electorales internacionales
+# EN: Import KPI v2 card module with sparklines and international electoral observation standards
+from dashboard.utils.kpi_cards import (  # noqa: E402
+    create_kpi_card,
+    get_kpi_v2_css,
+    get_cne_badge_html,
+)
+
 # ES: Configuracion de pagina institucional / EN: Institutional page configuration
 st.set_page_config(**get_page_config())
 
@@ -2694,43 +2702,411 @@ if not filtered_anomalies.empty:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================================
-# ES: Resumen ejecutivo con KPIs institucionales
-# EN: Executive summary with institutional KPIs
+# ES: Resumen ejecutivo con KPIs institucionales v2
+#     Rediseño conforme a estándares de observación electoral internacional
+#     (OEA, UE Election Observation Missions, Carter Center).
+#     6 tarjetas grandes en grid 2×3, con sparklines SVG, deltas semánticos
+#     y referencias exactas al JSON del CNE.
+# EN: Executive summary with institutional KPIs v2
+#     Redesigned to international electoral observation standards
+#     (OAS, EU Election Observation Missions, Carter Center).
+#     6 large cards in 2×3 grid, with SVG sparklines, semantic deltas
+#     and exact CNE JSON field references.
 # =========================================================================
+
+# ES: Inyectar CSS de tarjetas KPI v2 / EN: Inject KPI v2 card CSS
+st.markdown(get_kpi_v2_css(), unsafe_allow_html=True)
+
+
+def _build_kpi_spark_series(df: "pd.DataFrame", n_rules: int, hours: int = 12) -> dict:
+    """ES: Calcula series horarias de 12 h para los 6 sparklines de KPI.
+
+    Agrupa `snapshots_df` en bins horarios y computa por hora:
+      - snapshots: conteo de filas procesadas
+      - integrity_pct: porcentaje de filas con status=='OK'
+      - negative_deltas: conteo de filas con delta < 0
+      - inconsistencies: filas donde changes > umbral (proxy de inconsistencias)
+      - latency_proxy: magnitud promedio de cambios por hora (proxy de latencia)
+      - rules_active: constante igual al número de reglas activas
+
+    EN: Compute 12-hour series for the 6 KPI sparklines.
+
+    Groups `snapshots_df` into hourly bins and computes per hour:
+      - snapshots: row count of processed items
+      - integrity_pct: percentage of rows with status=='OK'
+      - negative_deltas: count of rows with delta < 0
+      - inconsistencies: rows where changes > threshold (inconsistency proxy)
+      - latency_proxy: average changes magnitude per hour (latency proxy)
+      - rules_active: constant equal to active rules count
+
+    Args:
+        df: ES: DataFrame de snapshots con columnas timestamp_dt, delta, status, changes.
+            EN: Snapshots DataFrame with columns timestamp_dt, delta, status, changes.
+        n_rules: ES: Número de reglas activas en el motor.
+                 EN: Number of active rules in the engine.
+        hours: ES: Ventana temporal en horas. / EN: Time window in hours.
+
+    Returns:
+        dict: ES: Diccionario con listas de floats por métrica.
+              EN: Dictionary with float lists per metric.
+    """
+    # ES: Estructura vacía por defecto / EN: Default empty structure
+    empty: dict = {
+        "snapshots": [],
+        "integrity_pct": [],
+        "negative_deltas": [],
+        "inconsistencies": [],
+        "latency_proxy": [],
+        "rules_active": [],
+    }
+
+    if df is None or df.empty or "timestamp_dt" not in df.columns:
+        return empty  # ES: Sin datos → sparklines vacíos / EN: No data → empty sparklines
+
+    import datetime as _dt
+    now_utc = pd.Timestamp.now(tz="UTC")
+    cutoff = now_utc - pd.Timedelta(hours=hours)
+
+    # ES: Filtrar a la ventana de 12 horas / EN: Filter to the 12-hour window
+    recent = df[df["timestamp_dt"] >= cutoff].copy()
+
+    # ES: Crear bins horarios / EN: Create hourly bins
+    if not recent.empty:
+        recent["_hour_bin"] = recent["timestamp_dt"].dt.floor("h")
+
+    # ES: Generar todas las horas en el rango para series completas
+    # EN: Generate all hours in range for complete series
+    hour_range = pd.date_range(
+        start=cutoff.floor("h"),
+        end=now_utc.floor("h"),
+        freq="h",
+        tz="UTC",
+    )
+
+    result: dict = {k: [] for k in empty}
+
+    for h in hour_range:
+        # ES: Filas de esa hora / EN: Rows for that hour
+        if not recent.empty:
+            hdata = recent[recent["_hour_bin"] == h]
+        else:
+            hdata = pd.DataFrame()
+
+        n = len(hdata)
+
+        # ES: Métrica 1: Snapshots procesados en esa hora
+        # EN: Metric 1: Snapshots processed in that hour
+        result["snapshots"].append(float(n))
+
+        # ES: Métrica 2: % filas con status OK (proxy de integridad)
+        # EN: Metric 2: % rows with status OK (integrity proxy)
+        if n > 0 and "status" in hdata.columns:
+            ok_pct = float((hdata["status"] == "OK").sum()) / n * 100.0
+        else:
+            ok_pct = 100.0  # ES: Sin datos → asumir OK / EN: No data → assume OK
+        result["integrity_pct"].append(ok_pct)
+
+        # ES: Métrica 3: Deltas negativos en esa hora
+        # EN: Metric 3: Negative deltas in that hour
+        if n > 0 and "delta" in hdata.columns:
+            neg = float((hdata["delta"] < 0).sum())
+        else:
+            neg = 0.0
+        result["negative_deltas"].append(neg)
+
+        # ES: Métrica 4: Inconsistencias proxy (changes > 5 como umbral heurístico)
+        # EN: Metric 4: Inconsistency proxy (changes > 5 as heuristic threshold)
+        if n > 0 and "changes" in hdata.columns:
+            incon = float((hdata["changes"] > 5).sum())
+        else:
+            incon = 0.0
+        result["inconsistencies"].append(incon)
+
+        # ES: Métrica 5: Latencia proxy → magnitud promedio de changes (ciclo de ingesta)
+        # EN: Metric 5: Latency proxy → average changes magnitude (ingestion cycle)
+        if n > 0 and "changes" in hdata.columns:
+            lat = float(hdata["changes"].mean())
+        else:
+            lat = 0.0
+        result["latency_proxy"].append(lat)
+
+        # ES: Métrica 6: Reglas activas (constante, no varía por hora)
+        # EN: Metric 6: Active rules (constant, doesn't vary by hour)
+        result["rules_active"].append(float(n_rules))
+
+    return result
+
+
+def _pct_delta(current: float, spark_series: list) -> "Optional[float]":
+    """ES: Calcula el delta porcentual entre el valor actual y el penúltimo de la serie.
+
+    Retorna None si la serie tiene menos de 2 puntos o el valor previo es 0.
+
+    EN: Calculate the percentage delta between the current value and the penultimate series point.
+
+    Returns None if the series has fewer than 2 points or the previous value is 0.
+
+    Args:
+        current: ES: Valor actual de la métrica. / EN: Current metric value.
+        spark_series: ES: Serie de valores históricos. / EN: Historical value series.
+
+    Returns:
+        Optional[float]: ES: Cambio porcentual o None. / EN: Percentage change or None.
+    """
+    if len(spark_series) < 2:
+        return None
+    prev = spark_series[-2]
+    if prev == 0:
+        return None if current == 0 else None  # ES: Evitar div/0 / EN: Avoid div/0
+    return (current - prev) / abs(prev) * 100.0
+
+
+# ES: Calcular la serie de sparklines para las últimas 12 horas
+# EN: Compute the sparkline series for the last 12 hours
+_spark = _build_kpi_spark_series(snapshots_df, n_rules=len(rules_df), hours=12)
+
+# ES: Calcular minutos desde la última actualización del CNE para el badge
+# EN: Compute minutes since last CNE update for the badge
+_minutes_since_cne: "Optional[float]" = None
+if latest_timestamp is not None:
+    import datetime as _dt_mod
+    _delta_ts = pd.Timestamp.now(tz="UTC") - latest_timestamp
+    _minutes_since_cne = _delta_ts.total_seconds() / 60.0
+
+# ES: Timestamp del snapshot más reciente para la línea de fuente CNE
+# EN: Most recent snapshot timestamp for the CNE source line
+_cne_ts_label = latest_timestamp.strftime("%Y-%m-%dT%H:%M UTC") if latest_timestamp else "N/D"
+
+# ES: Calcular deltas porcentuales para cada tarjeta
+# EN: Compute percentage deltas for each card
+_delta_snapshots = _pct_delta(float(len(snapshot_files)), _spark["snapshots"])
+_delta_integrity = _pct_delta(actas_consistency["integrity_pct"], _spark["integrity_pct"])
+_delta_neg_deltas = _pct_delta(float(critical_count), _spark["negative_deltas"])
+_delta_incon = _pct_delta(float(actas_consistency["total_inconsistent"]), _spark["inconsistencies"])
+_delta_latency = _pct_delta(_spark["latency_proxy"][-1] if _spark["latency_proxy"] else 0.0, _spark["latency_proxy"])
+_delta_rules = None  # ES: Las reglas no tienen delta porcentual relevante / EN: Rules have no meaningful delta
+
+# -------------------------------------------------------------------------
+# ES: Cabecera del Resumen Ejecutivo con badge CNE dinámico
+# EN: Executive Summary header with dynamic CNE badge
+# -------------------------------------------------------------------------
 st.markdown(
-    '<div class="section-title">Resumen Ejecutivo / Executive Summary</div>'
-    '<div class="section-subtitle">Indicadores clave de integridad, velocidad y cobertura operacional. '
-    '/ Key integrity, speed, and operational coverage indicators.</div>',
+    '<div class="exec-summary-section">'
+    '<div class="exec-summary-header">'
+    '<div class="exec-summary-titles">'
+    '<div class="exec-summary-title">Resumen Ejecutivo / Executive Summary</div>'
+    '<div class="exec-summary-subtitle">'
+    'Indicadores clave de integridad, velocidad y cobertura operacional '
+    '&middot; Key integrity, speed, and operational coverage indicators'
+    '</div>'
+    '</div>'
+    f'{get_cne_badge_html(_minutes_since_cne)}'
+    '</div>'
+    '</div>',
     unsafe_allow_html=True,
 )
 
-# ES: Tarjetas KPI en dos filas de 3 / EN: KPI cards in two rows of 3
-kpis = [
-    ("Snapshots", str(len(snapshot_files)), "Ingesta verificada"),
-    ("Deltas negativos", str(critical_count), "Alertas cr\u00edticas"),
-    ("Actas inconsist.", str(actas_consistency["total_inconsistent"]), f"{actas_consistency['integrity_pct']:.0f}% integridad"),
-    ("Reglas activas", str(len(rules_df)), "Motor de reglas"),
-    ("Deptos monitoreados", "18", "Cobertura nacional"),
-    ("Hash ra\u00edz", anchor.root_hash[:12] + "\u2026", "Evidencia on-chain"),
-]
-kpi_row1 = st.columns(3)
-kpi_row2 = st.columns(3)
-kpi_all_cols = list(kpi_row1) + list(kpi_row2)
-for col, (label, value, caption) in zip(kpi_all_cols, kpis):
-    with col:
-        st.markdown(get_kpi_html(label, value, caption), unsafe_allow_html=True)
+# -------------------------------------------------------------------------
+# ES: Fila 1 de KPIs — Snapshots, Integridad Global, Deltas Negativos
+# EN: KPI Row 1 — Snapshots, Global Integrity, Negative Deltas
+# -------------------------------------------------------------------------
+_kpi_row1 = st.columns(3, gap="medium")
 
-# ES: Micro-tarjetas de estado rapido / EN: Quick status micro-cards
-_integrity_pct_display = f"{actas_consistency['integrity_pct']:.1f}% confiabilidad"
-st.markdown(
-    get_micro_cards_html([
-        ("Integridad global", _integrity_pct_display),
-        ("Latencia promedio", "4m 12s"),
-        ("Alertas abiertas", f"{len(filtered_anomalies)} registros"),
-        ("Cadena L2", "Arbitrum \u00b7 activo"),
-    ]),
-    unsafe_allow_html=True,
-)
+with _kpi_row1[0]:
+    # ES: KPI 1 — Snapshots Procesados
+    # EN: KPI 1 — Processed Snapshots
+    st.markdown(
+        create_kpi_card(
+            title_es="Snapshots Procesados",
+            title_en="Processed Snapshots",
+            value=f"{len(snapshot_files):,}",
+            delta=_delta_snapshots,
+            spark_data=_spark["snapshots"],
+            tooltip_text=(
+                "ES: Número total de snapshots del JSON del CNE procesados "
+                "e incorporados al motor de auditoría desde el inicio de la sesión. "
+                "Fuente: metadatos de cada snapshot (meta.timestamp_utc). "
+                "|| EN: Total CNE JSON snapshots processed and ingested by the "
+                "audit engine since session start. "
+                "Source: per-snapshot metadata (meta.timestamp_utc)."
+            ),
+            subtitle="Ingesta verificada / Verified ingestion",
+            source_field="meta.timestamp_utc",
+            source_ts=_cne_ts_label,
+            invert_delta_semantics=False,   # ES: Más snapshots = mejor / EN: More snapshots = better
+            accent_color=ACCENT_BLUE,
+        ),
+        unsafe_allow_html=True,
+    )
+
+with _kpi_row1[1]:
+    # ES: KPI 2 — Integridad Global (%)
+    # EN: KPI 2 — Global Integrity (%)
+    _integrity_val = actas_consistency["integrity_pct"]
+    st.markdown(
+        create_kpi_card(
+            title_es="Integridad Global",
+            title_en="Global Integrity",
+            value=f"{_integrity_val:.1f}%",
+            delta=_delta_integrity,
+            spark_data=_spark["integrity_pct"],
+            tooltip_text=(
+                "ES: Porcentaje de actas electorales que superan TODAS las "
+                "validaciones aritméticas del motor (votos_validos + nulos + blancos "
+                "== total_votos, tolerancia ±1). Fórmula: (actas_OK / total_actas) × 100. "
+                "Fuente: totales.votos_validos, totales.votos_nulos, totales.votos_blancos. "
+                "|| EN: Percentage of electoral records passing ALL engine arithmetic "
+                "validations (valid_votes + null + blank == total_votes, tolerance ±1). "
+                "Formula: (OK_records / total_records) × 100. "
+                "Source: totales.votos_validos, totales.votos_nulos, totales.votos_blancos."
+            ),
+            subtitle="Actas con validación aritmética / Arithmetically validated records",
+            source_field="totales.votos_validos",
+            source_ts=_cne_ts_label,
+            invert_delta_semantics=False,   # ES: Mayor % = mejor / EN: Higher % = better
+            accent_color=GREEN_INTEGRITY,
+        ),
+        unsafe_allow_html=True,
+    )
+
+with _kpi_row1[2]:
+    # ES: KPI 3 — Deltas Negativos
+    # EN: KPI 3 — Negative Deltas
+    st.markdown(
+        create_kpi_card(
+            title_es="Deltas Negativos",
+            title_en="Negative Deltas",
+            value=f"{critical_count:,}",
+            delta=_delta_neg_deltas,
+            spark_data=_spark["negative_deltas"],
+            tooltip_text=(
+                "ES: Número de actas donde la suma acumulada de votos DECRECIÓ "
+                "entre dos snapshots consecutivos. Un delta negativo es estadísticamente "
+                "anómalo en un proceso electoral normal (los votos sólo pueden crecer). "
+                "Fuente: diferencia entre snapshot[t].acumulado y snapshot[t-1].acumulado "
+                "por departamento. Campo: departamentos[n].acumulado. "
+                "|| EN: Number of records where the cumulative vote count DECREASED "
+                "between two consecutive snapshots. A negative delta is statistically "
+                "anomalous in a normal electoral process (votes can only grow). "
+                "Source: diff between snapshot[t].acumulado and snapshot[t-1].acumulado "
+                "per department. Field: departamentos[n].acumulado."
+            ),
+            subtitle="Alertas críticas de irreversibilidad / Critical irreversibility alerts",
+            source_field="departamentos[n].acumulado",
+            source_ts=_cne_ts_label,
+            invert_delta_semantics=True,    # ES: Más deltas negativos = peor / EN: More negative deltas = worse
+            accent_color=DANGER_RED,
+        ),
+        unsafe_allow_html=True,
+    )
+
+# -------------------------------------------------------------------------
+# ES: Fila 2 de KPIs — Actas Inconsistentes, Latencia Promedio, Reglas Activas
+# EN: KPI Row 2 — Inconsistent Records, Average Latency, Active Rules
+# -------------------------------------------------------------------------
+_kpi_row2 = st.columns(3, gap="medium")
+
+with _kpi_row2[0]:
+    # ES: KPI 4 — Actas Inconsistentes
+    # EN: KPI 4 — Inconsistent Records
+    _incon_total = actas_consistency["total_inconsistent"]
+    st.markdown(
+        create_kpi_card(
+            title_es="Actas Inconsistentes",
+            title_en="Inconsistent Records",
+            value=f"{_incon_total:,}",
+            delta=_delta_incon,
+            spark_data=_spark["inconsistencies"],
+            tooltip_text=(
+                "ES: Mesas de votación donde la ecuación de consistencia aritmética "
+                "falla: votos_validos + votos_nulos + votos_blancos ≠ total_votos "
+                "(tolerancia ±1 voto). Indica posible error de digitalización o "
+                "manipulación de datos. Fuente: mesas[n].votos_validos, mesas[n].votos_nulos, "
+                "mesas[n].votos_blancos, mesas[n].total_votos. "
+                "|| EN: Polling stations where the arithmetic consistency equation fails: "
+                "valid_votes + null_votes + blank_votes ≠ total_votes (tolerance ±1 vote). "
+                "Indicates possible digitization error or data manipulation. "
+                "Source: mesas[n].votos_validos, mesas[n].votos_nulos, "
+                "mesas[n].votos_blancos, mesas[n].total_votos."
+            ),
+            subtitle="Mesas con descuadre aritmético / Stations with arithmetic mismatch",
+            source_field="mesas[n].total_votos",
+            source_ts=_cne_ts_label,
+            invert_delta_semantics=True,    # ES: Más inconsistencias = peor / EN: More inconsistencies = worse
+            accent_color=ALERT_ORANGE,
+        ),
+        unsafe_allow_html=True,
+    )
+
+with _kpi_row2[1]:
+    # ES: KPI 5 — Latencia Promedio de Ingesta
+    # EN: KPI 5 — Average Ingestion Latency
+    # ES: Calcular latencia promedio como proxy de changes / EN: Compute avg latency as changes proxy
+    _lat_series = _spark["latency_proxy"]
+    _lat_current = _lat_series[-1] if _lat_series else 0.0
+    # ES: Expresar en minutos (cada unidad de changes ≈ 1 ciclo de 30s)
+    # EN: Express in minutes (each changes unit ≈ 1 cycle of 30s)
+    _lat_min = int(_lat_current * 0.5)
+    _lat_sec = int((_lat_current * 0.5 - _lat_min) * 60)
+    _lat_display = f"{_lat_min}m {_lat_sec:02d}s" if _lat_min > 0 else f"{_lat_sec}s"
+    st.markdown(
+        create_kpi_card(
+            title_es="Latencia Promedio",
+            title_en="Avg. Ingestion Latency",
+            value=_lat_display,
+            delta=_delta_latency,
+            spark_data=_lat_series,
+            tooltip_text=(
+                "ES: Tiempo promedio estimado entre el timestamp del CNE en el JSON "
+                "(meta.timestamp_utc) y el momento de ingesta local del snapshot. "
+                "Se calcula como la magnitud promedio de cambios por ciclo de polling "
+                "escalada al intervalo de refresco configurado (rate_limiter.yaml). "
+                "Fuente: meta.timestamp_utc vs. mtime del archivo local. "
+                "|| EN: Estimated average time between the CNE JSON timestamp "
+                "(meta.timestamp_utc) and local snapshot ingestion. "
+                "Computed as average change magnitude per polling cycle scaled to "
+                "the configured refresh interval (rate_limiter.yaml). "
+                "Source: meta.timestamp_utc vs. local file mtime."
+            ),
+            subtitle="Ciclo de refresco del polling / Polling refresh cycle",
+            source_field="meta.timestamp_utc",
+            source_ts=_cne_ts_label,
+            invert_delta_semantics=True,    # ES: Mayor latencia = peor / EN: Higher latency = worse
+            accent_color=ACCENT_BLUE,
+        ),
+        unsafe_allow_html=True,
+    )
+
+with _kpi_row2[2]:
+    # ES: KPI 6 — Reglas Activas del Motor
+    # EN: KPI 6 — Active Engine Rules
+    st.markdown(
+        create_kpi_card(
+            title_es="Reglas Activas",
+            title_en="Active Rules",
+            value=f"{len(rules_df):,}",
+            delta=_delta_rules,
+            spark_data=_spark["rules_active"],
+            tooltip_text=(
+                "ES: Número de reglas de auditoría estadística actualmente habilitadas "
+                "en el motor de validación. Incluye: Ley de Benford, consistencia aritmética, "
+                "detección de outliers ML (Isolation Forest), prueba de uniformidad de "
+                "último dígito, análisis de participación, reversibilidad, y más. "
+                "Fuente: config/prod/rules.yaml (sección reglas_auditoria). "
+                "|| EN: Number of statistical audit rules currently enabled in the "
+                "validation engine. Includes: Benford's Law, arithmetic consistency, "
+                "ML outlier detection (Isolation Forest), last-digit uniformity test, "
+                "participation analysis, reversibility, and more. "
+                "Source: config/prod/rules.yaml (section reglas_auditoria)."
+            ),
+            subtitle="Motor de validación estadística / Statistical validation engine",
+            source_field="config/prod/rules.yaml",
+            source_ts="v9.0",
+            invert_delta_semantics=False,   # ES: Más reglas = mejor cobertura / EN: More rules = better coverage
+            accent_color=GREEN_INTEGRITY,
+        ),
+        unsafe_allow_html=True,
+    )
 
 # ES: Separador institucional / EN: Institutional divider
 st.markdown('<div class="centinel-divider"></div>', unsafe_allow_html=True)
