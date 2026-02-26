@@ -3117,12 +3117,13 @@ with tabs[0]:
             delta_color="inverse",
         )
         if not _topo["is_match"]:
-            st.error(
-                f"DISCREPANCIA DE AGREGACI\u00d3N: La suma de los 18 departamentos "
+            error_msg = (
+                f"DISCREPANCIA DE AGREGACIÓN: La suma de los 18 departamentos "
                 f"({_topo['department_total']:,}) difiere del total nacional "
                 f"({_topo['national_total']:,}) en {abs(_topo['delta']):,} votos. "
-                "Posible inyecci\u00f3n o eliminaci\u00f3n de datos sin origen geogr\u00e1fico trazable."
+                "Posible inyección o eliminación de datos sin origen geográfico trazable."
             )
+            st.error(error_msg)
         else:
             st.success(
                 "Consistencia topol\u00f3gica verificada: la suma de los 18 departamentos "
