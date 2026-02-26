@@ -2704,13 +2704,18 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ES: Precalcular velocidad de ingesta y topologia para KPIs y panel Tab 1
+# EN: Pre-compute ingestion velocity and topology for KPIs and Tab 1 panel
+velocity_kpi = compute_ingestion_velocity(snapshots_df)
+topology_kpi = compute_topology_integrity(snapshots_df, departments)
+
 # ES: Tarjetas KPI en dos filas de 3 / EN: KPI cards in two rows of 3
 kpis = [
     ("Snapshots", str(len(snapshot_files)), "Ingesta verificada"),
     ("Deltas negativos", str(critical_count), "Alertas cr\u00edticas"),
     ("Actas inconsist.", str(actas_consistency["total_inconsistent"]), f"{actas_consistency['integrity_pct']:.0f}% integridad"),
     ("Reglas activas", str(len(rules_df)), "Motor de reglas"),
-    ("Deptos monitoreados", "18", "Cobertura nacional"),
+    ("Velocidad ingesta", f"{velocity_kpi:,.1f} v/min", "Votos por minuto"),
     ("Hash ra\u00edz", anchor.root_hash[:12] + "\u2026", "Evidencia on-chain"),
 ]
 kpi_row1 = st.columns(3)
@@ -3093,6 +3098,53 @@ with tabs[0]:
                     "aritmeticamente consistentes."
                 )
 
+    # EN: Sub-section — National Topology Integrity (inside Visualizacion General).
+    # ES: Sub-seccion — Integridad Topologica Nacional (dentro de Visualizacion General).
+    _topo = topology_kpi
+    _topo_label = (
+        "\u2705 Topologia Nacional \u00b7 Sin discrepancias"
+        if _topo["is_match"]
+        else f"\u26a0\ufe0f Discrepancia Topologica: {_topo['delta']:+,} votos"
+    )
+    with st.expander(_topo_label, expanded=not _topo["is_match"]):
+        topo_cols = st.columns(3)
+        topo_cols[0].metric("Suma 18 departamentos", f"{_topo['department_total']:,}")
+        topo_cols[1].metric("Total nacional reportado", f"{_topo['national_total']:,}")
+        topo_cols[2].metric(
+            "Delta",
+            f"{_topo['delta']:+,}",
+            delta=f"{_topo['delta']:+,}" if _topo["delta"] != 0 else None,
+            delta_color="inverse",
+        )
+        if not _topo["is_match"]:
+            st.error(
+                f"DISCREPANCIA DE AGREGACI\u00d3N: La suma de los 18 departamentos "
+                f"({_topo['department_total']:,}) difiere del total nacional "
+                f"({_topo['national_total']:,}) en {abs(_topo['delta']):,} votos. "
+                "Posible inyecci\u00f3n o eliminaci\u00f3n de datos sin origen geogr\u00e1fico trazable."
+            )
+        else:
+            st.success(
+                "Consistencia topol\u00f3gica verificada: la suma de los 18 departamentos "
+                "coincide con el total nacional reportado."
+            )
+        if _topo.get("department_breakdown"):
+            _topo_df = pd.DataFrame(_topo["department_breakdown"])
+            _topo_chart = (
+                alt.Chart(_topo_df)
+                .mark_bar(color=ACCENT_BLUE)
+                .encode(
+                    x=alt.X("votes:Q", title="Votos"),
+                    y=alt.Y("department:N", sort="-x", title="Departamento"),
+                    tooltip=["department", "votes"],
+                )
+                .properties(
+                    height=max(220, len(_topo_df) * 26),
+                    title="Votos por departamento (snapshot m\u00e1s reciente)",
+                )
+            )
+            st.altair_chart(_topo_chart, use_container_width=True)
+
     # EN: Sub-section — Snapshots & Rules (inside Visualizacion General).
     # ES: Sub-seccion — Snapshots y Reglas (dentro de Visualizacion General).
     with st.expander("Snapshots Recientes y Reglas / Recent Snapshots & Rules", expanded=False):
@@ -3197,9 +3249,9 @@ with tabs[0]:
         )
         prev_hash = chain_hash or current_hash
 
-    topology = compute_topology_integrity(snapshots_df, departments)
+    topology = topology_kpi
     latency_rows, latency_alert_cells = build_latency_matrix(snapshots_df, departments, report_time_dt)
-    velocity_vpm = compute_ingestion_velocity(snapshots_df)
+    velocity_vpm = velocity_kpi
     db_inconsistencies = int(
         (filtered_anomalies["type"] == "Delta negativo").sum() if not filtered_anomalies.empty else 0
     )
