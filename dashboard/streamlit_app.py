@@ -2260,6 +2260,14 @@ from dashboard.utils.theme import (  # noqa: E402
     CHART_PALETTE,
 )
 
+from reports.report_generator import (  # noqa: E402
+    InstitutionalReportContext,
+    build_audit_trail_payload,
+    build_snapshot_hash,
+    export_audit_trail_json,
+    generate_institutional_pdf_report,
+)
+
 # ES: Configuracion de pagina institucional / EN: Institutional page configuration
 st.set_page_config(**get_page_config())
 
@@ -3391,142 +3399,113 @@ with tabs[0]:
         ),
     }
 
-    if REPORTLAB_AVAILABLE:
+    # ES: Métricas resumidas para reporte institucional y audit trail.
+    # EN: Summary metrics for institutional report and audit trail.
+    metrics_summary = {
+        "snapshots_auditados": len(snapshot_files),
+        "anomalias_detectadas": int(len(filtered_anomalies)),
+        "alertas_criticas": int(critical_count),
+        "consistencia_topologica": "OK" if topology["is_match"] else "DISCREPANCIA",
+        "delta_topologico": int(topology["delta"]),
+        "actas_inconsistentes": int(actas_consistency["total_inconsistent"]),
+        "reglas_activas": int(len(rules_df)),
+    }
+
+    anomaly_evidence = []
+    for _, row in anomalies_sorted.head(20).iterrows():
+        anomaly_evidence.append(
+            {
+                "department": row.get("department"),
+                "hour": row.get("hour") or "N/D",
+                "delta": float(row.get("delta", 0)),
+                "delta_pct": float(row.get("delta_pct", 0)),
+                "type": row.get("type", "N/D"),
+                "evidence_hash": str(row.get("hash") or ""),
+            }
+        )
+
+    snapshot_hash_for_report = current_snapshot_hash
+    if not filtered_snapshots.empty:
         try:
-            export_pdf_bytes = generate_pdf_report(
-                data_nacional,
-                data_departamentos,
-                current_snapshot_hash,
-                previous_snapshot_hash,
-                snapshot_diffs,
-            )
-            st.download_button(
-                "Exportar Reporte PDF",
-                data=export_pdf_bytes,
-                file_name="centinel_reporte_auditoria.pdf",
-                mime="application/pdf",
-            )
-        except Exception as _pdf_exc:  # noqa: BLE001
-            st.warning(f"No se pudo generar el PDF basico: {_pdf_exc}")
+            snapshot_hash_for_report = build_snapshot_hash(filtered_snapshots.fillna(""))
+        except Exception:
+            snapshot_hash_for_report = current_snapshot_hash
 
-        try:
-            use_enhanced_pdf = plt is not None and qrcode is not None
-            if use_enhanced_pdf:
-                from dashboard.centinel_pdf_report import CentinelPDFReport
-
-                report_data = {
-                    **pdf_data,
-                    "timestamp_utc": report_time_dt,
-                    "root_hash": anchor.root_hash,
-                    "status": ("COMPROMETIDO" if (not topology["is_match"] or critical_count > 0) else "INTEGRAL"),
-                    "source": pdf_data.get("input_source", "Endpoint JSON CNE"),
-                    "topology_check": {
-                        "total_national": topology["national_total"],
-                        "department_total": topology["department_total"],
-                        "is_match": topology["is_match"],
-                    },
-                    "anomalies": [
-                        {
-                            "department": row.get("department"),
-                            "hour": row.get("hour"),
-                            "anomaly": 1,
-                        }
-                        for _, row in filtered_anomalies.iterrows()
-                    ],
-                    "benford": {
-                        "observed": (benford_df.sort_values("digit")["observed"].tolist() if not benford_df.empty else []),
-                        "sample_size": max(len(filtered_snapshots), 1),
-                    },
-                    "time_series": {"values": filtered_snapshots["votes"].tolist() if not filtered_snapshots.empty else []},
-                    "snapshots": snapshots_real.head(5).to_dict(orient="records") if not snapshots_real.empty else [],
-                }
-
-                buffer = io.BytesIO()
-                CentinelPDFReport().generate(report_data, buffer)
-                pdf_bytes = buffer.getvalue()
-            else:
-                pdf_bytes = build_pdf_report(pdf_data, chart_buffers)
-            dept_label = selected_department if selected_department != "Todos" else "nacional"
-            st.download_button(
-                f"Descargar Informe PDF ({dept_label})",
-                data=pdf_bytes,
-                file_name=f"centinel_informe_{dept_label.lower().replace(' ', '_')}.pdf",
-                mime="application/pdf",
-            )
-        except Exception as _pdf_exc:  # noqa: BLE001
-            st.warning(f"No se pudo generar el informe PDF avanzado: {_pdf_exc}")
-    else:
-        st.warning("Exportacion PDF no disponible: falta instalar reportlab.")
-
-    # EN: WeasyPrint PDF button — professional Jinja2-rendered report.
-    # ES: Boton PDF WeasyPrint — reporte profesional renderizado con Jinja2.
-    if JINJA2_AVAILABLE and WEASYPRINT_AVAILABLE:
-        _wp_now = dt.datetime.now(dt.timezone.utc)
-        _wp_template_data = {
-            "status": "COMPROMETIDO" if (not topology["is_match"] or critical_count > 0) else "INTEGRAL",
-            "report_date": _wp_now.strftime("%Y-%m-%d %H:%M UTC"),
-            "generated_by": _current_username,
-            "root_hash": anchor.root_hash,
-            "snapshot_hash": current_snapshot_hash,
-            "snapshot_count": len(snapshot_files),
-            "source": "19 JSON Streams (Direct Endpoint)",
-            "executive_summary": pdf_data.get("executive_summary", ""),
-            "kpi_rows": pdf_data.get("kpi_rows", []),
-            "topology_summary": topology_summary,
-            "topology_rows": topology_rows,
-            "waterfall_chart": _chart_to_base64(chart_buffers.get("waterfall")),
-            "anomaly_rows": anomaly_rows,
-            "benford_chart": _chart_to_base64(chart_buffers.get("benford")),
-            "timeline_chart": _chart_to_base64(chart_buffers.get("timeline")),
-            "heatmap_chart": _chart_to_base64(chart_buffers.get("heatmap")),
-            "snapshot_rows": snapshot_rows,
-            "rules_list": rules_list,
-            "thresholds": {
-                "diff_error_min": alert_thresholds["diff_error_min"],
-                "anomaly_error_min": alert_thresholds["anomaly_error_min"],
-                "min_samples": alert_thresholds["min_samples"],
-            },
-            "report_hash": report_hash,
-            "qr_image": "",
-            "actas_consistency": {
-                "total_mesas": actas_consistency["total_mesas_checked"],
-                "inconsistentes": actas_consistency["total_inconsistent"],
-                "integridad_pct": actas_consistency["integrity_pct"],
-                "departamentos": actas_consistency["departments_affected"],
-            },
-            "conclusions": (
-                f"Se auditaron {len(snapshot_files)} snapshots. "
-                f"Integridad topologica: {'OK' if topology['is_match'] else 'DISCREPANCIA'}. "
-                f"Anomalias detectadas: {len(filtered_anomalies)}. "
-                f"Actas inconsistentes: {actas_consistency['total_inconsistent']} "
-                f"de {actas_consistency['total_mesas_checked']} verificadas."
-            ),
-        }
-        _wp_qr = build_qr_bytes(anchor.root_hash)
-        if _wp_qr:
-            _wp_template_data["qr_image"] = base64.b64encode(_wp_qr).decode("utf-8")
-        _wp_pdf = _generate_weasyprint_pdf(_wp_template_data)
-        if _wp_pdf:
-            _wp_filename = f"centinel_audit_{_wp_now.strftime('%Y%m%d_%H%M%S')}.pdf"
-            st.download_button(
-                "\U0001f4c4 Descargar Reporte Completo como PDF",
-                data=_wp_pdf,
-                file_name=_wp_filename,
-                mime="application/pdf",
-                type="primary",
-                use_container_width=True,
-            )
-
-    st.download_button(
-        "Descargar CSV",
-        data=filtered_snapshots.to_csv(index=False),
-        file_name="centinel_snapshots.csv",
+    institutional_context = InstitutionalReportContext(
+        generated_at_utc=report_time_dt,
+        snapshot_hash=snapshot_hash_for_report,
+        root_hash=anchor.root_hash,
+        source_label="JSON oficial CNE",
+        generated_by=_current_username or "public-dashboard",
+        report_scope=selected_department if selected_department != "Todos" else "Nacional",
     )
-    st.download_button(
-        "Descargar JSON",
-        data=filtered_snapshots.to_json(orient="records"),
-        file_name="centinel_snapshots.json",
+
+    audit_trail_payload = build_audit_trail_payload(
+        context=institutional_context,
+        metrics=metrics_summary,
+        anomalies=anomaly_evidence,
     )
+    audit_trail_json = export_audit_trail_json(audit_trail_payload)
+
+    anomaly_rows_institutional = [["Departamento", "Hora", "Delta", "Delta %", "Evidencia"]]
+    for item in anomaly_evidence:
+        anomaly_rows_institutional.append(
+            [
+                str(item["department"]),
+                str(item["hour"]),
+                f"{item['delta']:+.0f}",
+                f"{item['delta_pct']:.2f}%",
+                (item["evidence_hash"][:18] + "…") if item["evidence_hash"] else "N/D",
+            ]
+        )
+
+    st.markdown("#### Exportación Institucional / Institutional Export")
+    pdf_col, csv_col, json_col = st.columns(3)
+
+    with pdf_col:
+        if REPORTLAB_AVAILABLE:
+            try:
+                institutional_pdf_bytes = generate_institutional_pdf_report(
+                    context=institutional_context,
+                    metrics=metrics_summary,
+                    anomaly_rows=anomaly_rows_institutional,
+                )
+                st.download_button(
+                    "Exportar Reporte PDF Institucional",
+                    data=institutional_pdf_bytes,
+                    file_name=f"centinel_reporte_institucional_{report_time_dt.strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf",
+                    type="primary",
+                    use_container_width=True,
+                )
+            except Exception as report_exc:  # noqa: BLE001
+                st.warning(f"No se pudo generar el PDF institucional: {report_exc}")
+        else:
+            st.warning("PDF institucional no disponible: instalar reportlab.")
+
+    with csv_col:
+        st.download_button(
+            "Descargar CSV",
+            data=filtered_snapshots.to_csv(index=False),
+            file_name="centinel_snapshots.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    with json_col:
+        st.download_button(
+            "Descargar JSON Audit Trail",
+            data=audit_trail_json,
+            file_name="centinel_audit_trail.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+
+    st.caption(
+        "El PDF incluye fecha/hora UTC, hash del snapshot, resumen de métricas, "
+        "anomalías con evidencia y firma criptográfica institucional."
+    )
+
 
 # =========================================================================
 # EN: TAB 2 — Sandbox Personal (researcher and viewer only).
