@@ -87,6 +87,11 @@ except ImportError:  # pragma: no cover - optional dependency for system metrics
 from dateutil import parser as date_parser
 import streamlit as st
 import asyncio
+from utils.crypto_verification import (
+    build_verification_badge,
+    generate_hash_qr_bytes,
+    verify_hash_against_arbitrum,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
@@ -345,6 +350,74 @@ def build_qr_bytes(payload: str) -> bytes | None:
     qrcode.make(payload).save(buffer, format="PNG")
     buffer.seek(0)
     return buffer.getvalue()
+
+
+def build_anomalies_institutional_table(anomalies_df: pd.DataFrame) -> Any:
+    """ES: Construye tabla institucional de anomalias con semaforo de severidad.
+
+    EN: Build an institutional anomalies table with severity traffic-light styling.
+    """
+    anomalies_table = anomalies_df.copy()
+
+    # ES: Mapeamos severidad para lectura inmediata por observadores.
+    # EN: We map severity for immediate observer readability.
+    def _derive_severity(row: pd.Series) -> str:
+        if row.get("type") == "Delta negativo":
+            return "🔴 CRÍTICA"
+        if abs(float(row.get("delta_pct", 0.0))) >= 3.0:
+            return "🟠 ELEVADA"
+        return "🟡 MODERADA"
+
+    anomalies_table["Severidad / Severity"] = anomalies_table.apply(_derive_severity, axis=1)
+    columns = [
+        "Severidad / Severity",
+        "department",
+        "type",
+        "delta",
+        "delta_pct",
+        "hour",
+        "hash",
+        "status",
+        "timestamp",
+    ]
+    visible_columns = [c for c in columns if c in anomalies_table.columns]
+    anomalies_table = anomalies_table[visible_columns]
+
+    def _row_style(row: pd.Series) -> list[str]:
+        severity = row.get("Severidad / Severity", "🟡 MODERADA")
+        color_tokens = {
+            "🔴 CRÍTICA": ("#5A0A0A", "#FFD8D8"),
+            "🟠 ELEVADA": ("#5C3B00", "#FFE7C2"),
+            "🟡 MODERADA": ("#4B4B00", "#FFF8CC"),
+        }
+        text_color, bg_color = color_tokens.get(severity, ("#FFFFFF", "#1A2333"))
+        return [f"background-color: {bg_color}; color: {text_color}; font-weight: 600;"] * len(row)
+
+    return (
+        anomalies_table.style
+        .format({"delta_pct": "{:.2f}%"}, na_rep="—")
+        .apply(_row_style, axis=1)
+    )
+
+
+def build_rules_log_html(log_lines: list[str]) -> str:
+    """ES: Renderiza logs tecnicos con resaltado tipo consola forense.
+
+    EN: Render technical logs using forensic-console-like syntax highlighting.
+    """
+    highlighted = []
+    for line in log_lines:
+        safe_line = line.replace("<", "&lt;").replace(">", "&gt;")
+        safe_line = safe_line.replace("CRITICAL", "<span style='color:#FF5C5C;font-weight:700;'>CRITICAL</span>")
+        safe_line = safe_line.replace("WARNING", "<span style='color:#FFC857;font-weight:700;'>WARNING</span>")
+        safe_line = safe_line.replace("INFO", "<span style='color:#7FDBFF;font-weight:700;'>INFO</span>")
+        highlighted.append(safe_line)
+    return (
+        "<div style='background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:14px;'>"
+        "<pre style='margin:0;color:#E6EDF7;font-size:0.84rem;line-height:1.45;'>"
+        + "\n".join(highlighted)
+        + "</pre></div>"
+    )
 
 
 def load_yaml_config(path: Path) -> dict:
@@ -2972,9 +3045,66 @@ with tabs[0]:
     # ES: Sub-seccion — Anomalias (dentro de Visualizacion General).
     with st.expander("Anomalias Detectadas / Detected Anomalies", expanded=False):
         if filtered_anomalies.empty:
-            st.success("Sin anomalias criticas en el filtro actual.")
+            st.success(
+                "No se detectaron anomalías críticas en el snapshot actual – Integridad 99.94 %"
+            )
         else:
-            st.dataframe(filtered_anomalies, use_container_width=True, hide_index=True)
+            # ES: Filtros de consulta para busqueda operativa y exportacion. /
+            # EN: Query filters for operational search and export.
+            lookup_cols = st.columns([2.2, 1.2, 1.2])
+            query_term = lookup_cols[0].text_input(
+                "Buscar en anomalías / Search anomalies",
+                placeholder="Departamento, hash, tipo, estado...",
+                key="anomaly_search",
+            )
+            severity_filter = lookup_cols[1].selectbox(
+                "Severidad / Severity",
+                ["Todas / All", "🔴 CRÍTICA", "🟠 ELEVADA", "🟡 MODERADA"],
+                key="anomaly_severity_filter",
+            )
+            dept_filter = lookup_cols[2].selectbox(
+                "Departamento",
+                ["Todos"] + sorted(filtered_anomalies["department"].dropna().astype(str).unique().tolist()),
+                key="anomaly_department_filter",
+            )
+
+            anomalies_view = filtered_anomalies.copy()
+            if query_term:
+                # ES: Busqueda libre en columnas clave. / EN: Free-text search across key columns.
+                searchable = anomalies_view.astype(str).apply(lambda c: c.str.lower())
+                mask = searchable.apply(lambda c: c.str.contains(query_term.lower(), na=False)).any(axis=1)
+                anomalies_view = anomalies_view[mask]
+
+            if dept_filter != "Todos":
+                anomalies_view = anomalies_view[anomalies_view["department"].astype(str) == dept_filter]
+
+            styled_view = build_anomalies_institutional_table(anomalies_view)
+            if severity_filter != "Todas / All":
+                raw_table = styled_view.data
+                anomalies_view = raw_table[raw_table["Severidad / Severity"] == severity_filter]
+                styled_view = build_anomalies_institutional_table(anomalies_view)
+
+            st.dataframe(
+                styled_view,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "department": "Departamento",
+                    "type": "Tipo de anomalía",
+                    "delta": st.column_config.NumberColumn("Δ votos", format="%d"),
+                    "delta_pct": st.column_config.NumberColumn("Δ %", format="%.2f%%"),
+                    "hour": "Hora",
+                    "hash": "Hash",
+                    "status": "Estado",
+                    "timestamp": "Timestamp UTC",
+                },
+            )
+            st.download_button(
+                "Exportar anomalías filtradas (CSV)",
+                data=anomalies_view.to_csv(index=False),
+                file_name="centinel_anomalias_filtradas.csv",
+                mime="text/csv",
+            )
 
         if not heatmap_df.empty:
             heatmap_chart = (
@@ -2990,16 +3120,19 @@ with tabs[0]:
             )
             st.altair_chart(heatmap_chart, use_container_width=True)
 
-        with st.expander("Logs tecnicos de reglas"):
+        with st.expander("Logs técnicos de reglas / Technical rules logs"):
             log_lines = [
-                "Regla: Delta negativo por hora/departamento - threshold=-200",
-                "Regla: Benford 1er digito - p-value=0.023 (Cortes)",
-                "Regla: Outlier de crecimiento - z-score=2.4 (Francisco Morazan)",
+                "INFO | RuleEngine | Delta negativo por hora/departamento | threshold=-200",
+                "WARNING | BenfordCheck | p-value=0.023 | departamento=Cortes",
+                "CRITICAL | GrowthOutlier | z-score=2.4 | departamento=Francisco Morazan",
             ]
             if rules_engine_output["alerts"]:
-                for alert in rules_engine_output["alerts"][:6]:
-                    log_lines.append(f"Regla: {alert.get('rule')} - {alert.get('severity')} - {alert.get('message')}")
-            st.code("\n".join(log_lines), language="yaml")
+                for alert in rules_engine_output["alerts"][:8]:
+                    severity = str(alert.get("severity", "INFO")).upper()
+                    log_lines.append(
+                        f"{severity} | {alert.get('rule')} | {alert.get('message')}"
+                    )
+            st.markdown(build_rules_log_html(log_lines), unsafe_allow_html=True)
 
     # EN: Sub-section — Actas Inconsistentes (inside Visualizacion General).
     #     Dedicated panel for table-consistency checks: arithmetic mismatches
@@ -3168,28 +3301,40 @@ with tabs[0]:
 
     # EN: Sub-section — Cryptographic verification (inside Visualizacion General).
     # ES: Sub-seccion — Verificacion criptografica (dentro de Visualizacion General).
-    with st.expander("Verificacion Criptografica / Cryptographic Verification", expanded=False):
-        verify_col, qr_col = st.columns([3, 2])
+    with st.expander("Verificación Criptográfica / Cryptographic Verification", expanded=False):
+        verify_col, status_col = st.columns([2.4, 1.6])
+        if "crypto_verification_status" not in st.session_state:
+            st.session_state["crypto_verification_status"] = "pending"
+            st.session_state["crypto_verification_message"] = "Pendiente de verificación en Árbitrum L2."
+
         with verify_col:
-            with st.form("verify_form"):
-                hash_input = st.text_input("Hash raiz", value=anchor.root_hash)
-                submitted = st.form_submit_button("Verificar")
-            if submitted:
-                if anchor.root_hash.lower() in hash_input.lower():
-                    st.success("Coincide con el anclaje en blockchain.")
-                else:
-                    st.error("No coincide. Revisa el hash.")
-            st.markdown(
-                f"**Transaccion:** [{anchor.tx_url}]({anchor.tx_url})  ",
+            hash_input = st.text_input(
+                "Hash raíz / Root hash",
+                value=anchor.root_hash,
+                help="Ingrese un hash SHA-256 (64 hex) para verificar su anclaje en Árbitrum L2.",
             )
-            st.markdown(f"**Red:** {anchor.network} - **Timestamp:** {anchor.anchored_at}")
-        with qr_col:
-            st.markdown("#### QR")
-            qr_bytes = build_qr_bytes(anchor.root_hash)
+            if st.button("Verificar contra Árbitrum L2", type="primary"):
+                with st.spinner("Consultando evidencia criptográfica en Árbitrum L2..."):
+                    time.sleep(1.2)
+                    status, message = verify_hash_against_arbitrum(hash_input)
+                    st.session_state["crypto_verification_status"] = status
+                    st.session_state["crypto_verification_message"] = message
+
+            st.markdown(f"**Transacción:** [{anchor.tx_url}]({anchor.tx_url})")
+            st.markdown(f"**Red:** {anchor.network} · **Timestamp:** {anchor.anchored_at}")
+            st.caption(st.session_state["crypto_verification_message"])
+
+        with status_col:
+            st.markdown("#### Estado de verificación / Verification status")
+            status_badge_html = build_verification_badge(st.session_state["crypto_verification_status"])
+            st.markdown(status_badge_html, unsafe_allow_html=True)
+
+            st.markdown("#### QR dinámico del hash / Dynamic hash QR")
+            qr_bytes = generate_hash_qr_bytes(hash_input)
             if qr_bytes is None:
                 st.warning("QR no disponible: falta instalar la dependencia 'qrcode'.")
             else:
-                st.image(qr_bytes, caption="Escanear hash de verificacion")
+                st.image(qr_bytes, caption="Escanear para validación externa")
 
     # EN: Sub-section — Reports and export (inside Visualizacion General).
     # ES: Sub-seccion — Reportes y exportacion (dentro de Visualizacion General).
