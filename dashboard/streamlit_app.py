@@ -2506,8 +2506,8 @@ with alerts_container:
         )
     if failed_retries > 0:
         st.warning(
-            "Conexión perdida – reintentando en "
-            f"{refresh_interval} segundos (Connection lost – retrying in "
+            "Conexión perdida - reintentando en "
+            f"{refresh_interval} segundos (Connection lost - retrying in "
             f"{refresh_interval} seconds)."
         )
     if latest_timestamp is None or (time_since_last and time_since_last > dt.timedelta(minutes=45)):
