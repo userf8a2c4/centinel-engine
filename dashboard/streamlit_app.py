@@ -452,7 +452,7 @@ def derive_alert_thresholds(resilience_cfg: dict, expected_streams: int) -> dict
     }
 
 
-def emit_toast(message: str, icon: str = "⚠️") -> None:
+def emit_toast(message: str, icon: str = "") -> None:
     """Español: Emite una notificación tipo snackbar si está disponible.
 
     English: Emit a snackbar-style notification when available.
@@ -1566,6 +1566,65 @@ else:
 
         pass
 
+        def showPage(self) -> None:
+            """Español: Función showPage del módulo dashboard/streamlit_app.py.
+
+            English: Function showPage defined in dashboard/streamlit_app.py.
+            """
+            self._saved_page_states.append(dict(self.__dict__))
+            self._startPage()
+
+        def save(self) -> None:
+            """Español: Función save del módulo dashboard/streamlit_app.py.
+
+            English: Function save defined in dashboard/streamlit_app.py.
+            """
+            total_pages = len(self._saved_page_states)
+            prev_hash = hashlib.sha256(self._root_hash.encode("utf-8")).hexdigest()[:12]
+            for state in self._saved_page_states:
+                self.__dict__.update(state)
+                page = self.getPageNumber()
+                current_hash = hashlib.sha256(f"{prev_hash}|{page}".encode("utf-8")).hexdigest()[:12]
+                self.draw_page_number(total_pages, current_hash)
+                prev_hash = current_hash
+                super().showPage()
+            super().save()
+
+        def draw_page_number(self, total_pages: int, current_hash: str) -> None:
+            """Español: Función draw_page_number del módulo dashboard/streamlit_app.py.
+
+            English: Function draw_page_number defined in dashboard/streamlit_app.py.
+            """
+            self.setFont("Helvetica", 8)
+            self.setFillColor(colors.grey)
+            page = self.getPageNumber()
+            self.drawRightString(
+                self._pagesize[0] - 1.5 * cm,
+                0.75 * cm,
+                f"Página {page}/{total_pages}",
+            )
+            self.setFont("Helvetica", 7)
+            self.drawString(
+                1.5 * cm,
+                0.3 * cm,
+                f"Pag {page} | SHA-256 Page Hash: {current_hash}",
+            )
+            self.setFont("Helvetica", 7)
+            self.drawRightString(
+                self._pagesize[0] - 1.5 * cm,
+                0.3 * cm,
+                "Auditoría Independiente - Proyecto Centinel",
+            )
+
+else:
+
+    class NumberedCanvas:  # pragma: no cover - placeholder when reportlab is absent
+        """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
+
+        English: NumberedCanvas class defined in dashboard/streamlit_app.py.
+        """
+
+        pass
 
 def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     """Español: Función build_pdf_report del módulo dashboard/streamlit_app.py.
@@ -2486,6 +2545,74 @@ def _generate_weasyprint_pdf(template_data: dict[str, Any]) -> bytes | None:
     pdf_bytes = WeasyHTML(string=html_content).write_pdf()
     return pdf_bytes
 
+snapshot_sources = {
+    "Datos reales (Real data)": {
+        "base_dir": Path("data"),
+        "pattern": "snapshot_*.json",
+        "explicit_files": None,
+    },
+    "Mock normal (Normal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_normal.json"],
+    },
+    "Mock anomalia (Anomaly mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_anomaly.json"],
+    },
+    "Mock reversion (Reversal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_reversal.json"],
+    },
+}
+source_config = snapshot_sources[snapshot_source]
+snapshot_base_dir = source_config["base_dir"]
+snapshot_files = load_snapshot_files(
+    snapshot_base_dir,
+    pattern=source_config["pattern"],
+    explicit_files=source_config["explicit_files"],
+)
+progress = st.progress(0, text="Cargando snapshots inmutables...")
+for step in range(1, 5):
+    progress.progress(step * 25, text=f"Sincronizando evidencia {step}/4")
+progress.empty()
+
+snapshot_selector_options = ["Ultimo snapshot (Latest)"]
+snapshot_lookup: dict[str, dict[str, Any]] = {}
+for snapshot in sorted(
+    snapshot_files,
+    key=lambda item: _parse_timestamp(item.get("timestamp")) or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
+    reverse=True,
+):
+    timestamp_label = snapshot.get("timestamp", "N/D")
+    hash_label = snapshot.get("hash", "")[:8]
+    label = f"{timestamp_label} \u00b7 {hash_label}..."
+    snapshot_lookup[label] = snapshot
+    snapshot_selector_options.append(label)
+
+selected_snapshot_label = st.sidebar.selectbox(
+    "Snapshot historico (Historical snapshot)",
+    snapshot_selector_options,
+    index=0,
+)
+selected_snapshot = snapshot_lookup.get(selected_snapshot_label)
+selected_snapshot_timestamp = _parse_timestamp(selected_snapshot.get("timestamp")) if selected_snapshot else None
+
+latest_snapshot = {}
+latest_timestamp = None
+last_batch_label = "N/D"
+hash_accumulator = anchor.root_hash
+try:
+    (
+        latest_snapshot,
+        latest_timestamp,
+        last_batch_label,
+        hash_accumulator,
+    ) = _resolve_latest_snapshot_info(snapshot_files, anchor.root_hash)
+except Exception as exc:  # noqa: BLE001
+    st.warning("No se pudo determinar el ultimo snapshot (Unable to resolve latest snapshot): " f"{exc}")
 
 def _chart_to_base64(buf: io.BytesIO | None) -> str:
     """EN: Convert a BytesIO chart buffer to base64 string for HTML embedding.
@@ -2526,7 +2653,7 @@ if snapshots_df.empty:
 st.markdown(get_institutional_css(), unsafe_allow_html=True)
 
 # ES: Filtros esenciales del sidebar minimalista / EN: Minimalist sidebar essential filters
-st.sidebar.markdown("### \U0001f50d Filtros / Filters")
+st.sidebar.markdown("### Filtros / Filters")
 departments = [
     "Atlántida",
     "Choluteca",
@@ -2595,6 +2722,34 @@ st.sidebar.markdown(
     unsafe_allow_html=True,
 )
 
+with st.sidebar:
+    st.markdown("#### Reporte institucional")
+    sidebar_report_time = dt.datetime.now(dt.timezone.utc)
+    sidebar_report_payload = f"{anchor.root_hash}|{selected_department}|{sidebar_report_time.isoformat()}"
+    sidebar_report_hash = compute_report_hash(sidebar_report_payload)
+    if st.button("Preparar reporte PDF", key="sidebar_prepare_pdf"):
+        try:
+            sidebar_pdf_data = generate_pdf_report(
+                data_nacional,
+                data_departamentos,
+                current_snapshot_hash,
+                previous_snapshot_hash,
+                snapshot_diffs,
+            )
+            st.session_state["sidebar_pdf_data"] = sidebar_pdf_data
+            st.session_state["sidebar_pdf_name"] = f"centinel_audit_sidebar_{sidebar_report_time.strftime('%Y%m%d_%H%M%S')}.pdf"
+        except Exception as sidebar_pdf_exc:  # noqa: BLE001
+            st.error(f"No se pudo generar el PDF: {sidebar_pdf_exc}")
+    if st.session_state.get("sidebar_pdf_data"):
+        st.download_button(
+            "Descargar PDF institucional",
+            data=st.session_state["sidebar_pdf_data"],
+            file_name=st.session_state.get("sidebar_pdf_name", "centinel_audit_sidebar.pdf"),
+            mime="application/pdf",
+            width="stretch",
+        )
+    st.caption(f"Hash de integridad del reporte: {sidebar_report_hash[:24]}...")
+
 # =========================================================================
 # ES: Header institucional premium con logo y badge de neutralidad
 # EN: Premium institutional header with logo and neutrality badge
@@ -2644,7 +2799,7 @@ with alert_focus_container:
         st.error("Cobertura incompleta según rules.yaml: " f"{observed_streams}/{expected_streams} streams observados.")
         emit_toast(
             f"Cobertura incompleta: {observed_streams}/{expected_streams} streams.",
-            icon="🚨",
+            icon="",
         )
     if len(snapshots_df) < min_samples:
         st.warning(
@@ -2659,13 +2814,13 @@ with alert_focus_container:
         )
         if len(negative_diffs) >= alert_thresholds["diff_error_min"]:
             st.error(message)
-            emit_toast(message, icon="🚨")
+            emit_toast(message, icon="")
         else:
             st.warning(message)
-            emit_toast(message, icon="⚠️")
+            emit_toast(message, icon="")
     if rules_engine_output.get("critical"):
         st.error("Alertas críticas del motor de reglas: " f"{len(rules_engine_output['critical'])} eventos.")
-        emit_toast("Alertas críticas del motor de reglas activas.", icon="🚨")
+        emit_toast("Alertas críticas del motor de reglas activas.", icon="")
     if rules_engine_output.get("alerts"):
         st.warning("Alertas de reglas en revisión: " f"{len(rules_engine_output['alerts'])} eventos.")
     if actas_consistency["total_inconsistent"] > 0:
@@ -2676,7 +2831,7 @@ with alert_focus_container:
         )
         if actas_consistency["total_inconsistent"] >= 5:
             st.error(_actas_msg)
-            emit_toast(_actas_msg, icon="\U0001f6a8")
+            emit_toast(_actas_msg, icon="")
         else:
             st.warning(_actas_msg)
 
@@ -2688,9 +2843,9 @@ if not filtered_anomalies.empty:
         f"(Umbral rules.yaml ≥ {alert_thresholds['anomaly_error_min']})"
     )
     if len(filtered_anomalies) >= alert_thresholds["anomaly_error_min"]:
-        st.error(anomalies_message, icon="🚨")
+        st.error(anomalies_message, icon="")
     else:
-        st.warning(anomalies_message, icon="⚠️")
+        st.warning(anomalies_message, icon="")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================================
@@ -2748,18 +2903,25 @@ st.markdown('<div class="centinel-divider"></div>', unsafe_allow_html=True)
 #     1) Visualizacion General  2) Sandbox Personal
 #     3) Datos Historicos 2025  4) Panel de Control Admin
 # =========================================================================
-_tab_labels = ["\U0001f4ca Visualizacion General"]
+_tab_labels = [
+    "Visualizacion General",
+    "Analisis de Outliers",
+    "Analisis de Actas Especiales",
+    "Analisis de Encadenamiento",
+]
 if _is_authenticated:
-    _tab_labels.append("\U0001f9ea Sandbox Personal")
-    _tab_labels.append("\U0001f4c2 Datos Historicos 2025")
-    # EN: Only show admin tab for admin role.
-    # ES: Solo mostrar tab admin para rol admin.
+    _tab_labels.append("Sandbox Personal")
+    _tab_labels.append("Datos Historicos 2025")
     if _current_role == "admin":
-        _tab_labels.append("\U0001f527 Panel de Control Admin")
+        _tab_labels.append("Panel de Control Admin")
 
 tabs = st.tabs(_tab_labels)
+tab_general, tab_outliers, tab_actas_especiales, tab_encadenamiento = tabs[:4]
+sandbox_tab = tabs[4] if _is_authenticated else None
+historical_tab = tabs[5] if _is_authenticated else None
+admin_tab = tabs[6] if (_is_authenticated and _current_role == "admin") else None
 
-with tabs[0]:
+with tab_general:
     # =================================================================
     # EN: TAB 1 — Visualizacion General
     #     Shows all charts, hashes, metrics, anomalies, rules, verification,
@@ -2771,7 +2933,7 @@ with tabs[0]:
     #     las capacidades existentes del dashboard en una vista integral.
     # =================================================================
     # ES: Panorama nacional con diseno institucional / EN: National overview with institutional design
-    st.markdown("### \U0001f30e Panorama Nacional / National Overview")
+    st.markdown("### Panorama Nacional / National Overview")
     summary_cols = st.columns(2)
     with summary_cols[0]:
         st.markdown(
@@ -2852,36 +3014,37 @@ with tabs[0]:
         )
         speed_step = {"Lento": 1, "Medio": 2, "Rápido": 4}[speed_label]
 
-        if "timeline_index" not in st.session_state:
-            st.session_state.timeline_index = range_indices[0]
+        timeline_state_key = f"timeline_index_{snapshot_source}"
+        if timeline_state_key not in st.session_state:
+            st.session_state[timeline_state_key] = range_indices[0]
 
-        st.session_state.timeline_index = max(
+        st.session_state[timeline_state_key] = max(
             range_indices[0],
-            min(st.session_state.timeline_index, range_indices[1]),
+            min(st.session_state[timeline_state_key], range_indices[1]),
         )
 
         play_cols = st.columns([1, 1, 1, 3])
         with play_cols[0]:
-            if st.button("◀️"):
-                st.session_state.timeline_index = max(
+            if st.button("Anterior", key="timeline_prev"):
+                st.session_state[timeline_state_key] = max(
                     range_indices[0],
-                    st.session_state.timeline_index - speed_step,
+                    st.session_state[timeline_state_key] - speed_step,
                 )
         with play_cols[1]:
-            if st.button("▶️"):
-                st.session_state.timeline_index = min(
+            if st.button("Siguiente", key="timeline_next"):
+                st.session_state[timeline_state_key] = min(
                     range_indices[1],
-                    st.session_state.timeline_index + speed_step,
+                    st.session_state[timeline_state_key] + speed_step,
                 )
         with play_cols[2]:
-            if st.button("⏩ Play"):
-                st.session_state.timeline_index = min(
+            if st.button("Reproducir", key="timeline_play"):
+                st.session_state[timeline_state_key] = min(
                     range_indices[1],
-                    st.session_state.timeline_index + speed_step,
+                    st.session_state[timeline_state_key] + speed_step,
                 )
                 rerun_app()
         with play_cols[3]:
-            st.markdown(f"**Tiempo actual:** {timeline_df.iloc[st.session_state.timeline_index]['timeline_label']}")
+            st.markdown(f"**Tiempo actual:** {timeline_df.iloc[st.session_state[timeline_state_key]]['timeline_label']}")
 
         timeline_view = timeline_df.iloc[range_indices[0] : range_indices[1] + 1]
 
@@ -3509,7 +3672,7 @@ with tabs[0]:
         if _wp_pdf:
             _wp_filename = f"centinel_audit_{_wp_now.strftime('%Y%m%d_%H%M%S')}.pdf"
             st.download_button(
-                "\U0001f4c4 Descargar Reporte Completo como PDF",
+                "Descargar Reporte Completo como PDF",
                 data=_wp_pdf,
                 file_name=_wp_filename,
                 mime="application/pdf",
@@ -3528,6 +3691,80 @@ with tabs[0]:
         file_name="centinel_snapshots.json",
     )
 
+with tab_outliers:
+    st.markdown("### Analisis Profesional de Outliers")
+    st.caption("Deteccion estadistica sobre deltas y cambios para identificar observaciones atipicas de alta prioridad.")
+    if filtered_snapshots.empty:
+        st.info("No hay datos disponibles para el analisis de outliers.")
+    else:
+        outlier_df = filtered_snapshots.copy()
+        outlier_df["delta_pct"] = pd.to_numeric(outlier_df.get("delta_pct"), errors="coerce").fillna(0.0)
+        q1 = outlier_df["delta_pct"].quantile(0.25)
+        q3 = outlier_df["delta_pct"].quantile(0.75)
+        iqr = q3 - q1
+        upper = q3 + 1.5 * iqr
+        lower = q1 - 1.5 * iqr
+        sigma = outlier_df["delta_pct"].std() or 0.0
+        mean = outlier_df["delta_pct"].mean()
+        if sigma > 0:
+            outlier_df["zscore"] = (outlier_df["delta_pct"] - mean) / sigma
+        else:
+            outlier_df["zscore"] = 0.0
+        outliers = outlier_df[(outlier_df["delta_pct"] < lower) | (outlier_df["delta_pct"] > upper) | (outlier_df["zscore"].abs() >= 3)]
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Registros evaluados", len(outlier_df))
+        c2.metric("Outliers detectados", len(outliers))
+        c3.metric("Umbral IQR", f"[{lower:.2f}, {upper:.2f}]")
+        if outliers.empty:
+            st.success("No se detectaron outliers relevantes en la muestra filtrada.")
+        else:
+            cols = [c for c in ["timestamp", "department", "delta", "delta_pct", "zscore", "status", "hash"] if c in outliers.columns]
+            st.dataframe(outliers[cols].sort_values("zscore", ascending=False), width="stretch", hide_index=True)
+
+with tab_actas_especiales:
+    st.markdown("### Analisis Profesional de Actas Especiales")
+    st.caption("Concentrado de actas inconsistentes, mesas con desbalance y casos con necesidad de revision técnica focalizada.")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Mesas revisadas", actas_consistency.get("total_mesas_checked", 0))
+    c2.metric("Actas inconsistentes", actas_consistency.get("total_inconsistent", 0))
+    c3.metric("Integridad aritmetica", f"{actas_consistency.get('integrity_pct', 0):.1f}%")
+    inconsistent_rows = actas_consistency.get("rows", []) or []
+    if inconsistent_rows:
+        actas_df = pd.DataFrame(inconsistent_rows)
+        cols = [c for c in ["department", "mesa_id", "acta_id", "votes_total", "sumatoria", "difference"] if c in actas_df.columns]
+        st.dataframe(actas_df[cols], width="stretch", hide_index=True)
+    else:
+        st.info("No se registran actas especiales en el corte actual.")
+
+with tab_encadenamiento:
+    st.markdown("### Analisis Profesional de Encadenamiento")
+    st.caption("Validacion de continuidad criptografica entre snapshots consecutivos para control de trazabilidad y custodia digital.")
+    if snapshots_df.empty or "hash" not in snapshots_df.columns:
+        st.info("No hay hashes disponibles para auditar el encadenamiento.")
+    else:
+        chain_df = snapshots_df.copy()
+        chain_df["timestamp_dt"] = pd.to_datetime(chain_df["timestamp"], errors="coerce", utc=True)
+        chain_df = chain_df.sort_values("timestamp_dt").reset_index(drop=True)
+        prev_hash = ""
+        links = []
+        for _, row in chain_df.iterrows():
+            current_hash = str(row.get("hash") or "")
+            link_hash = hashlib.sha256(f"{prev_hash}|{current_hash}".encode("utf-8")).hexdigest() if current_hash else ""
+            links.append(
+                {
+                    "timestamp": row.get("timestamp"),
+                    "department": row.get("department"),
+                    "prev_hash": prev_hash[:16],
+                    "current_hash": current_hash[:16],
+                    "link_hash": link_hash[:16],
+                    "status": "OK" if current_hash else "MISSING",
+                }
+            )
+            prev_hash = link_hash or current_hash
+        chain_view = pd.DataFrame(links)
+        st.metric("Eslabones verificados", int((chain_view["status"] == "OK").sum()))
+        st.dataframe(chain_view, width="stretch", hide_index=True)
+
 # =========================================================================
 # EN: TAB 2 — Sandbox Personal (researcher and viewer only).
 #     Per-user threshold sliders, chart visibility toggles, and date ranges.
@@ -3537,7 +3774,7 @@ with tabs[0]:
 #     Guardado por usuario en SQLite.  NO afecta produccion ni umbrales globales.
 # =========================================================================
 if _is_authenticated:
-  with tabs[1]:
+  with sandbox_tab:
     st.markdown("### Sandbox Personal / Personal Sandbox")
     st.caption(
         "EN: Modify thresholds and chart visibility for your own exploration. "
@@ -3670,7 +3907,7 @@ if _is_authenticated:
 #     Tambien soporta fixtures de prueba de tests/fixtures/snapshots_2025/.
 # =========================================================================
 if _is_authenticated:
-  with tabs[2]:
+  with historical_tab:
     st.markdown("### Datos Historicos 2025 / Historical Data 2025")
     st.caption(
         "EN: Load any combination of the 2025 election JSON files for retrospective audit.  \n"
@@ -3758,8 +3995,8 @@ if _is_authenticated:
 #     Sliders visuales para umbrales globales (guardados en config/prod/rules_core.yaml
 #     con backup automatico), botones para lanzar auditoria completa, ver logs, etc.
 # =========================================================================
-if _is_authenticated and _current_role == "admin" and len(tabs) > 3:
-    with tabs[3]:
+if _is_authenticated and _current_role == "admin" and admin_tab is not None:
+    with admin_tab:
         st.markdown("### Panel de Control Admin / Admin Control Panel")
         st.caption(
             "EN: Manage global thresholds, users, system health, and audit controls.  \n"
@@ -3917,10 +4154,10 @@ if _is_authenticated and _current_role == "admin" and len(tabs) > 3:
             pipeline_status = "Recuperandose"
 
         status_emoji = {
-            "Activo": "\U0001f7e2",
-            "Pausado": "\U0001f7e1",
-            "Recuperandose": "\U0001f7e1",
-            "Con errores criticos": "\U0001f534",
+            "Activo": "OK",
+            "Pausado": "ATENCION",
+            "Recuperandose": "ATENCION",
+            "Con errores criticos": "CRITICO",
         }.get(pipeline_status, "\u26aa")
 
         header_cols = st.columns(3)

@@ -104,7 +104,7 @@ def get_page_config() -> dict:
     """
     return {
         "page_title": "C.E.N.T.I.N.E.L. \u2013 Centro de Vigilancia Electoral",
-        "page_icon": "\U0001f6f0\ufe0f",
+        "page_icon": "C",
         "layout": "wide",
         "initial_sidebar_state": "expanded",
     }
@@ -608,18 +608,19 @@ def get_header_html(
       <div class="header-logo">C.E.N.T.I.N.E.L.</div>
       <div class="header-title">Centro de Vigilancia Electoral</div>
       <div class="header-title-en">Electoral Surveillance Center</div>
+      <div class="header-title-longform">Centro de Evaluación, Normalización, Trazabilidad, Integridad y Neutralidad Electoral Latinoamericano</div>
     </div>
     <div class="header-badge">
-      \U0001f6e1\ufe0f Auditor\u00eda T\u00e9cnica Independiente &ndash; Agn\u00f3stica a Partidos Pol\u00edticos
+      Auditor\u00eda T\u00e9cnica Independiente &ndash; Agn\u00f3stica a Partidos Pol\u00edticos
     </div>
   </div>
   <div style="margin-top: 16px;">
     <div class="hero-meta">
-      <span>\U0001f50e Modo auditor\u00eda: Activo</span>
-      <span>\U0001f6f0\ufe0f \u00daltima actualizaci\u00f3n: {latest_label}</span>
-      <span>\U0001f9fe Snapshot: {snapshot_label}</span>
-      <span>\U0001f510 Hash ra\u00edz: {root_hash_short}</span>
-      <span>\U0001f9ec Hash snapshot: {snapshot_hash_short}</span>
+      <span>Modo auditor\u00eda: Activo</span>
+      <span>\u00daltima actualizaci\u00f3n: {latest_label}</span>
+      <span>Snapshot: {snapshot_label}</span>
+      <span>Hash ra\u00edz: {root_hash_short}</span>
+      <span>Hash snapshot: {snapshot_hash_short}</span>
     </div>
   </div>
 </div>
