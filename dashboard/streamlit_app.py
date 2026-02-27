@@ -1488,143 +1488,85 @@ def _register_pdf_fonts() -> tuple[str, str]:
     return regular, bold
 
 
-if REPORTLAB_AVAILABLE:
+_CanvasBase = reportlab_canvas.Canvas if REPORTLAB_AVAILABLE else object
 
-    class NumberedCanvas(reportlab_canvas.Canvas):
-        """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
 
-        English: NumberedCanvas class defined in dashboard/streamlit_app.py.
+class NumberedCanvas(_CanvasBase):
+    """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
+
+    English: NumberedCanvas class defined in dashboard/streamlit_app.py.
+    """
+    if not REPORTLAB_AVAILABLE:
+        raise RuntimeError("reportlab is required to build the PDF report.")
+
+    def __init__(self, *args, root_hash: str = "", **kwargs) -> None:
+        """Español: Función __init__ del módulo dashboard/streamlit_app.py.
+
+        English: Function __init__ defined in dashboard/streamlit_app.py.
         """
+        if not REPORTLAB_AVAILABLE:
+            return
+        super().__init__(*args, **kwargs)
+        self._saved_page_states = []
+        self._root_hash = root_hash
+        self._page_hashes: list[str] = []
 
-        def __init__(self, *args, root_hash: str = "", **kwargs) -> None:
-            """Español: Función __init__ del módulo dashboard/streamlit_app.py.
+    def showPage(self) -> None:
+        """Español: Función showPage del módulo dashboard/streamlit_app.py.
 
-            English: Function __init__ defined in dashboard/streamlit_app.py.
-            """
-            super().__init__(*args, **kwargs)
-            self._saved_page_states = []
-            self._root_hash = root_hash
-            self._page_hashes: list[str] = []
+        English: Function showPage defined in dashboard/streamlit_app.py.
+        """
+        if not REPORTLAB_AVAILABLE:
+            return
+        self._saved_page_states.append(dict(self.__dict__))
+        self._startPage()
 
-        def showPage(self) -> None:
-            """Español: Función showPage del módulo dashboard/streamlit_app.py.
+    def save(self) -> None:
+        """Español: Función save del módulo dashboard/streamlit_app.py.
 
-            English: Function showPage defined in dashboard/streamlit_app.py.
-            """
-            self._saved_page_states.append(dict(self.__dict__))
-            self._startPage()
-
-        def save(self) -> None:
-            """Español: Función save del módulo dashboard/streamlit_app.py.
-
-            English: Function save defined in dashboard/streamlit_app.py.
-            """
-            total_pages = len(self._saved_page_states)
-            prev_hash = hashlib.sha256(self._root_hash.encode("utf-8")).hexdigest()[:12]
-            for state in self._saved_page_states:
-                self.__dict__.update(state)
-                page = self.getPageNumber()
-                current_hash = hashlib.sha256(f"{prev_hash}|{page}".encode("utf-8")).hexdigest()[:12]
-                self.draw_page_number(total_pages, current_hash)
-                prev_hash = current_hash
-                super().showPage()
-            super().save()
-
-        def draw_page_number(self, total_pages: int, current_hash: str) -> None:
-            """Español: Función draw_page_number del módulo dashboard/streamlit_app.py.
-
-            English: Function draw_page_number defined in dashboard/streamlit_app.py.
-            """
-            self.setFont("Helvetica", 8)
-            self.setFillColor(colors.grey)
+        English: Function save defined in dashboard/streamlit_app.py.
+        """
+        if not REPORTLAB_AVAILABLE:
+            return
+        total_pages = len(self._saved_page_states)
+        prev_hash = hashlib.sha256(self._root_hash.encode("utf-8")).hexdigest()[:12]
+        for state in self._saved_page_states:
+            self.__dict__.update(state)
             page = self.getPageNumber()
-            self.drawRightString(
-                self._pagesize[0] - 1.5 * cm,
-                0.75 * cm,
-                f"Página {page}/{total_pages}",
-            )
-            self.setFont("Helvetica", 7)
-            self.drawString(
-                1.5 * cm,
-                0.3 * cm,
-                f"Pag {page} | SHA-256 Page Hash: {current_hash}",
-            )
-            self.setFont("Helvetica", 7)
-            self.drawRightString(
-                self._pagesize[0] - 1.5 * cm,
-                0.3 * cm,
-                "Auditoría Independiente - Proyecto Centinel",
-            )
+            current_hash = hashlib.sha256(f"{prev_hash}|{page}".encode("utf-8")).hexdigest()[:12]
+            self.draw_page_number(total_pages, current_hash)
+            prev_hash = current_hash
+            super().showPage()
+        super().save()
 
-else:
+    def draw_page_number(self, total_pages: int, current_hash: str) -> None:
+        """Español: Función draw_page_number del módulo dashboard/streamlit_app.py.
 
-    class NumberedCanvas:  # pragma: no cover - placeholder when reportlab is absent
-        """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
-
-        English: NumberedCanvas class defined in dashboard/streamlit_app.py.
+        English: Function draw_page_number defined in dashboard/streamlit_app.py.
         """
+        if not REPORTLAB_AVAILABLE:
+            return
+        self.setFont("Helvetica", 8)
+        self.setFillColor(colors.grey)
+        page = self.getPageNumber()
+        self.drawRightString(
+            self._pagesize[0] - 1.5 * cm,
+            0.75 * cm,
+            f"Página {page}/{total_pages}",
+        )
+        self.setFont("Helvetica", 7)
+        self.drawString(
+            1.5 * cm,
+            0.3 * cm,
+            f"Pag {page} | SHA-256 Page Hash: {current_hash}",
+        )
+        self.setFont("Helvetica", 7)
+        self.drawRightString(
+            self._pagesize[0] - 1.5 * cm,
+            0.3 * cm,
+            "Auditoría Independiente - Proyecto Centinel",
+        )
 
-        pass
-
-        def showPage(self) -> None:
-            """Español: Función showPage del módulo dashboard/streamlit_app.py.
-
-            English: Function showPage defined in dashboard/streamlit_app.py.
-            """
-            self._saved_page_states.append(dict(self.__dict__))
-            self._startPage()
-
-        def save(self) -> None:
-            """Español: Función save del módulo dashboard/streamlit_app.py.
-
-            English: Function save defined in dashboard/streamlit_app.py.
-            """
-            total_pages = len(self._saved_page_states)
-            prev_hash = hashlib.sha256(self._root_hash.encode("utf-8")).hexdigest()[:12]
-            for state in self._saved_page_states:
-                self.__dict__.update(state)
-                page = self.getPageNumber()
-                current_hash = hashlib.sha256(f"{prev_hash}|{page}".encode("utf-8")).hexdigest()[:12]
-                self.draw_page_number(total_pages, current_hash)
-                prev_hash = current_hash
-                super().showPage()
-            super().save()
-
-        def draw_page_number(self, total_pages: int, current_hash: str) -> None:
-            """Español: Función draw_page_number del módulo dashboard/streamlit_app.py.
-
-            English: Function draw_page_number defined in dashboard/streamlit_app.py.
-            """
-            self.setFont("Helvetica", 8)
-            self.setFillColor(colors.grey)
-            page = self.getPageNumber()
-            self.drawRightString(
-                self._pagesize[0] - 1.5 * cm,
-                0.75 * cm,
-                f"Página {page}/{total_pages}",
-            )
-            self.setFont("Helvetica", 7)
-            self.drawString(
-                1.5 * cm,
-                0.3 * cm,
-                f"Pag {page} | SHA-256 Page Hash: {current_hash}",
-            )
-            self.setFont("Helvetica", 7)
-            self.drawRightString(
-                self._pagesize[0] - 1.5 * cm,
-                0.3 * cm,
-                "Auditoría Independiente - Proyecto Centinel",
-            )
-
-else:
-
-    class NumberedCanvas:  # pragma: no cover - placeholder when reportlab is absent
-        """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
-
-        English: NumberedCanvas class defined in dashboard/streamlit_app.py.
-        """
-
-        pass
 
 def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     """Español: Función build_pdf_report del módulo dashboard/streamlit_app.py.
@@ -2531,6 +2473,19 @@ polling_status = resolve_polling_status(
 # =========================================================================
 def _generate_weasyprint_pdf(template_data: dict[str, Any]) -> bytes | None:
     """EN: Render templates/report_template.html with Jinja2 and convert to PDF via WeasyPrint.
+
+    ES: Renderiza templates/report_template.html con Jinja2 y convierte a PDF via WeasyPrint.
+    """
+    if not JINJA2_AVAILABLE or not WEASYPRINT_AVAILABLE:
+        return None
+    template_dir = REPO_ROOT / "templates"
+    if not (template_dir / "report_template.html").exists():
+        return None
+    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
+    template = env.get_template("report_template.html")
+    html_content = template.render(**template_data)
+    pdf_bytes = WeasyHTML(string=html_content).write_pdf()
+    return pdf_bytes
 
     ES: Renderiza templates/report_template.html con Jinja2 y convierte a PDF via WeasyPrint.
     """

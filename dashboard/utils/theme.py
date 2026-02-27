@@ -608,7 +608,7 @@ def get_header_html(
       <div class="header-logo">C.E.N.T.I.N.E.L.</div>
       <div class="header-title">Centro de Vigilancia Electoral</div>
       <div class="header-title-en">Electoral Surveillance Center</div>
-      <div class="header-title-longform">Centro de Evaluación, Normalización, Trazabilidad, Integridad y Neutralidad Electoral Latinoamericano</div>
+      <div class="header-title-en">Centro de Evaluación, Normalización, Trazabilidad, Integridad y Neutralidad Electoral Latinoamericano</div>
     </div>
     <div class="header-badge">
       Auditor\u00eda T\u00e9cnica Independiente &ndash; Agn\u00f3stica a Partidos Pol\u00edticos
