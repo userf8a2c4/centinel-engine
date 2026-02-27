@@ -1496,6 +1496,8 @@ class NumberedCanvas(_CanvasBase):
 
     English: NumberedCanvas class defined in dashboard/streamlit_app.py.
     """
+    if not REPORTLAB_AVAILABLE:
+        raise RuntimeError("reportlab is required to build the PDF report.")
 
     def __init__(self, *args, root_hash: str = "", **kwargs) -> None:
         """Español: Función __init__ del módulo dashboard/streamlit_app.py.
@@ -2485,6 +2487,87 @@ def _generate_weasyprint_pdf(template_data: dict[str, Any]) -> bytes | None:
     pdf_bytes = WeasyHTML(string=html_content).write_pdf()
     return pdf_bytes
 
+    ES: Renderiza templates/report_template.html con Jinja2 y convierte a PDF via WeasyPrint.
+    """
+    if not JINJA2_AVAILABLE or not WEASYPRINT_AVAILABLE:
+        return None
+    template_dir = REPO_ROOT / "templates"
+    if not (template_dir / "report_template.html").exists():
+        return None
+    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
+    template = env.get_template("report_template.html")
+    html_content = template.render(**template_data)
+    pdf_bytes = WeasyHTML(string=html_content).write_pdf()
+    return pdf_bytes
+
+snapshot_sources = {
+    "Datos reales (Real data)": {
+        "base_dir": Path("data"),
+        "pattern": "snapshot_*.json",
+        "explicit_files": None,
+    },
+    "Mock normal (Normal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_normal.json"],
+    },
+    "Mock anomalia (Anomaly mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_anomaly.json"],
+    },
+    "Mock reversion (Reversal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_reversal.json"],
+    },
+}
+source_config = snapshot_sources[snapshot_source]
+snapshot_base_dir = source_config["base_dir"]
+snapshot_files = load_snapshot_files(
+    snapshot_base_dir,
+    pattern=source_config["pattern"],
+    explicit_files=source_config["explicit_files"],
+)
+progress = st.progress(0, text="Cargando snapshots inmutables...")
+for step in range(1, 5):
+    progress.progress(step * 25, text=f"Sincronizando evidencia {step}/4")
+progress.empty()
+
+snapshot_selector_options = ["Ultimo snapshot (Latest)"]
+snapshot_lookup: dict[str, dict[str, Any]] = {}
+for snapshot in sorted(
+    snapshot_files,
+    key=lambda item: _parse_timestamp(item.get("timestamp")) or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
+    reverse=True,
+):
+    timestamp_label = snapshot.get("timestamp", "N/D")
+    hash_label = snapshot.get("hash", "")[:8]
+    label = f"{timestamp_label} \u00b7 {hash_label}..."
+    snapshot_lookup[label] = snapshot
+    snapshot_selector_options.append(label)
+
+selected_snapshot_label = st.sidebar.selectbox(
+    "Snapshot historico (Historical snapshot)",
+    snapshot_selector_options,
+    index=0,
+)
+selected_snapshot = snapshot_lookup.get(selected_snapshot_label)
+selected_snapshot_timestamp = _parse_timestamp(selected_snapshot.get("timestamp")) if selected_snapshot else None
+
+latest_snapshot = {}
+latest_timestamp = None
+last_batch_label = "N/D"
+hash_accumulator = anchor.root_hash
+try:
+    (
+        latest_snapshot,
+        latest_timestamp,
+        last_batch_label,
+        hash_accumulator,
+    ) = _resolve_latest_snapshot_info(snapshot_files, anchor.root_hash)
+except Exception as exc:  # noqa: BLE001
+    st.warning("No se pudo determinar el ultimo snapshot (Unable to resolve latest snapshot): " f"{exc}")
 
 def _chart_to_base64(buf: io.BytesIO | None) -> str:
     """EN: Convert a BytesIO chart buffer to base64 string for HTML embedding.
