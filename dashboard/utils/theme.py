@@ -180,6 +180,7 @@ def get_institutional_css() -> str:
         padding-top: 1rem;
         padding-left: 2.5rem;
         padding-right: 2.5rem;
+        padding-bottom: 4.5rem;
     }}
 
     /* ============================================================
@@ -531,12 +532,18 @@ def get_institutional_css() -> str:
        ES: Footer institucional / EN: Institutional footer
        ============================================================ */
     .centinel-footer {{
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
         text-align: center;
-        padding: 20px 0 8px;
+        padding: 10px 16px;
         font-size: 0.72rem;
         color: var(--text-muted);
         border-top: 1px solid var(--border);
-        margin-top: 32px;
+        background: rgba(10, 20, 40, 0.96);
+        backdrop-filter: blur(5px);
     }}
     .centinel-footer a {{
         color: var(--accent);
@@ -713,8 +720,6 @@ def get_footer_html() -> str:
     """
     return """
 <div class="centinel-footer fade-in">
-  <strong>C.E.N.T.I.N.E.L.</strong> &mdash; Centro de Vigilancia Electoral<br/>
-  Auditor&iacute;a t&eacute;cnica independiente &middot; Sistema agn&oacute;stico a partidos pol&iacute;ticos<br/>
-  Electoral Surveillance Center &middot; Independent technical audit &middot; Politically agnostic system
+  C.E.N.T.I.N.E.L. &ndash; Centro de Vigilancia Electoral | Auditor&iacute;a T&eacute;cnica Independiente | Sistema agn&oacute;stico a partidos pol&iacute;ticos | v9.0-dev | Datos fuente: JSON oficial CNE
 </div>
 """
