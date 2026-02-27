@@ -2259,6 +2259,13 @@ from dashboard.utils.theme import (  # noqa: E402
     DANGER_RED,
     CHART_PALETTE,
 )
+from dashboard.utils.visualizations import (  # noqa: E402
+    apply_cross_filters,
+    get_cross_filter_options,
+    compute_benford_statistics,
+    make_benford_first_digit_figure,
+    make_changes_timeline_figure,
+)
 
 # ES: Configuracion de pagina institucional / EN: Institutional page configuration
 st.set_page_config(**get_page_config())
@@ -2548,17 +2555,38 @@ departments = [
     "Yoro",
 ]
 
-selected_department = st.sidebar.selectbox("Departamento / Department", ["Todos"] + departments, index=0)
-show_only_alerts = st.sidebar.toggle("Mostrar solo anomal\u00edas / Show anomalies only", value=False)
+filter_options = get_cross_filter_options(snapshots_df)
+selected_department = st.sidebar.selectbox(
+    "Departamento / Department",
+    filter_options["departments"] if filter_options["departments"] else ["Todos"],
+    index=0,
+)
+selected_hours = st.sidebar.multiselect(
+    "Hora / Hour",
+    options=filter_options["hours"],
+    default=[],
+)
+selected_rule_types = st.sidebar.multiselect(
+    "Tipo de regla / Rule type",
+    options=filter_options["rule_types"],
+    default=[],
+)
+show_only_alerts = st.sidebar.toggle(
+    "🚨 SOLO ANOMALÍAS / ANOMALIES ONLY",
+    value=False,
+    help="ES: Filtra para mostrar únicamente registros en estado ALERTA/REVISAR.\nEN: Show only ALERT/REVIEW records.",
+)
 
-filtered_snapshots = snapshots_df.copy()
-if selected_department != "Todos":
-    filtered_snapshots = filtered_snapshots[filtered_snapshots["department"] == selected_department]
-
-if show_only_alerts:
-    filtered_snapshots = filtered_snapshots[filtered_snapshots["status"] != "OK"]
+filtered_snapshots = apply_cross_filters(
+    snapshots_df,
+    selected_department=selected_department,
+    selected_hours=selected_hours,
+    selected_rule_types=selected_rule_types,
+    anomalies_only=show_only_alerts,
+)
 
 filtered_anomalies = build_anomalies(filtered_snapshots)
+filtered_heatmap_df = build_heatmap(filtered_anomalies)
 
 critical_count = len(filtered_anomalies[filtered_anomalies["type"] == "Delta negativo"])
 (
@@ -2813,125 +2841,60 @@ with tabs[0]:
         else:
             st.info("Sin datos para actividad diurna en el rango seleccionado.")
 
-    st.markdown("#### Timeline interactivo")
+    st.markdown("#### Timeline Interactivo / Interactive Timeline")
     if filtered_snapshots.empty:
         st.info("No hay snapshots disponibles para el timeline.")
-        timeline_view = filtered_snapshots
     else:
-        timeline_df = filtered_snapshots.copy()
-        timeline_df["timestamp_dt"] = pd.to_datetime(timeline_df["timestamp"], errors="coerce", utc=True)
-        timeline_df = timeline_df.sort_values("timestamp_dt")
-        timeline_labels = timeline_df["timestamp_dt"].fillna(pd.to_datetime(timeline_df["timestamp"], errors="coerce"))
-        timeline_labels = timeline_labels.dt.strftime("%Y-%m-%d %H:%M")
-        timeline_labels = timeline_labels.fillna(timeline_df["timestamp"].astype(str))
-        timeline_df["timeline_label"] = timeline_labels
+        # ES: Configuración institucional de color para figuras científicas Plotly.
+        # EN: Institutional color configuration for scientific Plotly figures.
+        institutional_palette = {
+            "observed": GREEN_INTEGRITY,
+            "expected": ACCENT_BLUE,
+            "annotation": ALERT_ORANGE,
+            "line": ACCENT_BLUE,
+            "confidence_band": "rgba(0, 163, 224, 0.20)",
+            "alert_zone": "rgba(239, 68, 68, 0.30)",
+        }
 
-        max_index = max(len(timeline_df) - 1, 0)
-        if max_index < 1:
-            st.slider(
-                "Rango de tiempo",
-                min_value=0,
-                max_value=max_index,
-                value=0,
-                step=1,
-                disabled=True,
-            )
-            range_indices = (0, 0)
-        else:
-            range_indices = st.slider(
-                "Rango de tiempo",
-                min_value=0,
-                max_value=max_index,
-                value=(0, max_index),
-                step=1,
-            )
-        speed_label = st.select_slider(
-            "Velocidad de avance",
-            options=["Lento", "Medio", "Rápido"],
-            value="Medio",
+        # ES: Estadísticos de referencia para explicación matemática del test Benford.
+        # EN: Reference statistics used in mathematical explanation of the Benford test.
+        benford_p_value, benford_z_score = compute_benford_statistics(
+            benford_df=benford_df,
+            sample_size=max(len(filtered_snapshots), 1),
         )
-        speed_step = {"Lento": 1, "Medio": 2, "Rápido": 4}[speed_label]
-
-        if "timeline_index" not in st.session_state:
-            st.session_state.timeline_index = range_indices[0]
-
-        st.session_state.timeline_index = max(
-            range_indices[0],
-            min(st.session_state.timeline_index, range_indices[1]),
+        benford_plotly = make_benford_first_digit_figure(
+            benford_df=benford_df,
+            p_value=benford_p_value,
+            z_score=benford_z_score,
+            sample_size=max(len(filtered_snapshots), 1),
+            institutional_colors=institutional_palette,
         )
 
-        play_cols = st.columns([1, 1, 1, 3])
-        with play_cols[0]:
-            if st.button("◀️"):
-                st.session_state.timeline_index = max(
-                    range_indices[0],
-                    st.session_state.timeline_index - speed_step,
-                )
-        with play_cols[1]:
-            if st.button("▶️"):
-                st.session_state.timeline_index = min(
-                    range_indices[1],
-                    st.session_state.timeline_index + speed_step,
-                )
-        with play_cols[2]:
-            if st.button("⏩ Play"):
-                st.session_state.timeline_index = min(
-                    range_indices[1],
-                    st.session_state.timeline_index + speed_step,
-                )
-                rerun_app()
-        with play_cols[3]:
-            st.markdown(f"**Tiempo actual:** {timeline_df.iloc[st.session_state.timeline_index]['timeline_label']}")
-
-        timeline_view = timeline_df.iloc[range_indices[0] : range_indices[1] + 1]
-
-        timeline_chart = (
-            alt.Chart(timeline_view)
-            .mark_bar(color=GREEN_INTEGRITY)
-            .encode(
-                x=alt.X("timeline_label:N", title="Tiempo"),
-                y=alt.Y("votes:Q", title="Votos"),
-                tooltip=["timeline_label", "votes", "delta", "department"],
-            )
-            .properties(height=240, title="Timeline de votos")
+        timeline_plotly = make_changes_timeline_figure(
+            timeline_df=filtered_snapshots,
+            institutional_colors=institutional_palette,
+            alert_threshold=float(alert_thresholds["diff_error_min"]),
         )
-        st.altair_chart(timeline_chart, use_container_width=True)
 
-    chart_cols = st.columns([1, 1])
-    with chart_cols[0]:
-        benford_chart = (
-            alt.Chart(benford_df)
-            .transform_fold(["expected", "observed"], as_=["type", "value"])
-            .mark_bar()
-            .encode(
-                x=alt.X("digit:O", title="Dígito"),
-                y=alt.Y("value:Q", title="%"),
-                color=alt.Color(
-                    "type:N",
-                    scale=alt.Scale(domain=["expected", "observed"], range=[ACCENT_BLUE, GREEN_INTEGRITY]),
-                    legend=alt.Legend(title="Serie"),
-                ),
-                tooltip=[
-                    alt.Tooltip("digit:O", title="Dígito"),
-                    alt.Tooltip("type:N", title="Serie"),
-                    alt.Tooltip("value:Q", title="Valor"),
-                ],
+        chart_cols = st.columns([1, 1])
+        with chart_cols[0]:
+            st.plotly_chart(
+                benford_plotly,
+                use_container_width=True,
+                config={"displayModeBar": True, "responsive": True},
             )
-            .properties(height=240, title="Benford 1er dígito")
-        )
-        st.altair_chart(benford_chart, use_container_width=True)
-    with chart_cols[1]:
-        votes_chart = (
-            alt.Chart(filtered_snapshots)
-            .mark_line(point=True, color=GREEN_INTEGRITY)
-            .encode(
-                x=alt.X("hour:N", title="Hora"),
-                y=alt.Y("votes:Q", title="Votos acumulados"),
-                tooltip=["hour", "votes", "delta"],
+            st.caption(
+                f"Benford’s Law test – p-value = {benford_p_value:.3f} → "
+                f"{'evidencia moderada de anomalía' if benford_p_value < 0.05 else 'sin evidencia fuerte de anomalía'}"
+                " / "
+                f"{'moderate evidence of anomaly' if benford_p_value < 0.05 else 'no strong evidence of anomaly'}."
             )
-            .properties(height=240, title="Evolución de cambios")
-        )
-        st.altair_chart(votes_chart, use_container_width=True)
+        with chart_cols[1]:
+            st.plotly_chart(
+                timeline_plotly,
+                use_container_width=True,
+                config={"displayModeBar": True, "responsive": True},
+            )
 
     # EN: Sub-section — Department view (inside Visualizacion General).
     # ES: Sub-seccion — Vista por departamento (dentro de Visualizacion General).
@@ -2976,9 +2939,9 @@ with tabs[0]:
         else:
             st.dataframe(filtered_anomalies, use_container_width=True, hide_index=True)
 
-        if not heatmap_df.empty:
+        if not filtered_heatmap_df.empty:
             heatmap_chart = (
-                alt.Chart(heatmap_df)
+                alt.Chart(filtered_heatmap_df)
                 .mark_rect()
                 .encode(
                     x=alt.X("hour:O", title="Hora"),
