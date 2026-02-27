@@ -1272,6 +1272,8 @@ def run_table_consistency_check(snapshot_files: list[dict]) -> dict:
         ),
     }
 
+def run_table_consistency_check(snapshot_files: list[dict]) -> dict:
+    """EN: Run table-consistency analysis across all loaded snapshots.
 
 def create_pdf_charts(
     benford_df: pd.DataFrame,
@@ -1516,12 +1518,15 @@ def _register_pdf_fonts() -> tuple[str, str]:
 
 _CanvasBase = reportlab_canvas.Canvas if REPORTLAB_AVAILABLE else object
 
+_CanvasBase = reportlab_canvas.Canvas if REPORTLAB_AVAILABLE else object
 
 class NumberedCanvas(_CanvasBase):
     """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
 
     English: NumberedCanvas class defined in dashboard/streamlit_app.py.
     """
+    if not REPORTLAB_AVAILABLE:
+        raise RuntimeError("reportlab is required to build the PDF report.")
 
     def __init__(self, *args, root_hash: str = "", **kwargs) -> None:
         """Español: Función __init__ del módulo dashboard/streamlit_app.py.
@@ -2164,6 +2169,187 @@ def generate_pdf_report(
     buffer.seek(0)
     return buffer.getvalue()
 
+    styles = getSampleStyleSheet()
+    styles.add(
+        ParagraphStyle(
+            name="CoverTitle",
+            fontName=bold_font,
+            fontSize=20,
+            leading=24,
+            alignment=TA_CENTER,
+            spaceAfter=18,
+            textColor=colors.HexColor("#1F2937"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="SectionTitle",
+            fontName=bold_font,
+            fontSize=13,
+            leading=16,
+            spaceBefore=8,
+            spaceAfter=6,
+            textColor=colors.HexColor("#1F77B4"),
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="Body",
+            fontName=regular_font,
+            fontSize=10.5,
+            leading=14,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="TableHeader",
+            fontName=bold_font,
+            fontSize=9.5,
+            leading=12,
+            alignment=TA_CENTER,
+            textColor=colors.white,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="TableCell",
+            fontName=regular_font,
+            fontSize=9.5,
+            leading=12,
+            alignment=TA_LEFT,
+        )
+    )
+
+    def as_paragraph(value: object, style: ParagraphStyle) -> Paragraph:
+        """Español: Convierte un valor en párrafo seguro para tablas.
+
+        English: Cast a value into a safe paragraph for tables.
+        """
+        return Paragraph(str(value), style)
+
+    def build_table(rows: list[list[object]], col_widths: list[float]) -> Table:
+        """Español: Construye una tabla con encabezado resaltado.
+
+        English: Build a table with a highlighted header row.
+        """
+        header = [as_paragraph(cell, styles["TableHeader"]) for cell in rows[0]]
+        body = [[as_paragraph(cell, styles["TableCell"]) for cell in row] for row in rows[1:]]
+        table = Table([header] + body, colWidths=col_widths, repeatRows=1)
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F77B4")),
+                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#D1D5DB")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
+        return table
+
+    report_date = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    version = "v1.0"
+    repo_url = "https://github.com/userf8a2c4/centinel-engine"
+
+    def draw_footer(canvas: reportlab_canvas.Canvas, doc_instance: SimpleDocTemplate) -> None:
+        """Español: Dibuja el pie de página con enlace y timestamp.
+
+        English: Draw footer with repository link and timestamp.
+        """
+        canvas.saveState()
+        canvas.setFont(regular_font, 8)
+        canvas.setFillColor(colors.HexColor("#6B7280"))
+        canvas.drawString(doc_instance.leftMargin, 1.2 * cm, f"Repositorio: {repo_url}")
+        canvas.drawRightString(
+            doc_instance.pagesize[0] - doc_instance.rightMargin,
+            1.2 * cm,
+            f"Generado: {report_date}",
+        )
+        canvas.restoreState()
+
+    elements: list = []
+    elements.append(Paragraph("Reporte de Auditoría Centinel", styles["CoverTitle"]))
+    elements.append(
+        Paragraph(
+            "Monitoreo técnico de integridad y trazabilidad para datos públicos del CNE "
+            "(JSON agregado nacional + 18 departamentos).",
+            styles["Body"],
+        )
+    )
+    elements.append(
+        Paragraph(
+            f"Fecha de generación: {report_date}<br/>"
+            f"Versión: {version}<br/>"
+            f"Hash del snapshot actual: {current_hash}<br/>"
+            f"Hash del snapshot previo: {previous_hash}",
+            styles["Body"],
+        )
+    )
+    elements.append(Spacer(1, 16))
+    elements.append(PageBreak())
+
+    elements.append(Paragraph("Resumen Nacional", styles["SectionTitle"]))
+    national_rows = [
+        ["Indicador", "Valor"],
+        ["Total nacional (JSON)", data_nacional.get("total_nacional", "N/D")],
+        ["Suma departamentos (18)", data_nacional.get("suma_departamentos", "N/D")],
+        ["Delta agregación", data_nacional.get("delta_aggregacion", "N/D")],
+        ["Snapshots procesados", data_nacional.get("snapshots", "N/D")],
+    ]
+    elements.append(build_table(national_rows, [doc.width * 0.6, doc.width * 0.4]))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("Resumen por Departamento", styles["SectionTitle"]))
+    dept_rows = [["Departamento", "Total", "Diff vs anterior"]]
+    for row in data_departamentos:
+        dept = row.get("departamento", "N/D")
+        total = row.get("total", "N/D")
+        diff_value = diffs.get(dept, row.get("diff", "N/D"))
+        dept_rows.append([dept, total, diff_value])
+    elements.append(build_table(dept_rows, [doc.width * 0.45, doc.width * 0.25, doc.width * 0.3]))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("Diferencias detectadas (Diffs)", styles["SectionTitle"]))
+    diff_rows = [["Departamento", "Delta vs snapshot previo"]]
+    if diffs:
+        for dept, diff_value in diffs.items():
+            diff_rows.append([dept, diff_value])
+    else:
+        diff_rows.append(["N/D", "Sin cambios relevantes detectados"])
+    elements.append(build_table(diff_rows, [doc.width * 0.5, doc.width * 0.5]))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("Metodología (ES/EN)", styles["SectionTitle"]))
+    metodologia = (
+        "<b>ES:</b> Este reporte resume únicamente datos públicos agregados del CNE "
+        "a nivel nacional y por departamento (18). No se incluyen mesas, actas ni votos "
+        "individuales. Las métricas se calculan sobre snapshots JSON públicos y encadenados "
+        "por hash, lo que permite detectar cambios entre el snapshot actual y el previo. "
+        "En futuras versiones se incorporarán pruebas estadísticas (Benford, chi-cuadrado) "
+        "y validaciones adicionales de consistencia. [Placeholder metodológico bilingüe].<br/><br/>"
+        "<b>EN:</b> This report summarizes only public, aggregated CNE data at national "
+        "and departmental levels (18). It excludes precinct tables, actas, or individual votes. "
+        "Metrics are computed from public JSON snapshots linked by hashing to detect changes "
+        "between the latest and previous snapshots. Future versions will include statistical "
+        "tests (Benford, chi-square) and additional consistency checks. "
+        "[Bilingual methodology placeholder]."
+    )
+    elements.append(Paragraph(metodologia, styles["Body"]))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("Declaración de Neutralidad (ES/EN)", styles["SectionTitle"]))
+    disclaimer = (
+        "<b>ES:</b> Este documento utiliza exclusivamente datos públicos del CNE y "
+        "no incluye información sensible ni desagregada. No contiene interpretación "
+        "política ni conclusiones electorales, y no sustituye procesos oficiales del CNE. "
+        "Su propósito es documentar integridad técnica, trazabilidad y transparencia "
+        "para observadores internacionales de manera neutral y verificable.<br/><br/>"
+        "<b>EN:</b> This document relies solely on public CNE data and contains no "
+        "sensitive or disaggregated information. It provides no political interpretation "
+        "or electoral conclusions, and it does not replace official CNE processes. "
+        "Its purpose is to document technical integrity, traceability, and transparency "
+        "for international observers in a neutral, verifiable manner."
+    )
+    elements.append(Paragraph(disclaimer, styles["Body"]))
 
 def build_pdf_export_payload(
     snapshots_df: pd.DataFrame,
