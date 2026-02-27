@@ -940,6 +940,32 @@ def main() -> None:
 
     EN: Orchestrate the full institutional dashboard layout.
     """
+    if buf is None:
+        return ""
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode("utf-8")
+
+alerts_container = st.container()
+with alerts_container:
+    if rate_limit_failures > 0:
+        st.error(
+            "Polling fallido por rate-limit del CNE (CNE rate-limit polling failure) · "
+            f"Intentos: {rate_limit_failures} (Attempts: {rate_limit_failures})"
+        )
+    if failed_retries > 0:
+        st.warning(
+            "Conexión perdida - reintentando en "
+            f"{refresh_interval} segundos (Connection lost - retrying in "
+            f"{refresh_interval} seconds)."
+        )
+    if latest_timestamp is None or (time_since_last and time_since_last > dt.timedelta(minutes=45)):
+        st.warning("No se encontraron snapshots recientes (No recent snapshots found).")
+
+if snapshots_df.empty:
+    st.warning(
+        f"No se encontraron snapshots en {snapshot_base_dir.as_posix()}/ "
+        "(No snapshots found). El panel está en modo demo (Dashboard is in demo mode)."
+    )
 
     # ES: Configuración oficial de página en modo ancho para dashboards.
     # EN: Official page configuration in wide layout for dashboards.

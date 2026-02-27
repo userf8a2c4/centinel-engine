@@ -74,12 +74,12 @@ make init && make pipeline
 
 | Recurso / Resource                  | Ruta / Path |
 |-------------------------------------|-------------|
-| Documentación completa / Full docs  | docs/ |
-| Matriz legal / Legal matrix         | docs/legal_compliance_matrix.md |
-| Arquitectura / Architecture         | docs/architecture.md |
-| Extender reglas UPNFM               | docs/upnfm_integration_guide.md |
-| Modelo core/research de reglas      | config/prod/rules_core.yaml / config/prod/rules_research.yaml |
-| Bundle de verificación de evidencia | docs/VERIFICATION-BUNDLE.md |
+| Documentación completa / Full docs  | [docs/](docs/) |
+| Matriz legal / Legal matrix         | [docs/legal_compliance_matrix.md](docs/legal_compliance_matrix.md) |
+| Arquitectura / Architecture         | [docs/architecture.md](docs/architecture.md) |
+| Extender reglas UPNFM               | [docs/upnfm_integration_guide.md](docs/upnfm_integration_guide.md) |
+| Modelo core/research de reglas      | [config/prod/rules_core.yaml](config/prod/rules_core.yaml) / [config/prod/rules_research.yaml](config/prod/rules_research.yaml) |
+| Bundle de verificación de evidencia | [docs/VERIFICATION-BUNDLE.md](docs/VERIFICATION-BUNDLE.md) |
 
 </details>
 
@@ -89,7 +89,7 @@ Este proyecto se limita al procesamiento y auditoría de datos públicos, bajo c
 
 No constituye afiliación institucional ni respaldo político de ninguna organización, candidatura o actor electoral. Su propósito es estrictamente técnico: observación, trazabilidad y verificación independiente de evidencia.
 
-Para detalle normativo, consultar la matriz legal: `docs/legal_compliance_matrix.md`.
+Para detalle normativo, consultar la matriz legal: [docs/legal_compliance_matrix.md](docs/legal_compliance_matrix.md).
 
 ## Licencia y metadatos / License & Metadata
 
