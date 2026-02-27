@@ -1566,6 +1566,65 @@ else:
 
         pass
 
+        def showPage(self) -> None:
+            """Español: Función showPage del módulo dashboard/streamlit_app.py.
+
+            English: Function showPage defined in dashboard/streamlit_app.py.
+            """
+            self._saved_page_states.append(dict(self.__dict__))
+            self._startPage()
+
+        def save(self) -> None:
+            """Español: Función save del módulo dashboard/streamlit_app.py.
+
+            English: Function save defined in dashboard/streamlit_app.py.
+            """
+            total_pages = len(self._saved_page_states)
+            prev_hash = hashlib.sha256(self._root_hash.encode("utf-8")).hexdigest()[:12]
+            for state in self._saved_page_states:
+                self.__dict__.update(state)
+                page = self.getPageNumber()
+                current_hash = hashlib.sha256(f"{prev_hash}|{page}".encode("utf-8")).hexdigest()[:12]
+                self.draw_page_number(total_pages, current_hash)
+                prev_hash = current_hash
+                super().showPage()
+            super().save()
+
+        def draw_page_number(self, total_pages: int, current_hash: str) -> None:
+            """Español: Función draw_page_number del módulo dashboard/streamlit_app.py.
+
+            English: Function draw_page_number defined in dashboard/streamlit_app.py.
+            """
+            self.setFont("Helvetica", 8)
+            self.setFillColor(colors.grey)
+            page = self.getPageNumber()
+            self.drawRightString(
+                self._pagesize[0] - 1.5 * cm,
+                0.75 * cm,
+                f"Página {page}/{total_pages}",
+            )
+            self.setFont("Helvetica", 7)
+            self.drawString(
+                1.5 * cm,
+                0.3 * cm,
+                f"Pag {page} | SHA-256 Page Hash: {current_hash}",
+            )
+            self.setFont("Helvetica", 7)
+            self.drawRightString(
+                self._pagesize[0] - 1.5 * cm,
+                0.3 * cm,
+                "Auditoría Independiente - Proyecto Centinel",
+            )
+
+else:
+
+    class NumberedCanvas:  # pragma: no cover - placeholder when reportlab is absent
+        """Español: Clase NumberedCanvas del módulo dashboard/streamlit_app.py.
+
+        English: NumberedCanvas class defined in dashboard/streamlit_app.py.
+        """
+
+        pass
 
 def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     """Español: Función build_pdf_report del módulo dashboard/streamlit_app.py.
@@ -2486,6 +2545,74 @@ def _generate_weasyprint_pdf(template_data: dict[str, Any]) -> bytes | None:
     pdf_bytes = WeasyHTML(string=html_content).write_pdf()
     return pdf_bytes
 
+snapshot_sources = {
+    "Datos reales (Real data)": {
+        "base_dir": Path("data"),
+        "pattern": "snapshot_*.json",
+        "explicit_files": None,
+    },
+    "Mock normal (Normal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_normal.json"],
+    },
+    "Mock anomalia (Anomaly mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_anomaly.json"],
+    },
+    "Mock reversion (Reversal mock)": {
+        "base_dir": Path("data/mock"),
+        "pattern": "*.json",
+        "explicit_files": ["mock_reversal.json"],
+    },
+}
+source_config = snapshot_sources[snapshot_source]
+snapshot_base_dir = source_config["base_dir"]
+snapshot_files = load_snapshot_files(
+    snapshot_base_dir,
+    pattern=source_config["pattern"],
+    explicit_files=source_config["explicit_files"],
+)
+progress = st.progress(0, text="Cargando snapshots inmutables...")
+for step in range(1, 5):
+    progress.progress(step * 25, text=f"Sincronizando evidencia {step}/4")
+progress.empty()
+
+snapshot_selector_options = ["Ultimo snapshot (Latest)"]
+snapshot_lookup: dict[str, dict[str, Any]] = {}
+for snapshot in sorted(
+    snapshot_files,
+    key=lambda item: _parse_timestamp(item.get("timestamp")) or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
+    reverse=True,
+):
+    timestamp_label = snapshot.get("timestamp", "N/D")
+    hash_label = snapshot.get("hash", "")[:8]
+    label = f"{timestamp_label} \u00b7 {hash_label}..."
+    snapshot_lookup[label] = snapshot
+    snapshot_selector_options.append(label)
+
+selected_snapshot_label = st.sidebar.selectbox(
+    "Snapshot historico (Historical snapshot)",
+    snapshot_selector_options,
+    index=0,
+)
+selected_snapshot = snapshot_lookup.get(selected_snapshot_label)
+selected_snapshot_timestamp = _parse_timestamp(selected_snapshot.get("timestamp")) if selected_snapshot else None
+
+latest_snapshot = {}
+latest_timestamp = None
+last_batch_label = "N/D"
+hash_accumulator = anchor.root_hash
+try:
+    (
+        latest_snapshot,
+        latest_timestamp,
+        last_batch_label,
+        hash_accumulator,
+    ) = _resolve_latest_snapshot_info(snapshot_files, anchor.root_hash)
+except Exception as exc:  # noqa: BLE001
+    st.warning("No se pudo determinar el ultimo snapshot (Unable to resolve latest snapshot): " f"{exc}")
 
 def _chart_to_base64(buf: io.BytesIO | None) -> str:
     """EN: Convert a BytesIO chart buffer to base64 string for HTML embedding.
