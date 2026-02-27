@@ -1496,6 +1496,8 @@ class NumberedCanvas(_CanvasBase):
 
     English: NumberedCanvas class defined in dashboard/streamlit_app.py.
     """
+    if not REPORTLAB_AVAILABLE:
+        raise RuntimeError("reportlab is required to build the PDF report.")
 
     def __init__(self, *args, root_hash: str = "", **kwargs) -> None:
         """Español: Función __init__ del módulo dashboard/streamlit_app.py.
