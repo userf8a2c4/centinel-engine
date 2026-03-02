@@ -794,11 +794,18 @@ def register_strict_health_endpoints(app: FastAPI) -> None:
         return {"status": "ready", **diagnostics}
 
     @router.get("/live")
-    async def live() -> dict[str, str]:
+    async def live() -> dict[str, Any]:
         """Español: Función asíncrona live del módulo src/monitoring/strict_health.py.
 
         English: Async function live defined in src/monitoring/strict_health.py.
         """
-        return {"status": "alive"}
+        response: dict[str, Any] = {"status": "alive"}
+        fly_region = os.getenv("FLY_REGION")
+        if fly_region:
+            response["region"] = fly_region
+        fly_alloc = os.getenv("FLY_ALLOC_ID")
+        if fly_alloc:
+            response["alloc_id"] = fly_alloc
+        return response
 
     app.include_router(router)
