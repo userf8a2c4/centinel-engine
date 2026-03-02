@@ -12,8 +12,8 @@ RUN apt-get update \
 
 FROM base AS builder
 
-COPY requirements.txt dashboard/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt -r dashboard/requirements.txt
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app
 
@@ -32,4 +32,4 @@ RUN mkdir -p /app/logs /app/data /app/hashes && \
 
 USER centinel
 
-CMD ["streamlit", "run", "dashboard/streamlit_app.py", "--server.port=8080", "--server.address=0.0.0.0", "--server.headless=true"]
+CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080"]

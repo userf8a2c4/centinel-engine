@@ -13,6 +13,7 @@ httpx>=0.27.0,<1.0.0           # Cliente HTTP para healthchecks
 boto3>=1.34.0,<2.0.0           # Cliente S3/R2 para checkpoints
 psutil>=5.9.8,<6.0.0           # Métricas de CPU/memoria para healthcheck
 fastapi>=0.111.0,<1.0.0        # API de salud y endpoints públicos
+uvicorn>=0.30.0,<1.0.0        # Servidor ASGI para desplegar FastAPI en Fly
 prometheus-client>=0.20.0      # Métricas de seguridad para monitoreo
 
 # Procesamiento y análisis de datos
