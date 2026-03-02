@@ -1,4 +1,4 @@
-app = "centinel-engine"
+app = "centinel"
 primary_region = "lhr"
 
 [build]
