@@ -529,49 +529,72 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>C.E.N.T.I.N.E.L. Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0A1428;color:#E0E6ED;min-height:100vh}
-.header{background:linear-gradient(135deg,#0D1B2A 0%,#1B2838 100%);border-bottom:2px solid #00A3E0;padding:1.5rem 2rem;display:flex;align-items:center;justify-content:space-between}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0A1428;color:#E0E6ED;min-height:100vh;display:flex;flex-direction:column}
+.header{background:linear-gradient(135deg,#0D1B2A 0%,#1B2838 100%);border-bottom:2px solid #00A3E0;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
 .header h1{font-size:1.4rem;letter-spacing:2px;color:#00A3E0}
-.header .badge{background:#00C853;color:#0A1428;padding:.25rem .75rem;border-radius:4px;font-size:.75rem;font-weight:700}
-.container{max-width:1200px;margin:0 auto;padding:2rem}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;margin-bottom:2rem}
-.card{background:#111D2E;border:1px solid #1E3048;border-radius:8px;padding:1.25rem}
-.card h3{font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:#7A8BA3;margin-bottom:.5rem}
-.card .value{font-size:1.5rem;font-weight:700;color:#00A3E0}
+.header-right{display:flex;align-items:center;gap:.75rem}
+.badge{background:#00C853;color:#0A1428;padding:.25rem .75rem;border-radius:4px;font-size:.75rem;font-weight:700}
+#conn-indicator{font-size:.7rem;color:#7A8BA3;display:flex;align-items:center;gap:4px}
+#conn-dot{width:6px;height:6px;border-radius:50%;background:#00C853;transition:background .3s}
+#conn-dot.off{background:#FF5252}
+.container{max-width:1200px;margin:0 auto;padding:1.5rem;width:100%;flex:1}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem}
+.card{background:#111D2E;border:1px solid #1E3048;border-radius:8px;padding:1.25rem;transition:border-color .2s}
+.card:hover{border-color:#00A3E055}
+.card h3{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:#7A8BA3;margin-bottom:.5rem}
+.card .value{font-size:1.4rem;font-weight:700;color:#00A3E0;word-break:break-word}
 .card .value.ok{color:#00C853}
 .card .value.warn{color:#FF9800}
 .card .value.err{color:#FF5252}
-.section{background:#111D2E;border:1px solid #1E3048;border-radius:8px;padding:1.5rem;margin-bottom:1.25rem}
-.section h2{font-size:1rem;color:#00A3E0;margin-bottom:1rem;border-bottom:1px solid #1E3048;padding-bottom:.5rem}
+.section{background:#111D2E;border:1px solid #1E3048;border-radius:8px;padding:1.25rem;margin-bottom:1rem}
+.section h2{font-size:.95rem;color:#00A3E0;margin-bottom:.75rem;border-bottom:1px solid #1E3048;padding-bottom:.5rem;display:flex;align-items:center;justify-content:space-between}
+.section h2 .updated{font-size:.65rem;color:#4A5568;font-weight:400}
 table{width:100%;border-collapse:collapse;font-size:.85rem}
 th{text-align:left;color:#7A8BA3;padding:.5rem;border-bottom:1px solid #1E3048;font-weight:600}
-td{padding:.5rem;border-bottom:1px solid #1E304833}
-.mono{font-family:'SF Mono',monospace;font-size:.8rem;color:#8FAABE}
-.alert-item{padding:.75rem;border-left:3px solid #FF9800;margin-bottom:.5rem;background:#1a1a2e}
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid #1E3048;border-top-color:#00A3E0;border-radius:50%;animation:spin .6s linear infinite}
+td{padding:.5rem;border-bottom:1px solid #1E304833;word-break:break-all}
+.mono{font-family:'SF Mono','Cascadia Code',monospace;font-size:.78rem;color:#8FAABE}
+.alert-item{padding:.75rem;border-left:3px solid #FF9800;margin-bottom:.5rem;background:#1a1a2e;border-radius:0 4px 4px 0;font-size:.85rem}
+.alert-item.critical{border-left-color:#FF5252}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #1E3048;border-top-color:#00A3E0;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
 .status-dot.green{background:#00C853}
 .status-dot.red{background:#FF5252}
-.footer{text-align:center;padding:2rem;color:#4A5568;font-size:.75rem}
+.footer{text-align:center;padding:1.5rem;color:#4A5568;font-size:.7rem;border-top:1px solid #1E3048}
+.empty{color:#4A5568;font-style:italic;font-size:.85rem}
+@media(max-width:600px){
+  .header{padding:.75rem 1rem}
+  .header h1{font-size:1.1rem}
+  .container{padding:1rem}
+  .cards{grid-template-columns:1fr 1fr}
+  .card .value{font-size:1.1rem}
+  td,th{padding:.35rem;font-size:.78rem}
+}
+@media(max-width:400px){
+  .cards{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 <div class="header">
   <h1>C.E.N.T.I.N.E.L.</h1>
-  <span class="badge">OBSERVADOR NEUTRAL</span>
+  <div class="header-right">
+    <span id="conn-indicator"><span id="conn-dot"></span><span id="conn-text">Conectado</span></span>
+    <span class="badge">OBSERVADOR NEUTRAL</span>
+  </div>
 </div>
 <div class="container">
   <div class="cards">
     <div class="card"><h3>Estado API</h3><div id="api-status" class="value"><span class="spinner"></span></div></div>
-    <div class="card"><h3>Ultimo Snapshot</h3><div id="snapshot-ts" class="value"><span class="spinner"></span></div></div>
+    <div class="card"><h3>&Uacute;ltimo Snapshot</h3><div id="snapshot-ts" class="value"><span class="spinner"></span></div></div>
     <div class="card"><h3>Departamento</h3><div id="snapshot-dept" class="value"><span class="spinner"></span></div></div>
     <div class="card"><h3>Alertas Activas</h3><div id="alert-count" class="value"><span class="spinner"></span></div></div>
   </div>
   <div class="section">
-    <h2>Snapshot Mas Reciente</h2>
+    <h2>Snapshot M&aacute;s Reciente <span class="updated" id="last-update"></span></h2>
     <table>
       <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
       <tbody id="snapshot-table"><tr><td colspan="2"><span class="spinner"></span> Cargando...</td></tr></tbody>
@@ -586,31 +609,45 @@ td{padding:.5rem;border-bottom:1px solid #1E304833}
     <div id="summary-content"><span class="spinner"></span> Cargando...</div>
   </div>
 </div>
-<div class="footer">C.E.N.T.I.N.E.L. Engine &mdash; Auditoria Electoral Transparente</div>
+<div class="footer">C.E.N.T.I.N.E.L. Engine &mdash; Auditor&iacute;a Electoral Transparente &mdash; <a href="/docs" style="color:#00A3E0;text-decoration:none">API Docs</a></div>
 <script>
+function esc(s){if(!s)return'\\u2014';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
 async function f(url){try{const r=await fetch(url);if(!r.ok)throw r.status;return await r.json()}catch(e){return null}}
+let ok=true;
 async function load(){
   const [health,snap,alerts,summaries]=await Promise.all([
     f('/api/health'),f('/snapshots/latest'),f('/alerts'),f('/api/summaries')
   ]);
   const $=id=>document.getElementById(id);
-  if(health&&health.status==='ok'){$('api-status').className='value ok';$('api-status').innerHTML='<span class="status-dot green"></span>Operativo'}
+  const now=new Date().toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  ok=!!(health&&health.status==='ok');
+  $('conn-dot').className=ok?'':'off';
+  $('conn-text').textContent=ok?'Conectado':'Desconectado';
+  $('last-update').textContent=ok?'Actualizado: '+now:'';
+  if(ok){$('api-status').className='value ok';$('api-status').innerHTML='<span class="status-dot green"></span>Operativo'}
   else{$('api-status').className='value err';$('api-status').innerHTML='<span class="status-dot red"></span>Error'}
   if(snap){
-    $('snapshot-ts').textContent=snap.timestamp_utc||'—';
-    $('snapshot-dept').textContent=snap.department_code||'—';
+    $('snapshot-ts').textContent=snap.timestamp_utc||'\\u2014';
+    $('snapshot-dept').textContent=snap.department_code||'\\u2014';
     let rows='';
     const fields=[['Hash',snap.snapshot_id],['Departamento',snap.department_code],['Timestamp UTC',snap.timestamp_utc],['Hash Previo',snap.previous_hash],['TX Hash',snap.tx_hash],['IPFS CID',snap.ipfs_cid]];
-    fields.forEach(([k,v])=>{rows+=`<tr><td>${k}</td><td class="mono">${v||'—'}</td></tr>`});
+    fields.forEach(([k,v])=>{rows+='<tr><td>'+esc(k)+'</td><td class="mono">'+esc(v)+'</td></tr>'});
     $('snapshot-table').innerHTML=rows;
-  }else{$('snapshot-ts').textContent='—';$('snapshot-dept').textContent='—';$('snapshot-table').innerHTML='<tr><td colspan="2">Sin snapshots disponibles</td></tr>'}
+  }else{
+    $('snapshot-ts').textContent='\\u2014';$('snapshot-dept').textContent='\\u2014';
+    $('snapshot-table').innerHTML='<tr><td colspan="2" class="empty">Sin snapshots disponibles</td></tr>';
+  }
   if(alerts&&alerts.length>0){
     $('alert-count').className='value warn';$('alert-count').textContent=alerts.length;
-    $('alerts-list').innerHTML=alerts.slice(0,20).map(a=>`<div class="alert-item">${a.descripcion||a.description||JSON.stringify(a)}</div>`).join('');
-  }else{$('alert-count').className='value ok';$('alert-count').textContent='0';$('alerts-list').innerHTML='Sin alertas activas.'}
+    $('alerts-list').innerHTML=alerts.slice(0,20).map(a=>{
+      const txt=esc(a.descripcion||a.description||JSON.stringify(a));
+      const cls=(a.severity==='critical'||a.nivel==='critico')?'alert-item critical':'alert-item';
+      return '<div class="'+cls+'">'+txt+'</div>';
+    }).join('');
+  }else{$('alert-count').className='value ok';$('alert-count').textContent='0';$('alerts-list').innerHTML='<span class="empty">Sin alertas activas.</span>'}
   if(summaries&&summaries.summary&&summaries.summary.length>0){
-    $('summary-content').innerHTML=summaries.summary.map(l=>`<p style="margin-bottom:.5rem">${l}</p>`).join('');
-  }else{$('summary-content').textContent='Sin resumen disponible.'}
+    $('summary-content').innerHTML=summaries.summary.map(l=>'<p style="margin-bottom:.5rem">'+esc(l)+'</p>').join('');
+  }else{$('summary-content').innerHTML='<span class="empty">Sin resumen disponible.</span>'}
 }
 load();setInterval(load,30000);
 </script>

@@ -1,0 +1,58 @@
+# Git
+.git
+.gitignore
+
+# CI/CD
+.github/
+.devcontainer/
+
+# Documentation
+docs/
+*.md
+LICENSE
+DOCUMENTATION_COVERAGE.md
+SECURITY_AUDIT.md
+
+# Testing
+tests/
+chaos_test.py
+conftest.py
+requirements-chaos.txt
+requirements-dev.txt
+.coverage
+*.junit.xml
+artifacts/
+
+# Development tools
+.flake8
+bandit.yaml
+.coveragerc
+Makefile
+
+# Virtual environments
+.venv/
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# Data / secrets (never ship to image)
+.env
+.env.local
+*.pem
+*.key
+secrets.yaml
+config/secrets/*
+
+# Docker
+Dockerfile
+docker-compose.yml
+fly.toml
+
+# Misc
+*.log
+*.tmp
+node_modules/
+poetry.lock

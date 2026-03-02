@@ -6,30 +6,49 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Install only runtime system dependencies (no build-essential in final image).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential curl cron \
+    && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
+# --- Builder stage: install Python deps in isolation ---
 FROM base AS builder
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY . /app
+COPY requirements-prod.txt ./
+RUN pip install --no-cache-dir --prefix=/install -r requirements-prod.txt
 
+# --- Runtime stage ---
 FROM base AS runtime
 
-# Security: create non-root user to run the application.
-# Seguridad: crear usuario no-root para ejecutar la aplicación.
+# Security: non-root user.
 RUN groupadd -r centinel && useradd -r -g centinel -d /app -s /sbin/nologin centinel
 
-COPY --from=builder /usr/local /usr/local
-COPY --from=builder /app /app
+# Copy installed Python packages from builder.
+COPY --from=builder /install /usr/local
 
-# Ensure the app user owns necessary writable directories.
+# Copy application source.
+COPY . /app
+
+# Writable directories for runtime data.
 RUN mkdir -p /app/logs /app/data /app/hashes && \
     chown -R centinel:centinel /app/logs /app/data /app/hashes
 
+EXPOSE 8080
+
 USER centinel
 
-CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/live || exit 1
+
+CMD ["gunicorn", "api.main:app", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--bind", "0.0.0.0:8080", \
+     "--workers", "2", \
+     "--timeout", "120", \
+     "--graceful-timeout", "30", \
+     "--keep-alive", "5", \
+     "--access-logfile", "-"]
