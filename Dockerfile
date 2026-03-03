@@ -15,9 +15,9 @@ RUN apt-get update \
 FROM node:20-slim AS frontend-builder
 
 WORKDIR /frontend
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY dashboard/frontend/package.json dashboard/frontend/package-lock.json* ./
 RUN npm ci --ignore-scripts
-COPY frontend/ ./
+COPY dashboard/frontend/ ./
 RUN npm run build
 
 # --- Python builder stage: install Python deps in isolation ---
