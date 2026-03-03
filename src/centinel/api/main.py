@@ -163,7 +163,7 @@ def _rules_rate_limit(default: int) -> int:
         return default
 
 
-rate_limit_per_minute = _env_int("API_RATE_LIMIT", _rules_rate_limit(10))
+rate_limit_per_minute = _env_int("API_RATE_LIMIT", _rules_rate_limit(30))
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=[f"{rate_limit_per_minute}/minute"],
@@ -612,8 +612,13 @@ td{padding:.5rem;border-bottom:1px solid #1E304833;word-break:break-all}
 <div class="footer">C.E.N.T.I.N.E.L. Engine &mdash; Auditor&iacute;a Electoral Transparente &mdash; <a href="/docs" style="color:#00A3E0;text-decoration:none">API Docs</a></div>
 <script>
 function esc(s){if(!s)return'\\u2014';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
-async function f(url){try{const r=await fetch(url);if(!r.ok)throw r.status;return await r.json()}catch(e){return null}}
-let ok=true;
+const MAX_RETRIES=3,BASE_DELAY=1000;
+async function f(url,attempt){
+  attempt=attempt||0;
+  try{const r=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw new Error(r.status);return await r.json()}
+  catch(e){if(attempt<MAX_RETRIES){await new Promise(res=>setTimeout(res,BASE_DELAY*Math.pow(2,attempt)+Math.random()*500));return f(url,attempt+1)}return null}
+}
+let ok=true,consecutiveFails=0,pollInterval=15000,pollTimer=null;
 async function load(){
   const [health,snap,alerts,summaries]=await Promise.all([
     f('/api/health'),f('/snapshots/latest'),f('/alerts'),f('/api/summaries')
@@ -621,11 +626,12 @@ async function load(){
   const $=id=>document.getElementById(id);
   const now=new Date().toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   ok=!!(health&&health.status==='ok');
+  if(ok){consecutiveFails=0;pollInterval=15000}else{consecutiveFails++;pollInterval=Math.min(15000*Math.pow(2,consecutiveFails),120000)}
   $('conn-dot').className=ok?'':'off';
-  $('conn-text').textContent=ok?'Conectado':'Desconectado';
-  $('last-update').textContent=ok?'Actualizado: '+now:'';
+  $('conn-text').textContent=ok?'Conectado':'Reconectando\\u2026';
+  $('last-update').textContent=ok?'Actualizado: '+now:'Reintentando en '+Math.round(pollInterval/1000)+'s';
   if(ok){$('api-status').className='value ok';$('api-status').innerHTML='<span class="status-dot green"></span>Operativo'}
-  else{$('api-status').className='value err';$('api-status').innerHTML='<span class="status-dot red"></span>Error'}
+  else{$('api-status').className='value err';$('api-status').innerHTML='<span class="status-dot red"></span>Reconectando'}
   if(snap){
     $('snapshot-ts').textContent=snap.timestamp_utc||'\\u2014';
     $('snapshot-dept').textContent=snap.department_code||'\\u2014';
@@ -648,8 +654,10 @@ async function load(){
   if(summaries&&summaries.summary&&summaries.summary.length>0){
     $('summary-content').innerHTML=summaries.summary.map(l=>'<p style="margin-bottom:.5rem">'+esc(l)+'</p>').join('');
   }else{$('summary-content').innerHTML='<span class="empty">Sin resumen disponible.</span>'}
+  clearTimeout(pollTimer);pollTimer=setTimeout(load,pollInterval);
 }
-load();setInterval(load,30000);
+load();
+document.addEventListener('visibilitychange',function(){if(!document.hidden){clearTimeout(pollTimer);load()}});
 </script>
 </body>
 </html>"""

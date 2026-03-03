@@ -41,14 +41,14 @@ EXPOSE 8080
 
 USER centinel
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=5 \
     CMD curl -f http://localhost:8080/live || exit 1
 
 CMD ["gunicorn", "api.main:app", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
      "--bind", "0.0.0.0:8080", \
-     "--workers", "2", \
+     "--workers", "4", \
      "--timeout", "120", \
      "--graceful-timeout", "30", \
-     "--keep-alive", "5", \
+     "--keep-alive", "65", \
      "--access-logfile", "-"]
