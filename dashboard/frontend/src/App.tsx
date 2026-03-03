@@ -52,29 +52,26 @@ export default function App() {
     }
   }, [accessibilityMode]);
 
-  // ── Polling: simulated fetch every 5 min ──────────────────────────
+  // ── Polling: fetch real data from API every 5 min ───────────────────
   const fetchData = useCallback(() => {
-    // EN: In production, replace with actual fetch to CNE endpoint
-    // ES: En producción, reemplazar con fetch real al endpoint del CNE
-    // fetch('/api/election-data').then(r => r.json()).then(setData)
-
-    // EN: Simulate slight data variation for demo
-    // ES: Simular leve variación de datos para demo
-    setData((prev) => ({
-      ...prev,
-      timestamp: new Date().toISOString(),
-      national: {
-        ...prev.national,
-        actasEscrutadas: Math.min(
-          prev.national.actasTotal,
-          prev.national.actasEscrutadas + Math.floor(Math.random() * 5),
-        ),
-      },
-    }));
-    setLastUpdate(new Date().toLocaleTimeString('es-HN'));
+    fetch('/api/dashboard-data')
+      .then((r) => {
+        if (!r.ok) throw new Error(`API ${r.status}`);
+        return r.json();
+      })
+      .then((payload: ElectionData) => {
+        setData(payload);
+        setLastUpdate(new Date().toLocaleTimeString('es-HN'));
+      })
+      .catch((err) => {
+        console.warn('Dashboard fetch failed, keeping previous data:', err);
+      });
   }, []);
 
   useEffect(() => {
+    // EN: Fetch immediately on mount, then poll
+    // ES: Fetch inmediato al montar, luego polling
+    fetchData();
     const timer = setInterval(fetchData, POLL_INTERVAL);
     return () => clearInterval(timer);
   }, [fetchData]);
