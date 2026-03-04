@@ -819,20 +819,19 @@ def departments_status(request: Request) -> list[dict]:
 
 
 DASHBOARD_BUILD_DIR = BASE_DIR / "static" / "dashboard"
-DASHBOARD_HTML_PATH_LEGACY = BASE_DIR / "templates" / "dashboard.html"
+DASHBOARD_HTML_PATH = BASE_DIR / "templates" / "dashboard.html"
 
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
-    """Sirve el dashboard React (o el legacy HTML como fallback)."""
+    """Sirve el dashboard desde templates/dashboard.html."""
+    if DASHBOARD_HTML_PATH.exists():
+        return FileResponse(DASHBOARD_HTML_PATH, media_type="text/html")
+    # Fallback al React build solo si dashboard.html no existe.
     react_index = DASHBOARD_BUILD_DIR / "index.html"
     if react_index.exists():
         return FileResponse(react_index, media_type="text/html")
-    # Fallback al dashboard estático legacy.
-    try:
-        return DASHBOARD_HTML_PATH_LEGACY.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        raise HTTPException(status_code=500, detail="Dashboard template not found.")
+    raise HTTPException(status_code=500, detail="Dashboard template not found.")
 
 
 # Mount React build assets (JS/CSS bundles) under /assets.
