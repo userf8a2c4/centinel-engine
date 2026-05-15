@@ -129,7 +129,8 @@ class ProxyValidator:
             for proxy_url in proxies:
                 start = time.monotonic()
                 try:
-                    response = client.get(self.test_url, proxies=proxy_url)
+                    proxy_dict = {"all://": proxy_url}
+                    response = client.get(self.test_url, proxies=proxy_dict)
                     elapsed = time.monotonic() - start
                     if response.status_code >= 400:
                         self.logger.warning(
@@ -317,7 +318,7 @@ class ProxyRotator:
 def load_proxy_config(config_path: Optional[Path] = None) -> dict:
     """Carga configuración de proxies desde YAML y variables de entorno."""
     path = config_path or Path(os.getenv("PROXY_CONFIG_PATH", "config/prod/proxies.yaml"))
-    payload: dict = load_config(path=str(path), defaults={})
+    payload: dict = load_config(file_name=path.name, env="prod")
 
     def env(name: str, default: Optional[str] = None) -> Optional[str]:
         """Español: Función env del módulo src/centinel/proxy_handler.py.

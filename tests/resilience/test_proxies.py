@@ -58,10 +58,11 @@ class _DummyClient:
         self._responses = responses
         self._errors = errors
 
-    def get(self, _url: str, *, proxies: str):
-        if proxies in self._errors:
-            raise self._errors[proxies]
-        return _DummyResponse(status_code=self._responses.get(proxies, 200))
+    def get(self, _url: str, *, proxies):
+        proxy_key = proxies if isinstance(proxies, str) else proxies.get("all://", "")
+        if proxy_key in self._errors:
+            raise self._errors[proxy_key]
+        return _DummyResponse(status_code=self._responses.get(proxy_key, 200))
 
     def __enter__(self):
         return self
