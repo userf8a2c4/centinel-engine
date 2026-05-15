@@ -133,6 +133,7 @@ class ChainVerificationResult:
     verified_links: int
     broken_at: Optional[int] = None
     errors: List[str] = field(default_factory=list)
+    signature_failures: List[str] = field(default_factory=list)
     first_hash: Optional[str] = None
     last_hash: Optional[str] = None
 
@@ -204,6 +205,7 @@ def verify_chain(chain_dir: Path) -> ChainVerificationResult:
         )
 
     errors: List[str] = []
+    signature_failures: List[str] = []
     previous_hash: Optional[str] = None
     verified = 0
     first_hash: Optional[str] = None
@@ -249,9 +251,15 @@ def verify_chain(chain_dir: Path) -> ChainVerificationResult:
                     verified_links=verified,
                     broken_at=idx,
                     errors=errors,
+                    signature_failures=signature_failures,
                     first_hash=first_hash,
                     last_hash=previous_hash,
                 )
+
+        # Verify signature if present (non-fatal failure)
+        if "operator_signature" in payload:
+            if not verify_hash_record_signature(payload):
+                signature_failures.append(f"invalid_signature index={idx} file={hash_file.name}")
 
         verified += 1
         previous_hash = stored_hash
@@ -263,6 +271,7 @@ def verify_chain(chain_dir: Path) -> ChainVerificationResult:
         total_links=len(hash_files),
         verified_links=verified,
         errors=errors,
+        signature_failures=signature_failures,
         first_hash=first_hash,
         last_hash=last_hash,
     )
@@ -281,6 +290,7 @@ def verify_chain_from_entries(entries: List[Dict[str, Any]]) -> ChainVerificatio
         return ChainVerificationResult(valid=True, total_links=0, verified_links=0)
 
     errors: List[str] = []
+    signature_failures: List[str] = []
     previous_hash: Optional[str] = None
     verified = 0
     first_hash: Optional[str] = None
@@ -304,9 +314,15 @@ def verify_chain_from_entries(entries: List[Dict[str, Any]]) -> ChainVerificatio
                 verified_links=verified,
                 broken_at=idx,
                 errors=errors,
+                signature_failures=signature_failures,
                 first_hash=first_hash,
                 last_hash=previous_hash,
             )
+
+        # Verify signature if present (non-fatal failure)
+        if "operator_signature" in entry:
+            if not verify_hash_record_signature(entry):
+                signature_failures.append(f"invalid_signature index={idx}")
 
         verified += 1
         previous_hash = stored_hash
@@ -316,6 +332,7 @@ def verify_chain_from_entries(entries: List[Dict[str, Any]]) -> ChainVerificatio
         total_links=len(entries),
         verified_links=verified,
         errors=errors,
+        signature_failures=signature_failures,
         first_hash=first_hash,
         last_hash=previous_hash,
     )

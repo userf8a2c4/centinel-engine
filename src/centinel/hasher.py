@@ -312,6 +312,7 @@ def verify_hashchain_from_snapshots(snapshot_root: Path) -> Dict[str, Any]:
     )
     total_count = len(ordered_dirs)
     errors: List[str] = []
+    signature_failures: List[str] = []
     previous_hash: Optional[str] = None
     last_valid_hash: Optional[str] = None
     verified_count = 0
@@ -388,6 +389,22 @@ def verify_hashchain_from_snapshots(snapshot_root: Path) -> Dict[str, Any]:
             )
             break
 
+        # Verify signature if present (non-fatal failure)
+        metadata_file = entry.snapshot_dir / "snapshot.metadata.json"
+        if metadata_file.exists():
+            try:
+                metadata_content = metadata_file.read_text(encoding="utf-8")
+                metadata_obj = json.loads(metadata_content)
+                if "operator_signature" in metadata_obj:
+                    from .core.custody import verify_hash_record_signature
+                    if not verify_hash_record_signature(metadata_obj):
+                        signature_failures.append(
+                            f"invalid_signature index={idx} path={entry.snapshot_dir.name}"
+                        )
+            except Exception:
+                # Non-fatal: ignore failures reading/parsing signature
+                pass
+
         previous_hash = computed_hash
         last_valid_hash = computed_hash
         verified_count += 1
@@ -401,5 +418,6 @@ def verify_hashchain_from_snapshots(snapshot_root: Path) -> Dict[str, Any]:
         "broken_at": broken_at,
         "broken_at_path": broken_at_path,
         "errors": errors,
+        "signature_failures": signature_failures,
         "timestamp_anomalies": timestamp_anomalies,
     }
