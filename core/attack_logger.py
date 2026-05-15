@@ -213,6 +213,8 @@ class AttackForensicsLogbook:
         self._geo_reader: Any = None
         self._salt_path = self.path.parent / ".attack_log_salt"
         self._cached_salt: str | None = None
+        self._size_rotation_counter = 0
+        self._rotation_lock = threading.Lock()
 
         if self.config.geoip_city_db_path:
             try:
@@ -298,37 +300,79 @@ class AttackForensicsLogbook:
                 self._events.task_done()
 
     def _rotate_if_needed(self) -> None:
-        now = time.time()
-        size_limit = self.config.max_file_size_mb * 1024 * 1024
-        should_rotate = False
-        if self.path.exists() and self.path.stat().st_size >= size_limit:
-            should_rotate = True
-        if now - self._last_rotation >= self.config.rotation_interval_seconds and self.path.exists():
-            should_rotate = True
-        if not should_rotate:
-            return
-        # Skip rotation if the log file is empty (nothing to archive).
-        if self.path.exists() and self.path.stat().st_size == 0:
-            return
+        """Rotate by size or by time, whichever fires first.
 
-        if self._handler:
-            self._handler.flush()
-            self._handler.doRollover()
+        Size-triggered rotations include a microsecond+counter suffix to
+        guarantee unique filenames even under rapid burst attacks that
+        could trigger multiple rotations in the same second. The
+        rotation lock prevents concurrent rotations from racing.
+        """
+        with self._rotation_lock:
+            now = time.time()
+            size_limit = self.config.max_file_size_mb * 1024 * 1024
+            triggered_by_size = False
+            should_rotate = False
+            if self.path.exists() and self.path.stat().st_size >= size_limit:
+                should_rotate = True
+                triggered_by_size = True
+            if now - self._last_rotation >= self.config.rotation_interval_seconds and self.path.exists():
+                should_rotate = True
+            if not should_rotate:
+                return
+            # Skip rotation if the log file is empty (nothing to archive).
+            if self.path.exists() and self.path.stat().st_size == 0:
+                return
+
+            if self._handler and not triggered_by_size:
+                # Time-based rotation uses the daily handler's standard rollover.
+                self._handler.flush()
+                self._handler.doRollover()
+                self._last_rotation = now
+                self._cleanup_old_files()
+                LOGGER.info("attack_log_rotated trigger=time path=%s", self.path)
+                return
+
+            # Size-based rotation: rename with unique timestamp+counter so
+            # multiple rotations within the same second cannot collide.
+            self._size_rotation_counter += 1
+            stamp_us = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+            rotated = self.path.with_name(
+                f"attack_log-{stamp_us}-{self._size_rotation_counter:04d}.jsonl"
+            )
+            if self._handler:
+                try:
+                    self._handler.flush()
+                    self._handler.close()
+                except Exception:
+                    pass
+                self._handler = None
+
+            try:
+                self.path.rename(rotated)
+            except OSError as exc:
+                LOGGER.warning("attack_log_rotate_rename_failed error=%s", exc)
+                return
+
+            gz_path = rotated.with_suffix(rotated.suffix + ".gz")
+            try:
+                with rotated.open("rb") as src, gzip.open(gz_path, "wb") as dst:
+                    dst.write(src.read())
+                # Force the archive to disk before deleting the plain copy.
+                with open(gz_path, "rb") as fh:
+                    os.fsync(fh.fileno())
+                rotated.unlink(missing_ok=True)
+            except OSError as exc:
+                LOGGER.warning("attack_log_rotate_compress_failed error=%s", exc)
+                return
+
             self._last_rotation = now
             self._cleanup_old_files()
-            return
-
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
-        rotated = self.path.with_name(f"attack_log-{stamp}.jsonl")
-        if rotated.exists():
-            rotated = self.path.with_name(f"attack_log-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}.jsonl")
-        self.path.rename(rotated)
-        gz_path = rotated.with_suffix(rotated.suffix + ".gz")
-        with rotated.open("rb") as src, gzip.open(gz_path, "wb") as dst:
-            dst.write(src.read())
-        rotated.unlink(missing_ok=True)
-        self._last_rotation = now
-        self._cleanup_old_files()
+            self._ensure_handler()
+            LOGGER.info(
+                "attack_log_rotated trigger=size archive=%s counter=%d",
+                gz_path,
+                self._size_rotation_counter,
+            )
 
     def _cleanup_old_files(self) -> None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=self.config.retention_days)
