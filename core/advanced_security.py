@@ -73,11 +73,13 @@ import json
 import logging
 import os
 import random
+import shutil
 import signal
 import smtplib
 import subprocess
 import sys
 import ssl
+import tempfile
 import threading
 import time
 import urllib.error
@@ -171,6 +173,31 @@ except Exception:  # noqa: BLE001
 
 
 LOGGER = logging.getLogger("centinel.advanced_security")
+
+
+def _atomic_write_bytes(path: Path, data: bytes) -> None:
+    """Atomic write via temp file + rename.
+
+    Ensures no partial writes are visible to readers or persisted on crash.
+    POSIX rename() is atomic: target is either the previous valid file or the new one.
+
+    Garantiza que ninguna escritura parcial sea visible a lectores o persistida ante crash.
+    rename() en POSIX es atomico: el destino es el archivo previo valido o el nuevo.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=path.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as tmp_file:
+            tmp_file.write(data)
+            tmp_file.flush()
+            os.fsync(tmp_file.fileno())
+        shutil.move(tmp_name, path)
+    except Exception:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
 
 
 @dataclass
@@ -519,7 +546,7 @@ class BackupManager:
                 file = Path(candidate)
                 if file.is_file():
                     payload[str(file)] = file.read_text(encoding="utf-8", errors="ignore")
-        out.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        _atomic_write_bytes(out, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
         return self._encrypt_file(out)
 
     def _encrypt_file(self, path: Path) -> Path:
@@ -529,7 +556,8 @@ class BackupManager:
             return path
         fernet = Fernet(key.encode("utf-8"))
         encrypted = path.with_suffix(path.suffix + ".enc")
-        encrypted.write_bytes(fernet.encrypt(path.read_bytes()))
+        ciphertext = fernet.encrypt(path.read_bytes())
+        _atomic_write_bytes(encrypted, ciphertext)
         path.unlink(missing_ok=True)
         return encrypted
 
