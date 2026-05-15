@@ -6,71 +6,87 @@
 <title>Centinela — Verificador Independiente</title>
 <style>
   :root{
-    --bg:#0d1117;--panel:#161b22;--border:#30363d;--fg:#e6edf3;
-    --muted:#8b949e;--accent:#58a6ff;--ok:#3fb950;--bad:#f85149;
-    --warn:#d29922;--mono:'SFMono-Regular',Consolas,'Liberation Mono',monospace;
+    --bg:#0f1115;--panel:#15171c;--border:#24272e;--fg:#e7e9ec;
+    --muted:#8b929c;--accent:#6ea8fe;--ok:#57c08d;--bad:#df6b86;
+    --warn:#d4b066;--na:#8b929c;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--fg);
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-    line-height:1.5;font-size:15px}
-  header{padding:24px 20px;border-bottom:1px solid var(--border);
-    background:linear-gradient(180deg,#161b22,#0d1117)}
-  header h1{margin:0 0 4px;font-size:22px}
-  header p{margin:0;color:var(--muted);font-size:14px;max-width:780px}
-  main{max-width:1080px;margin:0 auto;padding:20px}
+    line-height:1.65;font-size:15px;-webkit-font-smoothing:antialiased}
+  header{padding:48px 24px 32px;border-bottom:1px solid var(--border)}
+  .hwrap{max-width:880px;margin:0 auto}
+  header h1{margin:0 0 8px;font-size:23px;font-weight:600;letter-spacing:-.02em}
+  header p{margin:0;color:var(--muted);font-size:14.5px;max-width:660px}
+  main{max-width:880px;margin:0 auto;padding:28px 24px}
   .panel{background:var(--panel);border:1px solid var(--border);
-    border-radius:8px;padding:18px;margin-bottom:16px}
-  .panel h2{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px}
-  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-  input[type=text]{width:100%;padding:9px 11px;background:#0d1117;
-    border:1px solid var(--border);border-radius:6px;color:var(--fg);
-    font-family:var(--mono);font-size:13px}
-  .mirrors input{margin-bottom:6px}
-  button{background:var(--accent);color:#0d1117;border:0;border-radius:6px;
-    padding:10px 18px;font-weight:600;cursor:pointer;font-size:14px}
-  button:hover{filter:brightness(1.1)}
-  button.sec{background:transparent;color:var(--accent);
+    border-radius:12px;padding:24px 26px;margin-bottom:18px}
+  .panel h2{margin:0 0 4px;font-size:14px;font-weight:600;
+    color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+    display:flex;align-items:center;gap:10px}
+  label{display:block;font-size:13px;color:var(--muted);margin:16px 0 6px}
+  input[type=text]{width:100%;padding:11px 13px;background:var(--bg);
+    border:1px solid var(--border);border-radius:9px;color:var(--fg);
+    font-family:var(--mono);font-size:13px;outline:none;transition:.15s}
+  input[type=text]:focus{border-color:var(--accent)}
+  .mirrors input{margin-bottom:8px}
+  button{background:var(--accent);color:#0b1220;border:0;border-radius:9px;
+    padding:10px 18px;font-weight:600;cursor:pointer;font-size:13.5px;
+    transition:.15s;letter-spacing:.01em}
+  button:hover{filter:brightness(1.08)}
+  button.sec{background:transparent;color:var(--fg);
     border:1px solid var(--border)}
-  button:disabled{opacity:.5;cursor:wait}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
-  .badge{display:inline-block;padding:3px 10px;border-radius:999px;
-    font-size:12px;font-weight:700;font-family:var(--mono)}
-  .b-ok{background:rgba(63,185,80,.15);color:var(--ok);border:1px solid var(--ok)}
-  .b-bad{background:rgba(248,81,73,.15);color:var(--bad);border:1px solid var(--bad)}
-  .b-warn{background:rgba(210,153,34,.15);color:var(--warn);border:1px solid var(--warn)}
-  .b-na{background:rgba(139,148,158,.15);color:var(--muted);border:1px solid var(--muted)}
-  .kv{display:grid;grid-template-columns:200px 1fr;gap:6px 14px;
-    font-size:13px;margin-top:8px}
+  button.sec:hover{border-color:var(--accent);filter:none}
+  button:disabled{opacity:.45;cursor:wait}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;
+    border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.01em}
+  .badge::before{content:"";width:6px;height:6px;border-radius:50%;
+    background:currentColor}
+  .b-ok{background:rgba(87,192,141,.12);color:var(--ok)}
+  .b-bad{background:rgba(223,107,134,.12);color:var(--bad)}
+  .b-warn{background:rgba(212,176,102,.12);color:var(--warn)}
+  .b-na{background:rgba(139,146,156,.10);color:var(--muted)}
+  .kv{display:grid;grid-template-columns:210px 1fr;gap:10px 18px;
+    font-size:13px;margin-top:18px}
   .kv .k{color:var(--muted)}
   .kv .v{font-family:var(--mono);word-break:break-all}
-  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
-  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--border)}
-  th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel)}
-  td{font-family:var(--mono);word-break:break-all}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:500;position:sticky;top:0;
+    background:var(--panel);text-transform:uppercase;
+    letter-spacing:.05em;font-size:11px}
+  td{font-family:var(--mono);word-break:break-all;color:var(--fg)}
+  tr:last-child td{border-bottom:0}
   .tbl-wrap{max-height:420px;overflow:auto;border:1px solid var(--border);
-    border-radius:6px;margin-top:10px}
-  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+    border-radius:10px;margin-top:18px}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:14px;line-height:1.6}
   .err{color:var(--bad);font-size:13px;margin-top:8px;white-space:pre-wrap}
-  .crit{border:1px solid var(--accent);background:rgba(88,166,255,.06)}
-  code{font-family:var(--mono);background:#0d1117;padding:1px 5px;
-    border-radius:4px;font-size:12px}
-  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--muted);
+  .crit{border-color:var(--accent)}
+  code{font-family:var(--mono);background:var(--bg);padding:2px 6px;
+    border-radius:5px;font-size:12px;border:1px solid var(--border)}
+  .spin{display:inline-block;width:13px;height:13px;
+    border:2px solid var(--border);
     border-top-color:var(--accent);border-radius:50%;animation:s .7s linear infinite}
   @keyframes s{to{transform:rotate(360deg)}}
   .lang{float:right;font-size:12px}
-  .lang a{color:var(--accent);cursor:pointer;text-decoration:none}
-  footer{color:var(--muted);font-size:12px;text-align:center;padding:24px}
+  .lang a{color:var(--muted);cursor:pointer;text-decoration:none;transition:.15s}
+  .lang a:hover{color:var(--accent)}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:32px;
+    border-top:1px solid var(--border)}
   .step{color:var(--muted);font-size:12px;margin:2px 0}
 </style>
 </head>
 <body>
 <header>
-  <span class="lang"><a onclick="setLang('es')">ES</a> · <a onclick="setLang('en')">EN</a></span>
-  <h1>Centinela — Verificador Independiente</h1>
-  <p data-i18n="sub">Verifica la integridad de la custodia electoral <b>sin confiar en nadie</b>:
-  el navegador descarga los datos públicos y <b>recomputa los hashes localmente</b>.
-  El servidor no es de confianza — la matemática lo es. Costo cero, sin permisos.</p>
+  <div class="hwrap">
+    <span class="lang"><a onclick="setLang('es')">ES</a> · <a onclick="setLang('en')">EN</a></span>
+    <h1>Verificador Independiente</h1>
+    <p data-i18n="sub">Verifica la integridad de la custodia electoral <b>sin confiar en nadie</b>:
+    el navegador descarga los datos públicos y <b>recomputa los hashes localmente</b>.
+    El servidor no es de confianza — la matemática lo es. Costo cero, sin permisos.</p>
+  </div>
 </header>
 <main>
 
@@ -85,9 +101,14 @@
     </div>
     <div class="row">
       <button id="runBtn" onclick="runAll()" data-i18n="run">Verificar todo</button>
+      <button class="sec" onclick="loadDemo(false)">▶ Demo (sin servidor)</button>
+      <button class="sec" onclick="loadDemo(true)">▶ Demo reescrita</button>
       <button class="sec" onclick="addMirror()" data-i18n="addmir">+ espejo</button>
       <span id="globalStat"></span>
     </div>
+    <p class="hint">El <b>modo demostración</b> usa una cadena de muestra embebida
+      (cero servidor, cero CORS): ábrelo y pruébalo de inmediato. "Demo reescrita"
+      simula una manipulación silenciosa para que veas la detección en vivo.</p>
     <p class="hint" data-i18n="cors">Nota: el operador del testigo debe permitir lectura pública
       (CORS). Si ves un error de red/CORS, el despliegue debe arrancar con
       <code>CORS_ORIGINS=*</code> sobre los endpoints <code>/audit/*</code> (solo lectura, sin auth).</p>
@@ -234,6 +255,53 @@ async function verifyOne(base){
   return res;
 }
 
+async function demoChain(tamper){
+  const n=24,entries=[];let prev='';
+  for(let i=0;i<n;i++){
+    const pl=new TextEncoder().encode('CNE-acta-'+i+'|demo');
+    const h=bytesToHex(await sha256(concat(
+      hexToBytes(prev||'00'.repeat(32)),pl)));
+    entries.push({index:i,previous_hash:prev||null,expected_hash:h,
+      timestamp_utc:new Date(Date.UTC(2025,10,30,18,0)+i*9e5).toISOString(),
+      source_url:'https://resultados.cne.demo/acta/'+i,
+      software_version:'centinela-demo'});
+    prev=h;
+  }
+  const honestRoot=await merkleRoot(entries.map(e=>e.expected_hash));
+  if(tamper) entries[12].expected_hash='0'.repeat(64);
+  return {entries,honestRoot};
+}
+async function loadDemo(tamper){
+  el('runBtn').disabled=true;setG('<span class="spin"></span>');
+  try{
+    const {entries,honestRoot}=await demoChain(tamper);
+    const localRoot=await merkleRoot(entries.map(e=>e.expected_hash));
+    const r={base:'(demo embebida)',
+      health:{status:'ok',subsystem:'audit',
+        server_time_utc:new Date().toISOString(),no_auth_required:true,
+        data_license:'Demo — datos sintéticos, no reales',
+        endpoints:['/audit/health','/audit/chain/verify','/audit/transparency',
+          '/audit/degradation','/audit/timeline']},
+      chain:{valid:!tamper,count:entries.length,
+        verified_count:tamper?12:entries.length,
+        last_valid_hash:entries[tamper?11:entries.length-1].expected_hash,
+        broken_at:tamper?12:null,errors:tamper?['hash_mismatch index=12']:[],
+        verified_at_utc:new Date().toISOString()},
+      trans:{live_merkle_root:honestRoot,merkle_algorithm:'sha256',
+        chain_length:entries.length,checkpoint_count:1,
+        note:'Ancla honesta. En "demo reescrita" la raíz local diverge de ésta.'},
+      degr:{event_count:tamper?1:0,interference_signal_count:tamper?1:0,
+        events:tamper?[{timestamp_utc:entries[12].timestamp_utc,
+          failure_mode:'reset_injection',
+          verdict:{is_interference_signal:true}}]:[],
+        note:'Demo: en reescrita se simula una señal de interferencia.'},
+      entries,localRoot};
+    LAST_ENTRIES=entries;
+    renderHealth(r);renderChain(r);renderTrans(r);renderMerkle(r);
+    renderDegr(r);renderData(r);
+    setG(badge(tamper?'DEMO REESCRITA — detectada ✓':'DEMO OK','b-ok'));
+  }finally{el('runBtn').disabled=false;}
+}
 function setG(html){el('globalStat').innerHTML=html}
 
 async function runAll(){

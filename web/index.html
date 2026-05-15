@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centinela — Verificación Independiente</title>
+<style>
+  :root{--bg:#0f1115;--panel:#15171c;--border:#24272e;--fg:#e7e9ec;
+    --muted:#8b929c;--accent:#6ea8fe;--purple:#b08cf0}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:40px 24px;line-height:1.65;
+    -webkit-font-smoothing:antialiased}
+  h1{font-size:34px;margin:0 0 10px;font-weight:600;letter-spacing:-.03em}
+  .sub{color:var(--muted);max-width:600px;text-align:center;margin:0 0 44px;
+    font-size:15px}
+  .cards{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
+    max-width:820px}
+  a.card{display:block;width:392px;background:var(--panel);
+    border:1px solid var(--border);border-radius:14px;padding:28px 30px;
+    text-decoration:none;color:var(--fg);transition:.18s ease}
+  a.card:hover{border-color:#3a3f49;transform:translateY(-3px)}
+  .card h2{margin:0 0 8px;font-size:18px;font-weight:600;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.6}
+  .tag{display:inline-block;font-size:11px;font-weight:600;
+    padding:4px 11px;border-radius:999px;margin-bottom:14px;
+    letter-spacing:.04em}
+  .t-pub{background:rgba(110,168,254,.12);color:var(--accent)}
+  .t-val{background:rgba(176,140,240,.13);color:var(--purple)}
+  footer{margin-top:48px;color:var(--muted);font-size:12.5px;
+    text-align:center;line-height:1.7}
+  code{font-family:ui-monospace,monospace;background:var(--panel);
+    padding:2px 7px;border-radius:5px;font-size:12px;
+    border:1px solid var(--border)}
+</style>
+</head>
+<body>
+  <h1>Centinela</h1>
+  <p class="sub">Verificación criptográfica de custodia electoral
+    <b>sin confiar en nadie</b>. El navegador recomputa las pruebas localmente.
+    Código abierto, costo cero, reproducible por cualquiera.</p>
+  <div class="cards">
+    <a class="card" href="verifier/">
+      <span class="tag t-pub">PÚBLICO · solo lectura</span>
+      <h2>Verificador independiente</h2>
+      <p>Comprueba integridad de cadena, raíz Merkle, ancla externa e
+        interferencia. Incluye <b>modo demostración</b> sin servidor —
+        ábrelo y verifica de inmediato.</p>
+    </a>
+    <a class="card pur" href="sandbox/">
+      <span class="tag t-val">VALIDADORES · banco de pruebas</span>
+      <h2>Sandbox para matemáticos</h2>
+      <p>Entorno aislado para atacar las pruebas (T1/T3) y afinar reglas
+        con disciplina anti-sobreajuste. Nada altera datos reales.
+        Reporte firmable público.</p>
+    </a>
+  </div>
+  <footer>
+    AGPL-3.0 · <code>github.com/userf8a2c4/centinel-engine</code><br>
+    Verificable por cualquiera, en cualquier país, a costo cero.
+  </footer>
+</body>
+</html>
