@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centinela — Verificador Independiente</title>
+<style>
+  :root{
+    --bg:#0d1117;--panel:#161b22;--border:#30363d;--fg:#e6edf3;
+    --muted:#8b949e;--accent:#58a6ff;--ok:#3fb950;--bad:#f85149;
+    --warn:#d29922;--mono:'SFMono-Regular',Consolas,'Liberation Mono',monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    line-height:1.5;font-size:15px}
+  header{padding:24px 20px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#161b22,#0d1117)}
+  header h1{margin:0 0 4px;font-size:22px}
+  header p{margin:0;color:var(--muted);font-size:14px;max-width:780px}
+  main{max-width:1080px;margin:0 auto;padding:20px}
+  .panel{background:var(--panel);border:1px solid var(--border);
+    border-radius:8px;padding:18px;margin-bottom:16px}
+  .panel h2{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input[type=text]{width:100%;padding:9px 11px;background:#0d1117;
+    border:1px solid var(--border);border-radius:6px;color:var(--fg);
+    font-family:var(--mono);font-size:13px}
+  .mirrors input{margin-bottom:6px}
+  button{background:var(--accent);color:#0d1117;border:0;border-radius:6px;
+    padding:10px 18px;font-weight:600;cursor:pointer;font-size:14px}
+  button:hover{filter:brightness(1.1)}
+  button.sec{background:transparent;color:var(--accent);
+    border:1px solid var(--border)}
+  button:disabled{opacity:.5;cursor:wait}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;
+    font-size:12px;font-weight:700;font-family:var(--mono)}
+  .b-ok{background:rgba(63,185,80,.15);color:var(--ok);border:1px solid var(--ok)}
+  .b-bad{background:rgba(248,81,73,.15);color:var(--bad);border:1px solid var(--bad)}
+  .b-warn{background:rgba(210,153,34,.15);color:var(--warn);border:1px solid var(--warn)}
+  .b-na{background:rgba(139,148,158,.15);color:var(--muted);border:1px solid var(--muted)}
+  .kv{display:grid;grid-template-columns:200px 1fr;gap:6px 14px;
+    font-size:13px;margin-top:8px}
+  .kv .k{color:var(--muted)}
+  .kv .v{font-family:var(--mono);word-break:break-all}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel)}
+  td{font-family:var(--mono);word-break:break-all}
+  .tbl-wrap{max-height:420px;overflow:auto;border:1px solid var(--border);
+    border-radius:6px;margin-top:10px}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .err{color:var(--bad);font-size:13px;margin-top:8px;white-space:pre-wrap}
+  .crit{border:1px solid var(--accent);background:rgba(88,166,255,.06)}
+  code{font-family:var(--mono);background:#0d1117;padding:1px 5px;
+    border-radius:4px;font-size:12px}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--muted);
+    border-top-color:var(--accent);border-radius:50%;animation:s .7s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .lang{float:right;font-size:12px}
+  .lang a{color:var(--accent);cursor:pointer;text-decoration:none}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:24px}
+  .step{color:var(--muted);font-size:12px;margin:2px 0}
+</style>
+</head>
+<body>
+<header>
+  <span class="lang"><a onclick="setLang('es')">ES</a> · <a onclick="setLang('en')">EN</a></span>
+  <h1>Centinela — Verificador Independiente</h1>
+  <p data-i18n="sub">Verifica la integridad de la custodia electoral <b>sin confiar en nadie</b>:
+  el navegador descarga los datos públicos y <b>recomputa los hashes localmente</b>.
+  El servidor no es de confianza — la matemática lo es. Costo cero, sin permisos.</p>
+</header>
+<main>
+
+  <div class="panel">
+    <h2>1 · <span data-i18n="cfg">Configuración</span></h2>
+    <label data-i18n="lbl-url">URL base del testigo Centinela (ej. https://testigo.ejemplo.org)</label>
+    <input id="baseUrl" type="text" placeholder="https://..." autocomplete="off">
+    <label data-i18n="lbl-mir">Espejos independientes (opcional, uno por línea) — para detectar divergencia</label>
+    <div class="mirrors" id="mirrors">
+      <input type="text" placeholder="https://espejo-1..." autocomplete="off">
+      <input type="text" placeholder="https://espejo-2..." autocomplete="off">
+    </div>
+    <div class="row">
+      <button id="runBtn" onclick="runAll()" data-i18n="run">Verificar todo</button>
+      <button class="sec" onclick="addMirror()" data-i18n="addmir">+ espejo</button>
+      <span id="globalStat"></span>
+    </div>
+    <p class="hint" data-i18n="cors">Nota: el operador del testigo debe permitir lectura pública
+      (CORS). Si ves un error de red/CORS, el despliegue debe arrancar con
+      <code>CORS_ORIGINS=*</code> sobre los endpoints <code>/audit/*</code> (solo lectura, sin auth).</p>
+  </div>
+
+  <div class="panel crit" id="p-merkle" style="display:none">
+    <h2>★ <span data-i18n="trust">Verificación sin confianza (núcleo)</span></h2>
+    <p class="hint" data-i18n="trust-d">El navegador descarga cada hash de la cadena y
+      <b>recomputa la raíz Merkle localmente</b> con el mismo algoritmo del motor
+      (SHA-256, Bitcoin-style, duplicar-último). Si la raíz recomputada coincide con
+      la que reporta el servidor, los datos no fueron reescritos silenciosamente.</p>
+    <div class="kv" id="merkleKv"></div>
+  </div>
+
+  <div class="panel" id="p-health" style="display:none">
+    <h2>2 · <span data-i18n="health">Disponibilidad</span> <span id="healthBadge"></span></h2>
+    <div class="kv" id="healthKv"></div>
+  </div>
+
+  <div class="panel" id="p-chain" style="display:none">
+    <h2>3 · <span data-i18n="chain">Integridad de la cadena</span> <span id="chainBadge"></span></h2>
+    <div class="kv" id="chainKv"></div>
+  </div>
+
+  <div class="panel" id="p-trans" style="display:none">
+    <h2>4 · <span data-i18n="trans">Ancla de transparencia</span> <span id="transBadge"></span></h2>
+    <div class="kv" id="transKv"></div>
+  </div>
+
+  <div class="panel" id="p-degr" style="display:none">
+    <h2>5 · <span data-i18n="degr">Cegamiento / interferencia</span> <span id="degrBadge"></span></h2>
+    <div class="kv" id="degrKv"></div>
+    <div class="tbl-wrap" id="degrTbl"></div>
+  </div>
+
+  <div class="panel" id="p-mirror" style="display:none">
+    <h2>6 · <span data-i18n="mir">Comparación entre espejos</span> <span id="mirBadge"></span></h2>
+    <div class="hint" data-i18n="mir-d">Acuerdo criptográfico, no reputacional:
+      si dos espejos independientes reportan la misma raíz Merkle y mismo último hash,
+      ninguno necesita ser confiable individualmente.</div>
+    <div class="tbl-wrap" id="mirTbl"></div>
+  </div>
+
+  <div class="panel" id="p-data" style="display:none">
+    <h2>7 · <span data-i18n="data">Datos recolectados</span>
+      <span id="dataBadge"></span></h2>
+    <div class="row">
+      <button class="sec" onclick="exportData('csv')">⬇ CSV</button>
+      <button class="sec" onclick="exportData('json')">⬇ JSON</button>
+      <span class="hint" data-i18n="data-d">Exporta el conjunto verificado para
+        análisis forense (Benford, distribuciones) — la prueba de custodia respalda
+        cada fila.</span>
+    </div>
+    <div class="tbl-wrap" id="dataTbl"></div>
+  </div>
+
+</main>
+<footer>
+  Centinela · open-source · AGPL-3.0 — <span data-i18n="foot">verificable por cualquiera, en cualquier país, a costo cero.</span>
+</footer>
+
+<script>
+"use strict";
+const I18N = {
+  es:{sub:document.querySelector('[data-i18n="sub"]').innerHTML,
+    cfg:"Configuración",run:"Verificar todo",addmir:"+ espejo",
+    health:"Disponibilidad",chain:"Integridad de la cadena",
+    trans:"Ancla de transparencia",degr:"Cegamiento / interferencia",
+    mir:"Comparación entre espejos",data:"Datos recolectados",
+    trust:"Verificación sin confianza (núcleo)"},
+  en:{sub:"Verify electoral-custody integrity <b>trusting no one</b>: your browser "+
+    "downloads the public data and <b>recomputes the hashes locally</b>. The server "+
+    "is not trusted — the math is. Zero cost, no permissions.",
+    cfg:"Configuration",run:"Verify all",addmir:"+ mirror",
+    health:"Availability",chain:"Chain integrity",
+    trans:"Transparency anchor",degr:"Blinding / interference",
+    mir:"Cross-mirror comparison",data:"Collected data",
+    trust:"Trustless verification (core)"}
+};
+function setLang(l){document.documentElement.lang=l;
+  document.querySelectorAll('[data-i18n]').forEach(e=>{
+    const k=e.getAttribute('data-i18n');if(I18N[l]&&I18N[l][k])e.innerHTML=I18N[l][k];});}
+
+let LAST_ENTRIES=[];
+
+function el(id){return document.getElementById(id)}
+function show(id){el(id).style.display='block'}
+function badge(txt,cls){return `<span class="badge ${cls}">${txt}</span>`}
+function clean(u){return (u||'').trim().replace(/\/+$/,'')}
+
+async function jget(base,path){
+  const r=await fetch(base+path,{method:'GET',mode:'cors',cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status+' en '+path);
+  return r.json();
+}
+
+// Exact replica of core/transparency.py::compute_merkle_root
+function hexToBytes(h){const a=new Uint8Array(h.length/2);
+  for(let i=0;i<a.length;i++)a[i]=parseInt(h.substr(i*2,2),16);return a;}
+function bytesToHex(b){return [...new Uint8Array(b)]
+  .map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function sha256(bytes){return new Uint8Array(
+  await crypto.subtle.digest('SHA-256',bytes));}
+function concat(a,b){const c=new Uint8Array(a.length+b.length);
+  c.set(a,0);c.set(b,a.length);return c;}
+async function merkleRoot(leafHexes){
+  if(!leafHexes.length) return null;
+  let level=leafHexes.map(hexToBytes);
+  if(level.length===1) return bytesToHex(level[0]);
+  while(level.length>1){
+    if(level.length%2===1) level.push(level[level.length-1]);
+    const next=[];
+    for(let i=0;i<level.length;i+=2)
+      next.push(await sha256(concat(level[i],level[i+1])));
+    level=next;
+  }
+  return bytesToHex(level[0]);
+}
+
+async function fetchAllTimeline(base){
+  let out=[],offset=0;const limit=1000;
+  for(;;){
+    const j=await jget(base,`/audit/timeline?limit=${limit}&offset=${offset}`);
+    const e=j.entries||[];
+    out=out.concat(e);
+    if(e.length<limit || out.length>=(j.total||0)) break;
+    offset+=limit;
+  }
+  out.sort((a,b)=>(a.index||0)-(b.index||0));
+  return out;
+}
+
+function kv(obj){return Object.entries(obj).map(([k,v])=>
+  `<div class="k">${k}</div><div class="v">${v}</div>`).join('');}
+
+async function verifyOne(base){
+  const res={base};
+  res.health=await jget(base,'/audit/health');
+  res.chain=await jget(base,'/audit/chain/verify');
+  res.trans=await jget(base,'/audit/transparency');
+  try{res.degr=await jget(base,'/audit/degradation?limit=200');}catch(e){res.degr=null;}
+  res.entries=await fetchAllTimeline(base);
+  res.localRoot=await merkleRoot(res.entries.map(e=>e.expected_hash));
+  return res;
+}
+
+function setG(html){el('globalStat').innerHTML=html}
+
+async function runAll(){
+  const base=clean(el('baseUrl').value);
+  if(!base){alert('Ingresa la URL base del testigo.');return;}
+  el('runBtn').disabled=true;
+  setG('<span class="spin"></span>');
+  try{
+    const r=await verifyOne(base);
+    LAST_ENTRIES=r.entries;
+    renderHealth(r);renderChain(r);renderTrans(r);renderMerkle(r);
+    renderDegr(r);renderData(r);
+    await renderMirrors(base,r);
+    setG(badge('COMPLETO','b-ok'));
+  }catch(e){
+    setG(badge('ERROR','b-bad'));
+    el('p-health').style.display='block';
+    el('healthKv').innerHTML=`<div class="k">error</div><div class="v err">`+
+      `${e.message}\n\nProbable causa: CORS no habilitado en el testigo, `+
+      `URL incorrecta, o despliegue caído.</div>`;
+  }finally{el('runBtn').disabled=false;}
+}
+
+function renderHealth(r){
+  show('p-health');
+  const ok=r.health&&r.health.status==='ok';
+  el('healthBadge').innerHTML=ok?badge('EN LÍNEA','b-ok'):badge('?','b-warn');
+  el('healthKv').innerHTML=kv({
+    estado:r.health.status,
+    subsistema:r.health.subsystem,
+    hora_servidor:r.health.server_time_utc,
+    sin_auth:String(r.health.no_auth_required),
+    licencia:r.health.data_license||'—',
+    endpoints:(r.health.endpoints||[]).join(', ')
+  });
+}
+function renderChain(r){
+  show('p-chain');const c=r.chain;
+  const ok=c.valid===true;
+  el('chainBadge').innerHTML=ok
+    ?badge('ÍNTEGRA ✓','b-ok')
+    :badge('ROTURA DETECTADA ✗','b-bad');
+  el('chainKv').innerHTML=kv({
+    valida:String(c.valid),
+    snapshots:c.count,
+    verificados:c.verified_count,
+    ultimo_hash_valido:c.last_valid_hash||'—',
+    rotura_en_indice:c.broken_at===null||c.broken_at===undefined?'—':c.broken_at,
+    errores:(c.errors&&c.errors.length)?c.errors.join(' | '):'ninguno',
+    verificado_utc:c.verified_at_utc||'—'
+  });
+}
+function renderTrans(r){
+  show('p-trans');const t=r.trans;
+  el('transBadge').innerHTML=t.live_merkle_root
+    ?badge('ANCLADO','b-ok'):badge('SIN DATOS','b-na');
+  el('transKv').innerHTML=kv({
+    raiz_merkle_servidor:t.live_merkle_root||'—',
+    algoritmo:t.merkle_algorithm,
+    largo_cadena:t.chain_length,
+    checkpoints:t.checkpoint_count,
+    nota:t.note||'—'
+  });
+}
+function renderMerkle(r){
+  show('p-merkle');
+  const srv=(r.trans&&r.trans.live_merkle_root)||null;
+  const loc=r.localRoot;
+  let st,cls;
+  if(!srv||!loc){st='SIN DATOS PARA COMPARAR';cls='b-na';}
+  else if(srv===loc){st='COINCIDE — datos no reescritos ✓';cls='b-ok';}
+  else{st='¡DIVERGENCIA! posible reescritura ✗';cls='b-bad';}
+  el('merkleKv').innerHTML=kv({
+    'raíz recomputada (tu navegador)':loc||'—',
+    'raíz reportada (servidor)':srv||'—',
+    'hojas verificadas':r.entries.length,
+    'veredicto':badge(st,cls)
+  });
+}
+function renderDegr(r){
+  if(!r.degr){return;}
+  show('p-degr');const d=r.degr;
+  const ic=d.interference_signal_count||0;
+  el('degrBadge').innerHTML=ic>0
+    ?badge(ic+' SEÑAL(ES) DE INTERFERENCIA','b-bad')
+    :badge('SIN INTERFERENCIA','b-ok');
+  el('degrKv').innerHTML=kv({
+    eventos_total:d.event_count,
+    senales_interferencia:ic,
+    nota:d.note||'—'
+  });
+  const ev=d.events||[];
+  if(ev.length){
+    let h='<table><tr><th>#</th><th>utc</th><th>verdict</th><th>modo</th></tr>';
+    ev.slice(-50).forEach((e,i)=>{
+      const v=e.verdict||{};
+      const intf=v.is_interference_signal===true;
+      h+=`<tr><td>${i}</td><td>${e.timestamp_utc||e.timestamp||'—'}</td>`+
+         `<td>${intf?badge('INTERFERENCIA','b-bad'):badge('inoperancia','b-na')}</td>`+
+         `<td>${(e.failure_mode||v.failure_mode||'—')}</td></tr>`;
+    });
+    el('degrTbl').innerHTML=h+'</table>';
+  }
+}
+function renderData(r){
+  show('p-data');
+  el('dataBadge').innerHTML=badge(r.entries.length+' snapshots','b-na');
+  let h='<table><tr><th>idx</th><th>timestamp_utc</th><th>source_url</th>'+
+        '<th>expected_hash</th><th>previous_hash</th></tr>';
+  r.entries.slice(0,500).forEach(e=>{
+    h+=`<tr><td>${e.index}</td><td>${e.timestamp_utc||'—'}</td>`+
+       `<td>${e.source_url||'—'}</td><td>${(e.expected_hash||'').slice(0,20)}…</td>`+
+       `<td>${(e.previous_hash||'—').slice(0,20)}…</td></tr>`;
+  });
+  el('dataTbl').innerHTML=h+'</table>'+
+    (r.entries.length>500?'<p class="hint">Mostrando 500 de '+
+      r.entries.length+'. Exporta para el conjunto completo.</p>':'');
+}
+async function renderMirrors(base,main){
+  const urls=[...document.querySelectorAll('#mirrors input')]
+    .map(i=>clean(i.value)).filter(Boolean);
+  if(!urls.length){return;}
+  show('p-mirror');
+  const rows=[{base,root:main.localRoot,
+    last:main.chain.last_valid_hash,n:main.entries.length}];
+  for(const u of urls){
+    try{
+      const t=await jget(u,'/audit/transparency');
+      const ents=await fetchAllTimeline(u);
+      const lr=await merkleRoot(ents.map(e=>e.expected_hash));
+      const cv=await jget(u,'/audit/chain/verify');
+      rows.push({base:u,root:lr,last:cv.last_valid_hash,n:ents.length});
+    }catch(e){rows.push({base:u,root:'ERROR: '+e.message,last:'—',n:0});}
+  }
+  const ref=rows[0].root;
+  const agree=rows.every(r=>r.root===ref);
+  el('mirBadge').innerHTML=agree
+    ?badge('CONSENSO ✓','b-ok'):badge('DIVERGENCIA ✗','b-bad');
+  let h='<table><tr><th>fuente</th><th>raíz merkle (local)</th>'+
+        '<th>último hash</th><th>n</th><th></th></tr>';
+  rows.forEach(r=>{
+    const m=r.root===ref;
+    h+=`<tr><td>${r.base}</td><td>${(r.root||'—')}</td>`+
+       `<td>${(r.last||'—').slice(0,24)}…</td><td>${r.n}</td>`+
+       `<td>${m?badge('=','b-ok'):badge('≠','b-bad')}</td></tr>`;
+  });
+  el('mirTbl').innerHTML=h+'</table>';
+}
+function addMirror(){
+  const d=el('mirrors');const i=document.createElement('input');
+  i.type='text';i.placeholder='https://espejo...';d.appendChild(i);
+}
+function exportData(fmt){
+  if(!LAST_ENTRIES.length){alert('Ejecuta la verificación primero.');return;}
+  let blob,name;
+  if(fmt==='json'){
+    blob=new Blob([JSON.stringify(LAST_ENTRIES,null,2)],
+      {type:'application/json'});name='centinela_snapshots.json';
+  }else{
+    const cols=['index','timestamp_utc','source_url','expected_hash',
+      'previous_hash','software_version'];
+    const rows=[cols.join(',')].concat(LAST_ENTRIES.map(e=>
+      cols.map(c=>`"${String(e[c]==null?'':e[c]).replace(/"/g,'""')}"`).join(',')));
+    blob=new Blob([rows.join('\n')],{type:'text/csv'});
+    name='centinela_snapshots.csv';
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
