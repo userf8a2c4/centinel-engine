@@ -102,6 +102,7 @@ from centinel.downloader import (
     request_with_retry,
     should_skip_snapshot,
 )
+from centinel.download import write_atomic
 from centinel.paths import (
     ensure_source_dirs,
     hash_filename,
@@ -352,7 +353,10 @@ def create_mock_snapshot() -> Path:
     }
 
     mock_file = data_dir / "snapshot_mock_ci.json"
-    mock_file.write_text(json.dumps(mock_data, indent=2, ensure_ascii=False))
+    write_atomic(
+        mock_file,
+        json.dumps(mock_data, indent=2, ensure_ascii=False).encode("utf-8"),
+    )
     logger.info("Snapshot mock creado: %s", mock_file)
     return mock_file
 
@@ -634,7 +638,7 @@ def _persist_snapshot_payload(
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     snapshot_file = data_dir / snapshot_filename(timestamp)
     hash_file = hash_dir / hash_filename(timestamp)
-    snapshot_file.write_bytes(snapshot_bytes)
+    write_atomic(snapshot_file, snapshot_bytes)
     hash_record = {"hash": current_hash, "chained_hash": chained_hash}
 
     # FASE 2: Firma Ed25519 del operador si hay clave disponible
@@ -645,9 +649,9 @@ def _persist_snapshot_payload(
     except Exception as exc:  # noqa: BLE001
         logger.warning("operator_sign_failed file=%s error=%s", hash_file.name, exc)
 
-    hash_file.write_text(
-        json.dumps(hash_record, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+    write_atomic(
+        hash_file,
+        json.dumps(hash_record, ensure_ascii=False, indent=2).encode("utf-8"),
     )
     trigger_post_hash_backup(snapshot_file, hash_file)
     return chained_hash, current_hash, snapshot_file
@@ -734,7 +738,10 @@ def _save_checkpoint(previous_hash: str, processed_sources: set[str]) -> None:
         "processed_sources": sorted(processed_sources),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    CHECKPOINT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    write_atomic(
+        CHECKPOINT_PATH,
+        json.dumps(payload, indent=2, ensure_ascii=False).encode("utf-8"),
+    )
 
 
 def _clear_checkpoint() -> None:
