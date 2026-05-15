@@ -82,14 +82,17 @@ Notes:
 
 
 import argparse
+import contextlib
+import fcntl
 import hashlib
 import json
 import logging
 import os
 import random
+import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 import requests
 import yaml
@@ -719,16 +722,49 @@ def _use_fallback_snapshot(
     return chained_hash
 
 
+@contextlib.contextmanager
+def _checkpoint_lock(timeout_seconds: float = 30.0) -> Iterator[None]:
+    """Cross-process exclusive lock for checkpoint operations.
+
+    Prevents two pipeline instances from corrupting the hash chain by reading
+    and writing the checkpoint concurrently (election-night restart scenarios).
+
+    Bloqueo exclusivo entre procesos para operaciones de checkpoint.
+    Previene corrupcion del hash chain cuando dos instancias del pipeline
+    leen/escriben el checkpoint concurrentemente (escenarios de reinicio en
+    noche electoral).
+    """
+    lock_path = CHECKPOINT_PATH.with_suffix(CHECKPOINT_PATH.suffix + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    deadline = time.monotonic() + timeout_seconds
+    with open(lock_path, "w") as lock_file:
+        while True:
+            try:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(
+                        f"checkpoint_lock_timeout path={lock_path} timeout={timeout_seconds}s"
+                    )
+                time.sleep(0.1)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
 def _load_checkpoint() -> dict[str, Any]:
     """/** Carga checkpoint de descarga si existe. / Load download checkpoint if available. **"""
     if not CHECKPOINT_PATH.exists():
         return {}
-    try:
-        payload = json.loads(CHECKPOINT_PATH.read_text(encoding="utf-8"))
-        return payload if isinstance(payload, dict) else {}
-    except json.JSONDecodeError as exc:
-        logger.warning("checkpoint_invalid error=%s", exc)
-        return {}
+    with _checkpoint_lock():
+        try:
+            payload = json.loads(CHECKPOINT_PATH.read_text(encoding="utf-8"))
+            return payload if isinstance(payload, dict) else {}
+        except json.JSONDecodeError as exc:
+            logger.warning("checkpoint_invalid error=%s", exc)
+            return {}
 
 
 def _save_checkpoint(previous_hash: str, processed_sources: set[str]) -> None:
@@ -738,10 +774,11 @@ def _save_checkpoint(previous_hash: str, processed_sources: set[str]) -> None:
         "processed_sources": sorted(processed_sources),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    write_atomic(
-        CHECKPOINT_PATH,
-        json.dumps(payload, indent=2, ensure_ascii=False).encode("utf-8"),
-    )
+    with _checkpoint_lock():
+        write_atomic(
+            CHECKPOINT_PATH,
+            json.dumps(payload, indent=2, ensure_ascii=False).encode("utf-8"),
+        )
 
 
 def _clear_checkpoint() -> None:
