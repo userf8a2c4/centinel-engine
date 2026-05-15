@@ -66,12 +66,32 @@ Notes:
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .download import chained_hash
+
+
+_SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _validate_hash_format(value: str, field_name: str) -> None:
+    """Validate that a string is a canonical SHA-256 hex digest.
+
+    Rejects payloads with malformed previous_hash values (e.g. injected
+    'MALFORMED' or truncated hashes), so a tampering attempt surfaces as a
+    detectable integrity error rather than a downstream cryptographic crash.
+
+    Valida que el string sea un digest SHA-256 hexadecimal canonico.
+    Rechaza valores manipulados (p. ej. 'MALFORMED' inyectado o hashes
+    truncados) para que un intento de manipulacion sea un error de
+    integridad detectable y no un crash criptografico aguas abajo.
+    """
+    if not isinstance(value, str) or not _SHA256_HEX_RE.match(value):
+        raise ValueError(f"invalid_hash_format field={field_name} value={value!r}")
 
 
 @dataclass(frozen=True)
@@ -119,6 +139,8 @@ def compute_snapshot_hash(
     timestamp_iso = metadata.get("timestamp_utc")
     if not timestamp_iso:
         raise ValueError("metadata_missing_timestamp_utc")
+    if previous_hash is not None:
+        _validate_hash_format(previous_hash, "previous_hash")
     return chained_hash(
         content,
         previous_hash,
@@ -145,13 +167,19 @@ def _load_snapshot_entry(snapshot_dir: Path) -> SnapshotEntry:
         raise ValueError(f"metadata_missing_timestamp_utc path={metadata_path}")
 
     expected_hash = hash_path.read_text(encoding="utf-8").strip()
+    _validate_hash_format(expected_hash, "expected_hash")
+
+    previous_hash = metadata.get("previous_hash")
+    if previous_hash is not None:
+        _validate_hash_format(previous_hash, "metadata.previous_hash")
+
     return SnapshotEntry(
         snapshot_dir=snapshot_dir,
         content=raw_path.read_bytes(),
         metadata=metadata,
         expected_hash=expected_hash,
         timestamp=_parse_timestamp(timestamp_iso),
-        previous_hash=metadata.get("previous_hash"),
+        previous_hash=previous_hash,
     )
 
 
