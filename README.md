@@ -52,6 +52,14 @@ make init && make pipeline
 - `make pipeline`: ejecuta un ciclo completo (`--once`) del flujo principal.
 - Configuración centralizada en `config/prod/`, `config/dev/` y `config/secrets/`.
 
+## Herramientas de verificación / Verification Tools
+
+- **Public Verifier** (`web/verifier/`): Read-only web verifier for public audit of witness data via cryptographic proofs. Zero server, zero CORS dependency (downloads embed math).
+- **Validator Sandbox** (`web/sandbox/`): Isolated testing environment for validators to audit chain integrity and anomaly detection without risking live data.
+- **Operator CLI** (`centinel status`, `centinel snapshot`): Native operator interface for witness management (future; currently embedded in Python core).
+
+*Note: Streamlit dashboard is work-in-progress and archived. Public verification is via web tools above.*
+
 ## Características clave / Key Features
 
 | Feature | Description |
@@ -62,7 +70,7 @@ make init && make pipeline
 | Reproducibilidad total | Pipeline determinístico y procedimientos replicables para permitir validación independiente de resultados y evidencia. |
 | Normalización y validación de artefactos | Estandarización de datos de entrada y controles de consistencia para mantener calidad técnica en análisis posteriores. |
 | Controles operativos de adquisición | Rate limiting, rotación de proxy/user-agent y manejo robusto de captura para continuidad de auditoría. |
-| Reglas técnicas de análisis electoral | Marco base para detección de anomalías y expansión controlada mediante perfiles core/research de reglas. |
+| Reglas técnicas de análisis electoral | Detección de anomalías en tiempo real (Benford + Z-score + monotonía) comparable a estándares Brasil/México. |
 | Resguardo seguro de evidencia | Backups cifrados y bundle reproducible de verificación con SHA-256 por archivo y Merkle root consolidado. |
 | Calidad, seguridad y resiliencia | Suites de pruebas funcionales, seguridad y caos en `tests/` para fortalecer confiabilidad operativa. |
 | Neutralidad política absoluta | Diseño institucional y técnico no partidario, centrado exclusivamente en transparencia, evidencia y auditoría. |

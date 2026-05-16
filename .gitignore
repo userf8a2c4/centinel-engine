@@ -43,3 +43,6 @@ config/secrets/*
 !config/secrets/.gitkeep
 
 !config/secrets/.env.example
+
+# Archived work-in-progress
+.archive/
