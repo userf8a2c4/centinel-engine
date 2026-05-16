@@ -154,7 +154,18 @@ class TestConservativeMode:
         Bilingual: Tasa de exito por debajo de 0.70 -> conservador.
         """
         status = _normal_status()
-        status["success_history"] = [True, True, False, False, False, False, False, True, False, False]
+        status["success_history"] = [
+            True,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            True,
+            False,
+            False,
+        ]
         # success_rate = 3/10 = 0.30
 
         result = check_vital_signs(BASE_CONFIG, status)

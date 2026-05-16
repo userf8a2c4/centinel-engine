@@ -62,7 +62,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import hashlib
@@ -99,7 +98,9 @@ class DownloadError(Exception):
 
 
 @retry(
-    retry=retry_if_exception_type((httpx.RequestError, httpx.TimeoutException, httpx.HTTPStatusError)),
+    retry=retry_if_exception_type(
+        (httpx.RequestError, httpx.TimeoutException, httpx.HTTPStatusError)
+    ),
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=1, min=4, max=60),
     reraise=True,
@@ -283,7 +284,6 @@ def _is_valid_hex_hash(value: str) -> bool:
     return all(char in hex_chars for char in value)
 
 
-
 def _build_tls_context() -> ssl.SSLContext:
     """Build a conservative TLS context with shuffled cipher ordering.
 
@@ -305,6 +305,7 @@ def _build_tls_context() -> ssl.SSLContext:
     except ssl.SSLError as exc:
         logger.debug("tls_cipher_shuffle_fallback error=%s", exc)
     return context
+
 
 def build_client() -> httpx.AsyncClient:
     """Construye un cliente HTTP con timeout global.

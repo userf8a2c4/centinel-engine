@@ -56,7 +56,6 @@ from centinel_engine.rate_limiter import (  # noqa: E402
     reset_rate_limiter,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures / Fixtures de prueba
 # ---------------------------------------------------------------------------
@@ -145,9 +144,7 @@ class TestTokenConsumption:
         Bilingual: Se neutraliza el jitter de seguridad para verificar
         solo la lógica del token-bucket (bucket inicia lleno).
         """
-        monkeypatch.setattr(
-            "centinel_engine.rate_limiter.random.uniform", lambda *_a: 0.0
-        )
+        monkeypatch.setattr("centinel_engine.rate_limiter.random.uniform", lambda *_a: 0.0)
         rl = TokenBucketRateLimiter(rate_interval=1.0, burst=3, min_interval=0.0, max_interval=5.0)
         waited = rl.wait()
         assert waited < 0.5  # should be nearly instant / deberia ser casi instantaneo
@@ -158,9 +155,7 @@ class TestTokenConsumption:
         Anti-fingerprinting jitter neutralized (see test above).
         Bilingual: Jitter de seguridad neutralizado para probar burst.
         """
-        monkeypatch.setattr(
-            "centinel_engine.rate_limiter.random.uniform", lambda *_a: 0.0
-        )
+        monkeypatch.setattr("centinel_engine.rate_limiter.random.uniform", lambda *_a: 0.0)
         rl = TokenBucketRateLimiter(rate_interval=1.0, burst=3, min_interval=0.0, max_interval=5.0)
         total_wait = 0.0
         for _ in range(3):
@@ -226,7 +221,9 @@ class TestStats:
 
         Bilingual: Tokens disponibles disminuyen despues de consumo.
         """
-        rl = TokenBucketRateLimiter(rate_interval=100.0, burst=3, min_interval=0.0, max_interval=200.0)
+        rl = TokenBucketRateLimiter(
+            rate_interval=100.0, burst=3, min_interval=0.0, max_interval=200.0
+        )
         initial = rl.tokens_available
         rl.wait()
         after = rl.tokens_available

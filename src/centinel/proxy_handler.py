@@ -56,7 +56,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import logging
@@ -266,7 +265,10 @@ class ProxyRotator:
                 )
                 return self._current_proxy.url
             self._requests_since_rotation += 1
-            if self._current_proxy is None or self._requests_since_rotation >= self.rotation_every_n:
+            if (
+                self._current_proxy is None
+                or self._requests_since_rotation >= self.rotation_every_n
+            ):
                 self._current_proxy = self._select_next_proxy()
                 self._requests_since_rotation = 0
                 if self._current_proxy:
@@ -351,7 +353,9 @@ def load_proxy_config(config_path: Optional[Path] = None) -> dict:
             "PROXY_ROTATION_STRATEGY",
             str(payload.get("rotation_strategy", "round_robin")),
         ).lower(),
-        "rotation_every_n": int(env("PROXY_ROTATION_EVERY_N", str(payload.get("rotation_every_n", 1)))),
+        "rotation_every_n": int(
+            env("PROXY_ROTATION_EVERY_N", str(payload.get("rotation_every_n", 1)))
+        ),
         "proxy_timeout_seconds": float(
             env(
                 "PROXY_TIMEOUT_SECONDS",

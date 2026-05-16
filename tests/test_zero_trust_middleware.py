@@ -62,7 +62,9 @@ def test_is_production_environment_false(monkeypatch):
 
 def test_warn_when_zero_trust_disabled_in_production(monkeypatch, caplog):
     monkeypatch.setenv("ENV", "prod")
-    monkeypatch.setattr("centinel.api.middleware._load_security_config", lambda: {"zero_trust": False})
+    monkeypatch.setattr(
+        "centinel.api.middleware._load_security_config", lambda: {"zero_trust": False}
+    )
 
     app = FastAPI()
     with caplog.at_level(logging.WARNING, logger="centinel.middleware"):

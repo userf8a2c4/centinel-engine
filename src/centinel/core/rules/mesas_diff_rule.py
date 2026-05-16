@@ -48,7 +48,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 from typing import List, Optional
@@ -98,8 +97,12 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
     if not previous_data:
         return alerts
 
-    current_codes = {code for code in (extract_mesa_code(m) for m in extract_mesas(current_data)) if code}
-    previous_codes = {code for code in (extract_mesa_code(m) for m in extract_mesas(previous_data)) if code}
+    current_codes = {
+        code for code in (extract_mesa_code(m) for m in extract_mesas(current_data)) if code
+    }
+    previous_codes = {
+        code for code in (extract_mesa_code(m) for m in extract_mesas(previous_data)) if code
+    }
     if not current_codes or not previous_codes:
         return alerts
 

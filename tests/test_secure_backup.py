@@ -60,7 +60,6 @@ from centinel_engine.secure_backup import (  # noqa: E402
     BackupScheduler,
 )
 
-
 # ---------------------------------------------------------------------------
 # Test 1: SHA-256 computation / Calculo SHA-256
 # ---------------------------------------------------------------------------

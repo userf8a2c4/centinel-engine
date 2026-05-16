@@ -60,7 +60,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 from typing import Iterable, List, Optional
@@ -311,7 +310,11 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
             )
             merged["delta_abs"] = merged["votes_current"] - merged["votes_previous"]
             merged["delta_pct"] = merged.apply(
-                lambda row: ((row["delta_abs"] / row["votes_previous"]) * 100 if row["votes_previous"] > 0 else None),
+                lambda row: (
+                    (row["delta_abs"] / row["votes_previous"]) * 100
+                    if row["votes_previous"] > 0
+                    else None
+                ),
                 axis=1,
             )
             negative_rows = merged[merged["delta_abs"] < negative_threshold]
@@ -370,9 +373,9 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
                 on=["department", "election_level"],
                 suffixes=("_current", "_previous"),
             )
-            totals_merged["delta_abs"] = totals_merged["total_votes_current"].fillna(0) - totals_merged[
-                "total_votes_previous"
-            ].fillna(0)
+            totals_merged["delta_abs"] = totals_merged["total_votes_current"].fillna(
+                0
+            ) - totals_merged["total_votes_previous"].fillna(0)
             totals_merged["delta_pct"] = totals_merged.apply(
                 lambda row: (
                     (row["delta_abs"] / row["total_votes_previous"]) * 100
@@ -407,10 +410,13 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
                         )
 
             zscore_candidates = totals_merged.copy()
-            zscore_candidates = zscore_candidates.dropna(subset=["total_votes_current", "total_votes_previous"])
+            zscore_candidates = zscore_candidates.dropna(
+                subset=["total_votes_current", "total_votes_previous"]
+            )
             if not zscore_candidates.empty:
                 zscore_candidates["delta_abs"] = (
-                    zscore_candidates["total_votes_current"] - zscore_candidates["total_votes_previous"]
+                    zscore_candidates["total_votes_current"]
+                    - zscore_candidates["total_votes_previous"]
                 )
                 zscore_candidates = zscore_candidates.groupby("election_level").apply(
                     lambda group: (
@@ -451,16 +457,24 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
                 if group_key not in previous_grouped.groups:
                     continue
                 prev_group = previous_grouped.get_group(group_key)
-                current_sorted = current_group.sort_values("votes", ascending=False).reset_index(drop=True)
-                prev_sorted = prev_group.sort_values("votes", ascending=False).reset_index(drop=True)
+                current_sorted = current_group.sort_values("votes", ascending=False).reset_index(
+                    drop=True
+                )
+                prev_sorted = prev_group.sort_values("votes", ascending=False).reset_index(
+                    drop=True
+                )
                 if len(current_sorted) < 2 or len(prev_sorted) < 2:
                     continue
                 prev_leader = prev_sorted.iloc[0]
                 prev_runner = prev_sorted.iloc[1]
                 curr_leader = current_sorted.iloc[0]
                 prev_lead_margin = int(prev_leader["votes"] - prev_runner["votes"])
-                current_votes_by_candidate = current_group.set_index("candidate_id")["votes"].to_dict()
-                prev_leader_current_votes = current_votes_by_candidate.get(prev_leader["candidate_id"], 0)
+                current_votes_by_candidate = current_group.set_index("candidate_id")[
+                    "votes"
+                ].to_dict()
+                prev_leader_current_votes = current_votes_by_candidate.get(
+                    prev_leader["candidate_id"], 0
+                )
                 prev_leader_delta = prev_leader_current_votes - prev_leader["votes"]
                 if (
                     prev_leader["candidate_id"] != curr_leader["candidate_id"]
@@ -483,7 +497,9 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
                             "current_value": int(prev_leader_current_votes),
                             "delta_abs": int(prev_leader_delta),
                             "delta_pct": (
-                                (prev_leader_delta / prev_leader["votes"]) * 100 if prev_leader["votes"] > 0 else None
+                                (prev_leader_delta / prev_leader["votes"]) * 100
+                                if prev_leader["votes"] > 0
+                                else None
                             ),
                             "justification": (
                                 "Cambio brusco en liderazgo con pérdida de votos. "
@@ -514,13 +530,16 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
                         "delta_abs": None,
                         "delta_pct": turnout * 100,
                         "justification": (
-                            "Participación fuera de rango lógico. " f"turnout={turnout:.2%}, inscritos={registered}."
+                            "Participación fuera de rango lógico. "
+                            f"turnout={turnout:.2%}, inscritos={registered}."
                         ),
                     }
                 )
 
     if not candidate_df.empty:
-        benford_rows = candidate_df[candidate_df["votes"].notna() & (candidate_df["votes"] >= benford_min_vote)]
+        benford_rows = candidate_df[
+            candidate_df["votes"].notna() & (candidate_df["votes"] >= benford_min_vote)
+        ]
         for (department, level), group in benford_rows.groupby(["department", "election_level"]):
             digits = _first_digit(group["votes"].tolist())
             if len(digits) < benford_min_samples:
@@ -549,7 +568,9 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
                 )
 
     if not totals_df.empty and not candidate_df.empty:
-        candidate_totals = candidate_df.groupby(["department", "election_level"])["votes"].sum().reset_index()
+        candidate_totals = (
+            candidate_df.groupby(["department", "election_level"])["votes"].sum().reset_index()
+        )
         totals_merged = totals_df.merge(
             candidate_totals,
             on=["department", "election_level"],

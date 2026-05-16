@@ -463,16 +463,12 @@ class TestConsensusThreshold:
 
     def test_default_threshold_is_majority(self):
         """Default threshold = mayoría (n//2 + 1), min 2."""
-        fed = FederationCoordinator(
-            witness_urls=["w1", "w2", "w3"]
-        )
+        fed = FederationCoordinator(witness_urls=["w1", "w2", "w3"])
         assert fed.consensus_threshold == 2  # 3//2 + 1 = 2
 
     def test_default_threshold_four_witnesses(self):
         """4 testigos: threshold = 3."""
-        fed = FederationCoordinator(
-            witness_urls=["w1", "w2", "w3", "w4"]
-        )
+        fed = FederationCoordinator(witness_urls=["w1", "w2", "w3", "w4"])
         assert fed.consensus_threshold == 3  # 4//2 + 1 = 3
 
     def test_custom_threshold(self):

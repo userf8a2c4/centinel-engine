@@ -52,7 +52,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import logging
@@ -61,7 +60,20 @@ import re
 
 from centinel.utils.config_loader import load_config
 
-SENSITIVE_KEYS = {"votes", "votos", "payload", "personal_data", "dni", "cedula", "api_key", "token", "secret", "password", "private_key", "arbitrum_private_key"}
+SENSITIVE_KEYS = {
+    "votes",
+    "votos",
+    "payload",
+    "personal_data",
+    "dni",
+    "cedula",
+    "api_key",
+    "token",
+    "secret",
+    "password",
+    "private_key",
+    "arbitrum_private_key",
+}
 
 SECRET_PATTERNS = [
     re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._-]+"),

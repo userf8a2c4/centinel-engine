@@ -62,7 +62,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import json
@@ -74,7 +73,6 @@ from typing import Any, Dict, List, Optional
 
 from .download import chained_hash
 from .core.custody import verify_hash_record_signature
-
 
 _SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -128,7 +126,9 @@ def ensure_snapshot_metadata(
 
 def canonical_metadata_bytes(metadata: Dict[str, Any]) -> bytes:
     """Serialize metadata canonically for hashing. (Serializa metadatos en forma canónica para hashing.)"""
-    return json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
 
 
 def compute_snapshot_hash(
@@ -308,9 +308,7 @@ def verify_hashchain_from_snapshots(snapshot_root: Path) -> Dict[str, Any]:
     # behavior (payload-present dirs, timestamp-ordered): pure endurance
     # optimization, integrity semantics unchanged.
     raw_dirs = [p.parent for p in snapshot_root.rglob("snapshot.raw")]
-    ordered_dirs = sorted(
-        raw_dirs, key=lambda d: _load_snapshot_meta(d).timestamp
-    )
+    ordered_dirs = sorted(raw_dirs, key=lambda d: _load_snapshot_meta(d).timestamp)
     total_count = len(ordered_dirs)
     errors: List[str] = []
     signature_failures: List[str] = []

@@ -183,7 +183,6 @@ def test_all_legacy_rules_registered():
         assert key in registered_keys, f"Original rule {key!r} not registered"
 
 
-
 def test_research_rules_disabled_by_default(monkeypatch):
     """Las reglas research deben quedar behind-flag por defecto.
 

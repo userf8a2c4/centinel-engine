@@ -74,7 +74,9 @@ def _canonical(mesa: dict) -> bytes:
         data. Deterministic key order, fixed separators.
     """
     cleaned = {k: v for k, v in mesa.items() if not str(k).startswith("_")}
-    return json.dumps(cleaned, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return json.dumps(cleaned, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
+        "utf-8"
+    )
 
 
 def mesa_fingerprint(mesa: dict) -> str:
@@ -113,7 +115,9 @@ def index_mesas(data: dict) -> Dict[str, dict]:
     return index
 
 
-def candidate_delta(previous_votes: Dict[str, int], current_votes: Dict[str, int]) -> Dict[str, int]:
+def candidate_delta(
+    previous_votes: Dict[str, int], current_votes: Dict[str, int]
+) -> Dict[str, int]:
     """Delta de votos por candidato entre dos estados de una mesa.
 
     English:

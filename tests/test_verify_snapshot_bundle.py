@@ -20,7 +20,9 @@ def test_verify_snapshot_bundle_pass_with_signature_and_anchor(tmp_path: Path) -
         "pipeline_version": "v1.0.0",
     }
     generate_operator_keypair(key_dir=tmp_path, operator_id="test-op")
-    signed_record = sign_hash_record(record, key_path=tmp_path / "operator_private.pem", operator_id="test-op")
+    signed_record = sign_hash_record(
+        record, key_path=tmp_path / "operator_private.pem", operator_id="test-op"
+    )
     hash_record = tmp_path / "hash_record.json"
     hash_record.write_text(json.dumps(signed_record), encoding="utf-8")
 
@@ -28,7 +30,10 @@ def test_verify_snapshot_bundle_pass_with_signature_and_anchor(tmp_path: Path) -
     anchor.write_text(json.dumps({"root_hash": "abc123"}), encoding="utf-8")
 
     rules = tmp_path / "rules.json"
-    rules.write_text(json.dumps({"rules": {"global_enabled": True, "turnout_impossible": {"enabled": True}}}), encoding="utf-8")
+    rules.write_text(
+        json.dumps({"rules": {"global_enabled": True, "turnout_impossible": {"enabled": True}}}),
+        encoding="utf-8",
+    )
 
     subprocess.run(
         [
@@ -56,7 +61,9 @@ def test_verify_snapshot_bundle_fail_on_mismatch(tmp_path: Path) -> None:
 
     hash_record = tmp_path / "hash_record.json"
     hash_record.write_text(
-        json.dumps({"manifest": [{"file": snapshot.name, "sha256": "0" * 64}], "chained_hash": "x"}),
+        json.dumps(
+            {"manifest": [{"file": snapshot.name, "sha256": "0" * 64}], "chained_hash": "x"}
+        ),
         encoding="utf-8",
     )
     rules = tmp_path / "rules.json"

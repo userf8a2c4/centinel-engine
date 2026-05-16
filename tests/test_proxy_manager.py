@@ -62,7 +62,6 @@ from centinel_engine.proxy_manager import (  # noqa: E402
     reset_proxy_ua_manager,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures / Fixtures de prueba
 # ---------------------------------------------------------------------------
@@ -137,7 +136,9 @@ class TestUserAgentPool:
 
         Bilingual: Pool contiene multiples familias de navegadores (Chrome, Firefox, Safari, Edge).
         """
-        has_chrome = any("Chrome/" in ua and "Edg/" not in ua and "OPR/" not in ua for ua in USER_AGENT_POOL)
+        has_chrome = any(
+            "Chrome/" in ua and "Edg/" not in ua and "OPR/" not in ua for ua in USER_AGENT_POOL
+        )
         has_firefox = any("Firefox/" in ua for ua in USER_AGENT_POOL)
         has_safari = any("Safari/" in ua and "Chrome/" not in ua for ua in USER_AGENT_POOL)
         has_edge = any("Edg/" in ua for ua in USER_AGENT_POOL)

@@ -168,9 +168,7 @@ def audit_chain_verify() -> Dict[str, Any]:
     result["snapshot_root"] = _redact_path(snapshot_root)
     if result.get("broken_at_path") is not None:
         result["broken_at_path"] = _redact_path(result["broken_at_path"])
-    result["verified_at_utc"] = datetime.now(timezone.utc).isoformat(
-        timespec="microseconds"
-    )
+    result["verified_at_utc"] = datetime.now(timezone.utc).isoformat(timespec="microseconds")
     result["cache_ttl_seconds"] = _CACHE_TTL_SECONDS
     return result
 
@@ -223,9 +221,7 @@ def audit_transparency(
 @router.get("/degradation")
 def audit_degradation(
     limit: int = Query(100, ge=1, le=1000, description="Max events to return"),
-    interference_only: bool = Query(
-        False, description="Return only targeted-interference signals"
-    ),
+    interference_only: bool = Query(False, description="Return only targeted-interference signals"),
 ) -> Dict[str, Any]:
     """Induced-outage / interference signals (append-only, signed).
 
@@ -246,24 +242,16 @@ def audit_degradation(
         lambda: read_degradation_log(),
     )
     if interference_only:
-        log = [
-            e
-            for e in log
-            if e.get("verdict", {}).get("is_interference_signal") is True
-        ]
+        log = [e for e in log if e.get("verdict", {}).get("is_interference_signal") is True]
     interference_count = sum(
-        1
-        for e in log
-        if e.get("verdict", {}).get("is_interference_signal") is True
+        1 for e in log if e.get("verdict", {}).get("is_interference_signal") is True
     )
     window = log[-limit:] if log else []
     return {
         "event_count": len(log),
         "interference_signal_count": interference_count,
         "events": window,
-        "verified_at_utc": datetime.now(timezone.utc).isoformat(
-            timespec="microseconds"
-        ),
+        "verified_at_utc": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
         "cache_ttl_seconds": _CACHE_TTL_SECONDS,
         "note": (
             "is_interference_signal=true means the failure looked like a "
@@ -323,9 +311,7 @@ def audit_snapshots_by_day(day: str) -> Dict[str, Any]:
 
     entries = collect_snapshot_metadata(snapshot_root)
     matching = [
-        entry
-        for entry in entries
-        if entry.timestamp.astimezone(timezone.utc).date() == target
+        entry for entry in entries if entry.timestamp.astimezone(timezone.utc).date() == target
     ]
     return {
         "date_utc": day,
@@ -371,9 +357,7 @@ def audit_proof_for_hash(snapshot_hash: str) -> Dict[str, Any]:
         "snapshot": _serialize_entry(target),
         "predecessor": _serialize_entry(predecessor) if predecessor else None,
         "metadata": target.metadata,
-        "verified_at_utc": datetime.now(timezone.utc).isoformat(
-            timespec="microseconds"
-        ),
+        "verified_at_utc": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
         "verification_instructions": (
             "Reproduce locally: compute_snapshot_hash(content, metadata, "
             "predecessor.expected_hash) must equal snapshot_hash."

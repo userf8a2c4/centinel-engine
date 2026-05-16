@@ -113,7 +113,9 @@ def test_index_and_fingerprint_stable(cne_payload):
 def test_mesa_candidate_votes_handles_dict_and_list():
     """Vota tanto con `candidatos` dict como lista."""
     assert mesa_candidate_votes({"candidatos": {"A": 10, "B": 5}}) == {"A": 10, "B": 5}
-    listed = mesa_candidate_votes({"candidatos": [{"nombre": "A", "votos": 7}, {"nombre": "B", "votos": 3}]})
+    listed = mesa_candidate_votes(
+        {"candidatos": [{"nombre": "A", "votos": 7}, {"nombre": "B", "votos": 3}]}
+    )
     assert listed.get("A") == 7 and listed.get("B") == 3
 
 
@@ -177,11 +179,15 @@ def test_late_mesa_flags_large_batch_near_close(cne_payload):
     previous = copy.deepcopy(cne_payload)
     previous["porcentaje_escrutado"] = 95.0
     # Previo: solo CO-N01. Actual: + muchas mesas nuevas.
-    previous["departamentos"] = [{"nombre": "Cortés", "mesas": [previous["departamentos"][0]["mesas"][0]]}]
+    previous["departamentos"] = [
+        {"nombre": "Cortés", "mesas": [previous["departamentos"][0]["mesas"][0]]}
+    ]
     current = copy.deepcopy(cne_payload)
     current["porcentaje_escrutado"] = 99.0
     big = [{"codigo_mesa": f"LT-{i:03d}", "candidatos": {"A": 200, "B": 5}} for i in range(60)]
-    current["departamentos"] = [{"nombre": "Cortés", "mesas": [current["departamentos"][0]["mesas"][0]] + big}]
+    current["departamentos"] = [
+        {"nombre": "Cortés", "mesas": [current["departamentos"][0]["mesas"][0]] + big}
+    ]
 
     alerts = late_mesa_rule.apply(current, previous, {})
     assert len(alerts) == 1

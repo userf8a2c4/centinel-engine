@@ -157,9 +157,15 @@ def test_load_config_rejects_invalid_master_switch(tmp_path, monkeypatch):
                     "totals": {"total_votes": ["totales.votos"]},
                     "candidate_roots": ["resultados"],
                 },
-                "sources": [{"name": "custom", "department_code": "99", "level": "NAT", "scope": "NATIONAL"}],
+                "sources": [
+                    {"name": "custom", "department_code": "99", "level": "NAT", "scope": "NATIONAL"}
+                ],
                 "logging": {"level": "INFO", "file": "centinel.log"},
-                "blockchain": {"enabled": False, "network": "polygon-mumbai", "private_key": "0x..."},
+                "blockchain": {
+                    "enabled": False,
+                    "network": "polygon-mumbai",
+                    "private_key": "0x...",
+                },
                 "alerts": {"critical_anomaly_types": ["FOO"]},
                 "arbitrum": {
                     "enabled": False,

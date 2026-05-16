@@ -50,7 +50,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import collections
@@ -178,7 +177,9 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
         expected_counts = [expected_distribution[digit] / 100 * total for digit in range(1, 10)]
         chi_result = chisquare(observed_counts, f_exp=expected_counts)
         observed_pct = {digit: (counts.get(digit, 0) / total) * 100 for digit in range(1, 10)}
-        deviation_pct = max(abs(observed_pct[digit] - expected_distribution[digit]) for digit in range(1, 10))
+        deviation_pct = max(
+            abs(observed_pct[digit] - expected_distribution[digit]) for digit in range(1, 10)
+        )
         if chi_result.pvalue >= chi_square_threshold and deviation_pct < deviation_threshold:
             continue
 

@@ -83,7 +83,9 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
 
         if valid is not None and null_v is not None and blank is not None and total is not None:
             if valid + null_v + blank != total:
-                reasons.append(f"válidos+nulos+blancos ({valid + null_v + blank}) != total ({total})")
+                reasons.append(
+                    f"válidos+nulos+blancos ({valid + null_v + blank}) != total ({total})"
+                )
 
         if reasons:
             violations.append(

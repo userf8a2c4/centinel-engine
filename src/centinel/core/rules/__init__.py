@@ -46,5 +46,3 @@ Notes:
 #   - Configuración / Configuration
 #   - Lógica principal / Core logic
 #   - Integraciones / Integrations
-
-

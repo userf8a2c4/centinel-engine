@@ -62,7 +62,9 @@ def test_chaos_integrity_tampering_detected(tmp_path: Path) -> None:
 
     Creación inesperada de archivo debe capturarse como anomalía de integridad.
     """
-    manager = AdvancedSecurityManager(AdvancedSecurityConfig(integrity_paths=[str(tmp_path / "*.py")]))
+    manager = AdvancedSecurityManager(
+        AdvancedSecurityConfig(integrity_paths=[str(tmp_path / "*.py")])
+    )
     (tmp_path / "tampered.py").write_text("print('tamper')", encoding="utf-8")
 
     triggers = manager.detect_internal_anomalies()
@@ -77,7 +79,9 @@ def test_chaos_oom_signal_persists_backup(monkeypatch) -> None:
     """
     manager = AdvancedSecurityManager(AdvancedSecurityConfig())
     calls: list[str] = []
-    monkeypatch.setattr(manager.backups, "maybe_backup", lambda force=False: calls.append(f"backup:{force}"))
+    monkeypatch.setattr(
+        manager.backups, "maybe_backup", lambda force=False: calls.append(f"backup:{force}")
+    )
 
     manager._handle_oom_like_signal(15, None)
 

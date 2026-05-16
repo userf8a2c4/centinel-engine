@@ -130,9 +130,7 @@ def _probe_dns(host: str, timeout: float) -> Dict[str, Any]:
         socket.setdefaulttimeout(None)
 
 
-def _probe_tcp_tls(
-    host: str, port: int, use_tls: bool, timeout: float
-) -> Dict[str, Any]:
+def _probe_tcp_tls(host: str, port: int, use_tls: bool, timeout: float) -> Dict[str, Any]:
     """One bounded TCP (and optional TLS) attempt to the exact target.
 
     Returns the failure mode and, on a successful TLS handshake, the
@@ -282,9 +280,7 @@ def diagnose_connectivity(
             else:
                 verdict["classification"] = INDETERMINATE
                 verdict["explanation"] = f"tcp_failure:{err}"
-            verdict["is_interference_signal"] = (
-                verdict["classification"] in _INTERFERENCE
-            )
+            verdict["is_interference_signal"] = verdict["classification"] in _INTERFERENCE
             return verdict
 
         if use_tls:
@@ -347,9 +343,9 @@ def _maybe_sign(event: Dict[str, Any]) -> Dict[str, Any]:
 
         signable = {k: v for k, v in event.items() if k != "operator_signature"}
         digest = _sha256_hex(
-            json.dumps(
-                signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-            ).encode("utf-8")
+            json.dumps(signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
+                "utf-8"
+            )
         )
         signed = sign_hash_record({"degradation_event_digest": digest})
         event["operator_signature"] = signed.get("operator_signature")
@@ -382,9 +378,7 @@ def record_degradation_event(
     target_dir = log_dir or _DEFAULT_LOG_DIR
     event = {
         "version": 1,
-        "recorded_at_utc": datetime.now(timezone.utc).isoformat(
-            timespec="microseconds"
-        ),
+        "recorded_at_utc": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
         "source_id": source_id,
         "capture_failure_reason": reason,
         "verdict": verdict,

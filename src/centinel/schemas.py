@@ -68,7 +68,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import json
@@ -264,7 +263,8 @@ class TotalsSchema(BaseModel):
         """total_votes must not exceed registered_voters."""
         if self.total_votes > self.registered_voters:
             raise ValueError(
-                f"total_votes ({self.total_votes}) exceeds " f"registered_voters ({self.registered_voters})"
+                f"total_votes ({self.total_votes}) exceeds "
+                f"registered_voters ({self.registered_voters})"
             )
         return self
 

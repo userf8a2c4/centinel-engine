@@ -58,7 +58,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import hashlib
@@ -238,7 +237,9 @@ class HashChainLogger:
             self._seq = int(last.get("seq", 0))
             self._prev_hash = last.get("hash", _GENESIS_HASH)
         except (json.JSONDecodeError, ValueError):
-            logger.warning("hashchain_resume_failed — starting fresh chain (iniciando cadena nueva)")
+            logger.warning(
+                "hashchain_resume_failed — starting fresh chain (iniciando cadena nueva)"
+            )
 
 
 # ---------------------------------------------------------------------------

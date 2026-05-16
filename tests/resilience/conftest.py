@@ -223,10 +223,20 @@ class _KwargsLogger(logging.Logger):
     ``extra`` dict so the calls succeed without requiring structlog.
     """
 
-    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, stacklevel=1, **kwargs):
+    def _log(
+        self, level, msg, args, exc_info=None, extra=None, stack_info=False, stacklevel=1, **kwargs
+    ):
         if kwargs:
             extra = {**(extra or {}), **kwargs}
-        super()._log(level, msg, args, exc_info=exc_info, extra=extra, stack_info=stack_info, stacklevel=stacklevel)
+        super()._log(
+            level,
+            msg,
+            args,
+            exc_info=exc_info,
+            extra=extra,
+            stack_info=stack_info,
+            stacklevel=stacklevel,
+        )
 
 
 @pytest.fixture()

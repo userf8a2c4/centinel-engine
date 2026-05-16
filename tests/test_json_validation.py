@@ -51,7 +51,6 @@ from centinel.api.main import (
     ALERTS_JSON,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -62,8 +61,7 @@ def _create_test_db(tmp_path: Path, *, canonical_json: str = '{"valid": true}'):
     db_path = tmp_path / "test.db"
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE snapshot_index (
             department_code TEXT NOT NULL,
             timestamp_utc TEXT NOT NULL,
@@ -75,10 +73,8 @@ def _create_test_db(tmp_path: Path, *, canonical_json: str = '{"valid": true}'):
             ipfs_tx_hash TEXT,
             PRIMARY KEY (department_code, timestamp_utc)
         )
-    """
-    )
-    conn.execute(
-        """
+    """)
+    conn.execute("""
         CREATE TABLE dept_01_snapshots (
             timestamp_utc TEXT PRIMARY KEY,
             hash TEXT NOT NULL,
@@ -94,8 +90,7 @@ def _create_test_db(tmp_path: Path, *, canonical_json: str = '{"valid": true}'):
             ipfs_cid TEXT,
             ipfs_tx_hash TEXT
         )
-    """
-    )
+    """)
     conn.execute(
         """INSERT INTO snapshot_index
            (department_code, timestamp_utc, table_name, hash, previous_hash, tx_hash)

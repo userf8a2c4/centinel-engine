@@ -18,12 +18,14 @@ class TestAnomalyDetectorBenford:
         votes = 1000
         for i in range(150):
             votes += 100  # Natural growth
-            snapshots.append({
-                "index": i,
-                "timestamp": 1000000 + i * 3600,
-                "total_votes": votes,
-                "registered_voters": 10000,
-            })
+            snapshots.append(
+                {
+                    "index": i,
+                    "timestamp": 1000000 + i * 3600,
+                    "total_votes": votes,
+                    "registered_voters": 10000,
+                }
+            )
 
         detector = AnomalyDetector(min_snapshots=100)
         report = detector.analyze(snapshots)
@@ -37,12 +39,14 @@ class TestAnomalyDetectorBenford:
         # Artificially round votes trigger Benford deviation
         snapshots = []
         for i in range(150):
-            snapshots.append({
-                "index": i,
-                "timestamp": 1000000 + i * 3600,
-                "total_votes": (i + 1) * 1000,  # Round thousands: 1000, 2000, 3000...
-                "registered_voters": 10000,
-            })
+            snapshots.append(
+                {
+                    "index": i,
+                    "timestamp": 1000000 + i * 3600,
+                    "total_votes": (i + 1) * 1000,  # Round thousands: 1000, 2000, 3000...
+                    "registered_voters": 10000,
+                }
+            )
 
         detector = AnomalyDetector(min_snapshots=100)
         report = detector.analyze(snapshots)
@@ -53,8 +57,10 @@ class TestAnomalyDetectorBenford:
 
     def test_benford_insufficient_snapshots(self):
         """When < min_snapshots, threshold_applied = False."""
-        snapshots = [{"index": i, "timestamp": 1000000 + i * 3600, "total_votes": 1000 + i * 100}
-                     for i in range(50)]
+        snapshots = [
+            {"index": i, "timestamp": 1000000 + i * 3600, "total_votes": 1000 + i * 100}
+            for i in range(50)
+        ]
 
         detector = AnomalyDetector(min_snapshots=100)
         report = detector.analyze(snapshots)
@@ -72,12 +78,14 @@ class TestAnomalyDetectorZScore:
         votes = 10000
         for i in range(150):
             votes += 100  # Steady increment
-            snapshots.append({
-                "index": i,
-                "timestamp": 1000000 + i * 3600,
-                "total_votes": votes,
-                "registered_voters": 100000,
-            })
+            snapshots.append(
+                {
+                    "index": i,
+                    "timestamp": 1000000 + i * 3600,
+                    "total_votes": votes,
+                    "registered_voters": 100000,
+                }
+            )
 
         detector = AnomalyDetector(min_snapshots=100, zscore_threshold=3.0)
         report = detector.analyze(snapshots)
@@ -94,12 +102,14 @@ class TestAnomalyDetectorZScore:
                 votes += 5000  # Huge spike
             else:
                 votes += 100  # Normal increment
-            snapshots.append({
-                "index": i,
-                "timestamp": 1000000 + i * 3600,
-                "total_votes": votes,
-                "registered_voters": 100000,
-            })
+            snapshots.append(
+                {
+                    "index": i,
+                    "timestamp": 1000000 + i * 3600,
+                    "total_votes": votes,
+                    "registered_voters": 100000,
+                }
+            )
 
         detector = AnomalyDetector(min_snapshots=100, zscore_threshold=3.0)
         report = detector.analyze(snapshots)
@@ -129,11 +139,13 @@ class TestAnomalyDetectorMonotonicity:
         """Strictly increasing timestamps should pass."""
         snapshots = []
         for i in range(150):
-            snapshots.append({
-                "index": i,
-                "timestamp": 1000000 + i * 3600,
-                "total_votes": 10000 + i * 100,
-            })
+            snapshots.append(
+                {
+                    "index": i,
+                    "timestamp": 1000000 + i * 3600,
+                    "total_votes": 10000 + i * 100,
+                }
+            )
 
         detector = AnomalyDetector(min_snapshots=100)
         report = detector.analyze(snapshots)
@@ -148,11 +160,13 @@ class TestAnomalyDetectorMonotonicity:
             ts = 1000000 + i * 3600
             if i == 75:
                 ts -= 7200  # Go back 2 hours
-            snapshots.append({
-                "index": i,
-                "timestamp": ts,
-                "total_votes": 10000 + i * 100,
-            })
+            snapshots.append(
+                {
+                    "index": i,
+                    "timestamp": ts,
+                    "total_votes": 10000 + i * 100,
+                }
+            )
 
         detector = AnomalyDetector(min_snapshots=100)
         report = detector.analyze(snapshots)
@@ -168,11 +182,13 @@ class TestAnomalyDetectorMonotonicity:
             ts = 1000000 + i * 3600
             if i == 75:
                 ts = 1000000 + 74 * 3600  # Don't advance (equal to previous)
-            snapshots.append({
-                "index": i,
-                "timestamp": ts,
-                "total_votes": 10000 + i * 100,
-            })
+            snapshots.append(
+                {
+                    "index": i,
+                    "timestamp": ts,
+                    "total_votes": 10000 + i * 100,
+                }
+            )
 
         detector = AnomalyDetector(min_snapshots=100)
         report = detector.analyze(snapshots)
@@ -218,7 +234,11 @@ class TestAnomalyDetectorMetadata:
     def test_anomaly_fields(self):
         """Each Anomaly should have required fields."""
         snapshots = [
-            {"index": i, "timestamp": 1000000 + i * 3600 if i != 75 else 1000000 + 74 * 3600, "total_votes": 10000 + i * 100}
+            {
+                "index": i,
+                "timestamp": 1000000 + i * 3600 if i != 75 else 1000000 + 74 * 3600,
+                "total_votes": 10000 + i * 100,
+            }
             for i in range(150)
         ]
 

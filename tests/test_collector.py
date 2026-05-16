@@ -88,8 +88,6 @@ def test_fetch_json_with_retry_recovers_after_one_failure(monkeypatch):
     assert state["calls"] == 2
 
 
-
-
 def test_fetch_json_with_retry_uses_pinned_https_fetch(monkeypatch) -> None:
     called = {"fetch": 0}
 
@@ -167,9 +165,7 @@ def test_run_collection_writes_report(tmp_path: Path, monkeypatch):
 
     # collector imports get_proxy_rotator lazily from centinel.proxy_handler;
     # patch it at the source so the lazy import picks up the fake.
-    monkeypatch.setattr(
-        "centinel.proxy_handler.get_proxy_rotator", lambda _logger: _Rotator()
-    )
+    monkeypatch.setattr("centinel.proxy_handler.get_proxy_rotator", lambda _logger: _Rotator())
 
     code = collector.run_collection(config_path=config_path, retry_path=retry_path)
 
@@ -200,8 +196,6 @@ def test_is_safe_http_url_supports_public_resolution_flag(monkeypatch) -> None:
     monkeypatch.setattr(collector, "is_safe_outbound_url", _fake_is_safe)
     assert collector.is_safe_http_url("https://cne.hn/api", enforce_public_ip_resolution=True)
     assert captured["enforce"] is True
-
-
 
 
 def test_fetch_json_with_retry_blocks_proxy_for_pinned_https(monkeypatch) -> None:

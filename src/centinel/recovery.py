@@ -74,7 +74,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import hashlib
@@ -176,9 +175,13 @@ class CheckpointData:
             batch_id = str(data["batch_id"])
             created_at = _parse_timestamp(data["created_at"])
         except KeyError as exc:
-            raise CheckpointCorruptError(f"Missing required checkpoint field: {exc}", partial=False) from exc
+            raise CheckpointCorruptError(
+                f"Missing required checkpoint field: {exc}", partial=False
+            ) from exc
         except (TypeError, ValueError) as exc:
-            raise CheckpointCorruptError(f"Invalid checkpoint field type: {exc}", partial=False) from exc
+            raise CheckpointCorruptError(
+                f"Invalid checkpoint field type: {exc}", partial=False
+            ) from exc
 
         if offset < 0:
             raise CheckpointCorruptError("Checkpoint offset must be >= 0.", partial=False)
@@ -301,7 +304,9 @@ class RecoveryManager:
         if checkpoint is None:
             if isinstance(last_error, CheckpointCorruptError) and last_error.partial:
                 message = "Checkpoint partially corrupt; reprocessing last batch."
-                self.logger.error("recovery_partial_corruption", reason=message, error=str(last_error))
+                self.logger.error(
+                    "recovery_partial_corruption", reason=message, error=str(last_error)
+                )
                 return RecoveryDecision(
                     decision=RecoveryDecisionType.REPROCESS_LAST_BATCH,
                     reason=message,
@@ -390,7 +395,9 @@ class RecoveryManager:
         )
         return decision
 
-    def _decide_from_age(self, checkpoint: CheckpointData, path: Path, age_minutes: float) -> RecoveryDecision:
+    def _decide_from_age(
+        self, checkpoint: CheckpointData, path: Path, age_minutes: float
+    ) -> RecoveryDecision:
         """Español: Función _decide_from_age del módulo src/centinel/recovery.py.
 
         English: Function _decide_from_age defined in src/centinel/recovery.py.

@@ -46,7 +46,6 @@ from centinel.core.normalize import normalize_snapshot, snapshot_to_canonical_js
 from centinel.core.storage import LocalSnapshotStore
 from centinel.api.main import fetch_latest_snapshot, fetch_snapshot_by_hash, verify_hashchain
 
-
 # ---------------------------------------------------------------------------
 # Real CNE snapshots (verbatim from hnd-electoral-audit-2025/data/)
 # ---------------------------------------------------------------------------

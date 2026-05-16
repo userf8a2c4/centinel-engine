@@ -42,7 +42,11 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List
 
-from centinel_engine.proxy_manager import get_proxy_and_ua, get_proxy_ua_manager, reset_proxy_ua_manager
+from centinel_engine.proxy_manager import (
+    get_proxy_and_ua,
+    get_proxy_ua_manager,
+    reset_proxy_ua_manager,
+)
 from centinel_engine.rate_limiter import TokenBucketRateLimiter
 from centinel_engine.vital_signs import check_vital_signs
 from src.centinel.proxy_handler import ProxyRotator
@@ -132,7 +136,9 @@ def test_empty_proxy_pool_falls_back_to_direct_mode() -> None:
         None.
     """
     rotator = ProxyRotator(mode="rotate", proxies=[], proxy_urls=[], rotation_every_n=15)
-    rotator.logger.warning = lambda *args, **kwargs: None  # English / Español: silence structured-log kwargs issue.
+    rotator.logger.warning = (
+        lambda *args, **kwargs: None
+    )  # English / Español: silence structured-log kwargs issue.
     manager = get_proxy_ua_manager(proxy_rotator=rotator)
 
     proxy_dict, ua = get_proxy_and_ua()
@@ -178,7 +184,9 @@ def test_rate_limiter_blocks_burst_over_3(monkeypatch: Any) -> None:
 
     monkeypatch.setattr(time, "sleep", _fake_sleep)
 
-    limiter = TokenBucketRateLimiter(rate_interval=8.0, burst=3, min_interval=0.0, max_interval=12.0)
+    limiter = TokenBucketRateLimiter(
+        rate_interval=8.0, burst=3, min_interval=0.0, max_interval=12.0
+    )
     limiter.wait()
     limiter.wait()
     limiter.wait()

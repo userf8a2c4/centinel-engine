@@ -102,7 +102,9 @@ def test_rate_limiter_blocks_burst() -> None:
 
     Bilingual: El rate limiter debe bloquear tráfico en ráfaga tras agotar tokens.
     """
-    limiter = TokenBucketRateLimiter(rate_interval=0.12, burst=1, min_interval=0.0, max_interval=1.0)
+    limiter = TokenBucketRateLimiter(
+        rate_interval=0.12, burst=1, min_interval=0.0, max_interval=1.0
+    )
 
     start = time.monotonic()
     for _ in range(5):
@@ -137,7 +139,9 @@ def test_proxy_rotation_on_429(monkeypatch) -> None:
 
     monkeypatch.setattr(proxy_manager.secrets, "choice", _det_choice)
 
-    manager = ProxyAndUAManager(proxy_rotator=_DummyProxyRotator(), rotation_every_n=1, ua_pool=list(ua_values))
+    manager = ProxyAndUAManager(
+        proxy_rotator=_DummyProxyRotator(), rotation_every_n=1, ua_pool=list(ua_values)
+    )
     first_proxy, first_ua = manager.rotate_proxy_and_ua()
 
     assert manager.notify_response(429) is True

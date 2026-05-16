@@ -54,7 +54,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from dataclasses import dataclass
 from typing import List, Optional
 

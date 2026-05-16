@@ -64,12 +64,10 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-
 
 # Raíces por defecto (relativas al root del proyecto).
 # Default roots (relative to project root).

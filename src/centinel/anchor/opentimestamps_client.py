@@ -50,6 +50,7 @@ class TimestampProof:
 
     ES: Prueba de timestamp de OpenTimestamps.
     """
+
     timestamp: float  # Unix timestamp of anchor request
     message_hash: str  # SHA256 of message (64-char hex)
     ots_response: str  # OTS proof (base64-encoded)
@@ -65,6 +66,7 @@ class AnchorRecord:
 
     ES: Registro de intento de anclaje (éxito o fracaso).
     """
+
     checkpoint_hash: str
     attempt_timestamp: float
     success: bool
@@ -144,7 +146,7 @@ class OpenTimestampsClient:
                     return proof
 
             except (httpx.RequestError, httpx.TimeoutException) as e:
-                wait_seconds = 2 ** attempt  # Exponential backoff: 1, 2, 4, ...
+                wait_seconds = 2**attempt  # Exponential backoff: 1, 2, 4, ...
                 logger.warning(
                     "ots_stamp_attempt_failed attempt=%d error=%s wait=%ds",
                     attempt,

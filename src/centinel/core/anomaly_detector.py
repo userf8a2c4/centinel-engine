@@ -33,8 +33,15 @@ logger = logging.getLogger("centinel.anomaly_detector")
 # Benford's Law: expected frequency of first digits 1–9
 # (Ley de Benford: frecuencia esperada de primeros dígitos 1–9)
 _BENFORD_EXPECTED = {
-    1: 0.301, 2: 0.176, 3: 0.125, 4: 0.097,
-    5: 0.079, 6: 0.067, 7: 0.058, 8: 0.051, 9: 0.046,
+    1: 0.301,
+    2: 0.176,
+    3: 0.125,
+    4: 0.097,
+    5: 0.079,
+    6: 0.067,
+    7: 0.058,
+    8: 0.051,
+    9: 0.046,
 }
 
 
@@ -44,10 +51,11 @@ class Anomaly:
 
     ES: Una sola anomalía detectada en un snapshot.
     """
+
     snapshot_idx: int
     anomaly_type: str  # "benford", "zscore", "monotonicity"
-    severity: str     # "low", "medium", "high"
-    detail: str       # Human-readable explanation
+    severity: str  # "low", "medium", "high"
+    detail: str  # Human-readable explanation
     metric: Optional[str] = None  # Which metric was affected (e.g., "votes", "timestamp")
     value: Optional[float] = None  # The actual value that triggered
 
@@ -58,6 +66,7 @@ class AnomalyReport:
 
     ES: Resumen de anomalías encontradas en una lista de snapshots.
     """
+
     anomalies: list[Anomaly]
     threshold_applied: bool  # True if min_snapshots threshold was met
     analysis_metadata: dict[str, Any]  # Debug info: counts, thresholds used
@@ -129,7 +138,11 @@ class AnomalyDetector:
 
         # Extract metrics for statistical analysis
         # ES: Extraer métricas para análisis estadístico
-        votes = [s.get("total_votes", 0) for s in snapshots if isinstance(s.get("total_votes"), (int, float))]
+        votes = [
+            s.get("total_votes", 0)
+            for s in snapshots
+            if isinstance(s.get("total_votes"), (int, float))
+        ]
         timestamps = []
         for s in snapshots:
             ts = s.get("timestamp")

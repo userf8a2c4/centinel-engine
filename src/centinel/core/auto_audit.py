@@ -159,7 +159,9 @@ class AutoAudit:
                             entry = json.loads(line)
                             ts = entry.get("timestamp")
                             if ts and ts < prev_ts:
-                                issues.append(f"Attack log out of order at line {line_count}: {ts} < {prev_ts}")
+                                issues.append(
+                                    f"Attack log out of order at line {line_count}: {ts} < {prev_ts}"
+                                )
                             prev_ts = ts or 0
                         except json.JSONDecodeError:
                             issues.append(f"Malformed JSON at line {line_count}")
@@ -178,7 +180,9 @@ class AutoAudit:
                     if "merkle_root" not in checkpoint:
                         issues.append("Checkpoint missing merkle_root")
                     else:
-                        logger.info(f"✅ Checkpoint valid: merkle_root={checkpoint['merkle_root'][:16]}...")
+                        logger.info(
+                            f"✅ Checkpoint valid: merkle_root={checkpoint['merkle_root'][:16]}..."
+                        )
             except Exception as e:
                 logger.error(f"Error validating checkpoint: {e}")
                 issues.append(f"Checkpoint validation failed: {e}")

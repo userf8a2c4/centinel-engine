@@ -71,8 +71,12 @@ def test_build_resilient_endpoint_set_falls_back_to_existing_endpoints(tmp_path)
         existing_departments=existing_departments,
     )
 
-    assert any(item.level == "NACIONAL" and item.validation_status == "degraded" for item in selected)
-    assert any(item.department == "ATLANTIDA" and item.validation_status == "degraded" for item in selected)
+    assert any(
+        item.level == "NACIONAL" and item.validation_status == "degraded" for item in selected
+    )
+    assert any(
+        item.department == "ATLANTIDA" and item.validation_status == "degraded" for item in selected
+    )
     assert summary["degraded_count"] >= 2
 
 
@@ -89,7 +93,10 @@ def test_extract_script_srcs_fallback_parser_reads_relative_and_absolute_sources
 def test_infer_department_matches_urls_with_underscores_and_hyphens(tmp_path):
     healer = _build_healer(tmp_path)
 
-    assert healer._infer_department("https://x/francisco_morazan-presidencial.json", []) == "FRANCISCO MORAZAN"
+    assert (
+        healer._infer_department("https://x/francisco_morazan-presidencial.json", [])
+        == "FRANCISCO MORAZAN"
+    )
 
 
 def test_resolve_animal_mode_thresholds(tmp_path):
@@ -111,9 +118,18 @@ def test_recommended_interval_for_animal_mode(tmp_path):
 def test_is_production_safe_checks_trusted_and_safe_mode(tmp_path):
     healer = _build_healer(tmp_path)
 
-    assert healer.is_production_safe({"trusted_for_production": True, "safe_mode_active": False}) is True
-    assert healer.is_production_safe({"trusted_for_production": False, "safe_mode_active": False}) is False
-    assert healer.is_production_safe({"trusted_for_production": True, "safe_mode_active": True}) is False
+    assert (
+        healer.is_production_safe({"trusted_for_production": True, "safe_mode_active": False})
+        is True
+    )
+    assert (
+        healer.is_production_safe({"trusted_for_production": False, "safe_mode_active": False})
+        is False
+    )
+    assert (
+        healer.is_production_safe({"trusted_for_production": True, "safe_mode_active": True})
+        is False
+    )
 
 
 def test_heal_proactive_marks_untrusted_when_degraded(tmp_path):

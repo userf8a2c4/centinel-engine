@@ -37,6 +37,7 @@ class EndpointSchema:
 
     ES: Huella de la estructura de respuesta del endpoint.
     """
+
     timestamp: float
     url: str
     status_code: int
@@ -53,6 +54,7 @@ class SchemaChange:
 
     ES: Detección de divergencia de schema de endpoint.
     """
+
     timestamp: float
     url: str
     change_type: str  # "schema_mismatch", "endpoint_down", "status_code_change"
@@ -131,9 +133,7 @@ class EndpointMonitor:
                 # D11.3: track redirect chain. A malicious authority could
                 # install a redirect to a fake endpoint; >1 hop is suspicious.
                 if len(resp.history) > 1:
-                    chain = " → ".join(
-                        f"{r.status_code} {r.url}" for r in resp.history
-                    )
+                    chain = " → ".join(f"{r.status_code} {r.url}" for r in resp.history)
                     logger.warning(
                         "endpoint_multiple_redirects url=%s hops=%d chain=%s",
                         url,
@@ -161,7 +161,9 @@ class EndpointMonitor:
                         schema_hash = self._compute_schema_hash(keys)
                     except (json.JSONDecodeError, ValueError) as e:
                         error_detail = f"json_parse_error: {str(e)}"
-                        logger.warning("endpoint_json_parse_error url=%s error=%s", url, error_detail)
+                        logger.warning(
+                            "endpoint_json_parse_error url=%s error=%s", url, error_detail
+                        )
                 elif status != 200:
                     error_detail = f"http_{status}"
                     logger.warning("endpoint_http_error url=%s status=%d", url, status)
@@ -232,8 +234,12 @@ class EndpointMonitor:
                 detail=f"HTTP status changed: {baseline.status_code} → {observed.status_code}",
             )
             self.changes.append(change)
-            logger.error("endpoint_status_change url=%s baseline=%d observed=%d",
-                        observed.url, baseline.status_code, observed.status_code)
+            logger.error(
+                "endpoint_status_change url=%s baseline=%d observed=%d",
+                observed.url,
+                baseline.status_code,
+                observed.status_code,
+            )
             return change
 
         # Check 2: Schema hash divergence
@@ -249,8 +255,12 @@ class EndpointMonitor:
                     detail=f"Schema changed: keys {baseline.keys} → {observed.keys}",
                 )
                 self.changes.append(change)
-                logger.error("endpoint_schema_divergence url=%s baseline_keys=%s observed_keys=%s",
-                            observed.url, baseline.keys, observed.keys)
+                logger.error(
+                    "endpoint_schema_divergence url=%s baseline_keys=%s observed_keys=%s",
+                    observed.url,
+                    baseline.keys,
+                    observed.keys,
+                )
                 return change
 
         # Check 3: Endpoint down (was 200, now error)

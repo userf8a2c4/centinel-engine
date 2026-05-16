@@ -14,7 +14,9 @@ from core.security_utils import (
 )
 
 
-def test_resolve_outbound_target_rejects_non_public_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_outbound_target_rejects_non_public_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def _fake_getaddrinfo(host, port, *args, **kwargs):
         return [
             (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port)),
@@ -26,7 +28,9 @@ def test_resolve_outbound_target_rejects_non_public_resolution(monkeypatch: pyte
     assert target is None
 
 
-def test_pin_dns_resolution_blocks_rebinding_to_unpinned_ip(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pin_dns_resolution_blocks_rebinding_to_unpinned_ip(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def _fake_getaddrinfo(host, port, *args, **kwargs):
         if host == "api.telegram.org":
             return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.1.2.3", port))]

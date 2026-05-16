@@ -66,7 +66,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import asyncio
@@ -253,8 +252,13 @@ class AlertManager:
         """
         timestamp = datetime.now(timezone.utc).isoformat()
         dashboard = context.get("dashboard_url") or self._config.dashboard_url
-        checkpoint_hash = context.get("checkpoint_hash") or resolve_latest_checkpoint_hash(self._config.hash_dir)
-        base = f"[{level}] {timestamp} - {message}\n" f"Contexto: {json.dumps(context, indent=2, ensure_ascii=False)}"
+        checkpoint_hash = context.get("checkpoint_hash") or resolve_latest_checkpoint_hash(
+            self._config.hash_dir
+        )
+        base = (
+            f"[{level}] {timestamp} - {message}\n"
+            f"Contexto: {json.dumps(context, indent=2, ensure_ascii=False)}"
+        )
         if dashboard:
             base += f"\nDashboard: {dashboard}"
         if checkpoint_hash:

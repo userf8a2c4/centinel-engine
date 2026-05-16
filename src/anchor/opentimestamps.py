@@ -42,6 +42,7 @@ OTS_RETRIES = 3
 @dataclass
 class OpenTimestampsProof:
     """Proof returned by OpenTimestamps server."""
+
     raw_proof: bytes
     merkle_root: str
     timestamp_server: str
@@ -50,6 +51,7 @@ class OpenTimestampsProof:
     def to_dict(self) -> Dict[str, Any]:
         """Serialize proof for JSON storage."""
         import base64
+
         return {
             "proof_type": "opentimestamps",
             "merkle_root": self.merkle_root,
@@ -62,6 +64,7 @@ class OpenTimestampsProof:
     def from_dict(data: Dict[str, Any]) -> OpenTimestampsProof:
         """Deserialize proof from JSON storage."""
         import base64
+
         return OpenTimestampsProof(
             raw_proof=base64.b64decode(data["raw_proof_b64"]),
             merkle_root=data["merkle_root"],

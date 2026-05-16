@@ -64,7 +64,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import asyncio
@@ -311,7 +310,9 @@ class DataSourceManager:
                 if attempt < retries:
                     await asyncio.sleep(min(2**attempt, 6))
 
-        raise DataSourceError(f"Source {source.source_id} failed after {retries} retries: {last_error}")
+        raise DataSourceError(
+            f"Source {source.source_id} failed after {retries} retries: {last_error}"
+        )
 
     async def _fetch_from_source(self, source: DataSourceDefinition) -> List[Acta]:
         """Español: Función asíncrona _fetch_from_source del módulo src/centinel/data_sources.py.
@@ -399,7 +400,9 @@ class DataSourceManager:
             elif "data" in payload:
                 batch = payload["data"]
             else:
-                raise DataSourceError(f"Unable to locate batch list in payload for {source.source_id}.")
+                raise DataSourceError(
+                    f"Unable to locate batch list in payload for {source.source_id}."
+                )
             if not isinstance(batch, list):
                 raise DataSourceError(f"Batch payload for {source.source_id} must be a list.")
             return batch

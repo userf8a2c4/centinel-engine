@@ -78,7 +78,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import hashlib
@@ -225,9 +224,13 @@ def verify_chain(chain_dir: Path) -> ChainVerificationResult:
 
         # Reconstruir data canónica del eslabón
         data_payload = {
-            k: v for k, v in sorted(payload.items()) if k not in ("chained_hash", "previous_hash", "operator_signature")
+            k: v
+            for k, v in sorted(payload.items())
+            if k not in ("chained_hash", "previous_hash", "operator_signature")
         }
-        data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        data_bytes = json.dumps(
+            data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
 
         stored_previous = payload.get("previous_hash")
         effective_previous = stored_previous if stored_previous else previous_hash
@@ -307,7 +310,9 @@ def verify_chain_from_entries(entries: List[Dict[str, Any]]) -> ChainVerificatio
             first_hash = stored_hash
 
         if stored_hash != expected:
-            errors.append(f"hash_mismatch index={idx} expected={expected[:16]}... stored={stored_hash[:16]}...")
+            errors.append(
+                f"hash_mismatch index={idx} expected={expected[:16]}... stored={stored_hash[:16]}..."
+            )
             return ChainVerificationResult(
                 valid=False,
                 total_links=len(entries),
@@ -367,7 +372,9 @@ def verify_anchor(
         config = load_config()
         arb = config.get("arbitrum", {})
         rpc_url = rpc_url if rpc_url is not None else arb.get("rpc_url")
-        contract_address = contract_address if contract_address is not None else arb.get("contract_address")
+        contract_address = (
+            contract_address if contract_address is not None else arb.get("contract_address")
+        )
 
     if not rpc_url:
         return AnchorVerificationResult(
@@ -596,7 +603,8 @@ def _load_operator_public_key(key_path: Optional[Path] = None) -> Ed25519PublicK
 
     if not key_path.exists():
         raise FileNotFoundError(
-            f"Clave pública del operador no encontrada: {key_path}. " f"English: Operator public key not found."
+            f"Clave pública del operador no encontrada: {key_path}. "
+            f"English: Operator public key not found."
         )
 
     pem_data = key_path.read_bytes()
@@ -687,7 +695,9 @@ def sign_hash_record(
     """
     # Serializar sin campos de firma previos
     signable = {k: v for k, v in sorted(hash_record.items()) if k != "operator_signature"}
-    data = json.dumps(signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    data = json.dumps(signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
+        "utf-8"
+    )
 
     result = sign_snapshot(data, key_path=key_path, operator_id=operator_id)
 
@@ -717,7 +727,9 @@ def verify_hash_record_signature(hash_record: Dict[str, Any]) -> bool:
         return False
 
     signable = {k: v for k, v in sorted(hash_record.items()) if k != "operator_signature"}
-    data = json.dumps(signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    data = json.dumps(signable, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
+        "utf-8"
+    )
 
     return verify_snapshot_signature(data, signature_hex, public_key_hex=public_key_hex)
 

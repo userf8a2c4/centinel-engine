@@ -6,7 +6,9 @@ import sys
 from pathlib import Path
 
 
-def _write_resilience_report(path: Path, release: str, score: int, mttr: int, e429: int, e503: int, rec: int) -> None:
+def _write_resilience_report(
+    path: Path, release: str, score: int, mttr: int, e429: int, e503: int, rec: int
+) -> None:
     path.write_text(
         json.dumps(
             {

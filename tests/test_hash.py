@@ -140,7 +140,6 @@ def test_build_manifest_skips_symlink_candidates(tmp_path: Path):
     assert not any("snapshot_link.json" in f for f in files)
 
 
-
 def test_write_snapshot_hash_supports_pipeline_version_and_signature(tmp_path: Path, monkeypatch):
     """write_snapshot_hash supports pipeline metadata and Ed25519 signatures.
 
@@ -171,7 +170,6 @@ def test_write_snapshot_hash_supports_pipeline_version_and_signature(tmp_path: P
     assert payload["pipeline_version"] == "v2.0.0"
     assert payload["operator_signature"]["algorithm"] == "Ed25519"
     assert payload["operator_signature"]["operator_id"] == "phase2-test"
-
 
 
 def test_build_manifest_strict_json_blocks_invalid_snapshot(tmp_path: Path):

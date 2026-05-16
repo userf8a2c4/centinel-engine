@@ -60,7 +60,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import json
@@ -301,6 +300,8 @@ def _count_integrity_entries() -> int:
     if not integrity_path.exists():
         return 0
     try:
-        return sum(1 for line in integrity_path.read_text(encoding="utf-8").splitlines() if line.strip())
+        return sum(
+            1 for line in integrity_path.read_text(encoding="utf-8").splitlines() if line.strip()
+        )
     except OSError:
         return 0

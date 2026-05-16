@@ -11,10 +11,34 @@ def test_rule_quality_metrics_jsonl(tmp_path: Path) -> None:
     src.write_text(
         "\n".join(
             [
-                json.dumps({"rule_key": "turnout_impossible", "predicted_anomaly": True, "actual_anomaly": True}),
-                json.dumps({"rule_key": "turnout_impossible", "predicted_anomaly": True, "actual_anomaly": False}),
-                json.dumps({"rule_key": "turnout_impossible", "predicted_anomaly": False, "actual_anomaly": True}),
-                json.dumps({"rule_key": "benford_first_digit", "predicted_anomaly": False, "actual_anomaly": False}),
+                json.dumps(
+                    {
+                        "rule_key": "turnout_impossible",
+                        "predicted_anomaly": True,
+                        "actual_anomaly": True,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "rule_key": "turnout_impossible",
+                        "predicted_anomaly": True,
+                        "actual_anomaly": False,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "rule_key": "turnout_impossible",
+                        "predicted_anomaly": False,
+                        "actual_anomaly": True,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "rule_key": "benford_first_digit",
+                        "predicted_anomaly": False,
+                        "actual_anomaly": False,
+                    }
+                ),
             ]
         ),
         encoding="utf-8",
@@ -22,7 +46,14 @@ def test_rule_quality_metrics_jsonl(tmp_path: Path) -> None:
     out = tmp_path / "quality.json"
 
     subprocess.run(
-        [sys.executable, "scripts/rule_quality_metrics.py", "--input", str(src), "--output", str(out)],
+        [
+            sys.executable,
+            "scripts/rule_quality_metrics.py",
+            "--input",
+            str(src),
+            "--output",
+            str(out),
+        ],
         check=True,
     )
 
@@ -68,7 +99,14 @@ def test_rule_quality_metrics_json_object_cases(tmp_path: Path) -> None:
     out = tmp_path / "quality.json"
 
     subprocess.run(
-        [sys.executable, "scripts/rule_quality_metrics.py", "--input", str(src), "--output", str(out)],
+        [
+            sys.executable,
+            "scripts/rule_quality_metrics.py",
+            "--input",
+            str(src),
+            "--output",
+            str(out),
+        ],
         check=True,
     )
 

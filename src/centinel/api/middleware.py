@@ -64,7 +64,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import ipaddress
@@ -201,7 +200,9 @@ def _parse_networks(
     return nets
 
 
-def _parse_blocklist(raw_list: list[str] | None) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+def _parse_blocklist(
+    raw_list: list[str] | None,
+) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
     """Wrapper preserving explicit blocklist semantics in logs/docs."""
     return _parse_networks(raw_list, log_key="middleware_blocklist_invalid")
 
@@ -248,7 +249,11 @@ class ZeroTrustMiddleware(BaseHTTPMiddleware):
         self._enabled: bool = bool(self._cfg.get("zero_trust", False))
 
         # Rate-limit defaults (Valores por defecto de rate-limit)
-        zt = self._cfg.get("zero_trust_config", {}) if isinstance(self._cfg.get("zero_trust_config"), dict) else {}
+        zt = (
+            self._cfg.get("zero_trust_config", {})
+            if isinstance(self._cfg.get("zero_trust_config"), dict)
+            else {}
+        )
         self._limiter = _SlidingWindowLimiter(
             max_requests=int(zt.get("rate_limit_rpm", 60)),
             window_seconds=60,

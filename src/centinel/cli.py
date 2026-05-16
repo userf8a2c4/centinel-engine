@@ -50,7 +50,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 import json
 from datetime import datetime
 from pathlib import Path
@@ -158,7 +157,9 @@ def status() -> None:
 
 @panel_app.command(name="show")
 def panel_show(
-    verbose: bool = typer.Option(False, "--verbose", help="Mostrar detalles completos / Show full details")
+    verbose: bool = typer.Option(
+        False, "--verbose", help="Mostrar detalles completos / Show full details"
+    )
 ) -> None:
     """Mostrar panel de estado operacional.
 
@@ -172,7 +173,9 @@ def panel_show(
 
     # Threat score (placeholder)
     threat_score = 22
-    status_color = "🟢 VERDE" if threat_score < 31 else "🟡 AMARILLO" if threat_score < 75 else "🔴 ROJO"
+    status_color = (
+        "🟢 VERDE" if threat_score < 31 else "🟡 AMARILLO" if threat_score < 75 else "🔴 ROJO"
+    )
     typer.echo(f"║  AMENAZA GENERAL / Threat Score:  {threat_score:3d}/100 {status_color:<17} ║")
     typer.echo("║                                                                ║")
 
@@ -187,7 +190,7 @@ def panel_show(
             "cephalopod": "Clave: hash...",
             "evasion": "Jitter: ±30%",
             "regeneration": "Mirrors: 3/3",
-            "kill_switch": "(no activado)"
+            "kill_switch": "(no activado)",
         }
         line = f"│ {defense.emoji} {defense.name_es:<10} ({key:<13}): {status_str}  {detail.get(key, ''):<20}"
         typer.echo(f"║  {line:<63} ║")
@@ -231,32 +234,32 @@ def panel_json() -> None:
                 "emoji": AnimalDefense.CORVID.emoji,
                 "name_es": AnimalDefense.CORVID.name_es,
                 "enabled": True,
-                "last_attestation": "2m ago"
+                "last_attestation": "2m ago",
             },
             "cephalopod": {
                 "emoji": AnimalDefense.CEPHALOPOD.emoji,
                 "name_es": AnimalDefense.CEPHALOPOD.name_es,
                 "enabled": True,
-                "key_hash": "abc123..."
+                "key_hash": "abc123...",
             },
             "evasion": {
                 "emoji": AnimalDefense.EVASION.emoji,
                 "name_es": AnimalDefense.EVASION.name_es,
                 "enabled": True,
-                "jitter_range": "±30%"
+                "jitter_range": "±30%",
             },
             "regeneration": {
                 "emoji": AnimalDefense.REGENERATION.emoji,
                 "name_es": AnimalDefense.REGENERATION.name_es,
                 "enabled": True,
-                "mirrors": 3
+                "mirrors": 3,
             },
             "kill_switch": {
                 "emoji": AnimalDefense.KILL_SWITCH.emoji,
                 "name_es": AnimalDefense.KILL_SWITCH.name_es,
                 "status": "READY",
-                "activated": False
-            }
+                "activated": False,
+            },
         },
         "metrics": {
             "merkle_root": "abc123...abc123",
@@ -265,9 +268,9 @@ def panel_json() -> None:
             "zscore_anomalies": 0,
             "connectivity": {"total": 4, "up": 4, "pct": 100},
             "snapshots_total": 2847,
-            "last_snapshot_seconds_ago": 30
+            "last_snapshot_seconds_ago": 30,
         },
-        "next_actions": "Monitor normally. Green status maintained."
+        "next_actions": "Monitor normally. Green status maintained.",
     }
     typer.echo(json.dumps(data, indent=2))
 
@@ -315,7 +318,9 @@ def audit_run(
 
     typer.echo(f"║  {integrity_icon} Binary Integrity                                        ║")
     typer.echo(f"║  {state_icon} State Consistency                                        ║")
-    typer.echo(f"║  {defenses_icon} Defense Health ({defenses_ok}/5)                                 ║")
+    typer.echo(
+        f"║  {defenses_icon} Defense Health ({defenses_ok}/5)                                 ║"
+    )
     typer.echo(f"║  {mirrors_icon} Mirror Coherence                                        ║")
 
     if report.issues:
@@ -328,7 +333,7 @@ def audit_run(
         typer.echo("║                                                                ║")
         typer.echo("║  FULL REPORT (JSON):                                           ║")
         report_json = json.dumps(report.to_dict(), indent=2)
-        for line in report_json.split('\n')[:10]:  # Show first 10 lines
+        for line in report_json.split("\n")[:10]:  # Show first 10 lines
             typer.echo(f"║  {line[:62]:<62} ║")
 
     typer.echo("╚════════════════════════════════════════════════════════════════╝")

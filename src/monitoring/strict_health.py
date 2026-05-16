@@ -78,7 +78,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import asyncio
@@ -399,7 +398,9 @@ class CriticalLogTracker(logging.Handler):
 
 
 _resource_sampler = (
-    ResourceSampler(_env_int("CPU_WINDOW_SECONDS", DEFAULT_CPU_WINDOW_SECONDS)) if psutil is not None else None
+    ResourceSampler(_env_int("CPU_WINDOW_SECONDS", DEFAULT_CPU_WINDOW_SECONDS))
+    if psutil is not None
+    else None
 )
 
 
@@ -685,7 +686,9 @@ async def is_healthy_strict() -> tuple[bool, dict[str, Any]]:
         if not bucket_latency.get("ok", False):
             diagnostics["failures"].append(bucket_latency.get("message", "bucket_latency_failed"))
 
-        checkpoint_payload, integrity_message = await asyncio.to_thread(_load_checkpoint_payload, manager)
+        checkpoint_payload, integrity_message = await asyncio.to_thread(
+            _load_checkpoint_payload, manager
+        )
         checkpoint_check = {
             "ok": checkpoint_payload is not None,
             "message": integrity_message,

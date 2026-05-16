@@ -95,7 +95,9 @@ class TestVerifyChain:
     def test_single_link(self, tmp_path):
         """Un solo eslabón sin previous_hash es válido."""
         data_payload = {"hash": "abc123", "timestamp": "2026-01-01T00:00:00Z"}
-        data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        data_bytes = json.dumps(
+            data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
         expected = _compute_expected_hash(None, data_bytes)
 
         record = {**data_payload, "chained_hash": expected}
@@ -111,9 +113,9 @@ class TestVerifyChain:
         previous = None
         for i in range(3):
             data_payload = {"hash": f"data_{i}", "index": i}
-            data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
-                "utf-8"
-            )
+            data_bytes = json.dumps(
+                data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+            ).encode("utf-8")
             chained = _compute_expected_hash(previous, data_bytes)
 
             record = {**data_payload, "chained_hash": chained}
@@ -135,9 +137,9 @@ class TestVerifyChain:
         previous = None
         for i in range(3):
             data_payload = {"hash": f"data_{i}", "index": i}
-            data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
-                "utf-8"
-            )
+            data_bytes = json.dumps(
+                data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+            ).encode("utf-8")
             chained = _compute_expected_hash(previous, data_bytes)
 
             # Corromper el segundo eslabón
@@ -226,7 +228,9 @@ class TestOperatorSignature:
         generate_operator_keypair(key_dir=tmp_path, operator_id="test-op")
         data = b'{"votes":100,"candidate":"Alice"}'
 
-        sig_result = sign_snapshot(data, key_path=tmp_path / "operator_private.pem", operator_id="test-op")
+        sig_result = sign_snapshot(
+            data, key_path=tmp_path / "operator_private.pem", operator_id="test-op"
+        )
         assert sig_result.operator_id == "test-op"
         assert sig_result.signature_hex
         assert sig_result.public_key_hex
@@ -290,7 +294,9 @@ class TestHashRecordSignature:
             "timestamp": "2026-01-15T00:00:00Z",
         }
 
-        signed = sign_hash_record(record, key_path=tmp_path / "operator_private.pem", operator_id="audit-op")
+        signed = sign_hash_record(
+            record, key_path=tmp_path / "operator_private.pem", operator_id="audit-op"
+        )
         assert "operator_signature" in signed
         assert signed["operator_signature"]["algorithm"] == "Ed25519"
         assert signed["operator_signature"]["operator_id"] == "audit-op"
@@ -472,9 +478,9 @@ class TestStartupVerification:
         previous = None
         for i in range(3):
             data_payload = {"hash": f"h{i}", "idx": i}
-            data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
-                "utf-8"
-            )
+            data_bytes = json.dumps(
+                data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+            ).encode("utf-8")
             chained = _compute_expected_hash(previous, data_bytes)
             record = {**data_payload, "chained_hash": chained}
             if previous:
@@ -509,7 +515,9 @@ class TestStartupVerification:
         generate_operator_keypair(key_dir=key_dir, operator_id="startup-op")
 
         data_payload = {"hash": "test", "idx": 0}
-        data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        data_bytes = json.dumps(
+            data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
         chained = _compute_expected_hash(None, data_bytes)
 
         record = {**data_payload, "chained_hash": chained}

@@ -84,13 +84,9 @@ class TestE2EElectionNightAnomaly:
         bad_report = detector.analyze(manipulated)
 
         # Datos limpios: pocas o ninguna anomalía Benford
-        clean_benford = [
-            a for a in clean_report.anomalies if a.anomaly_type == "benford"
-        ]
+        clean_benford = [a for a in clean_report.anomalies if a.anomaly_type == "benford"]
         # Datos manipulados: Benford DEBE detectar la anomalía
-        bad_benford = [
-            a for a in bad_report.anomalies if a.anomaly_type == "benford"
-        ]
+        bad_benford = [a for a in bad_report.anomalies if a.anomaly_type == "benford"]
 
         assert bad_report.threshold_applied is True
         assert len(bad_benford) > len(clean_benford)
@@ -118,10 +114,10 @@ class TestE2EElectionNightAnomaly:
             # divergence (+40) y Benford (+25) COMO consenso roto (+35),
             # porque los testigos honestos divergen del comprometido.
             score = await ks.evaluate_threat(
-                merkle_divergence=True,             # +40
-                benford_severity=45.2,              # +25 (χ² crítico)
+                merkle_divergence=True,  # +40
+                benford_severity=45.2,  # +25 (χ² crítico)
                 connectivity_lost=False,
-                federation_consensus_broken=True,   # +35
+                federation_consensus_broken=True,  # +35
             )
 
             assert score >= 75, f"Score {score} debería activar kill switch"
@@ -157,6 +153,7 @@ class TestE2EElectionNightAnomaly:
                 "_check_local_integrity_and_restore_from_mirrors",
                 return_value=True,
             ):
+
                 async def _instant_sleep(_):
                     return None
 

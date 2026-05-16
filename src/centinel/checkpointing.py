@@ -60,7 +60,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import asyncio
@@ -341,7 +340,9 @@ class CheckpointManager:
                     "key": key,
                     "timestamp": timestamp,
                     "size": entry.get("Size"),
-                    "last_modified": (entry.get("LastModified").isoformat() if entry.get("LastModified") else None),
+                    "last_modified": (
+                        entry.get("LastModified").isoformat() if entry.get("LastModified") else None
+                    ),
                 }
             )
         history.sort(key=lambda item: item.get("timestamp", ""), reverse=True)
@@ -477,9 +478,15 @@ class CheckpointManager:
         if boto3 is None or Config is None:
             raise CheckpointStorageError("boto3 and botocore are required for checkpoint storage")
         endpoint = (
-            self.config.s3_endpoint_url or os.environ.get("CENTINEL_S3_ENDPOINT") or os.environ.get("S3_ENDPOINT_URL")
+            self.config.s3_endpoint_url
+            or os.environ.get("CENTINEL_S3_ENDPOINT")
+            or os.environ.get("S3_ENDPOINT_URL")
         )
-        region = self.config.s3_region or os.environ.get("AWS_REGION") or os.environ.get("CENTINEL_S3_REGION")
+        region = (
+            self.config.s3_region
+            or os.environ.get("AWS_REGION")
+            or os.environ.get("CENTINEL_S3_REGION")
+        )
         config = Config(connect_timeout=self._timeout_seconds, read_timeout=self._timeout_seconds)
         return boto3.client(
             "s3",
@@ -497,7 +504,9 @@ class CheckpointManager:
         """
         raw_key = os.environ.get(self.encryption_key_env, "")
         if not raw_key:
-            raise CheckpointValidationError(f"Missing environment variable {self.encryption_key_env} for Fernet key.")
+            raise CheckpointValidationError(
+                f"Missing environment variable {self.encryption_key_env} for Fernet key."
+            )
         try:
             decoded = base64.urlsafe_b64decode(raw_key.encode("utf-8"))
         except (ValueError, TypeError) as exc:
@@ -551,7 +560,9 @@ if __name__ == "__main__":
 
     if not os.environ.get("CHECKPOINT_KEY"):
         key = generate_checkpoint_key()
-        logging.info("Generated CHECKPOINT_KEY. Export it before running: export CHECKPOINT_KEY='...'")
+        logging.info(
+            "Generated CHECKPOINT_KEY. Export it before running: export CHECKPOINT_KEY='...'"
+        )
         logging.debug("CHECKPOINT_KEY_VALUE=%s", key)
 
     manager = CheckpointManager(

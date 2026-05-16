@@ -76,7 +76,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 import json
 import logging
 import os
@@ -216,8 +215,7 @@ def _ensure_schema(connection: sqlite3.Connection) -> None:
     English:
         Create the snapshot_index table if it does not exist.
     """
-    connection.execute(
-        """
+    connection.execute("""
         CREATE TABLE IF NOT EXISTS snapshot_index (
             department_code TEXT NOT NULL,
             timestamp_utc TEXT NOT NULL,
@@ -229,8 +227,7 @@ def _ensure_schema(connection: sqlite3.Connection) -> None:
             ipfs_tx_hash TEXT,
             PRIMARY KEY (department_code, timestamp_utc)
         )
-        """
-    )
+        """)
     connection.commit()
 
 
@@ -277,14 +274,12 @@ def fetch_latest_snapshot(connection: sqlite3.Connection) -> dict | None:
     Returns:
         dict | None: Latest snapshot or None if missing.
     """
-    row = connection.execute(
-        """
+    row = connection.execute("""
         SELECT department_code, timestamp_utc, table_name, hash, previous_hash, tx_hash
         FROM snapshot_index
         ORDER BY timestamp_utc DESC
         LIMIT 1
-        """
-    ).fetchone()
+        """).fetchone()
     if not row:
         return None
     table_name = _validate_table_name(row["table_name"])
@@ -627,7 +622,11 @@ def dashboard_data(request: Request) -> dict:
                         total_votes = snap["total_votes"] or 0
                         registered_voters = snap["registered_voters"] or 0
                         try:
-                            candidates = json.loads(snap["candidates_json"]) if snap["candidates_json"] else []
+                            candidates = (
+                                json.loads(snap["candidates_json"])
+                                if snap["candidates_json"]
+                                else []
+                            )
                         except (json.JSONDecodeError, TypeError):
                             candidates = []
                 except (ValueError, sqlite3.OperationalError):
@@ -643,7 +642,9 @@ def dashboard_data(request: Request) -> dict:
                 alert_state = "anomaly"
                 alert_department = dept_name
 
-            turnout = round((total_votes / registered_voters * 100), 1) if registered_voters else 0.0
+            turnout = (
+                round((total_votes / registered_voters * 100), 1) if registered_voters else 0.0
+            )
 
             # Normalize candidates into frontend format.
             fe_candidates = _format_candidates(candidates, total_votes)
@@ -698,23 +699,45 @@ def dashboard_data(request: Request) -> dict:
 
 # ISO code mapping helpers.
 _DEPT_ISO_MAP: dict[str, str] = {
-    "atlantida": "HN-AT", "choluteca": "HN-CH", "colon": "HN-CL",
-    "comayagua": "HN-CM", "copan": "HN-CP", "cortes": "HN-CR",
-    "el_paraiso": "HN-EP", "francisco_morazan": "HN-FM",
-    "gracias_a_dios": "HN-GD", "intibuca": "HN-IN",
-    "islas_de_la_bahia": "HN-IB", "la_paz": "HN-LP", "lempira": "HN-LE",
-    "ocotepeque": "HN-OC", "olancho": "HN-OL", "santa_barbara": "HN-SB",
-    "valle": "HN-VA", "yoro": "HN-YO",
+    "atlantida": "HN-AT",
+    "choluteca": "HN-CH",
+    "colon": "HN-CL",
+    "comayagua": "HN-CM",
+    "copan": "HN-CP",
+    "cortes": "HN-CR",
+    "el_paraiso": "HN-EP",
+    "francisco_morazan": "HN-FM",
+    "gracias_a_dios": "HN-GD",
+    "intibuca": "HN-IN",
+    "islas_de_la_bahia": "HN-IB",
+    "la_paz": "HN-LP",
+    "lempira": "HN-LE",
+    "ocotepeque": "HN-OC",
+    "olancho": "HN-OL",
+    "santa_barbara": "HN-SB",
+    "valle": "HN-VA",
+    "yoro": "HN-YO",
 }
 
 _ISO_TO_NAME: dict[str, str] = {
-    "HN-AT": "Atlántida", "HN-CH": "Choluteca", "HN-CL": "Colón",
-    "HN-CM": "Comayagua", "HN-CP": "Copán", "HN-CR": "Cortés",
-    "HN-EP": "El Paraíso", "HN-FM": "Francisco Morazán",
-    "HN-GD": "Gracias a Dios", "HN-IB": "Islas de la Bahía",
-    "HN-IN": "Intibucá", "HN-LP": "La Paz", "HN-LE": "Lempira",
-    "HN-OC": "Ocotepeque", "HN-OL": "Olancho", "HN-SB": "Santa Bárbara",
-    "HN-VA": "Valle", "HN-YO": "Yoro",
+    "HN-AT": "Atlántida",
+    "HN-CH": "Choluteca",
+    "HN-CL": "Colón",
+    "HN-CM": "Comayagua",
+    "HN-CP": "Copán",
+    "HN-CR": "Cortés",
+    "HN-EP": "El Paraíso",
+    "HN-FM": "Francisco Morazán",
+    "HN-GD": "Gracias a Dios",
+    "HN-IB": "Islas de la Bahía",
+    "HN-IN": "Intibucá",
+    "HN-LP": "La Paz",
+    "HN-LE": "Lempira",
+    "HN-OC": "Ocotepeque",
+    "HN-OL": "Olancho",
+    "HN-SB": "Santa Bárbara",
+    "HN-VA": "Valle",
+    "HN-YO": "Yoro",
 }
 
 
@@ -729,21 +752,29 @@ def _format_candidates(raw: list, total_votes: int) -> list[dict]:
         if isinstance(c, dict):
             votes = c.get("votes", c.get("votos", 0)) or 0
             pct = round(votes / total_votes * 100, 1) if total_votes else 0.0
-            result.append({
-                "name": c.get("name", c.get("nombre", "Desconocido")),
-                "party": c.get("party", c.get("partido", "")),
-                "partyColor": c.get("partyColor", c.get("color", "#6b7280")),
-                "votes": votes,
-                "percentage": pct,
-                "victoryProbability": c.get("victoryProbability", 0),
-                "health": c.get("health", "normal"),
-                "analysisText": c.get("analysisText", ""),
-                "forensics": c.get("forensics", {
-                    "loadSpikes": 0, "sigma": 0, "flowRate": 0,
-                    "benfordDeviation": 0, "lastDelta": 0,
-                    "trendDirection": "stable",
-                }),
-            })
+            result.append(
+                {
+                    "name": c.get("name", c.get("nombre", "Desconocido")),
+                    "party": c.get("party", c.get("partido", "")),
+                    "partyColor": c.get("partyColor", c.get("color", "#6b7280")),
+                    "votes": votes,
+                    "percentage": pct,
+                    "victoryProbability": c.get("victoryProbability", 0),
+                    "health": c.get("health", "normal"),
+                    "analysisText": c.get("analysisText", ""),
+                    "forensics": c.get(
+                        "forensics",
+                        {
+                            "loadSpikes": 0,
+                            "sigma": 0,
+                            "flowRate": 0,
+                            "benfordDeviation": 0,
+                            "lastDelta": 0,
+                            "trendDirection": "stable",
+                        },
+                    ),
+                }
+            )
     return result
 
 
@@ -762,10 +793,24 @@ def api_summaries(request: Request) -> dict:
 
 
 DEPARTMENTS = [
-    "atlantida", "choluteca", "colon", "comayagua", "copan", "cortes",
-    "el_paraiso", "francisco_morazan", "gracias_a_dios", "intibuca",
-    "islas_de_la_bahia", "la_paz", "lempira", "ocotepeque", "olancho",
-    "santa_barbara", "valle", "yoro",
+    "atlantida",
+    "choluteca",
+    "colon",
+    "comayagua",
+    "copan",
+    "cortes",
+    "el_paraiso",
+    "francisco_morazan",
+    "gracias_a_dios",
+    "intibuca",
+    "islas_de_la_bahia",
+    "la_paz",
+    "lempira",
+    "ocotepeque",
+    "olancho",
+    "santa_barbara",
+    "valle",
+    "yoro",
 ]
 
 
@@ -781,15 +826,12 @@ def _department_status(connection: sqlite3.Connection) -> list[dict]:
     alert_depts: dict[str, set[str]] = {}
     for alert in alerts:
         dept = (
-            alert.get("department_code")
-            or alert.get("departamento")
-            or ""
-        ).strip().lower().replace(" ", "_")
-        severity = (
-            alert.get("severity")
-            or alert.get("nivel")
-            or "warning"
-        ).lower()
+            (alert.get("department_code") or alert.get("departamento") or "")
+            .strip()
+            .lower()
+            .replace(" ", "_")
+        )
+        severity = (alert.get("severity") or alert.get("nivel") or "warning").lower()
         alert_depts.setdefault(dept, set()).add(severity)
 
     results = []
@@ -828,12 +870,14 @@ def _department_status(connection: sqlite3.Connection) -> list[dict]:
         else:
             status = "ok"
 
-        results.append({
-            "department": dept,
-            "status": status,
-            "has_data": row is not None,
-            "alert_count": len(alert_depts.get(dept, set())),
-        })
+        results.append(
+            {
+                "department": dept,
+                "status": status,
+                "has_data": row is not None,
+                "alert_count": len(alert_depts.get(dept, set())),
+            }
+        )
     return results
 
 
@@ -867,7 +911,9 @@ def dashboard():
 # Mount React build assets (JS/CSS bundles) under /assets.
 # Must be registered after explicit routes to avoid shadowing API endpoints.
 if DASHBOARD_BUILD_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=DASHBOARD_BUILD_DIR / "assets"), name="dashboard-assets")
+    app.mount(
+        "/assets", StaticFiles(directory=DASHBOARD_BUILD_DIR / "assets"), name="dashboard-assets"
+    )
 
 
 # EN: Log build info at startup for deploy verification.
@@ -888,7 +934,11 @@ async def _log_build_version() -> None:
 @app.get("/live")
 async def _live_check():
     """EN: Returns build info — use to verify deploy version. / ES: Retorna info de build — usar para verificar versión desplegada."""
-    return {"status": "ok", "build": _build_stamp, "started": datetime.now(timezone.utc).isoformat()}
+    return {
+        "status": "ok",
+        "build": _build_stamp,
+        "started": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 register_healthchecks(app)

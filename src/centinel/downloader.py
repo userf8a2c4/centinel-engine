@@ -78,7 +78,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import importlib.util
@@ -609,7 +608,9 @@ def _request_with_retry(
                         payload = response.json()
                     except (json.JSONDecodeError, ValueError) as exc:
                         policy = retry_config.policy_for_exception(exc)
-                        response_text = _extract_response_text(response, retry_config.log_payload_bytes)
+                        response_text = _extract_response_text(
+                            response, retry_config.log_payload_bytes
+                        )
                         logger.warning(
                             "json_parse_error",
                             url=url,
@@ -736,7 +737,10 @@ def should_skip_snapshot(data_dir: Path, source_id: str, *, retry_config: RetryC
     latest = candidates[0]
     age_seconds = max(
         0.0,
-        (datetime.now(timezone.utc) - datetime.fromtimestamp(latest.stat().st_mtime, tz=timezone.utc)).total_seconds(),
+        (
+            datetime.now(timezone.utc)
+            - datetime.fromtimestamp(latest.stat().st_mtime, tz=timezone.utc)
+        ).total_seconds(),
     )
     return age_seconds <= retry_config.recent_snapshot_seconds
 

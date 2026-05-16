@@ -243,8 +243,7 @@ def format_report(report: DoctorReport) -> str:
     lines = [
         "Centinel preflight / autoauditoría previa",
         f"  mode: {report.profile.mode}",
-        f"  overall: {report.overall} "
-        f"(election_ready={report.election_ready})",
+        f"  overall: {report.overall} " f"(election_ready={report.election_ready})",
         "",
     ]
     for c in report.checks:

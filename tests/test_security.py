@@ -76,7 +76,9 @@ def test_detect_hostile_by_memory_and_http(monkeypatch: pytest.MonkeyPatch) -> N
     assert "http_errors_flood" in triggers
 
 
-def test_activate_defensive_mode_persists_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_activate_defensive_mode_persists_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """English/Spanish: Defensive activation must write flag + state artifacts."""
     safe_dir = tmp_path / "safe"
     flag = safe_dir / "defensive.flag"
@@ -97,7 +99,9 @@ def test_activate_defensive_mode_persists_state(tmp_path: Path, monkeypatch: pyt
     assert (state_dir / "state_snapshot.json").exists()
 
 
-def test_supervisor_sends_alert_after_max_retries(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_supervisor_sends_alert_after_max_retries(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """English/Spanish: Supervisor should send admin alert after bounded failed retries."""
     logger = logging.getLogger("test.supervisor")
     cfg = SecurityConfig(

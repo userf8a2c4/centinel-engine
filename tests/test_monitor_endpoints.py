@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-
 MODULE_PATH = Path("scripts/monitor_endpoints.py")
 
 

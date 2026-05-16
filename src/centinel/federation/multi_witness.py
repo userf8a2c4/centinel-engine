@@ -50,6 +50,7 @@ class WitnessAttestation:
 
     ES: Atestación publicada por un testigo.
     """
+
     witness_id: str  # Identifier (e.g., "Witness-HN-1")
     witness_url: str  # Base URL (e.g., "https://witness1.example.com")
     timestamp: float
@@ -67,6 +68,7 @@ class MerkleComparison:
 
     ES: Resultado de comparar Merkles de dos testigos.
     """
+
     timestamp: float
     witness_a_id: str
     witness_b_id: str
@@ -82,6 +84,7 @@ class ConsensusReport:
 
     ES: Resumen de consenso entre testigos.
     """
+
     timestamp: float
     witness_ids: list[str]
     merkle_roots: dict[str, str]  # witness_id → merkle_root
@@ -381,8 +384,7 @@ class FederationCoordinator:
             "witnesses_responding": len(self.attestations),
             "attestations": [asdict(a) for a in self.attestations.values()],
             "comparisons": [asdict(c) for c in self.comparisons],
-            "consensus_reached": len([c for c in self.comparisons if c.matches])
-            > 0,
+            "consensus_reached": len([c for c in self.comparisons if c.matches]) > 0,
         }
 
 

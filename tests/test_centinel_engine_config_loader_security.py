@@ -7,7 +7,9 @@ import pytest
 from centinel_engine.config_loader import load_config
 
 
-def test_load_config_rejects_path_traversal_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_config_rejects_path_traversal_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.chdir(tmp_path)
     (tmp_path / "config" / "prod").mkdir(parents=True)
     (tmp_path / "config" / "prod" / "ok.yaml").write_text("a: 1", encoding="utf-8")

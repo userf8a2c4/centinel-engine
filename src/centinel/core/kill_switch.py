@@ -91,7 +91,9 @@ class KillSwitch:
                     self.recovery_state = RecoveryState(
                         attempt_count=data.get("attempt_count", 0),
                         last_freeze_timestamp=data.get("last_freeze_timestamp", time.time()),
-                        last_recovery_attempt_timestamp=data.get("last_recovery_attempt_timestamp", 0.0),
+                        last_recovery_attempt_timestamp=data.get(
+                            "last_recovery_attempt_timestamp", 0.0
+                        ),
                         is_frozen=data.get("is_frozen", False),
                     )
             except Exception as e:
@@ -111,7 +113,9 @@ class KillSwitch:
         """
         state_file = self.storage_path / "recovery_state.json"
         try:
-            fd, tmp_path = tempfile.mkstemp(dir=str(self.storage_path), prefix=".recovery_", suffix=".tmp")
+            fd, tmp_path = tempfile.mkstemp(
+                dir=str(self.storage_path), prefix=".recovery_", suffix=".tmp"
+            )
             try:
                 with os.fdopen(fd, "w") as f:
                     json.dump(asdict(self.recovery_state), f, indent=2)
@@ -254,7 +258,9 @@ class KillSwitch:
 
         while self.recovery_state.attempt_count < max_attempts:
             self.recovery_state.attempt_count += 1
-            min_delay, max_delay = self._calculate_exponential_backoff(self.recovery_state.attempt_count)
+            min_delay, max_delay = self._calculate_exponential_backoff(
+                self.recovery_state.attempt_count
+            )
             sleep_time = random.uniform(min_delay, max_delay)
 
             logger.info(

@@ -52,7 +52,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import math
@@ -138,7 +137,9 @@ def _aggregate_mesas(
             continue
         for candidate_id, votes in mesa_votes.items():
             totals[candidate_id] = totals.get(candidate_id, 0) + votes
-        proportions.append({candidate_id: votes / mesa_total for candidate_id, votes in mesa_votes.items()})
+        proportions.append(
+            {candidate_id: votes / mesa_total for candidate_id, votes in mesa_votes.items()}
+        )
 
     return totals, proportions
 
@@ -202,7 +203,9 @@ def apply(current_data: dict, previous_data: Optional[dict], config: dict) -> Li
     department = extract_department(current_data)
 
     for candidate_id, total_votes in totals.items():
-        sample_values = [mesa_props.get(candidate_id) for mesa_props in proportions if candidate_id in mesa_props]
+        sample_values = [
+            mesa_props.get(candidate_id) for mesa_props in proportions if candidate_id in mesa_props
+        ]
         if len(sample_values) < min_samples:
             continue
         sample_mean = sum(sample_values) / len(sample_values)

@@ -110,12 +110,10 @@ def resolve_mode(explicit: Optional[str] = None) -> str:
     An unknown value degrades to the safest-cadence mode rather than
     raising: a misconfigured dial must not crash election-night capture.
     """
-    raw = (explicit if explicit is not None else os.getenv(_MODE_ENV, _DEFAULT_MODE))
+    raw = explicit if explicit is not None else os.getenv(_MODE_ENV, _DEFAULT_MODE)
     mode = raw.strip().lower()
     if mode not in _VALID_MODES:
-        _LOGGER.warning(
-            "centinel_mode_unknown value=%r falling_back=%s", raw, _DEFAULT_MODE
-        )
+        _LOGGER.warning("centinel_mode_unknown value=%r falling_back=%s", raw, _DEFAULT_MODE)
         return _DEFAULT_MODE
     return mode
 

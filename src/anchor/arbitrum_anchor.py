@@ -72,7 +72,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import logging
@@ -214,7 +213,10 @@ def _resolve_private_key(settings: dict[str, Any]) -> str | None:
     if not env_key:
         yaml_value = settings.get("private_key")
         if yaml_value and yaml_value not in {"", "0x...", "REPLACE_ME"}:
-            logger.warning("private_key found in config.yaml but ignored — " "set ARBITRUM_PRIVATE_KEY env var instead")
+            logger.warning(
+                "private_key found in config.yaml but ignored — "
+                "set ARBITRUM_PRIVATE_KEY env var instead"
+            )
         return None
     return env_key
 
@@ -233,7 +235,9 @@ def _log_anchor_start(settings: dict[str, Any], anchor_id: str, root_hex: str) -
     privacy_mode = bool(settings.get("log_redact_identifiers", False))
     if privacy_mode:
         logger.info(
-            "anchor_root_start anchor_id=%s root=%s", _obfuscate_identifier(anchor_id), _obfuscate_identifier(root_hex)
+            "anchor_root_start anchor_id=%s root=%s",
+            _obfuscate_identifier(anchor_id),
+            _obfuscate_identifier(root_hex),
         )
         return
     logger.info("anchor_root_start anchor_id=%s root=%s", anchor_id, root_hex)

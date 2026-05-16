@@ -199,7 +199,11 @@ class TestHealthScoreCalculation:
             # Si 3 OK: 3/4 = 0.75
             # Si 2 OK: 2/4 = 0.50
             assert report.health_score in [
-                0.0, 0.25, 0.5, 0.75, 1.0
+                0.0,
+                0.25,
+                0.5,
+                0.75,
+                1.0,
             ], f"Unexpected health score: {report.health_score}"
 
 
@@ -327,7 +331,7 @@ class TestHealthCheckResult:
             passed=True,
             timestamp=datetime.utcnow().timestamp(),
             issues=[],
-            details={}
+            details={},
         )
         assert result.name == "test_check"
         assert result.passed is True
@@ -346,7 +350,7 @@ class TestAuditReportDataclass:
             defense_health={"corvid": True, "cephalopod": True},
             mirror_coherence={"coherent": True},
             issues=["test issue"],
-            action_taken="test action"
+            action_taken="test action",
         )
         assert report.health_score == 0.75
         assert len(report.issues) == 1

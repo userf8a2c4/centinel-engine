@@ -55,11 +55,15 @@ def test_attack_logbook_flood_sampling_and_callback(tmp_path: Path) -> None:
         max_requests_per_ip=1,
         flood_log_sample_ratio=2,
     )
-    logbook = AttackForensicsLogbook(cfg, event_callback=lambda event: callback_events.append(event))
+    logbook = AttackForensicsLogbook(
+        cfg, event_callback=lambda event: callback_events.append(event)
+    )
     logbook.start()
 
     for _ in range(4):
-        logbook.log_http_request(ip="198.51.100.3", method="GET", route="/debug", headers={"User-Agent": "ua"})
+        logbook.log_http_request(
+            ip="198.51.100.3", method="GET", route="/debug", headers={"User-Agent": "ua"}
+        )
 
     time.sleep(0.2)
     logbook.stop()
@@ -117,10 +121,14 @@ def test_integrated_flow_detection_to_backup(tmp_path: Path, monkeypatch) -> Non
     (tmp_path / "snapshot.json").write_text('{"ok": true}', encoding="utf-8")
     calls: list[str] = []
     monkeypatch.setattr(manager, "verify_integrity", lambda: False)
-    monkeypatch.setattr(manager.runtime_security, "stop_honeypot", lambda: calls.append("runtime_stop"))
+    monkeypatch.setattr(
+        manager.runtime_security, "stop_honeypot", lambda: calls.append("runtime_stop")
+    )
     monkeypatch.setattr(manager.honeypot, "stop", lambda: calls.append("honeypot_stop"))
     monkeypatch.setattr(manager.honeypot, "start", lambda: calls.append("honeypot_start"))
-    monkeypatch.setattr(manager.runtime_security, "start_honeypot", lambda: calls.append("runtime_start"))
+    monkeypatch.setattr(
+        manager.runtime_security, "start_honeypot", lambda: calls.append("runtime_start")
+    )
     monkeypatch.setattr(manager, "detect_internal_anomalies", lambda: ["memory_high:95.0"])
     monkeypatch.setattr("core.advanced_security.time.sleep", lambda _seconds: None)
 
@@ -128,4 +136,7 @@ def test_integrated_flow_detection_to_backup(tmp_path: Path, monkeypatch) -> Non
 
     assert "runtime_stop" in calls
     assert "honeypot_stop" in calls
-    assert any(p.name.startswith("advanced_backup_") for p in (Path("data/backups")).glob("advanced_backup_*.json*"))
+    assert any(
+        p.name.startswith("advanced_backup_")
+        for p in (Path("data/backups")).glob("advanced_backup_*.json*")
+    )
