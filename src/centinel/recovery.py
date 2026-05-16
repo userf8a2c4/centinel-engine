@@ -80,6 +80,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+
+import structlog
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -268,7 +270,7 @@ class RecoveryManager:
         """
         self.storage_path = storage_path
         self.checkpoint_dir = storage_path / "checkpoints"
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or structlog.get_logger(__name__)
         self.expected_source_format = expected_source_format
         self.stale_checkpoint_policy = stale_checkpoint_policy
         self.recent_threshold_minutes = recent_threshold_minutes

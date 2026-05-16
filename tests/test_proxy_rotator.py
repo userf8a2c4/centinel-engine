@@ -43,9 +43,9 @@ def test_proxy_rotator_falls_back_to_direct_after_failures() -> None:
     rotator = ProxyRotator(
         mode="rotating",
         proxies=proxies,
+        proxy_urls=["http://proxy-1"],
         rotation_strategy="round_robin",
         rotation_every_n=1,
-        logger=logging.getLogger("tests.proxy"),
     )
 
     rotator.mark_failure("http://proxy-1", "timeout")

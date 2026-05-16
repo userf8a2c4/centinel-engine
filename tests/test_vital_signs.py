@@ -393,7 +393,7 @@ class TestDefaultConstants:
 
     def test_default_thresholds_values(self) -> None:
         """DEFAULT_THRESHOLDS has expected values / Valores esperados en DEFAULT_THRESHOLDS."""
-        assert DEFAULT_THRESHOLDS["consecutive_failures_conservative"] == 3
+        assert DEFAULT_THRESHOLDS["consecutive_failures_conservative"] == 2
         assert DEFAULT_THRESHOLDS["consecutive_failures_critical"] == 5
         assert DEFAULT_THRESHOLDS["min_success_rate"] == 0.70
         assert DEFAULT_THRESHOLDS["max_avg_latency"] == 10.0

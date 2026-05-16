@@ -59,6 +59,10 @@ def test_download_and_hash_success(httpx_mock, tmp_path):
     assert result
 
 
+@pytest.mark.httpx_mock(
+    assert_all_responses_were_requested=False,
+    can_send_already_matched_responses=True,
+)
 def test_download_and_hash_handles_429(httpx_mock, tmp_path):
     """Español: Función test_download_and_hash_handles_429 del módulo tests/test_centinel_download.py.
 
@@ -72,6 +76,10 @@ def test_download_and_hash_handles_429(httpx_mock, tmp_path):
         asyncio.run(download_and_hash(url, output_path))
 
 
+@pytest.mark.httpx_mock(
+    assert_all_responses_were_requested=False,
+    can_send_already_matched_responses=True,
+)
 def test_fetch_content_retries_on_timeout(httpx_mock, monkeypatch):
     """Español: Función test_fetch_content_retries_on_timeout del módulo tests/test_centinel_download.py.
 

@@ -78,6 +78,7 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
+import structlog
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -87,7 +88,7 @@ from tenacity import (
 
 from .proxy_handler import ProxyRotator, get_proxy_rotator
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class DownloadError(Exception):

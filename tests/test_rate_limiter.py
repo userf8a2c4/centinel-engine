@@ -135,20 +135,32 @@ class TestConstruction:
 class TestTokenConsumption:
     """Tests for token bucket behavior / Pruebas del comportamiento del token-bucket."""
 
-    def test_first_wait_is_instant(self) -> None:
-        """First call to wait() returns near-zero delay (bucket starts full).
+    def test_first_wait_is_instant(self, monkeypatch) -> None:
+        """First call to wait() has no token wait (bucket starts full).
 
-        Bilingual: Primera llamada a wait() retorna delay cercano a cero (bucket inicia lleno).
+        The limiter always adds a random anti-fingerprinting jitter
+        (0–3.2s, Venado/Evasion defense) by design, so we neutralize it
+        to assert the token-bucket logic itself is instant.
+
+        Bilingual: Se neutraliza el jitter de seguridad para verificar
+        solo la lógica del token-bucket (bucket inicia lleno).
         """
+        monkeypatch.setattr(
+            "centinel_engine.rate_limiter.random.uniform", lambda *_a: 0.0
+        )
         rl = TokenBucketRateLimiter(rate_interval=1.0, burst=3, min_interval=0.0, max_interval=5.0)
         waited = rl.wait()
         assert waited < 0.5  # should be nearly instant / deberia ser casi instantaneo
 
-    def test_burst_allows_multiple_fast_requests(self) -> None:
-        """Burst capacity allows several requests without waiting.
+    def test_burst_allows_multiple_fast_requests(self, monkeypatch) -> None:
+        """Burst capacity allows several requests without token waiting.
 
-        Bilingual: Capacidad de burst permite varias requests sin esperar.
+        Anti-fingerprinting jitter neutralized (see test above).
+        Bilingual: Jitter de seguridad neutralizado para probar burst.
         """
+        monkeypatch.setattr(
+            "centinel_engine.rate_limiter.random.uniform", lambda *_a: 0.0
+        )
         rl = TokenBucketRateLimiter(rate_interval=1.0, burst=3, min_interval=0.0, max_interval=5.0)
         total_wait = 0.0
         for _ in range(3):

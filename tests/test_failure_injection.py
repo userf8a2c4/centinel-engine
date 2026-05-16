@@ -264,7 +264,13 @@ def test_run_pipeline_resumes_from_checkpoint(monkeypatch, tmp_path) -> None:
 
     commands: list[list[str]] = []
 
-    monkeypatch.setattr(run_pipeline, "check_cne_connectivity", lambda *_args: True)
+    # check_cne_connectivity was replaced by perform_cne_preflight_request,
+    # which returns an HTTP status code (health_ok = status < 400).
+    monkeypatch.setattr(
+        run_pipeline,
+        "perform_cne_preflight_request",
+        lambda *_args, **_kwargs: 200,
+    )
     monkeypatch.setattr(run_pipeline, "should_normalize", lambda *_args: False)
 
     def _record_command(command, _description):

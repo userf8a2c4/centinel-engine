@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -184,7 +185,14 @@ def test_full_cycle(tmp_path, monkeypatch, mocker):
     Path("hashes").mkdir()
 
     endpoint = "https://cne.example/api"
-    responses.add(responses.GET, endpoint, json={"ok": True}, status=200)
+    # Realistic CNE payload: recent timestamp + CNE source metadata so the
+    # real-payload validator accepts it.
+    cne_payload = {
+        "ok": True,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "meta": {"source": "CNE"},
+    }
+    responses.add(responses.GET, endpoint, json=cne_payload, status=200)
 
     sources = [
         {
@@ -193,7 +201,14 @@ def test_full_cycle(tmp_path, monkeypatch, mocker):
             "scope": "NATIONAL",
         }
     ]
-    process_sources(sources, {"nacional": endpoint})
+    # Allow the synthetic test domain through the SSRF allowlist and skip
+    # public-IP resolution (network is blocked in tests by conftest).
+    test_config = {
+        "cne_domains": ["cne.example"],
+        "enforce_public_ip_resolution": False,
+        "require_https": True,
+    }
+    process_sources(sources, {"nacional": endpoint}, test_config)
 
     snapshots = list(Path("data/snapshots/NACIONAL").glob("snapshot_*.json"))
     hashes = list(Path("hashes/NACIONAL").glob("snapshot_*.sha256"))
@@ -202,6 +217,8 @@ def test_full_cycle(tmp_path, monkeypatch, mocker):
 
     hash_payload = json.loads(hashes[0].read_text(encoding="utf-8"))
     _setup_fake_web3(mocker)
+    # _resolve_private_key reads ONLY from env (YAML ignored by design).
+    monkeypatch.setenv("ARBITRUM_PRIVATE_KEY", "0x" + "1" * 64)
     result = anchor_batch([hash_payload["hash"]])
     assert result["tx_hash"].startswith("0x")
 
@@ -225,9 +242,16 @@ def test_full_cycle(tmp_path, monkeypatch, mocker):
     get_health_state()
 
     fail_endpoint = "https://cne.example/fail"
+    from scripts.download_and_hash import CHECKPOINT_PATH
+
     for _ in range(4):
+        # Each iteration simulates an independent failure cycle; clear the
+        # resume checkpoint so the source isn't skipped as "already
+        # processed" (checkpoint resumption was added after this test).
+        if CHECKPOINT_PATH.exists():
+            CHECKPOINT_PATH.unlink()
         responses.add(responses.GET, fail_endpoint, status=500)
-        process_sources(sources, {"nacional": fail_endpoint})
+        process_sources(sources, {"nacional": fail_endpoint}, test_config)
 
     assert any(req.method == "POST" and req.url.path.endswith("/fail") for req in fail_requests)
 

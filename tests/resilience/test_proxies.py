@@ -54,12 +54,19 @@ class _DummyResponse:
 
 
 class _DummyClient:
-    def __init__(self, responses: dict[str, int], errors: dict[str, Exception]):
+    def __init__(
+        self,
+        responses: dict[str, int],
+        errors: dict[str, Exception],
+        proxy: str = "",
+    ):
         self._responses = responses
         self._errors = errors
+        # httpx ≥0.28: proxy is set on the client, not per-request.
+        self._proxy = proxy
 
-    def get(self, _url: str, *, proxies):
-        proxy_key = proxies if isinstance(proxies, str) else proxies.get("all://", "")
+    def get(self, _url: str):
+        proxy_key = self._proxy
         if proxy_key in self._errors:
             raise self._errors[proxy_key]
         return _DummyResponse(status_code=self._responses.get(proxy_key, 200))
@@ -86,8 +93,8 @@ def test_proxy_validation_rejects_403_and_errors(
     }
     errors = {"http://proxy-3.local:8080": httpx.RequestError("boom")}
 
-    def dummy_client(*_args, **_kwargs):
-        return _DummyClient(resp_map, errors)
+    def dummy_client(*_args, **kwargs):
+        return _DummyClient(resp_map, errors, proxy=kwargs.get("proxy", ""))
 
     monkeypatch.setattr(proxy_handler.httpx, "Client", dummy_client)
 

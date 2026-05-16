@@ -69,6 +69,7 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 import httpx
+import structlog
 
 from centinel_engine.config_loader import load_config
 
@@ -120,42 +121,42 @@ class ProxyValidator:
         """
         self.test_url = test_url
         self.timeout_seconds = timeout_seconds
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or structlog.get_logger(__name__)
 
     def validate(self, proxies: Iterable[str]) -> List[ProxyInfo]:
         """Prueba proxies y devuelve los que responden correctamente."""
         validated: List[ProxyInfo] = []
         timeout = httpx.Timeout(self.timeout_seconds)
-        with httpx.Client(timeout=timeout) as client:
-            for proxy_url in proxies:
-                start = time.monotonic()
-                try:
-                    proxy_dict = {"all://": proxy_url}
-                    response = client.get(self.test_url, proxies=proxy_dict)
-                    elapsed = time.monotonic() - start
-                    if response.status_code >= 400:
-                        self.logger.warning(
-                            "proxy_validation_failed",
-                            proxy=proxy_url,
-                            status_code=response.status_code,
-                            elapsed_seconds=round(elapsed, 3),
-                        )
-                        continue
-                    self.logger.info(
-                        "proxy_validation_ok",
+        for proxy_url in proxies:
+            start = time.monotonic()
+            try:
+                # httpx ≥0.28: proxy is set on the client, not per-request.
+                with httpx.Client(timeout=timeout, proxy=proxy_url) as client:
+                    response = client.get(self.test_url)
+                elapsed = time.monotonic() - start
+                if response.status_code >= 400:
+                    self.logger.warning(
+                        "proxy_validation_failed",
                         proxy=proxy_url,
                         status_code=response.status_code,
                         elapsed_seconds=round(elapsed, 3),
                     )
-                    validated.append(ProxyInfo(url=proxy_url))
-                except httpx.RequestError as exc:
-                    elapsed = time.monotonic() - start
-                    self.logger.warning(
-                        "proxy_validation_error",
-                        proxy=proxy_url,
-                        elapsed_seconds=round(elapsed, 3),
-                        error=str(exc),
-                    )
+                    continue
+                self.logger.info(
+                    "proxy_validation_ok",
+                    proxy=proxy_url,
+                    status_code=response.status_code,
+                    elapsed_seconds=round(elapsed, 3),
+                )
+                validated.append(ProxyInfo(url=proxy_url))
+            except httpx.RequestError as exc:
+                elapsed = time.monotonic() - start
+                self.logger.warning(
+                    "proxy_validation_error",
+                    proxy=proxy_url,
+                    elapsed_seconds=round(elapsed, 3),
+                    error=str(exc),
+                )
         return validated
 
 
@@ -181,7 +182,7 @@ class ProxyRotator:
         self.rotation_strategy = rotation_strategy
         self.rotation_every_n = max(rotation_every_n, 1)
         self.proxy_timeout_seconds = proxy_timeout_seconds
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or structlog.get_logger(__name__)
         self._proxies = proxies
         self._proxy_urls = proxy_urls
         self._current_index = 0
@@ -380,21 +381,27 @@ def get_proxy_rotator(logger: Optional[logging.Logger] = None) -> ProxyRotator:
                 validator = ProxyValidator(
                     test_url=config["test_url"],
                     timeout_seconds=10.0,
-                    logger=logger or logging.getLogger(__name__),
+                    logger=logger or structlog.get_logger(__name__),
                 )
                 refreshed = _ROTATOR.refresh_proxies(validator)
                 if not refreshed:
                     _ROTATOR._fallback_to_direct()
             return _ROTATOR
 
-        logger = logger or logging.getLogger(__name__)
+        logger = logger or structlog.get_logger(__name__)
         config = load_proxy_config()
         validator = ProxyValidator(
             test_url=config["test_url"],
             timeout_seconds=config["proxy_timeout_seconds"],
             logger=logger,
         )
-        validated = validator.validate(config["proxies"])
+        # In direct mode proxies are never used; skip validation so
+        # placeholder entries (e.g. "http://user:pass@ip:port") don't
+        # raise during startup.
+        if config["mode"] == "direct":
+            validated = []
+        else:
+            validated = validator.validate(config["proxies"])
         _ROTATOR = ProxyRotator(
             mode=config["mode"],
             proxies=validated,
