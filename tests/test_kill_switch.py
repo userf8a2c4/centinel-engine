@@ -210,8 +210,8 @@ class TestRecoveryState:
         kill_switch.recovery_state.attempt_count = 5
         kill_switch._save_recovery_state()
 
-        # Crear nuevo instance y cargar
-        kill_switch2 = KillSwitch(storage_path=str(kill_switch.storage_path.parent))
+        # Crear nuevo instance y cargar desde misma ruta
+        kill_switch2 = KillSwitch(storage_path=str(kill_switch.storage_path))
         assert kill_switch2.recovery_state.attempt_count == 5
 
 

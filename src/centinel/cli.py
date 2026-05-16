@@ -93,9 +93,7 @@ def status() -> None:
 
 
 @panel_app.command(name="show")
-def panel_show(
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Mostrar detalles completos / Show full details")
-) -> None:
+def panel_show(verbose: bool = False) -> None:
     """Mostrar panel de estado operacional.
 
     English: Display operational status panel.

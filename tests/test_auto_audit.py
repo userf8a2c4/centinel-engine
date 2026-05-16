@@ -273,8 +273,9 @@ class TestAuditReportPersistence:
             # Ejecuta audit
             await audit.run_full_audit()
 
-            # Lee score más reciente
-            score = await audit.get_health_score()
+            # Lee score más reciente (función síncrona, sin await)
+            score = audit.get_health_score()
+            assert score is not None
             assert 0.0 <= score <= 1.0
 
 
