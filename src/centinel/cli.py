@@ -208,8 +208,136 @@ def panel_json() -> None:
     typer.echo(json.dumps(data, indent=2))
 
 
+# Subcomandos para auto-audit
+audit_app = typer.Typer(help="Auto-auditoría — Self-auditing system")
+
+
+@audit_app.command(name="run")
+def audit_run(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Mostrar detalles / Show details")
+) -> None:
+    """Ejecutar auto-auditoría ahora.
+
+    English: Run self-audit immediately.
+    """
+    from centinel.core.auto_audit import AutoAudit
+    import asyncio
+
+    audit = AutoAudit()
+    report = asyncio.run(audit.run_full_audit())
+
+    typer.echo("")
+    typer.echo("╔════════════════════════════════════════════════════════════════╗")
+    typer.echo("║ AUTOSANITARIA — Self-Audit Report                              ║")
+    typer.echo("╠════════════════════════════════════════════════════════════════╣")
+    typer.echo(f"║  Timestamp:       {report.timestamp:<47} ║")
+
+    health_pct = report.health_score * 100
+    health_icon = "🟢" if health_pct >= 75 else "🟡" if health_pct >= 50 else "🔴"
+    typer.echo(f"║  Health Score:    {health_pct:5.1f}% {health_icon:<50} ║")
+
+    typer.echo("║                                                                ║")
+    typer.echo("║  CHECKS:                                                       ║")
+
+    integrity_ok = all(report.binary_integrity.values()) if report.binary_integrity else False
+    state_ok = report.state_consistency.get("consistent", False)
+    defenses_ok = sum(report.defense_health.values()) if report.defense_health else 0
+    mirrors_ok = report.mirror_coherence.get("coherent", False)
+
+    integrity_icon = "✓" if integrity_ok else "✗"
+    state_icon = "✓" if state_ok else "✗"
+    defenses_icon = "✓" if defenses_ok >= 4 else "✗"
+    mirrors_icon = "✓" if mirrors_ok else "✗"
+
+    typer.echo(f"║  {integrity_icon} Binary Integrity                                        ║")
+    typer.echo(f"║  {state_icon} State Consistency                                        ║")
+    typer.echo(f"║  {defenses_icon} Defense Health ({defenses_ok}/5)                                 ║")
+    typer.echo(f"║  {mirrors_icon} Mirror Coherence                                        ║")
+
+    if report.issues:
+        typer.echo("║                                                                ║")
+        typer.echo("║  ISSUES:                                                       ║")
+        for issue in report.issues[:3]:  # Show first 3 issues
+            typer.echo(f"║  - {issue[:55]:<55} ║")
+
+    if verbose:
+        typer.echo("║                                                                ║")
+        typer.echo("║  FULL REPORT (JSON):                                           ║")
+        report_json = json.dumps(report.to_dict(), indent=2)
+        for line in report_json.split('\n')[:10]:  # Show first 10 lines
+            typer.echo(f"║  {line[:62]:<62} ║")
+
+    typer.echo("╚════════════════════════════════════════════════════════════════╝")
+    typer.echo("")
+
+
+@audit_app.command(name="history")
+def audit_history(
+    limit: int = typer.Option(10, "--limit", "-l", help="Número de reportes / Number of reports")
+) -> None:
+    """Ver últimos reportes de auto-auditoría.
+
+    English: View latest auto-audit reports.
+    """
+    audit_log = Path("hashes/audit_log.jsonl")
+
+    if not audit_log.exists():
+        typer.echo("❌ No audit history found. Run 'centinel audit run' first.")
+        return
+
+    typer.echo("")
+    typer.echo(f"AUTOSANITARIA — Last {limit} Reports")
+    typer.echo("=" * 70)
+
+    lines = []
+    try:
+        with open(audit_log, "r") as f:
+            lines = f.readlines()
+    except Exception as e:
+        typer.echo(f"❌ Error reading audit log: {e}")
+        return
+
+    # Show last N reports
+    for line in lines[-limit:]:
+        try:
+            report = json.loads(line)
+            ts = report.get("timestamp", "unknown")
+            health = report.get("health_score", 0) * 100
+            icon = "🟢" if health >= 75 else "🟡" if health >= 50 else "🔴"
+            typer.echo(f"{icon} {ts:<30} Health: {health:5.1f}%")
+        except Exception as e:
+            typer.echo(f"⚠️  Skipped line: {e}")
+
+    typer.echo("")
+
+
+@audit_app.command(name="health")
+def audit_health() -> None:
+    """Mostrar solo health score.
+
+    English: Show only health score.
+    """
+    audit_log = Path("hashes/audit_log.jsonl")
+
+    if not audit_log.exists():
+        typer.echo("⚠️  No audit history. Run 'centinel audit run' first.")
+        return
+
+    try:
+        with open(audit_log, "r") as f:
+            last_line = f.readlines()[-1]
+
+        report = json.loads(last_line)
+        health = report.get("health_score", 0) * 100
+        icon = "🟢" if health >= 75 else "🟡" if health >= 50 else "🔴"
+        typer.echo(f"{icon} Health Score: {health:.1f}%")
+    except Exception as e:
+        typer.echo(f"❌ Error reading audit: {e}")
+
+
 # Agregar subcomandos
 app.add_typer(panel_app, name="panel", help="Panel operador — Operador panel")
+app.add_typer(audit_app, name="audit", help="Autosanitaria — Self-audit system")
 
 
 if __name__ == "__main__":
