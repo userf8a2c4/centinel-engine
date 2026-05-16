@@ -116,10 +116,34 @@ from .audit import router as audit_router  # noqa: E402
 
 app.include_router(audit_router)
 
-# Security: default to no CORS origins instead of wildcard.
-# Seguridad: por defecto sin orígenes CORS en lugar de wildcard.
-origins_raw = os.getenv("CORS_ORIGINS", "")
-origins = [origin.strip() for origin in origins_raw.split(",") if origin.strip()] if origins_raw.strip() else []
+
+def _load_cors_origins() -> list[str]:
+    """Load CORS allowed origins from env var or config file.
+
+    Priority: env var CORS_ORIGINS > config YAML > empty list (no CORS).
+    Security: explicit whitelist by default; wildcard disallowed.
+    """
+    # Try environment variable first (runtime override)
+    origins_raw = os.getenv("CORS_ORIGINS", "").strip()
+    if origins_raw:
+        return [o.strip() for o in origins_raw.split(",") if o.strip()]
+
+    # Fall back to config file
+    config_path = BASE_DIR / "command_center" / "advanced_security_config.yaml"
+    if config_path.exists():
+        try:
+            cfg = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+            origins = cfg.get("cors_allowed_origins", [])
+            if isinstance(origins, list):
+                return [o.strip() for o in origins if isinstance(o, str) and o.strip()]
+        except (OSError, yaml.YAMLError) as exc:
+            logger.warning("cors_config_load_failed error=%s", exc)
+
+    # Default: CORS disabled (empty list)
+    return []
+
+
+origins = _load_cors_origins()
 _allow_credentials = bool(origins)  # credentials only valid with explicit origins
 app.add_middleware(
     CORSMiddleware,

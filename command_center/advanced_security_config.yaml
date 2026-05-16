@@ -109,3 +109,18 @@ solidity_blocked_patterns:
   - "tx.origin"
   - "delegatecall"
   - "selfdestruct"
+
+# CORS Configuration (ES/EN)
+# ES: Dominios permitidos para CORS. Define explícitamente qué orígenes pueden hacer
+#     requests a este servidor. Por defecto, CORS está DESHABILITADO (lista vacía).
+#     Riesgo: CORS_ORIGINS=* permite que cualquier dominio haga preguntas al servidor
+#     (verifier-hijacking attack: atacante publica verifier en otro dominio, lo hace
+#     preguntar a TU testigo). Solución: whitelist explícito.
+# EN: Allowed domains for CORS. Explicitly define which origins can make requests
+#     to this server. By default, CORS is DISABLED (empty list).
+#     Risk: CORS_ORIGINS=* allows any domain to query your server (verifier-hijacking:
+#     attacker publishes verifier on other domain, makes it query your witness).
+#     Solution: explicit whitelist.
+cors_allowed_origins:
+  - "https://userf8a2c4.github.io/centinel-engine"
+  - "http://localhost:3000"

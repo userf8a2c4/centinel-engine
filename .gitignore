@@ -48,3 +48,6 @@ config/secrets/*
 # control: the project's own threat model warns against creator
 # exposure and operational-metadata leakage. Keep these local only.
 docs/whitepaper/INTERNAL-*
+
+# Archived work-in-progress
+.archive/

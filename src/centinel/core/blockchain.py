@@ -81,7 +81,19 @@ DEFAULT_NETWORKS = {
         "chain_id": 80001,
         "default_rpc": "https://rpc-mumbai.maticvigil.com",
         "rpc_env": "POLYGON_MUMBAI_RPC_URL",
-    }
+    },
+    # D12.3: Arbitrum as configurable anchor fallback if OTS/Bitcoin
+    # is unavailable. Low gas, fast finality, Ethereum security.
+    "arbitrum-one": {
+        "chain_id": 42161,
+        "default_rpc": "https://arb1.arbitrum.io/rpc",
+        "rpc_env": "ARBITRUM_ONE_RPC_URL",
+    },
+    "arbitrum-sepolia": {
+        "chain_id": 421614,
+        "default_rpc": "https://sepolia-rollup.arbitrum.io/rpc",
+        "rpc_env": "ARBITRUM_SEPOLIA_RPC_URL",
+    },
 }
 
 
