@@ -76,12 +76,16 @@ class TestVerifyChain:
 
     def test_single_link(self, tmp_path):
         """Un solo eslabón sin previous_hash es válido."""
+        # Create subdirectory (iter_all_hashes looks for files in subdirs)
+        source_dir = tmp_path / "source_0"
+        source_dir.mkdir()
+
         data_payload = {"hash": "abc123", "timestamp": "2026-01-01T00:00:00Z"}
         data_bytes = json.dumps(data_payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         expected = _compute_expected_hash(None, data_bytes)
 
         record = {**data_payload, "chained_hash": expected}
-        hash_file = tmp_path / "link_001.sha256"
+        hash_file = source_dir / "snapshot_001.sha256"
         hash_file.write_text(json.dumps(record), encoding="utf-8")
 
         result = verify_chain(tmp_path)
@@ -91,6 +95,10 @@ class TestVerifyChain:
 
     def test_valid_chain(self, tmp_path):
         """Cadena de 3 eslabones válida."""
+        # Create subdirectory (iter_all_hashes looks for files in subdirs)
+        source_dir = tmp_path / "source_0"
+        source_dir.mkdir()
+
         previous = None
         for i in range(3):
             data_payload = {"hash": f"data_{i}", "index": i}
@@ -103,7 +111,7 @@ class TestVerifyChain:
             if previous:
                 record["previous_hash"] = previous
 
-            hash_file = tmp_path / f"link_{i:03d}.sha256"
+            hash_file = source_dir / f"snapshot_{i:03d}.sha256"
             hash_file.write_text(json.dumps(record, sort_keys=True), encoding="utf-8")
             previous = chained
 
@@ -115,6 +123,10 @@ class TestVerifyChain:
     def test_broken_chain(self, tmp_path):
         """Cadena con hash manipulado se detecta como rota."""
         import time as _time
+
+        # Create subdirectory (iter_all_hashes looks for files in subdirs)
+        source_dir = tmp_path / "source_0"
+        source_dir.mkdir()
 
         previous = None
         for i in range(3):
@@ -132,7 +144,7 @@ class TestVerifyChain:
             if previous:
                 record["previous_hash"] = previous
 
-            hash_file = tmp_path / f"link_{i:03d}.sha256"
+            hash_file = source_dir / f"snapshot_{i:03d}.sha256"
             hash_file.write_text(json.dumps(record, sort_keys=True), encoding="utf-8")
             # Ensure distinct mtime ordering
             _time.sleep(0.05)
@@ -144,7 +156,7 @@ class TestVerifyChain:
 
     def test_corrupted_json(self, tmp_path):
         """Archivo JSON corrupto se reporta como error."""
-        hash_file = tmp_path / "link_000.sha256"
+        hash_file = tmp_path / "snapshot_000.sha256"
         hash_file.write_text("{corrupted", encoding="utf-8")
 
         result = verify_chain(tmp_path)
@@ -451,6 +463,9 @@ class TestStartupVerification:
         """Cadena válida al arranque pasa verificación."""
         hash_dir = tmp_path / "hashes"
         hash_dir.mkdir()
+        # Create subdirectory (iter_all_hashes looks for files in subdirs)
+        source_dir = hash_dir / "source_0"
+        source_dir.mkdir()
 
         previous = None
         for i in range(3):
@@ -462,7 +477,7 @@ class TestStartupVerification:
             record = {**data_payload, "chained_hash": chained}
             if previous:
                 record["previous_hash"] = previous
-            (hash_dir / f"link_{i:03d}.sha256").write_text(json.dumps(record, sort_keys=True), encoding="utf-8")
+            (source_dir / f"snapshot_{i:03d}.sha256").write_text(json.dumps(record, sort_keys=True), encoding="utf-8")
             previous = chained
 
         report = run_startup_verification(
@@ -501,7 +516,7 @@ class TestStartupVerification:
             key_path=key_dir / "operator_private.pem",
             operator_id="startup-op",
         )
-        (hash_dir / "link_000.sha256").write_text(json.dumps(record, sort_keys=True), encoding="utf-8")
+        (hash_dir / "snapshot_000.sha256").write_text(json.dumps(record, sort_keys=True), encoding="utf-8")
 
         report = run_startup_verification(
             hash_dir=hash_dir,
