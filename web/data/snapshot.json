@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-17T20:51:17.028172+00:00",
+  "cne_status": {
+    "reachable": false,
+    "last_successful_fetch": null,
+    "last_attempt": "2026-05-17T20:45:00+00:00",
+    "consecutive_failures": 12,
+    "blackout_minutes": 171,
+    "blackout_since": "2026-05-17T18:00:00+00:00",
+    "error_type": null,
+    "blackout_hash": "b1a30d8cfe14b657d44a9fbd4c852667da2e8395dce231b1559213d79aef11d1"
+  },
+  "chain": {
+    "latest_hash": "",
+    "merkle_root": "",
+    "chain_length": 0,
+    "ots_status": "pending"
+  },
+  "national": {},
+  "departments": {},
+  "forensics": {},
+  "alerts": [],
+  "coverage": {
+    "actas_escrutadas": 0,
+    "actas_total": 0,
+    "pct_coverage": 0.0
+  },
+  "report_pdf_url": null
+}
