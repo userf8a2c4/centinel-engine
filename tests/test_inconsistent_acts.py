@@ -584,14 +584,14 @@ def test_real_cne_schema_with_thousands_separators(tmp_path: Path) -> None:
     tracker.load_snapshot(
         _build_cne_payload(
             inconsistentes="2,189",
-            votos={"NASRALLA": "1,027,090", "ASFURA": "1,013,050", "MONCADA": "485,529"},
+            votos={"CANDIDATO_A": "1,027,090", "CANDIDATO_B": "1,013,050", "CANDIDATO_C": "485,529"},
         ),
         datetime(2025, 12, 3, 22, 0, tzinfo=timezone.utc),
     )
     tracker.load_snapshot(
         _build_cne_payload(
             inconsistentes="2,773",
-            votos={"NASRALLA": "1,256,428", "ASFURA": "1,298,835", "MONCADA": "618,448"},
+            votos={"CANDIDATO_A": "1,256,428", "CANDIDATO_B": "1,298,835", "CANDIDATO_C": "618,448"},
         ),
         datetime(2025, 12, 4, 11, 6, tzinfo=timezone.utc),
     )
@@ -606,7 +606,7 @@ def test_real_cne_schema_with_thousands_separators(tmp_path: Path) -> None:
     )
     assert tracker.snapshots[0].inconsistent_count == 2189
     assert tracker.snapshots[1].inconsistent_count == 2773
-    assert tracker.snapshots[0].candidate_votes["NASRALLA"] == 1027090
-    assert tracker.snapshots[1].candidate_votes["ASFURA"] == 1298835
+    assert tracker.snapshots[0].candidate_votes["CANDIDATO_A"] == 1027090
+    assert tracker.snapshots[1].candidate_votes["CANDIDATO_B"] == 1298835
     # Must not raise even though votes regress for some candidates.
     tracker.detect_anomalies()

@@ -47,38 +47,38 @@ from centinel.core.storage import LocalSnapshotStore
 from centinel.api.main import fetch_latest_snapshot, fetch_snapshot_by_hash, verify_hashchain
 
 # ---------------------------------------------------------------------------
-# Real CNE snapshots (verbatim from hnd-electoral-audit-2025/data/)
+# CNE-format snapshots (structure mirrors CNE JSON; names are neutral placeholders)
 # ---------------------------------------------------------------------------
 
 SNAPSHOT_DEC03_1625 = {
     "resultados": [
         {
-            "partido": "PARTIDO LIBERAL DE HONDURAS",
-            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "partido": "PARTIDO ALPHA",
+            "candidato": "CANDIDATO ALPHA",
             "votos": "1,027,090",
             "porcentaje": "38.10",
         },
         {
-            "partido": "PARTIDO NACIONAL DE HONDURAS",
-            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "partido": "PARTIDO BETA",
+            "candidato": "CANDIDATO BETA",
             "votos": "1,013,050",
             "porcentaje": "37.58",
         },
         {
-            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
-            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "partido": "PARTIDO GAMMA",
+            "candidato": "CANDIDATO GAMMA",
             "votos": "485,529",
             "porcentaje": "18.01",
         },
         {
-            "partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA",
-            "candidato": "JORGE NELSON AVILA GUTIERREZ",
+            "partido": "PARTIDO DELTA",
+            "candidato": "CANDIDATO DELTA",
             "votos": "22,608",
             "porcentaje": "0.84",
         },
         {
-            "partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS",
-            "candidato": "MARIO ENRIQUE RIVERA CALLEJAS",
+            "partido": "PARTIDO EPSILON",
+            "candidato": "CANDIDATO EPSILON",
             "votos": "4,500",
             "porcentaje": "0.17",
         },
@@ -93,32 +93,32 @@ SNAPSHOT_DEC03_1625 = {
 SNAPSHOT_DEC06_0400 = {
     "resultados": [
         {
-            "partido": "PARTIDO NACIONAL DE HONDURAS",
-            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "partido": "PARTIDO BETA",
+            "candidato": "CANDIDATO BETA",
             "votos": "1,132,321",
             "porcentaje": "38.01",
         },
         {
-            "partido": "PARTIDO LIBERAL DE HONDURAS",
-            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "partido": "PARTIDO ALPHA",
+            "candidato": "CANDIDATO ALPHA",
             "votos": "1,112,570",
             "porcentaje": "37.35",
         },
         {
-            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
-            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "partido": "PARTIDO GAMMA",
+            "candidato": "CANDIDATO GAMMA",
             "votos": "543,675",
             "porcentaje": "18.25",
         },
         {
-            "partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA",
-            "candidato": "JORGE NELSON AVILA GUTIERREZ",
+            "partido": "PARTIDO DELTA",
+            "candidato": "CANDIDATO DELTA",
             "votos": "23,398",
             "porcentaje": "0.79",
         },
         {
-            "partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS",
-            "candidato": "MARIO ENRIQUE RIVERA CALLEJAS",
+            "partido": "PARTIDO EPSILON",
+            "candidato": "CANDIDATO EPSILON",
             "votos": "4,882",
             "porcentaje": "0.16",
         },
@@ -133,32 +133,32 @@ SNAPSHOT_DEC06_0400 = {
 SNAPSHOT_DEC10_1703 = {
     "resultados": [
         {
-            "partido": "PARTIDO NACIONAL DE HONDURAS",
-            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "partido": "PARTIDO BETA",
+            "candidato": "CANDIDATO BETA",
             "votos": "1,298,835",
             "porcentaje": "38.28",
         },
         {
-            "partido": "PARTIDO LIBERAL DE HONDURAS",
-            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "partido": "PARTIDO ALPHA",
+            "candidato": "CANDIDATO ALPHA",
             "votos": "1,256,428",
             "porcentaje": "37.03",
         },
         {
-            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
-            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "partido": "PARTIDO GAMMA",
+            "candidato": "CANDIDATO GAMMA",
             "votos": "618,448",
             "porcentaje": "18.23",
         },
         {
-            "partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA",
-            "candidato": "JORGE NELSON AVILA GUTIERREZ",
+            "partido": "PARTIDO DELTA",
+            "candidato": "CANDIDATO DELTA",
             "votos": "25,421",
             "porcentaje": "0.75",
         },
         {
-            "partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS",
-            "candidato": "MARIO ENRIQUE RIVERA CALLEJAS",
+            "partido": "PARTIDO EPSILON",
+            "candidato": "CANDIDATO EPSILON",
             "votos": "5,516",
             "porcentaje": "0.16",
         },
@@ -467,20 +467,20 @@ class TestMalformedVariantsOfRealData:
 _DEPARTMENT_SNAPSHOT_TEMPLATE = {
     "resultados": [
         {
-            "partido": "PARTIDO NACIONAL DE HONDURAS",
-            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "partido": "PARTIDO BETA",
+            "candidato": "CANDIDATO BETA",
             "votos": "72,157",
             "porcentaje": "38.28",
         },
         {
-            "partido": "PARTIDO LIBERAL DE HONDURAS",
-            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "partido": "PARTIDO ALPHA",
+            "candidato": "CANDIDATO ALPHA",
             "votos": "69,802",
             "porcentaje": "37.03",
         },
         {
-            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
-            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "partido": "PARTIDO GAMMA",
+            "candidato": "CANDIDATO GAMMA",
             "votos": "34,358",
             "porcentaje": "18.23",
         },

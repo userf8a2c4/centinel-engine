@@ -46,38 +46,38 @@ from centinel.core.normalize import (
 )
 
 # ---------------------------------------------------------------------------
-# Fixture: real CNE JSON structure (from hnd-electoral-audit-2025/data/)
+# Fixture: CNE JSON structure (names are neutral placeholders — system is candidate-agnostic)
 # ---------------------------------------------------------------------------
 
 REAL_CNE_SNAPSHOT_EARLY = {
     "resultados": [
         {
-            "partido": "PARTIDO LIBERAL DE HONDURAS",
-            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "partido": "PARTIDO ALPHA",
+            "candidato": "CANDIDATO ALPHA",
             "votos": "1,027,090",
             "porcentaje": "38.10",
         },
         {
-            "partido": "PARTIDO NACIONAL DE HONDURAS",
-            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "partido": "PARTIDO BETA",
+            "candidato": "CANDIDATO BETA",
             "votos": "1,013,050",
             "porcentaje": "37.58",
         },
         {
-            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
-            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "partido": "PARTIDO GAMMA",
+            "candidato": "CANDIDATO GAMMA",
             "votos": "485,529",
             "porcentaje": "18.01",
         },
         {
-            "partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA",
-            "candidato": "JORGE NELSON AVILA GUTIERREZ",
+            "partido": "PARTIDO DELTA",
+            "candidato": "CANDIDATO DELTA",
             "votos": "22,608",
             "porcentaje": "0.84",
         },
         {
-            "partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS",
-            "candidato": "MARIO ENRIQUE RIVERA CALLEJAS",
+            "partido": "PARTIDO EPSILON",
+            "candidato": "CANDIDATO EPSILON",
             "votos": "4,500",
             "porcentaje": "0.17",
         },
@@ -102,32 +102,32 @@ REAL_CNE_SNAPSHOT_EARLY = {
 REAL_CNE_SNAPSHOT_FINAL = {
     "resultados": [
         {
-            "partido": "PARTIDO NACIONAL DE HONDURAS",
-            "candidato": "NASRY JUAN ASFURA ZABLAH",
+            "partido": "PARTIDO BETA",
+            "candidato": "CANDIDATO BETA",
             "votos": "1,298,835",
             "porcentaje": "38.28",
         },
         {
-            "partido": "PARTIDO LIBERAL DE HONDURAS",
-            "candidato": "SALVADOR ALEJANDRO CESAR NASRALLA SALUM",
+            "partido": "PARTIDO ALPHA",
+            "candidato": "CANDIDATO ALPHA",
             "votos": "1,256,428",
             "porcentaje": "37.03",
         },
         {
-            "partido": "PARTIDO LIBERTAD Y REFUNDACION",
-            "candidato": "RIXI RAMONA MONCADA GODOY",
+            "partido": "PARTIDO GAMMA",
+            "candidato": "CANDIDATO GAMMA",
             "votos": "618,448",
             "porcentaje": "18.23",
         },
         {
-            "partido": "PARTIDO INNOVACION Y UNIDAD SOCIAL DEMOCRATA",
-            "candidato": "JORGE NELSON AVILA GUTIERREZ",
+            "partido": "PARTIDO DELTA",
+            "candidato": "CANDIDATO DELTA",
             "votos": "25,421",
             "porcentaje": "0.75",
         },
         {
-            "partido": "PARTIDO DEMOCRATA CRISTIANO DE HONDURAS",
-            "candidato": "MARIO ENRIQUE RIVERA CALLEJAS",
+            "partido": "PARTIDO EPSILON",
+            "candidato": "CANDIDATO EPSILON",
             "votos": "5,516",
             "porcentaje": "0.16",
         },
@@ -244,10 +244,10 @@ class TestNormalizeRealCneData:
         assert snapshot is not None
         assert len(snapshot.candidates) == 5
         # Verify vote parsing handles comma strings
-        nasralla = snapshot.candidates[0]
-        assert nasralla.votes == 1027090
-        assert nasralla.name == "SALVADOR ALEJANDRO CESAR NASRALLA SALUM"
-        assert nasralla.party == "PARTIDO LIBERAL DE HONDURAS"
+        first = snapshot.candidates[0]
+        assert first.votes == 1027090
+        assert first.name == "CANDIDATO ALPHA"
+        assert first.party == "PARTIDO ALPHA"
 
     def test_statistics_extracted_from_estadisticas(self):
         """Totals must be extracted from nested estadisticas paths."""

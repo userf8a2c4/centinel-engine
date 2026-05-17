@@ -78,10 +78,10 @@ def test_build_forensics_block_shape() -> None:
     tracker = fp.InconsistentActsTracker()
     base = datetime(2025, 12, 3, 22, 0, tzinfo=timezone.utc)
     tracker.load_snapshot(
-        _cne_snapshot("2,189", {"NASRALLA": "1,027,090", "ASFURA": "1,013,050"}), base
+        _cne_snapshot("2,189", {"CANDIDATO_A": "1,027,090", "CANDIDATO_B": "1,013,050"}), base
     )
     tracker.load_snapshot(
-        _cne_snapshot("2,773", {"NASRALLA": "1,256,428", "ASFURA": "1,298,835"}),
+        _cne_snapshot("2,773", {"CANDIDATO_A": "1,256,428", "CANDIDATO_B": "1,298,835"}),
         base + timedelta(hours=13),
     )
     block = fp.build_forensics_block(tracker)
@@ -115,7 +115,7 @@ def test_run_and_publish_emits_coverage_alerts(monkeypatch, tmp_path: Path) -> N
             json.dumps(
                 _cne_snapshot(
                     str(2000 + i * 50),
-                    {"NASRALLA": str(1_000_000 + i), "ASFURA": str(1_010_000 + i * 9)},
+                    {"CANDIDATO_A": str(1_000_000 + i), "CANDIDATO_B": str(1_010_000 + i * 9)},
                 )
             ),
             encoding="utf-8",
