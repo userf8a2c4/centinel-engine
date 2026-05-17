@@ -693,6 +693,58 @@ def build_pdf_report(data: dict, chart_buffers: dict) -> bytes:
     return buffer.getvalue()
 
 
+_STRINGS: dict[str, dict[str, str]] = {
+    "es": {
+        "title": "Informe de Auditoría C.E.N.T.I.N.E.L.",
+        "subtitle_tpl": "Estatus verificable · Alcance {dept}",
+        "generated_tpl": "Fecha/hora: {ts} UTC",
+        "global_status": "ESTATUS GLOBAL: VERIFICABLE · SIN ANOMALÍAS CRÍTICAS",
+        "executive_summary": (
+            "Auditoría digital con deltas por departamento, controles Benford "
+            "y trazabilidad criptográfica."
+        ),
+        "kpi_headers": ["Auditorías", "Correctivas", "Snapshots", "Reglas", "Hashes"],
+        "anomaly_headers": ["Dept", "Candidato", "Δ abs", "Δ %", "Hora", "Hash", "Tipo"],
+        "snapshot_headers": ["Timestamp", "Dept", "Candidato", "Impacto", "Estado", "Hash"],
+        "rules_list": ["granular_anomaly (Δ% 0.5)", "benford (p<0.05)", "z-score (>3)"],
+        "crypto_text": "Hash raíz: {root_hash} · QR para escaneo y validación pública.",
+        "risk_text": "Mapa de riesgos: deltas negativos, irregularidades temporales y dispersión geográfica.",
+        "governance_text": "Gobernanza: trazabilidad, inmutabilidad y publicación auditada del JSON CNE.",
+        "benford_caption": "Distribución Benford: observado vs esperado (rojo cuando supera 5%).",
+        "timeline_caption": "Timeline con puntos rojos en horas de anomalías.",
+        "heatmap_caption": "Mapa de riesgos por departamento/hora (rojo = mayor riesgo).",
+        "footer_disclaimer": (
+            "Datos solo de fuentes públicas CNE, conforme Ley Transparencia 170-2006. Agnóstico político."
+        ),
+    },
+    "en": {
+        "title": "C.E.N.T.I.N.E.L. Audit Report",
+        "subtitle_tpl": "Verifiable status · Scope: {dept}",
+        "generated_tpl": "Generated: {ts} UTC",
+        "global_status": "GLOBAL STATUS: VERIFIABLE · NO CRITICAL ANOMALIES",
+        "executive_summary": (
+            "Digital audit with deltas by department, Benford controls "
+            "and cryptographic traceability."
+        ),
+        "kpi_headers": ["Audits", "Corrective", "Snapshots", "Rules", "Hashes"],
+        "anomaly_headers": ["Dept", "Candidate", "Δ abs", "Δ %", "Hour", "Hash", "Type"],
+        "snapshot_headers": ["Timestamp", "Dept", "Candidate", "Impact", "Status", "Hash"],
+        "rules_list": ["granular_anomaly (Δ% 0.5)", "benford (p<0.05)", "z-score (>3)"],
+        "crypto_text": "Root hash: {root_hash} · QR for public scan and validation.",
+        "risk_text": "Risk map: negative deltas, temporal irregularities and geographic dispersion.",
+        "governance_text": (
+            "Governance: traceability, immutability and audited publication of CNE JSON."
+        ),
+        "benford_caption": "Benford distribution: observed vs expected (red when exceeding 5%).",
+        "timeline_caption": "Timeline with red dots at anomaly hours.",
+        "heatmap_caption": "Risk map by department/hour (red = higher risk).",
+        "footer_disclaimer": (
+            "Data from public CNE sources only, per Transparency Law 170-2006. Politically agnostic."
+        ),
+    },
+}
+
+
 def main() -> None:
     """Español: Función main del módulo scripts/generate_report.py.
 
@@ -702,6 +754,17 @@ def main() -> None:
     parser.add_argument("--source-dir", default="data", help="Directorio de snapshots.")
     parser.add_argument("--output", default="centinel_informe_nacional.pdf", help="Ruta PDF salida.")
     parser.add_argument("--department", default="Nacional", help="Departamento (Nacional/Cortés/etc).")
+    parser.add_argument(
+        "--lang",
+        default="es",
+        choices=["es", "en"],
+        help="Report language: 'es' (Spanish, default) or 'en' (English).",
+    )
+    parser.add_argument(
+        "--sign",
+        action="store_true",
+        help="Write SHA-256 of the PDF to a companion .sha256 file.",
+    )
     args = parser.parse_args()
 
     snapshots = load_snapshot_files(Path(args.source_dir))
@@ -745,35 +808,51 @@ def main() -> None:
         ["timestamp", "department", "candidate", "impact", "status", "hash"]
     ].head(10).values.tolist()
 
+    s = _STRINGS.get(args.lang, _STRINGS["es"])
+    ts_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+    root_hash = "0x9f3fa7c2d1b4a7e1"
+
+    # Replace anomaly_rows header with localized column names
+    anomaly_rows[0] = s["anomaly_headers"]
+    snapshot_rows[0] = s["snapshot_headers"]
+
     data = {
-        "title": "Informe de Auditoría C.E.N.T.I.N.E.L.",
-        "subtitle": f"Estatus verificable · Alcance {args.department}",
-        "generated": f"Fecha/hora: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC",
-        "global_status": "ESTATUS GLOBAL: VERIFICABLE · SIN ANOMALÍAS CRÍTICAS",
-        "executive_summary": "Auditoría digital con deltas por departamento, controles Benford y trazabilidad criptográfica.",
+        "title": s["title"],
+        "subtitle": s["subtitle_tpl"].format(dept=args.department),
+        "generated": s["generated_tpl"].format(ts=ts_str),
+        "global_status": s["global_status"],
+        "executive_summary": s["executive_summary"],
         "kpi_rows": [
-            ["Auditorías", "Correctivas", "Snapshots", "Reglas", "Hashes"],
+            s["kpi_headers"],
             ["8", "2", str(len(snapshot_df)), "18", "0x9f3fa7c2"],
         ],
         "anomaly_rows": anomaly_rows,
         "snapshot_rows": snapshot_rows,
-        "rules_list": ["granular_anomaly (Δ% 0.5)", "benford (p<0.05)", "z-score (>3)"],
-        "crypto_text": "Hash raíz: 0x9f3fa7c2d1b4a7e1 · QR para escaneo y validación pública.",
-        "risk_text": "Mapa de riesgos: deltas negativos, irregularidades temporales y dispersión geográfica.",
-        "governance_text": "Gobernanza: trazabilidad, inmutabilidad y publicación auditada del JSON CNE.",
+        "rules_list": s["rules_list"],
+        "crypto_text": s["crypto_text"].format(root_hash=root_hash),
+        "risk_text": s["risk_text"],
+        "governance_text": s["governance_text"],
         "chart_captions": {
-            "benford": "Distribución Benford: observado vs esperado (rojo cuando supera 5%).",
-            "timeline": "Timeline con puntos rojos en horas de anomalías.",
-            "heatmap": "Mapa de riesgos por departamento/hora (rojo = mayor riesgo).",
+            "benford": s["benford_caption"],
+            "timeline": s["timeline_caption"],
+            "heatmap": s["heatmap_caption"],
         },
-        "footer_left": "Hash encadenado: 0x9f3fa7c2…",
+        "footer_left": f"Hash: {root_hash}…",
         "footer_right": "Hash reporte: 0xabc123…",
-        "footer_disclaimer": "Datos solo de fuentes públicas CNE, conforme Ley Transparencia 170-2006. Agnóstico político.",
+        "footer_disclaimer": s["footer_disclaimer"],
     }
 
     chart_buffers = create_pdf_charts(benford_df, snapshot_df, heatmap_df, anomalies_df)
     output_path = Path(args.output)
-    output_path.write_bytes(build_pdf_report(data, chart_buffers))
+    pdf_bytes = build_pdf_report(data, chart_buffers)
+    output_path.write_bytes(pdf_bytes)
+
+    if args.sign:
+        pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
+        sig_path = output_path.with_suffix(".sha256")
+        sig_path.write_text(f"{pdf_hash}  {output_path.name}\n")
+        print(f"SHA-256: {pdf_hash}")
+        print(f"Signature written to: {sig_path}")
 
 
 if __name__ == "__main__":
