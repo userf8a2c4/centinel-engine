@@ -148,3 +148,40 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER upnfm_rules_updated_at
   BEFORE UPDATE ON upnfm_rules
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ================================================================
+-- MULTI-ORG: columnas org y access_level en upnfm_members
+-- org: upnfm | unah | admin | external
+-- access_level: admin | researcher | readonly
+-- ================================================================
+
+ALTER TABLE upnfm_members ADD COLUMN IF NOT EXISTS org TEXT DEFAULT 'upnfm';
+ALTER TABLE upnfm_members ADD COLUMN IF NOT EXISTS access_level TEXT DEFAULT 'researcher';
+
+-- ================================================================
+-- REPLAY 2025: tabla privada de snapshots históricos
+-- Solo usuarios en upnfm_members pueden leer (RLS)
+-- ================================================================
+
+CREATE TABLE IF NOT EXISTS replay_snapshots (
+  id          BIGSERIAL PRIMARY KEY,
+  captured_at TIMESTAMPTZ NOT NULL,
+  dept_code   TEXT,
+  raw_json    JSONB NOT NULL,
+  source      TEXT DEFAULT 'nov2025',
+  imported_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE replay_snapshots ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "auth_replay_read"   ON replay_snapshots;
+DROP POLICY IF EXISTS "service_replay_ins" ON replay_snapshots;
+
+CREATE POLICY "auth_replay_read" ON replay_snapshots FOR SELECT
+  USING (EXISTS (SELECT 1 FROM upnfm_members WHERE user_id = auth.uid()));
+
+CREATE POLICY "service_replay_ins" ON replay_snapshots FOR INSERT
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE INDEX IF NOT EXISTS idx_replay_captured_at ON replay_snapshots(captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_replay_dept        ON replay_snapshots(dept_code);

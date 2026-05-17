@@ -156,8 +156,8 @@
 <!-- ── LOGIN OVERLAY ── -->
 <div id="login-overlay">
   <div class="login-box">
-    <h1>Centinela UPNFM</h1>
-    <p>Acceso restringido a investigadores autorizados.<br>
+    <h1>Centinela — Acceso Restringido</h1>
+    <p>Entorno de investigación multi-org (UPNFM, UNAH, externo).<br>
        Contacta al operador si necesitas acceso.</p>
     <input id="login-email" class="login-field" type="email" placeholder="Correo UPNFM" autocomplete="email">
     <input id="login-pass"  class="login-field" type="password" placeholder="Contraseña" autocomplete="current-password">
@@ -650,9 +650,57 @@ if(!isDemo && window.supabase){
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 }
 
+let userRole = {org:'upnfm', access_level:'researcher'};
+
+async function applyRole(){
+  if(!sb||!sbUser)return;
+  try{
+    const {data} = await sb.from('upnfm_members')
+      .select('org,access_level')
+      .eq('user_id', sbUser.id)
+      .single();
+    if(data){
+      userRole = {org: data.org||'upnfm', access_level: data.access_level||'researcher'};
+    }
+  }catch(_){}
+  const al = userRole.access_level;
+  // role badge next to email
+  const chip = document.getElementById('login-user');
+  chip.textContent = sbUser.email + ' · ' + al;
+  // admin: show replay link
+  if(al==='admin'){
+    let replayLink = document.getElementById('replay-link');
+    if(!replayLink){
+      replayLink=document.createElement('a');
+      replayLink.id='replay-link';
+      replayLink.href='../replay/';
+      replayLink.textContent='📂 REPLAY 2025';
+      replayLink.style.cssText='position:fixed;top:14px;right:260px;font-size:12px;color:var(--accent);z-index:200;text-decoration:none;padding:3px 10px;border:1px solid rgba(110,168,254,.3);border-radius:6px';
+      document.body.appendChild(replayLink);
+    }
+  }
+  // readonly: disable interactive controls
+  if(al==='readonly'){
+    document.querySelectorAll('button:not(#kill-btn):not([onclick="doKillSwitch()"])').forEach(btn=>{
+      if(btn.closest('#login-overlay'))return;
+      btn.disabled=true;
+      btn.title='Vista de solo lectura';
+    });
+    document.querySelectorAll('input[type=text],textarea,.yaml-editor').forEach(el=>{
+      el.readOnly=true;el.style.opacity='.5';
+    });
+    document.querySelectorAll('input[type=range]').forEach(el=>el.disabled=true);
+    const warn=document.createElement('div');
+    warn.style.cssText='background:rgba(212,176,102,.1);border:1px solid rgba(212,176,102,.3);border-radius:10px;padding:12px 18px;font-size:13px;color:var(--warn);margin-bottom:18px;max-width:880px;margin-left:auto;margin-right:auto';
+    warn.textContent='Modo solo lectura: puedes ver los datos pero no modificar reglas ni iniciar auditorías.';
+    document.querySelector('main')?.prepend(warn);
+    const killBtn=document.getElementById('kill-btn');
+    if(killBtn)killBtn.style.display='none';
+  }
+}
+
 async function checkAuth(){
   if(isDemo || !sb){
-    // En modo demo se salta el login
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('login-user').textContent='Demo — sin Supabase';
     return;
@@ -662,6 +710,7 @@ async function checkAuth(){
     sbUser = user;
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('login-user').textContent=user.email;
+    await applyRole();
   }
 }
 
@@ -675,9 +724,18 @@ async function doLogin(){
   try{
     const {data,error} = await sb.auth.signInWithPassword({email,password:pass});
     if(error) throw error;
+    // verify member
+    const {data:member,error:me} = await sb.from('upnfm_members')
+      .select('id').eq('user_id', data.user.id).single();
+    if(me||!member){
+      await sb.auth.signOut();
+      errEl.textContent='Acceso no autorizado. Contacta al operador.';
+      return;
+    }
     sbUser = data.user;
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('login-user').textContent=data.user.email;
+    await applyRole();
   }catch(e){
     errEl.textContent = e.message||'Error de autenticación';
   }

@@ -18,12 +18,24 @@
 body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.65;font-size:15px;-webkit-font-smoothing:antialiased}
 
 /* ── STATUS BAR ── */
-#statusbar{padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--border);font-size:13px;position:sticky;top:0;z-index:100;background:var(--bg)}
-#statusbar .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-weight:600;font-size:12px;letter-spacing:.04em}
-.badge-ok{background:rgba(87,192,141,.15);color:var(--ok)}
-.badge-warn{background:rgba(212,176,102,.15);color:var(--warn)}
-.badge-bad{background:rgba(223,107,134,.15);color:var(--bad)}
+#statusbar{padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border);font-size:13px;position:sticky;top:0;z-index:100;background:var(--bg)}
+#site-title{font-size:15px;font-weight:700;color:var(--fg);white-space:nowrap;margin-right:6px;letter-spacing:-.02em}
+#status-cards{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#statusbar .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-weight:600;font-size:11px;letter-spacing:.04em;background:rgba(255,255,255,.04);border:1px solid var(--border)}
+.badge-ok{background:rgba(87,192,141,.07)!important;color:var(--ok);border-color:rgba(87,192,141,.22)!important}
+.badge-warn{background:rgba(212,176,102,.07)!important;color:var(--warn);border-color:rgba(212,176,102,.22)!important}
+.badge-bad{background:rgba(223,107,134,.07)!important;color:var(--bad);border-color:rgba(223,107,134,.22)!important}
 #last-update{margin-left:auto;color:var(--muted);font-size:12px}
+#pdf-link{color:var(--accent);font-size:11px;text-decoration:none;padding:5px 11px;border:1px solid rgba(110,168,254,.3);border-radius:7px;white-space:nowrap;transition:.15s}
+#pdf-link:hover{border-color:var(--accent)}
+/* ── CUSTOMIZE DRAWER ── */
+#customize-drawer{position:fixed;right:0;top:0;bottom:0;width:260px;background:#1a1d24;border-left:1px solid var(--border);padding:24px 20px;overflow-y:auto;z-index:300;display:none}
+#customize-drawer h3{font-size:13px;font-weight:700;margin-bottom:16px;color:var(--fg)}
+#drawer-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+.drawer-item{display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;font-size:13px;color:var(--fg)}
+.drawer-item input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+#customize-btn{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 11px;font-size:11px;cursor:pointer;transition:.15s}
+#customize-btn:hover{border-color:var(--accent);color:var(--fg)}
 .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .dot-ok{background:var(--ok)}.dot-warn{background:var(--warn)}.dot-bad{background:var(--bad)}
 #coverage-banner{padding:10px 24px;font-size:13px;font-weight:600;text-align:center;border-bottom:1px solid var(--border)}
@@ -111,12 +123,23 @@ footer a{color:var(--accent);text-decoration:none}
 
 <!-- ── STATUS BAR ── -->
 <div id="statusbar">
-  <span id="alert-badge" class="badge badge-ok"><span class="dot dot-ok"></span>SISTEMA NORMAL</span>
-  <span id="chain-badge" class="badge badge-ok"><span class="dot dot-ok"></span>CADENA ÍNTEGRA</span>
-  <span id="ots-badge" class="badge badge-warn"><span class="dot dot-warn"></span>OTS VERIFICANDO</span>
-  <span id="mirror-badge" class="badge badge-ok"><span class="dot dot-ok"></span>ESPEJOS —</span>
-  <span id="ep-national-badge" class="badge badge-ok" hidden><span class="dot dot-ok"></span>CNE —</span>
+  <span id="site-title">Centinela Electoral Honduras</span>
+  <div id="status-cards">
+    <span id="alert-badge" class="badge badge-ok" data-tip-key="badge-alert"><span class="dot dot-ok"></span>SISTEMA NORMAL</span>
+    <span id="chain-badge" class="badge badge-ok" data-tip-key="badge-chain"><span class="dot dot-ok"></span>CADENA ÍNTEGRA</span>
+    <span id="ots-badge" class="badge badge-warn" data-tip-key="badge-ots"><span class="dot dot-warn"></span>OTS VERIFICANDO</span>
+    <span id="mirror-badge" class="badge badge-ok" data-tip-key="badge-mirror"><span class="dot dot-ok"></span>ESPEJOS —</span>
+    <span id="ep-national-badge" class="badge badge-ok" hidden data-tip-key="badge-ep"><span class="dot dot-ok"></span>CNE —</span>
+  </div>
+  <a id="pdf-link" href="#" hidden>⬇ PDF</a>
+  <button id="customize-btn" onclick="toggleDrawer()">⚙ Personalizar</button>
   <span id="last-update">Actualizando…</span>
+</div>
+<!-- ── CUSTOMIZE DRAWER ── -->
+<div id="customize-drawer">
+  <button id="drawer-close" onclick="toggleDrawer()">×</button>
+  <h3>Personalizar panel</h3>
+  <div id="drawer-items"></div>
 </div>
 <div id="coverage-banner" hidden></div>
 
@@ -127,28 +150,28 @@ footer a{color:var(--accent);text-decoration:none}
   <div class="card" id="kpi-actas">
     <h2>Registros divulgados (JSON CNE)</h2>
     <div class="kpi-val" id="v-actas">—</div>
-    <div class="kpi-label" id="l-actas">de — registros totales</div>
+    <div class="kpi-label" id="l-actas" data-tip-key="kpi-registros">de — registros totales</div>
     <div class="progress-bar"><div class="progress-fill" id="prog-actas" style="width:0%"></div></div>
   </div>
   <div class="card">
     <h2>Total votos</h2>
     <div class="kpi-val" id="v-votos">—</div>
-    <div class="kpi-label">votos contabilizados</div>
+    <div class="kpi-label" data-tip-key="kpi-votos">votos contabilizados</div>
   </div>
   <div class="card">
     <h2>Participación</h2>
     <div class="kpi-val" id="v-part">—</div>
-    <div class="kpi-label" id="l-part">del padrón electoral</div>
+    <div class="kpi-label" id="l-part" data-tip-key="kpi-participacion">del padrón electoral</div>
   </div>
   <div class="card" id="kpi-int">
     <h2>Integridad</h2>
     <div class="kpi-val" id="v-int">—</div>
-    <div class="kpi-label">cadena criptográfica</div>
+    <div class="kpi-label" data-tip-key="kpi-integridad">cadena criptográfica</div>
   </div>
 </div>
 
 <!-- ── REGISTROS INCONSISTENTES BAJO MICROSCOPIO ── -->
-<div class="card" id="incons-card">
+<div class="card" id="incons-card" data-section="incons">
   <h2 id="incons-title">Registros inconsistentes — bajo vigilancia permanente</h2>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:18px;align-items:end">
     <div>
@@ -171,7 +194,7 @@ footer a{color:var(--accent);text-decoration:none}
 </div>
 
 <!-- ── CANDIDATOS + MAPA ── -->
-<div class="grid2">
+<div class="grid2" data-section="candidates">
   <div class="card">
     <h2>Distribución de candidatos</h2>
     <div id="cand-list"></div>
@@ -214,20 +237,45 @@ footer a{color:var(--accent);text-decoration:none}
 </div>
 
 <!-- ── SERIE TEMPORAL ── -->
-<div class="card">
+<div class="card" data-section="timeline">
   <h2>Progreso de registros en el tiempo</h2>
   <canvas id="chart-timeline" height="120"></canvas>
 </div>
 
 <!-- ── BENFORD ── -->
-<div class="card">
+<div class="card" data-section="benford">
   <h2>Ley de Benford — Primer dígito de votos</h2>
   <canvas id="chart-benford" height="140"></canvas>
   <div id="benford-stats" style="margin-top:10px;font-size:12px;color:var(--muted)">Calculando…</div>
 </div>
 
+<!-- ── ÚLTIMO DÍGITO ── -->
+<div class="card" data-section="lastdigit">
+  <h2>Distribución del último dígito</h2>
+  <canvas id="chart-lastdigit" height="140"></canvas>
+  <div id="lastdigit-stats" style="margin-top:10px;font-size:12px;color:var(--muted)">Calculando…</div>
+</div>
+
+<!-- ── Z-SCORE POR DEPARTAMENTO ── -->
+<div class="card" data-section="zscore">
+  <h2>Z-score por departamento</h2>
+  <canvas id="chart-zscore" height="200"></canvas>
+</div>
+
+<!-- ── PARTICIPACIÓN POR DEPARTAMENTO ── -->
+<div class="card" data-section="participation">
+  <h2>Participación por departamento (%)</h2>
+  <canvas id="chart-participation" height="200"></canvas>
+</div>
+
+<!-- ── NULOS Y BLANCOS POR DEPARTAMENTO ── -->
+<div class="card" data-section="nullblank">
+  <h2>Nulos y blancos por departamento</h2>
+  <canvas id="chart-nullblank" height="200"></canvas>
+</div>
+
 <!-- ── ALERTAS ── -->
-<div class="card" id="alerts-card">
+<div class="card" id="alerts-card" data-section="alerts">
   <h2>Alertas activas</h2>
   <table class="tbl">
     <thead><tr><th>Hora</th><th>Depto</th><th>Severidad</th><th>Tipo</th><th>Descripción</th></tr></thead>
@@ -236,13 +284,13 @@ footer a{color:var(--accent);text-decoration:none}
 </div>
 
 <!-- ── DETECTORES FORENSES ── -->
-<div class="card">
+<div class="card" data-section="forensics">
   <h2>Análisis forense en tiempo real</h2>
   <div id="forensic-list" style="display:grid;gap:12px"></div>
 </div>
 
 <!-- ── CADENA CRIPTOGRÁFICA ── -->
-<div class="card">
+<div class="card" data-section="chain">
   <h2>Cadena criptográfica — últimos registros</h2>
   <table class="tbl" id="chain-table">
     <thead><tr><th>#</th><th>Hash SHA-256</th><th>Capturado</th><th>Depto</th><th>OTS</th></tr></thead>
@@ -266,8 +314,8 @@ footer a{color:var(--accent);text-decoration:none}
     Centinela Electoral Honduras — Datos bajo
     <a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0</a> —
     <a href="../verifier/index.html">Verificador independiente</a>
-    · Mapa <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> —
-    <a href="https://github.com/VictorCazanave/svg-maps">svg-maps</a>
+    <!-- Mapa: @svg-maps/honduras (VictorCazanave/svg-maps), CC BY 4.0 -->
+    · Prueba de Inmutabilidad mediante OpenTimestamps (OTS) anclada a la red de Bitcoin.
   </div>
 </footer>
 
@@ -802,10 +850,161 @@ async function loadData(){
   const latest=data._snapshots?.[0]||{};
   const mr=latest.merkle_root||'—';
   document.getElementById('footer-merkle').textContent=mr;
+
+  // PDF download link
+  const pdfUrl=(latest.raw_meta||{}).report_pdf_url;
+  const pdfLink=document.getElementById('pdf-link');
+  if(pdfUrl&&pdfLink){pdfLink.href=pdfUrl;pdfLink.hidden=false;}
+
+  // new charts
+  if(data.forensics) renderLastDigit(data.forensics);
+  renderZScore(data.departments);
+  renderParticipation(data.departments);
+  renderNullBlank(data.departments);
+
+  applySectionPrefs();
 }
 
 loadData();
 setInterval(loadData, 30000); // refresh cada 30s
+
+// ── NUEVO: ÚLTIMO DÍGITO ──
+function renderLastDigit(forensics){
+  const el=document.getElementById('chart-lastdigit');
+  if(!el)return;
+  const ld=forensics?.last_digit||null;
+  const labels=['0','1','2','3','4','5','6','7','8','9'];
+  const expected=labels.map(()=>10);
+  let observed,note='';
+  if(ld&&ld.counts&&ld.counts.length===10){
+    const total=ld.counts.reduce((a,b)=>a+b,0)||1;
+    observed=ld.counts.map(c=>+(c/total*100).toFixed(2));
+    const chi2=ld.chi2||0;
+    note=`χ²=${chi2.toFixed(2)} · ${chi2>15.5?'⚠ Distribución no uniforme':'Distribución uniforme (esperado)'}`;
+  } else {
+    observed=labels.map(()=>+(9+Math.random()*2).toFixed(2));
+    note='Datos demo — requiere conteos por acta individual para análisis real.';
+  }
+  document.getElementById('lastdigit-stats').textContent=note;
+  if(charts.lastdigit)charts.lastdigit.destroy();
+  charts.lastdigit=new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Observado (%)',data:observed,backgroundColor:'rgba(110,168,254,.6)',borderRadius:4,borderSkipped:false},
+      {label:'Esperado (10%)',data:expected,backgroundColor:'rgba(139,146,156,.2)',borderRadius:4,borderSkipped:false},
+    ]},
+    options:{responsive:true,animation:false,plugins:{legend:{labels:{color:'#8b929c',font:{size:11}}}},scales:{x:{ticks:{color:'#8b929c'}},y:{grid:{color:'#24272e'},ticks:{color:'#8b929c',callback:v=>v+'%'},max:20}}}
+  });
+}
+
+// ── NUEVO: Z-SCORE POR DEPARTAMENTO ──
+function renderZScore(departments){
+  const el=document.getElementById('chart-zscore');
+  if(!el)return;
+  const depts=departments?Object.entries(departments):[];
+  if(!depts.length)return;
+  const labels=depts.map(([code])=>DEPT_NAMES[code]||code);
+  const vals=depts.map(([,d])=>+(d.zscore??0).toFixed(2));
+  if(charts.zscore)charts.zscore.destroy();
+  charts.zscore=new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[{label:'Z-score',data:vals,
+      backgroundColor:vals.map(v=>Math.abs(v)>2?'rgba(223,107,134,.7)':Math.abs(v)>1?'rgba(212,176,102,.7)':'rgba(87,192,141,.55)'),
+      borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,animation:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'#24272e'},ticks:{color:'#8b929c'},title:{display:true,text:'Z-score',color:'#8b929c'}},y:{ticks:{color:'#8b929c',font:{size:11}}}}}
+  });
+}
+
+// ── NUEVO: PARTICIPACIÓN POR DEPARTAMENTO ──
+function renderParticipation(departments){
+  const el=document.getElementById('chart-participation');
+  if(!el)return;
+  const depts=departments?Object.entries(departments):[];
+  if(!depts.length)return;
+  const labels=depts.map(([code])=>DEPT_NAMES[code]||code);
+  const vals=depts.map(([,d])=>{
+    if(!d.actasTotal||!d.actasEscrutadas)return 0;
+    return +((d.actasEscrutadas/d.actasTotal)*100).toFixed(1);
+  });
+  if(charts.participation)charts.participation.destroy();
+  charts.participation=new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[{label:'% registros divulgados',data:vals,
+      backgroundColor:vals.map(v=>v<50?'rgba(223,107,134,.6)':v<80?'rgba(212,176,102,.6)':'rgba(87,192,141,.55)'),
+      borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,animation:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'#24272e'},ticks:{color:'#8b929c',callback:v=>v+'%'},max:100},y:{ticks:{color:'#8b929c',font:{size:11}}}}}
+  });
+}
+
+// ── NUEVO: NULOS Y BLANCOS POR DEPARTAMENTO ──
+function renderNullBlank(departments){
+  const el=document.getElementById('chart-nullblank');
+  if(!el)return;
+  const depts=departments?Object.entries(departments):[];
+  if(!depts.length)return;
+  const labels=depts.map(([code])=>DEPT_NAMES[code]||code);
+  const nulls=depts.map(([,d])=>d.nullVotes||0);
+  const blanks=depts.map(([,d])=>d.blankVotes||0);
+  if(charts.nullblank)charts.nullblank.destroy();
+  charts.nullblank=new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Nulos',data:nulls,backgroundColor:'rgba(223,107,134,.6)',borderRadius:4,borderSkipped:false},
+      {label:'Blancos',data:blanks,backgroundColor:'rgba(212,176,102,.5)',borderRadius:4,borderSkipped:false},
+    ]},
+    options:{indexAxis:'y',responsive:true,animation:false,
+      plugins:{legend:{labels:{color:'#8b929c',font:{size:11}}}},
+      scales:{x:{grid:{color:'#24272e'},ticks:{color:'#8b929c',stacked:true}},y:{ticks:{color:'#8b929c',font:{size:11}},stacked:true}}}
+  });
+}
+
+// ── PERSONALIZAR: toggle de secciones ──
+const SECTION_LABELS={
+  incons:'Registros inconsistentes',candidates:'Candidatos y mapa',
+  timeline:'Serie temporal',benford:'Benford',lastdigit:'Último dígito',
+  zscore:'Z-score por depto',participation:'Participación por depto',
+  nullblank:'Nulos y blancos',alerts:'Alertas',forensics:'Análisis forense',
+  chain:'Cadena criptográfica',
+};
+function applySectionPrefs(){
+  const prefs=JSON.parse(localStorage.getItem('centinel_sections')||'{}');
+  document.querySelectorAll('[data-section]').forEach(el=>{
+    const key=el.dataset.section;
+    if(prefs[key]===false)el.style.display='none';
+  });
+}
+function toggleSection(key,visible){
+  document.querySelectorAll(`[data-section="${key}"]`).forEach(el=>el.style.display=visible?'':'none');
+  const prefs=JSON.parse(localStorage.getItem('centinel_sections')||'{}');
+  prefs[key]=visible;
+  localStorage.setItem('centinel_sections',JSON.stringify(prefs));
+}
+function toggleDrawer(){
+  const d=document.getElementById('customize-drawer');
+  const open=d.style.display==='block';
+  if(open){d.style.display='none';return;}
+  const prefs=JSON.parse(localStorage.getItem('centinel_sections')||'{}');
+  const items=document.getElementById('drawer-items');
+  items.innerHTML='';
+  document.querySelectorAll('[data-section]').forEach(el=>{
+    const key=el.dataset.section;
+    if(!SECTION_LABELS[key])return;
+    const checked=prefs[key]!==false;
+    const row=document.createElement('label');
+    row.className='drawer-item';
+    const cb=document.createElement('input');
+    cb.type='checkbox';cb.checked=checked;
+    cb.onchange=()=>toggleSection(key,cb.checked);
+    row.appendChild(cb);
+    row.appendChild(document.createTextNode(SECTION_LABELS[key]));
+    items.appendChild(row);
+  });
+  d.style.display='block';
+}
 
 // ── INFO TIPS ──
 const H2_TIPS={
@@ -821,15 +1020,38 @@ const H2_TIPS={
   'Benford — distribución primer dígito':'La Ley de Benford predice la frecuencia natural del primer dígito en datos electorales grandes. Desviaciones significativas (chi² alto, p<0.05) sugieren que los datos fueron fabricados o alterados artificialmente.',
   'Alertas registradas':'Eventos de anomalía generados por el motor. CRÍTICO = ruptura de integridad o patrón de fraude confirmado. ALTO = brecha de cobertura o patrón estadístico sospechoso. MEDIO/BAJO = señales tempranas a vigilar.',
   'Cadena de custodia criptográfica':'Cada snapshot está enlazado al anterior con un hash SHA-256, formando una cadena inmutable. Si cualquier dato histórico es alterado, el hash no coincide y el motor lo detecta de inmediato.',
+  'Distribución del último dígito':'El último dígito de los totales de votos debe distribuirse uniformemente (≈10% cada dígito 0–9) en datos auténticos. Preferencia por dígitos pares o redondos sugiere estimación o fabricación.',
+  'Z-score por departamento':'Desviación estándar de los votos de cada departamento respecto a la media nacional. Z > 2σ (amarillo) o Z > 3σ (rojo) indica un departamento estadísticamente inusual.',
+  'Participación por departamento (%)':'Porcentaje de actas divulgadas por departamento. Brechas grandes entre departamentos pueden indicar retención selectiva de datos.',
+  'Nulos y blancos por departamento':'Votos nulos y en blanco por departamento. Concentraciones inusualmente altas pueden indicar manipulación o problemas en la jornada.',
+};
+const KPI_TIPS={
+  'kpi-registros':'Número de actas escrutadas publicadas por el CNE vs. el total esperado. Un porcentaje bajo indica conteo incompleto o posible retención selectiva de datos.',
+  'kpi-votos':'Suma acumulada de votos válidos contabilizados. El motor verifica que el ritmo de crecimiento sea físicamente posible dada la velocidad de escrutinio.',
+  'kpi-participacion':'Porcentaje del padrón electoral que votó según el conteo actual. Valores > 85% o saltos bruscos entre capturas son señal de alerta estadística.',
+  'kpi-integridad':'Porcentaje de snapshots con cadena SHA-256 íntegra. 100% = ningún dato publicado fue alterado retroactivamente. Cualquier valor menor es señal crítica.',
+  'badge-alert':'Estado general del sistema. NORMAL = sin anomalías. ANOMALÍA = reglas estadísticas activadas. RUPTURA = cadena criptográfica rota.',
+  'badge-chain':'Integridad de la cadena SHA-256 de todos los snapshots capturados. ROTA = un dato histórico fue modificado tras su captura.',
+  'badge-ots':'Prueba OpenTimestamps anclada en la red Bitcoin. VERIFICANDO = esperando confirmación en blockchain (tarda horas). CONFIRMADO = inmutable.',
+  'badge-mirror':'Número de espejos activos que replican los datos de forma independiente. Cada mirror es un testigo adicional de integridad.',
+  'badge-ep':'Estado del endpoint nacional del CNE. Indica si el sistema puede alcanzar la fuente oficial de datos en este momento.',
 };
 function initInfoTips(){
-  document.querySelectorAll('.card h2, #statusbar + * h2').forEach(h2=>{
+  document.querySelectorAll('.card h2').forEach(h2=>{
     const key=h2.childNodes[0]?.textContent?.trim()||h2.textContent.trim();
     const tip=H2_TIPS[key];
     if(!tip||h2.querySelector('.info-tip'))return;
     const s=document.createElement('span');
     s.className='info-tip';s.textContent='ℹ';s.dataset.tooltip=tip;
     h2.appendChild(s);
+  });
+  document.querySelectorAll('[data-tip-key]').forEach(el=>{
+    if(el.querySelector('.info-tip'))return;
+    const tip=KPI_TIPS[el.dataset.tipKey];
+    if(!tip)return;
+    const s=document.createElement('span');
+    s.className='info-tip';s.textContent='ℹ';s.dataset.tooltip=tip;
+    el.appendChild(s);
   });
 }
 document.addEventListener('click',e=>{

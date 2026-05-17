@@ -1011,6 +1011,10 @@ def run_pipeline(config: dict[str, Any]) -> None:
             if should_generate_report(state, now):
                 run_command([sys.executable, "scripts/summarize_findings.py"], "reportes")
                 state["last_report_at"] = now.isoformat()
+                # Generate membretado PDF and upload to Supabase Storage
+                pdf_url = _generate_and_upload_pdf(args.output if hasattr(args, "output") else "centinel_informe.pdf")
+                if pdf_url:
+                    state["last_report_pdf_url"] = pdf_url
             else:
                 print("[i] Reporte omitido por cadencia")
                 log_event(logger, logging.INFO, "report_skipped", run_id=run_id)
@@ -1026,7 +1030,7 @@ def run_pipeline(config: dict[str, Any]) -> None:
             _anchor_snapshot(config, state, now, latest_snapshot)
             _anchor_if_due(config, state, now)
 
-        _publish_forensics(config, now)
+        _publish_forensics(config, now, extra_meta={"report_pdf_url": state.get("last_report_pdf_url")} if state.get("last_report_pdf_url") else None)
 
         scrape_status = vital_signs.update_status_after_scrape(
             scrape_status,
@@ -1281,7 +1285,25 @@ def _anchor_if_due(config: dict[str, Any], state: dict[str, Any], now: datetime)
     return
 
 
-def _publish_forensics(config: dict[str, Any], now: datetime) -> None:
+def _generate_and_upload_pdf(output_filename: str = "centinel_informe.pdf") -> str | None:
+    """Run generate_report.py --upload and return the public URL printed to stdout."""
+    try:
+        result = subprocess.run(
+            [sys.executable, "scripts/generate_report.py", "--upload", "--sign",
+             "--output", output_filename],
+            capture_output=True, text=True, timeout=120,
+        )
+        for line in result.stdout.splitlines():
+            if line.startswith("PDF uploaded:"):
+                return line.split(":", 1)[1].strip()
+        if result.returncode != 0:
+            logger.warning("generate_report_failed stderr=%s", result.stderr[:300])
+    except Exception as exc:
+        logger.warning("generate_report_error error=%s", exc)
+    return None
+
+
+def _publish_forensics(config: dict[str, Any], now: datetime, extra_meta: dict | None = None) -> None:
     """/** Publica forenses + cobertura a Supabase. / Publish forensics + coverage to Supabase. **
 
     Always non-fatal: local SQLite + hash chain remain the source of truth.
@@ -1310,6 +1332,7 @@ def _publish_forensics(config: dict[str, Any], now: datetime) -> None:
             chain_length=len(leaf_hashes),
             target_cadence_minutes=cadence_minutes,
             endpoints_yaml_path=Path("config/prod/endpoints.yaml"),
+            extra_meta=extra_meta,
         )
     except Exception as exc:  # noqa: BLE001 - publishing must never break pipeline
         log_event(logger, logging.WARNING, "forensics_publish_failed", error=str(exc))

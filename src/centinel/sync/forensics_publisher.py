@@ -343,6 +343,7 @@ def run_and_publish(
     target_cadence_minutes: float = 5.0,
     dept_code: Optional[str] = None,
     endpoints_yaml_path: Optional[Path] = None,
+    extra_meta: Optional[dict] = None,
 ) -> Optional[int]:
     """Run forensics over snapshots and publish to Supabase. Always non-fatal.
 
@@ -369,6 +370,8 @@ def run_and_publish(
 
     endpoint_health = build_endpoint_health_block(endpoints_yaml_path)
     raw_meta = {"forensics": forensics, "coverage": coverage, "endpoint_health": endpoint_health}
+    if extra_meta:
+        raw_meta.update(extra_meta)
 
     snapshot_id = supabase_sync.push_snapshot(
         captured_at=captured_at,

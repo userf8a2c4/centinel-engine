@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centinela — REPLAY Noviembre 2025</title>
+<script src="../config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --bg:#0f1115;--panel:#15171c;--border:#24272e;--fg:#e7e9ec;
+  --muted:#8b929c;--accent:#6ea8fe;--ok:#57c08d;--bad:#df6b86;
+  --warn:#d4b066;--purple:#b08cf0;--replay:#c97af7;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.65;font-size:15px;-webkit-font-smoothing:antialiased}
+
+/* ── LOGIN ── */
+#login-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+#login-overlay.hidden{display:none}
+.login-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:40px 44px;width:380px;max-width:90vw}
+.login-box h1{font-size:20px;font-weight:700;margin-bottom:6px}
+.login-box p{color:var(--muted);font-size:13px;margin-bottom:28px;line-height:1.6}
+.login-field{width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--fg);font-size:14px;outline:none;margin-bottom:12px;transition:.15s}
+.login-field:focus{border-color:var(--accent)}
+.login-btn{width:100%;padding:12px;background:var(--accent);color:#0b1220;border:none;border-radius:9px;font-weight:700;font-size:15px;cursor:pointer;transition:.15s}
+.login-btn:hover{filter:brightness(1.08)}
+#login-error{color:var(--bad);font-size:12px;margin-top:8px;text-align:center;min-height:18px}
+
+/* ── REPLAY BANNER ── */
+#replay-banner{background:rgba(201,122,247,.1);border-bottom:2px solid rgba(201,122,247,.35);padding:10px 24px;font-size:13px;font-weight:600;color:var(--replay);letter-spacing:.04em;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+#replay-banner .pill{background:rgba(201,122,247,.18);border:1px solid rgba(201,122,247,.3);border-radius:6px;padding:3px 10px;font-size:11px}
+#replay-user{margin-left:auto;color:var(--muted);font-size:12px}
+
+/* ── SCRUBBER ── */
+#scrubber-wrap{background:var(--panel);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+#scrubber-wrap label{font-size:13px;color:var(--muted);white-space:nowrap}
+#time-scrubber{flex:1;min-width:200px;accent-color:var(--replay)}
+#scrubber-ts{font-size:13px;color:var(--replay);font-family:var(--mono);min-width:200px}
+#scrubber-count{font-size:12px;color:var(--muted)}
+
+/* ── LAYOUT ── */
+main{max-width:1100px;margin:0 auto;padding:28px 20px;display:grid;gap:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:800px){.grid2,.grid4{grid-template-columns:1fr}}
+
+/* ── CARDS ── */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px 24px}
+.card h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px}
+
+/* ── KPI ── */
+.kpi-val{font-size:36px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.kpi-label{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;padding:8px 10px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)}
+.tbl td{padding:9px 10px;border-bottom:1px solid #1c1f26;font-family:var(--mono);font-size:12px}
+
+/* ── EMPTY/LOADING STATE ── */
+#loading{text-align:center;color:var(--muted);padding:80px 20px;font-size:14px}
+#no-data{text-align:center;color:var(--muted);padding:80px 20px;font-size:14px;display:none}
+
+/* ── FOOTER ── */
+footer{text-align:center;color:var(--muted);font-size:12px;padding:32px 20px;border-top:1px solid var(--border);margin-top:20px}
+footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN OVERLAY ── -->
+<div id="login-overlay">
+  <div class="login-box">
+    <h1>📂 REPLAY 2025</h1>
+    <p>Acceso restringido a investigadores autorizados.<br>
+       Los datos históricos están protegidos y no son públicos.</p>
+    <input id="login-email" class="login-field" type="email" placeholder="Correo institucional" autocomplete="email">
+    <input id="login-pass"  class="login-field" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">Ingresar al REPLAY</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── REPLAY BANNER ── -->
+<div id="replay-banner">
+  <span>📂 MODO REPLAY</span>
+  <span class="pill">Datos históricos — Noviembre 2025</span>
+  <span class="pill">No en vivo</span>
+  <a href="../panel/" style="color:var(--muted);font-size:12px;text-decoration:none;margin-left:8px">← Panel en vivo</a>
+  <span id="replay-user"></span>
+</div>
+
+<!-- ── TIME SCRUBBER ── -->
+<div id="scrubber-wrap">
+  <label for="time-scrubber">Instante:</label>
+  <input type="range" id="time-scrubber" min="0" max="0" value="0" oninput="scrub(this.value)">
+  <span id="scrubber-ts">—</span>
+  <span id="scrubber-count"></span>
+</div>
+
+<!-- ── MAIN CONTENT ── -->
+<div id="loading">Cargando snapshots históricos…</div>
+<div id="no-data">No se encontraron snapshots en <code>replay_snapshots</code>.<br>
+  Ejecuta <code>python scripts/import_pilot_to_supabase.py</code> primero.</div>
+
+<main id="replay-main" style="display:none">
+
+<!-- ── KPIs ── -->
+<div class="grid4">
+  <div class="card">
+    <h2>Total snapshots</h2>
+    <div class="kpi-val" id="r-total">—</div>
+    <div class="kpi-label">registros en REPLAY</div>
+  </div>
+  <div class="card">
+    <h2>Departamentos</h2>
+    <div class="kpi-val" id="r-depts">—</div>
+    <div class="kpi-label">cubiertos</div>
+  </div>
+  <div class="card">
+    <h2>Primer captura</h2>
+    <div class="kpi-val" style="font-size:20px" id="r-first">—</div>
+    <div class="kpi-label">inicio del período</div>
+  </div>
+  <div class="card">
+    <h2>Última captura</h2>
+    <div class="kpi-val" style="font-size:20px" id="r-last">—</div>
+    <div class="kpi-label">fin del período</div>
+  </div>
+</div>
+
+<!-- ── SNAPSHOT ACTUAL ── -->
+<div class="card">
+  <h2>Snapshot seleccionado</h2>
+  <table class="tbl">
+    <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+    <tbody id="snap-detail"><tr><td colspan="2" style="color:var(--muted);text-align:center">Mueve el scrubber para seleccionar un instante</td></tr></tbody>
+  </table>
+</div>
+
+<!-- ── CHARTS ── -->
+<div class="grid2">
+  <div class="card">
+    <h2>Benford — Primer dígito</h2>
+    <canvas id="r-chart-benford" height="180"></canvas>
+    <div id="r-benford-note" style="font-size:11px;color:var(--muted);margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h2>Votos en el tiempo</h2>
+    <canvas id="r-chart-timeline" height="180"></canvas>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Último dígito</h2>
+    <canvas id="r-chart-lastdigit" height="180"></canvas>
+  </div>
+  <div class="card">
+    <h2>Registros por departamento</h2>
+    <canvas id="r-chart-depts" height="180"></canvas>
+  </div>
+</div>
+
+<!-- ── LISTADO DE SNAPSHOTS ── -->
+<div class="card">
+  <h2>Todos los snapshots — Noviembre 2025</h2>
+  <div style="max-height:340px;overflow-y:auto">
+    <table class="tbl" id="snap-table">
+      <thead><tr><th>#</th><th>Capturado</th><th>Departamento</th><th>Fuente</th></tr></thead>
+      <tbody id="snap-body"><tr><td colspan="4" style="color:var(--muted);text-align:center">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  MODO REPLAY — Datos históricos privados de noviembre 2025.
+  Acceso restringido bajo RLS de Supabase. —
+  <a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0</a>
+</footer>
+
+<script>
+const SUPABASE_URL  = window.CENTINEL_SUPABASE_URL  || 'https://PROYECTO.supabase.co';
+const SUPABASE_ANON = window.CENTINEL_SUPABASE_ANON || 'ANON_KEY';
+const isDemo = SUPABASE_URL.includes('PROYECTO');
+
+let sb = null;
+let sbUser = null;
+let allSnapshots = [];
+let charts = {};
+
+if(!isDemo && window.supabase){
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+}
+
+// ── AUTH ──
+async function checkAuth(){
+  if(isDemo || !sb){
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('replay-user').textContent = 'Demo — sin Supabase';
+    loadSnapshots();
+    return;
+  }
+  const {data:{user}} = await sb.auth.getUser();
+  if(user){
+    sbUser = user;
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('replay-user').textContent = user.email;
+    loadSnapshots();
+  }
+}
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if(!email||!pass){errEl.textContent='Ingresa email y contraseña.';return;}
+  if(!sb){errEl.textContent='Supabase no configurado.';return;}
+  try{
+    const {data,error} = await sb.auth.signInWithPassword({email,password:pass});
+    if(error) throw error;
+    // verify member access
+    const {data:member,error:me} = await sb.from('upnfm_members')
+      .select('id,access_level').eq('user_id', data.user.id).single();
+    if(me||!member){
+      await sb.auth.signOut();
+      errEl.textContent='Acceso no autorizado. Contacta al operador.';
+      return;
+    }
+    sbUser = data.user;
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('replay-user').textContent = data.user.email + ' · ' + (member.access_level||'researcher');
+    loadSnapshots();
+  }catch(e){
+    errEl.textContent = e.message||'Error de autenticación';
+  }
+}
+document.getElementById('login-pass').addEventListener('keydown', e=>{if(e.key==='Enter')doLogin();});
+
+// ── LOAD SNAPSHOTS ──
+async function loadSnapshots(){
+  document.getElementById('loading').style.display = 'block';
+  let snaps = [];
+
+  if(isDemo || !sb){
+    // demo data
+    snaps = _demoSnapshots();
+  } else {
+    try{
+      const {data,error} = await sb.from('replay_snapshots')
+        .select('id,captured_at,dept_code,raw_json,source')
+        .order('captured_at',{ascending:true})
+        .limit(500);
+      if(error) throw error;
+      snaps = data||[];
+    }catch(e){
+      console.error('replay load error', e);
+    }
+  }
+
+  document.getElementById('loading').style.display = 'none';
+
+  if(!snaps.length){
+    document.getElementById('no-data').style.display = 'block';
+    return;
+  }
+
+  allSnapshots = snaps;
+  document.getElementById('replay-main').style.display = 'grid';
+
+  renderKPIs(snaps);
+  renderTable(snaps);
+  setupScrubber(snaps);
+  renderCharts(snaps);
+  scrub(0);
+}
+
+// ── KPIs ──
+function renderKPIs(snaps){
+  document.getElementById('r-total').textContent = snaps.length;
+  const depts = new Set(snaps.map(s=>s.dept_code).filter(Boolean));
+  document.getElementById('r-depts').textContent = depts.size || '—';
+  const first = snaps[0]?.captured_at;
+  const last  = snaps[snaps.length-1]?.captured_at;
+  document.getElementById('r-first').textContent = first ? new Date(first).toLocaleDateString('es-HN') : '—';
+  document.getElementById('r-last').textContent  = last  ? new Date(last).toLocaleDateString('es-HN')  : '—';
+}
+
+// ── TABLE ──
+function renderTable(snaps){
+  const body = document.getElementById('snap-body');
+  body.innerHTML = snaps.map((s,i)=>`
+    <tr onclick="scrub(${i})" style="cursor:pointer">
+      <td>${i+1}</td>
+      <td>${new Date(s.captured_at).toLocaleString('es-HN')}</td>
+      <td>${s.dept_code||'Nacional'}</td>
+      <td>${s.source||'nov2025'}</td>
+    </tr>`).join('');
+}
+
+// ── SCRUBBER ──
+function setupScrubber(snaps){
+  const sc = document.getElementById('time-scrubber');
+  sc.max = snaps.length - 1;
+  sc.value = 0;
+  document.getElementById('scrubber-count').textContent = `${snaps.length} snapshots`;
+}
+
+function scrub(idx){
+  idx = parseInt(idx,10);
+  const snap = allSnapshots[idx];
+  if(!snap) return;
+  document.getElementById('time-scrubber').value = idx;
+  document.getElementById('scrubber-ts').textContent = new Date(snap.captured_at).toLocaleString('es-HN');
+  renderDetail(snap);
+  // highlight active row
+  document.querySelectorAll('#snap-body tr').forEach((tr,i)=>{
+    tr.style.background = i===idx ? 'rgba(201,122,247,.08)' : '';
+  });
+}
+
+function renderDetail(snap){
+  const raw = snap.raw_json||{};
+  const rows = [
+    ['ID', snap.id],
+    ['Capturado', new Date(snap.captured_at).toLocaleString('es-HN')],
+    ['Departamento', snap.dept_code||'Nacional'],
+    ['Fuente', snap.source||'nov2025'],
+    ['Actas escrutadas', raw.actasEscrutadas ?? raw.actas_escrutadas ?? '—'],
+    ['Actas totales', raw.actasTotal ?? raw.actas_total ?? '—'],
+    ['Total votos', raw.totalVotes ?? raw.total_votos ?? '—'],
+    ['Importado', snap.imported_at ? new Date(snap.imported_at).toLocaleString('es-HN') : '—'],
+  ];
+  document.getElementById('snap-detail').innerHTML = rows.map(([k,v])=>
+    `<tr><td style="color:var(--muted)">${k}</td><td>${v??'—'}</td></tr>`).join('');
+}
+
+// ── CHARTS ──
+function renderCharts(snaps){
+  renderBenfordReplay(snaps);
+  renderTimelineReplay(snaps);
+  renderLastDigitReplay(snaps);
+  renderDeptReplay(snaps);
+}
+
+function renderBenfordReplay(snaps){
+  const el = document.getElementById('r-chart-benford');
+  if(!el) return;
+  // Collect total votes across snapshots to do Benford analysis
+  const votes = snaps.map(s=>{
+    const r = s.raw_json||{};
+    return r.totalVotes ?? r.total_votos ?? r.votos_validos ?? null;
+  }).filter(v=>v!==null&&v>0);
+
+  const counts = new Array(9).fill(0);
+  votes.forEach(v=>{
+    const d = parseInt(String(v).replace(/^0+/,'')[0],10);
+    if(d>=1&&d<=9) counts[d-1]++;
+  });
+  const total = counts.reduce((a,b)=>a+b,0)||1;
+  const observed = counts.map(c=>+(c/total*100).toFixed(1));
+  const expected = [30.1,17.6,12.5,9.7,7.9,6.7,5.8,5.1,4.6];
+  const labels = ['1','2','3','4','5','6','7','8','9'];
+
+  if(charts.benford) charts.benford.destroy();
+  charts.benford = new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Observado (%)',data:observed,backgroundColor:'rgba(201,122,247,.6)',borderRadius:4},
+      {label:'Esperado Benford (%)',data:expected,backgroundColor:'rgba(139,146,156,.2)',borderRadius:4},
+    ]},
+    options:{responsive:true,animation:false,
+      plugins:{legend:{labels:{color:'#8b929c',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#8b929c'}},y:{grid:{color:'#24272e'},ticks:{color:'#8b929c',callback:v=>v+'%'}}}}
+  });
+  const note = document.getElementById('r-benford-note');
+  if(note) note.textContent = votes.length>0 ? `Basado en ${votes.length} valores de votos totales.` : 'Datos insuficientes para análisis Benford.';
+}
+
+function renderTimelineReplay(snaps){
+  const el = document.getElementById('r-chart-timeline');
+  if(!el) return;
+  const labels = snaps.map(s=>new Date(s.captured_at).toLocaleDateString('es-HN',{month:'short',day:'numeric'}));
+  const vals = snaps.map((s,i)=>i+1);
+  if(charts.timeline) charts.timeline.destroy();
+  charts.timeline = new Chart(el,{
+    type:'line',
+    data:{labels,datasets:[{label:'Snapshots acumulados',data:vals,
+      borderColor:'#c97af7',backgroundColor:'rgba(201,122,247,.12)',fill:true,tension:0.3,pointRadius:2,borderWidth:2}]},
+    options:{responsive:true,animation:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#8b929c',maxRotation:45,font:{size:10}},grid:{color:'#24272e'}},
+              y:{grid:{color:'#24272e'},ticks:{color:'#8b929c'}}}}
+  });
+}
+
+function renderLastDigitReplay(snaps){
+  const el = document.getElementById('r-chart-lastdigit');
+  if(!el) return;
+  const counts = new Array(10).fill(0);
+  let total = 0;
+  snaps.forEach(s=>{
+    const r = s.raw_json||{};
+    const v = r.totalVotes ?? r.total_votos ?? null;
+    if(v===null||v<=0) return;
+    const d = parseInt(String(Math.round(v)).slice(-1),10);
+    counts[d]++;
+    total++;
+  });
+  const pcts = counts.map(c=>total>0 ? +(c/total*100).toFixed(1) : 0);
+  const labels = ['0','1','2','3','4','5','6','7','8','9'];
+  if(charts.lastdigit) charts.lastdigit.destroy();
+  charts.lastdigit = new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Observado (%)',data:pcts,backgroundColor:'rgba(201,122,247,.55)',borderRadius:4},
+      {label:'Esperado (10%)',data:labels.map(()=>10),backgroundColor:'rgba(139,146,156,.2)',borderRadius:4},
+    ]},
+    options:{responsive:true,animation:false,
+      plugins:{legend:{labels:{color:'#8b929c',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#8b929c'}},y:{grid:{color:'#24272e'},ticks:{color:'#8b929c',callback:v=>v+'%'},max:25}}}
+  });
+}
+
+function renderDeptReplay(snaps){
+  const el = document.getElementById('r-chart-depts');
+  if(!el) return;
+  const counts = {};
+  snaps.forEach(s=>{
+    const k = s.dept_code||'Nacional';
+    counts[k] = (counts[k]||0)+1;
+  });
+  const labels = Object.keys(counts);
+  const vals = Object.values(counts);
+  if(charts.depts) charts.depts.destroy();
+  charts.depts = new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[{label:'Snapshots',data:vals,backgroundColor:'rgba(110,168,254,.55)',borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,animation:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'#24272e'},ticks:{color:'#8b929c'}},y:{ticks:{color:'#8b929c',font:{size:11}}}}}
+  });
+}
+
+// ── DEMO DATA ──
+function _demoSnapshots(){
+  const base = new Date('2025-11-28T18:00:00Z');
+  return Array.from({length:20},(_, i)=>{
+    const ts = new Date(base.getTime() + i*15*60*1000).toISOString();
+    return {
+      id: i+1,
+      captured_at: ts,
+      dept_code: ['HN-FM','HN-CR','HN-OL','HN-AT','Nacional'][i%5],
+      raw_json: {totalVotes: 800000+i*12345, actasEscrutadas: 2000+i*87, actasTotal: 18327},
+      source: 'nov2025',
+      imported_at: new Date().toISOString(),
+    };
+  });
+}
+
+checkAuth();
+</script>
+</body>
+</html>
