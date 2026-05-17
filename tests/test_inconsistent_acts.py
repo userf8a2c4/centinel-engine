@@ -540,3 +540,73 @@ def test_forensic_report_contains_all_sections(tmp_path: Path) -> None:
     assert "## 9. Ley de Benford" in report
     assert "## 10. Apagones Comunicacionales" in report
     assert "Hashes de fuente SHA-256" in report
+
+
+def _build_cne_payload(
+    *, inconsistentes: str, votos: dict[str, str]
+) -> dict:
+    """Build a payload mirroring the real CNE 2025 JSON schema.
+
+    Construye un payload con el esquema real del JSON del CNE 2025.
+    """
+    return {
+        "resultados": [
+            {"partido": f"PARTIDO {name}", "candidato": name, "votos": value, "porcentaje": "0.00"}
+            for name, value in votos.items()
+        ],
+        "estadisticas": {
+            "totalizacion_actas": {"actas_totales": "19,152", "actas_divulgadas": "15,310"},
+            "distribucion_votos": {"validos": "2,552,777", "nulos": "93,520", "blancos": "49,732"},
+            "estado_actas_divulgadas": {
+                "actas_correctas": "13,121",
+                "actas_inconsistentes": inconsistentes,
+            },
+        },
+    }
+
+
+def test_real_cne_schema_with_thousands_separators(tmp_path: Path) -> None:
+    """Tracker must parse the real CNE schema: resultados/votos as comma strings.
+
+    El tracker debe parsear el esquema real del CNE: resultados/votos con comas.
+    """
+    config_path = tmp_path / "inconsistent_key.json"
+    # Simulate the stale persisted key shipped in the repo so the robust
+    # fallback (re-detect + re-persist) is exercised on real CNE data.
+    config_path.write_text(
+        json.dumps({"inconsistent_key": "totals.actasInconsistentes"}), encoding="utf-8"
+    )
+
+    tracker = InconsistentActsTracker(
+        config_path=config_path, runtime_config_path=tmp_path / "config.json"
+    )
+
+    tracker.load_snapshot(
+        _build_cne_payload(
+            inconsistentes="2,189",
+            votos={"CANDIDATO_A": "1,027,090", "CANDIDATO_B": "1,013,050", "CANDIDATO_C": "485,529"},
+        ),
+        datetime(2025, 12, 3, 22, 0, tzinfo=timezone.utc),
+    )
+    tracker.load_snapshot(
+        _build_cne_payload(
+            inconsistentes="2,773",
+            votos={"CANDIDATO_A": "1,256,428", "CANDIDATO_B": "1,298,835", "CANDIDATO_C": "618,448"},
+        ),
+        datetime(2025, 12, 4, 11, 6, tzinfo=timezone.utc),
+    )
+
+    assert (
+        tracker.detected_inconsistent_key
+        == "estadisticas.estado_actas_divulgadas.actas_inconsistentes"
+    )
+    persisted = json.loads(config_path.read_text(encoding="utf-8"))
+    assert persisted["inconsistent_key"] == (
+        "estadisticas.estado_actas_divulgadas.actas_inconsistentes"
+    )
+    assert tracker.snapshots[0].inconsistent_count == 2189
+    assert tracker.snapshots[1].inconsistent_count == 2773
+    assert tracker.snapshots[0].candidate_votes["CANDIDATO_A"] == 1027090
+    assert tracker.snapshots[1].candidate_votes["CANDIDATO_B"] == 1298835
+    # Must not raise even though votes regress for some candidates.
+    tracker.detect_anomalies()

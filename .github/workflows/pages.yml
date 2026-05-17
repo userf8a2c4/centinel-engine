@@ -5,7 +5,7 @@ name: Deploy web verifier to GitHub Pages
 # web/ auto-publishes to https://<owner>.github.io/centinel-engine/.
 on:
   push:
-    branches: [dev-v9]
+    branches: [main, dev-v9, claude/dev-v10-continuation-3CIEe]
     paths: ["web/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 

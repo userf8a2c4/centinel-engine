@@ -162,6 +162,16 @@ class InconsistentActsTracker:
             self.detected_inconsistent_key = self._detect_inconsistent_key(json_data)
             self._persist_key(self.detected_inconsistent_key)
 
+        # English/Español: a stale persisted key (different CNE schema) must not
+        # crash the tracker — re-detect and re-persist instead of failing /
+        # una clave persistida obsoleta no debe romper el rastreador: se
+        # re-detecta y re-persiste en vez de fallar.
+        try:
+            self._resolve_key_path(json_data, self.detected_inconsistent_key)
+        except (KeyError, IndexError, TypeError):
+            self.detected_inconsistent_key = self._detect_inconsistent_key(json_data)
+            self._persist_key(self.detected_inconsistent_key)
+
         inconsistent_count = self._extract_inconsistent_count(
             json_data, self.detected_inconsistent_key
         )
@@ -674,7 +684,12 @@ class InconsistentActsTracker:
         normal_total = sum(self.normal_votes.values())
         national_total = special_total + normal_total
 
-        if special_total == 0 or national_total == 0:
+        # English/Español: real CNE data contains vote regressions, so cumulative
+        # special-scrutiny tallies can go negative; exact binomial tests are
+        # undefined there — degrade gracefully instead of crashing /
+        # los datos reales del CNE traen regresiones de voto: el acumulado puede
+        # ser negativo y el test binomial exacto no aplica.
+        if special_total <= 0 or normal_total <= 0 or national_total <= 0:
             return {
                 "status": "insufficient_data",
                 "special_total": special_total,
@@ -700,6 +715,11 @@ class InconsistentActsTracker:
         for candidate, special_votes in self.special_scrutiny_votes.items():
             p0 = national_props.get(candidate, 0.0)
             if p0 <= 0:
+                continue
+            # English/Español: exact binomial requires 0 <= k <= n; skip
+            # candidates with negative/over-total special tallies (regressions) /
+            # el binomial exacto exige 0<=k<=n: omitir acumulados negativos.
+            if special_votes < 0 or special_votes > special_total:
                 continue
             bt = binomtest(k=special_votes, n=special_total, p=p0)
             normal_candidate_votes = self.normal_votes.get(candidate, 0)
@@ -1172,18 +1192,40 @@ z = \frac{\hat{p}_{special} - \hat{p}_{normal}}{\sqrt{\hat{p}(1-\hat{p})(\frac{1
         candidates.sort(key=lambda name: ("actas" not in name.lower(), len(name), name))
         return candidates[0]
 
+    @staticmethod
+    def _to_int(value: Any) -> int:
+        """Parse an integer tolerant to thousands separators ("1,027,090").
+
+        Convierte a entero tolerando separadores de miles ("1,027,090").
+        """
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, (int, float)):
+            return int(value)
+        text = str(value).strip().replace(",", "").replace(" ", "")
+        if not text:
+            return 0
+        return int(float(text)) if "." in text else int(text)
+
+    def _resolve_key_path(self, json_data: dict, key_path: str) -> Any:
+        """Resolve a dotted key path against a snapshot, raising KeyError if absent.
+
+        Resuelve una ruta de clave con puntos; lanza KeyError si no existe.
+        """
+        value: Any = json_data
+        for token in key_path.split("."):
+            if token.isdigit() and isinstance(value, list):
+                value = value[int(token)]
+            else:
+                value = value[token]
+        return value
+
     def _extract_inconsistent_count(self, json_data: dict, key_path: str) -> int:
         """Extract integer inconsistent count from dotted key path.
 
         Extrae conteo entero de inconsistentes desde ruta de clave con puntos.
         """
-        value: Any = json_data
-        for token in key_path.split("."):
-            if token.isdigit():
-                value = value[int(token)]
-            else:
-                value = value[token]
-        return int(value)
+        return self._to_int(self._resolve_key_path(json_data, key_path))
 
     def _extract_candidate_votes(self, json_data: dict) -> dict[str, int]:
         """Extract candidate votes from flexible CNE-like structures.
@@ -1201,10 +1243,13 @@ z = \frac{\hat{p}_{special} - \hat{p}_{normal}}{\sqrt{\hat{p}(1-\hat{p})(\frac{1
                 or candidate.get("id")
                 or candidate.get("name")
                 or candidate.get("nombre")
+                or candidate.get("candidato")
                 or candidate.get("slot")
                 or "unknown"
             )
-            vote_value = int(candidate.get("votes") or candidate.get("votos") or 0)
+            vote_value = self._to_int(
+                candidate.get("votes") or candidate.get("votos") or 0
+            )
             votes[name] = vote_value
         return votes
 
@@ -1216,7 +1261,9 @@ z = \frac{\hat{p}_{special} - \hat{p}_{normal}}{\sqrt{\hat{p}(1-\hat{p})(\frac{1
         if isinstance(payload, dict):
             for key, value in payload.items():
                 lowered = key.lower()
-                if lowered in {"candidates", "candidatos"} and isinstance(value, list):
+                if lowered in {"candidates", "candidatos", "resultados"} and isinstance(
+                    value, list
+                ):
                     return value
                 found = self._find_candidates_container(value)
                 if found:
@@ -1242,8 +1289,17 @@ z = \frac{\hat{p}_{special} - \hat{p}_{normal}}{\sqrt{\hat{p}(1-\hat{p})(\frac{1
             for index, item in enumerate(payload):
                 path = f"{prefix}.{index}" if prefix else str(index)
                 result.update(self._flatten_numeric_fields(item, path))
+        elif isinstance(payload, bool):
+            result[prefix] = int(payload)
         elif isinstance(payload, (int, float)):
             result[prefix] = int(payload)
+        elif isinstance(payload, str):
+            # English/Español: CNE serializes counts as strings with thousands
+            # separators ("2,189"); treat numeric-looking strings as numeric /
+            # el CNE serializa conteos como strings con separadores de miles.
+            stripped = payload.strip().replace(",", "").replace(" ", "")
+            if stripped and stripped.lstrip("-").replace(".", "", 1).isdigit():
+                result[prefix] = int(float(stripped))
         return result
 
     def _candidate_deltas(

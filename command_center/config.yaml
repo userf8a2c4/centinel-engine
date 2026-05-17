@@ -418,23 +418,17 @@ resilience:
     # Fallos consecutivos antes de actuar (Consecutive failures before acting).
     failure_threshold: 3
 
-# Configuración Arbitrum (opcional).
-# Arbitrum configuration (optional).
-arbitrum:
-  enabled: false
-  network: "Arbitrum One"
-  rpc_url: "https://arb1.arbitrum.io/rpc"
-  # Llave privada — SOLO via env var ARBITRUM_PRIVATE_KEY (valores aquí se ignoran).
-  # Private key — ONLY via env var ARBITRUM_PRIVATE_KEY (values here are ignored).
-  private_key: "REPLACE_ME"
-  contract_address: "0x..."
-  explorer_url: "https://arbiscan.io/tx/"
-  interval_minutes: 15
-  batch_size: 19
-  auto_anchor_snapshots: true
-  # Redact tx hash/root/contract identifiers in logs for low-profile operations.
-  # Redacta identificadores tx/root/contrato en logs para operaciones de bajo perfil.
-  log_redact_identifiers: true
+# Anclaje Bitcoin via OpenTimestamps (gratuito, sin llave privada requerida).
+# Bitcoin anchoring via OpenTimestamps (free, no private key required).
+opentimestamps:
+  enabled: true
+  calendars:
+    - "https://alice.btc.calendar.opentimestamps.org"
+    - "https://bob.btc.calendar.opentimestamps.org"
+    - "https://finney.calendar.eternitywall.com"
+    - "https://ots.btc.catallaxy.com"
+  timeout_seconds: 30
+  pending_file: "data/pending_ots.json"
 
 # Cadena de custodia verificable — FASE 2.
 # Verifiable custody chain — PHASE 2.
