@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Centinela — Verificación Independiente</title>
+<title>Centinela — Honduras Electoral</title>
 <style>
   :root{--bg:#0f1115;--panel:#15171c;--border:#24272e;--fg:#e7e9ec;
     --muted:#8b929c;--accent:#6ea8fe;--purple:#b08cf0}
@@ -29,6 +29,8 @@
     letter-spacing:.04em}
   .t-pub{background:rgba(110,168,254,.12);color:var(--accent)}
   .t-val{background:rgba(176,140,240,.13);color:var(--purple)}
+  .t-upnfm{background:rgba(87,192,141,.12);color:#57c08d}
+  a.card{width:355px}
   footer{margin-top:48px;color:var(--muted);font-size:12.5px;
     text-align:center;line-height:1.7}
   code{font-family:ui-monospace,monospace;background:var(--panel);
@@ -37,24 +39,27 @@
 </style>
 </head>
 <body>
-  <h1>Centinela</h1>
-  <p class="sub">Verificación criptográfica de custodia electoral
-    <b>sin confiar en nadie</b>. El navegador recomputa las pruebas localmente.
-    Código abierto, costo cero, reproducible por cualquiera.</p>
+  <h1>Centinela Electoral Honduras</h1>
+  <p class="sub">Auditoría criptográfica independiente del proceso electoral.
+    Anclado en Bitcoin. Costo cero. Reproducible por cualquiera.</p>
   <div class="cards">
-    <a class="card" href="verifier/">
-      <span class="tag t-pub">PÚBLICO · solo lectura</span>
-      <h2>Verificador independiente</h2>
-      <p>Comprueba integridad de cadena, raíz Merkle, ancla externa e
-        interferencia. Incluye <b>modo demostración</b> sin servidor —
-        ábrelo y verifica de inmediato.</p>
+    <a class="card" href="panel/">
+      <span class="tag t-pub">PÚBLICO · tiempo real</span>
+      <h2>Panel de monitoreo</h2>
+      <p>Mapa de Honduras en vivo, candidatos, gráfica Benford,
+        7 detectores forenses y cadena criptográfica. Sin login.</p>
     </a>
-    <a class="card pur" href="sandbox/">
-      <span class="tag t-val">VALIDADORES · banco de pruebas</span>
-      <h2>Sandbox para matemáticos</h2>
-      <p>Entorno aislado para atacar las pruebas (T1/T3) y afinar reglas
-        con disciplina anti-sobreajuste. Nada altera datos reales.
-        Reporte firmable público.</p>
+    <a class="card" href="verifier/">
+      <span class="tag t-pub">PÚBLICO · sin servidor</span>
+      <h2>Verificador offline</h2>
+      <p>Comprueba cadena, Merkle, ancla Bitcoin e interferencia.
+        El navegador hace todo — sin confiar en ningún servidor.</p>
+    </a>
+    <a class="card" href="sandbox/">
+      <span class="tag t-upnfm">UPNFM · acceso con login</span>
+      <h2>Sandbox matemáticos</h2>
+      <p>Ajusta las 23 reglas estadísticas, ataca las pruebas T1/T3,
+        propone nuevas reglas y controla el motor de captura.</p>
     </a>
   </div>
   <footer>

@@ -88,7 +88,6 @@ from centinel.core.rules import (  # noqa: F401
     turnout_impossible_rule,
 )
 from centinel.core.hashchain import compute_hash
-from centinel_engine.arbitrum_hook import anchor_hash_to_arbitrum
 from centinel.core.rules.registry import RuleDefinition, list_rules
 
 logger = logging.getLogger(__name__)
@@ -274,10 +273,6 @@ class RulesEngine:
         canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
         current_hash = hashlib.sha256(canonical).hexdigest()
 
-        # Future extension point: optional Arbitrum anchoring /
-        # Punto de extension futura: anclaje opcional en Arbitrum.
-        if bool((config or {}).get("ENABLE_ARBITRUM", False)):
-            return anchor_hash_to_arbitrum(current_hash, config or {})
         return current_hash
 
     @staticmethod

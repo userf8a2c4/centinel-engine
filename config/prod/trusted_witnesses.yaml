@@ -1,0 +1,17 @@
+# Testigos de confianza — Centinela Electoral Honduras
+# Cada testigo ejecuta su propia instancia de centinel-engine en un servidor independiente.
+# Para agregar un testigo: pedirle que corra generate_secrets.sh y compartir su CENTINEL_PUBLIC_KEY.
+
+witnesses: []
+# Ejemplo de configuración cuando Devis Alvarado esté listo:
+#   - id: "devis-upnfm"
+#     name: "Devis Alvarado — UPNFM"
+#     public_key: |
+#       -----BEGIN PUBLIC KEY-----
+#       MCowBQYDK2VdAyEA...
+#       -----END PUBLIC KEY-----
+#     url: "https://centinel2.upnfm.edu.hn"
+#     added_at: "2026-05-17"
+#
+# Para más PhDs, agregar entradas adicionales siguiendo el mismo formato.
+# Las claves privadas NUNCA se comparten — cada operador custodia la suya.

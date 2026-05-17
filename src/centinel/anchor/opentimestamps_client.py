@@ -272,14 +272,8 @@ class MultichainAnchor:
     """
 
     def __init__(self, testnet: bool = False, arbitrum_rpc: Optional[str] = None):
-        """Initialize multi-chain anchor.
-
-        Args:
-            testnet: Use testnet chains
-            arbitrum_rpc: Arbitrum RPC URL (for fallback)
-        """
+        """Initialize multi-chain anchor (OTS Bitcoin only)."""
         self.ots_client = OpenTimestampsClient(use_testnet=testnet)
-        self.arbitrum_rpc = arbitrum_rpc
         self.testnet = testnet
 
     def anchor_checkpoint(self, checkpoint: dict) -> dict:
@@ -310,19 +304,9 @@ class MultichainAnchor:
             )
             return checkpoint
 
-        # Fallback: Arbitrum (if configured)
-        if self.arbitrum_rpc:
-            logger.warning(
-                "ots_failed_fallback_to_arbitrum merkle_root=%s",
-                merkle_root[:16],
-            )
-            # TODO: implement Arbitrum fallback
-            # For now, log and continue without anchor
-            pass
-
-        # Non-fatal: publish without anchor (lower assurance)
+        # Non-fatal: publish without anchor (OTS calendars unavailable)
         logger.warning(
-            "checkpoint_published_without_anchor merkle_root=%s (ots failed, arbitrum unavailable)",
+            "checkpoint_published_without_anchor merkle_root=%s (all OTS calendars unavailable)",
             merkle_root[:16],
         )
         return checkpoint

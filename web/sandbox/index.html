@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Centinela — Banco de Pruebas (Validadores)</title>
+<title>Centinela — Sandbox UPNFM</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
     --bg:#0f1115;--panel:#15171c;--border:#24272e;--fg:#e7e9ec;
@@ -88,9 +89,144 @@
   .acc b{color:var(--purple)}
   footer{color:var(--muted);font-size:12px;text-align:center;padding:32px;
     border-top:1px solid var(--border)}
+
+  /* ── LOGIN OVERLAY ── */
+  #login-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;transition:opacity .4s}
+  #login-overlay.hidden{opacity:0;pointer-events:none}
+  .login-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:40px 44px;width:380px;max-width:90vw}
+  .login-box h1{font-size:20px;font-weight:700;margin-bottom:6px}
+  .login-box p{color:var(--muted);font-size:13px;margin-bottom:28px;line-height:1.6}
+  .login-field{width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--fg);font-size:14px;outline:none;margin-bottom:12px;transition:.15s}
+  .login-field:focus{border-color:var(--accent)}
+  .login-btn{width:100%;padding:12px;background:var(--accent);color:#0b1220;border:none;border-radius:9px;font-weight:700;font-size:15px;cursor:pointer;transition:.15s}
+  .login-btn:hover{filter:brightness(1.08)}
+  #login-error{color:var(--bad);font-size:12px;margin-top:8px;text-align:center;min-height:18px}
+  #login-user{position:fixed;top:14px;right:80px;font-size:12px;color:var(--muted);z-index:200}
+
+  /* ── KILL SWITCH ── */
+  #kill-btn{position:fixed;bottom:24px;right:24px;z-index:500;background:#df6b86;color:#fff;border:none;border-radius:12px;padding:14px 22px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(223,107,134,.5);letter-spacing:.02em;transition:.2s}
+  #kill-btn:hover{background:#c95a73;transform:scale(1.04)}
+  #kill-btn.halted{background:#2a1f24;border:2px solid var(--bad);color:var(--bad)}
+  #kill-status{position:fixed;bottom:72px;right:24px;z-index:500;font-size:12px;color:var(--bad);text-align:right;display:none}
+
+  /* ── PROGRESSIVE DISCLOSURE ── */
+  .pd-level1{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:32px 36px;margin-bottom:20px;max-width:880px;margin-left:auto;margin-right:auto}
+  .pd-level1 h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:20px}
+  .endpoint-field{width:100%;padding:13px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--fg);font-size:14px;font-family:var(--mono);outline:none;margin-bottom:14px;transition:.15s}
+  .endpoint-field:focus{border-color:var(--accent)}
+  .deploy-btn{background:var(--accent);color:#0b1220;border:none;border-radius:10px;padding:13px 28px;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}
+  .deploy-btn:hover{filter:brightness(1.08)}
+  .status-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;font-size:13px;font-weight:600;margin-left:16px}
+  .sp-active{background:rgba(87,192,141,.12);color:var(--ok)}
+  .sp-idle{background:rgba(139,146,156,.10);color:var(--muted)}
+  .adv-toggle{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:8px 0;display:flex;align-items:center;gap:6px;margin-top:14px}
+  .adv-toggle:hover{color:var(--fg)}
+  #pd-level2{display:none;margin-top:20px;border-top:1px solid var(--border);padding-top:20px}
+  #pd-level2.open{display:block}
+  .cycle-opts{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+  .cycle-opt{padding:8px 18px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:.15s}
+  .cycle-opt.sel{border-color:var(--accent);color:var(--accent);background:rgba(110,168,254,.08)}
+  .cycle-opt:hover{border-color:#3a3f49}
+  .min-note{font-size:11px;color:var(--bad);margin-top:4px;display:none}
+  .rule-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #1c1f26}
+  .rule-row:last-child{border-bottom:0}
+  .rule-name{flex:1;font-size:13px}
+  .rule-switch{position:relative;width:38px;height:20px;cursor:pointer;flex-shrink:0}
+  .rule-switch input{opacity:0;width:0;height:0}
+  .sw-slider{position:absolute;inset:0;background:#2e3238;border-radius:20px;transition:.2s}
+  .sw-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:#8b929c;border-radius:50%;transition:.2s}
+  input:checked+.sw-slider{background:var(--accent)}
+  input:checked+.sw-slider::before{transform:translateX(18px);background:#0b1220}
+  .rule-slider{width:120px;accent-color:var(--accent)}
+  .rule-val{width:36px;text-align:right;font-size:12px;font-family:var(--mono);color:var(--muted)}
+  /* Reglas en vivo */
+  .yaml-editor{width:100%;min-height:120px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-family:var(--mono);font-size:12px;resize:vertical;outline:none}
+  .yaml-editor:focus{border-color:var(--accent)}
+  .rule-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:.15s}
+  .rule-item:hover{border-color:var(--accent)}
+  .rule-item .ri-name{font-weight:600;font-size:13px}
+  .rule-item .ri-meta{font-size:11px;color:var(--muted);margin-top:2px}
+  .ri-active{border-left:3px solid var(--ok)}
+  .ri-inactive{border-left:3px solid var(--border)}
 </style>
 </head>
 <body>
+
+<!-- ── LOGIN OVERLAY ── -->
+<div id="login-overlay">
+  <div class="login-box">
+    <h1>Centinela UPNFM</h1>
+    <p>Acceso restringido a investigadores autorizados.<br>
+       Contacta al operador si necesitas acceso.</p>
+    <input id="login-email" class="login-field" type="email" placeholder="Correo UPNFM" autocomplete="email">
+    <input id="login-pass"  class="login-field" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── KILL SWITCH ── -->
+<button id="kill-btn" onclick="doKillSwitch()">⏹ DETENER TODO</button>
+<div id="kill-status"></div>
+<div id="login-user"></div>
+
+<!-- ── NIVEL 1: DESPLIEGUE RÁPIDO ── -->
+<div class="pd-level1" id="pd-level1-box">
+  <h2>Despliegue rápido — Modo Quick Start</h2>
+  <input id="pd-endpoint" class="endpoint-field" type="text"
+    value="https://resultados2029.cne.hn/"
+    placeholder="Endpoint JSON del CNE">
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px">
+    <button class="deploy-btn" onclick="startAudit()">▶ Iniciar Auditoría</button>
+    <button class="deploy-btn" onclick="stopAudit()" style="background:transparent;border:1px solid var(--bad);color:var(--bad)">■ Detener</button>
+    <span id="audit-status" class="status-pill sp-idle">⬤ DETENIDO</span>
+    <span id="audit-countdown" style="font-size:12px;color:var(--muted)"></span>
+  </div>
+  <button class="adv-toggle" onclick="toggleAdv()">
+    <span id="adv-arrow">▸</span> Ajustes avanzados (Modo Táctico)
+  </button>
+
+  <!-- ── NIVEL 2: MODO TÁCTICO ── -->
+  <div id="pd-level2">
+    <div style="margin-bottom:18px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Control de ciclos (Cron)</div>
+      <div class="cycle-opts">
+        <div class="cycle-opt" data-mins="43200" onclick="selectCycle(this,'43200')">
+          <div style="font-weight:600">Latente</div>
+          <div style="font-size:11px;color:var(--muted)">1×/mes · Pre-campaña</div>
+        </div>
+        <div class="cycle-opt sel" data-mins="30" onclick="selectCycle(this,'30')">
+          <div style="font-weight:600">Operativo</div>
+          <div style="font-size:11px;color:var(--muted)">cada 30 min</div>
+        </div>
+        <div class="cycle-opt" data-mins="60" onclick="selectCycle(this,'60')">
+          <div style="font-weight:600">Estándar</div>
+          <div style="font-size:11px;color:var(--muted)">cada 1 hora</div>
+        </div>
+        <div class="cycle-opt" data-mins="5" onclick="selectCycle(this,'5')">
+          <div style="font-weight:600">Crítico</div>
+          <div style="font-size:11px;color:var(--muted)">cada 5 min · Máximo</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+        <span style="font-size:13px;color:var(--muted)">Intervalo personalizado (min):</span>
+        <input id="cycle-custom" type="number" min="5" value="30"
+          style="width:72px;padding:7px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--fg);font-size:13px"
+          oninput="validateCycleInput(this)">
+      </div>
+      <div class="min-note" id="min-note">⚠ Mínimo 5 minutos — protección contra ban de IP por firewall del Estado</div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">
+      Ajuste de reglas estadísticas
+      <button class="sec" onclick="resetRules()" style="font-size:11px;padding:4px 10px;margin-left:10px">Restaurar defaults</button>
+    </div>
+    <div id="rules-sliders">
+      <!-- generado por JS -->
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="hwrap">
     <span class="acc" id="accChip">sin sesión</span>
@@ -131,6 +267,7 @@
   <div class="tabs">
     <div class="tab on" data-m="attack" onclick="tab('attack')">Modo: Atacar el núcleo (T1 / T3)</div>
     <div class="tab" data-m="tune" onclick="tab('tune')">Modo: Afinar anomalías</div>
+    <div class="tab" data-m="rules" onclick="tab('rules')">Reglas en vivo</div>
   </div>
 
   <!-- ATTACK -->
@@ -218,8 +355,39 @@
     </div>
   </div>
 
+  <!-- REGLAS EN VIVO -->
+  <div class="mode" id="m-rules">
+    <div class="panel">
+      <h2>Reglas en vivo — Supabase</h2>
+      <p class="hint">Las reglas guardadas aquí son propuestas. El operador debe activarlas (<code>is_active=true</code>) desde el dashboard de Supabase. Solo los miembros UPNFM pueden ver y proponer reglas.</p>
+      <div class="row" style="margin-bottom:16px">
+        <button onclick="loadRules()">↺ Recargar reglas</button>
+        <button class="sec" onclick="newRule()">+ Nueva regla</button>
+      </div>
+      <div id="rules-list"><div style="color:var(--muted);font-size:13px">Cargando…</div></div>
+    </div>
+    <div class="panel" id="rule-editor-panel" style="display:none">
+      <h2 id="rule-editor-title">Nueva regla</h2>
+      <label style="font-size:13px;color:var(--muted)">Nombre</label>
+      <input id="rule-name" type="text" placeholder="ej. benford_estricto_v2" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:13px;margin:6px 0 14px;outline:none">
+      <label style="font-size:13px;color:var(--muted)">Descripción</label>
+      <input id="rule-desc" type="text" placeholder="Qué detecta y por qué" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:13px;margin:6px 0 14px;outline:none">
+      <label style="font-size:13px;color:var(--muted)">YAML de la regla</label>
+      <textarea id="rule-yaml" class="yaml-editor" placeholder="kind: benford_deviation&#10;threshold_chi2: 10&#10;min_sample: 50&#10;severity: HIGH"></textarea>
+      <div class="row" style="margin-top:14px">
+        <button onclick="testRule()">▶ Probar contra snapshots reales</button>
+        <button class="sec" onclick="saveRule()">💾 Guardar propuesta</button>
+        <button class="danger" onclick="closeRuleEditor()">Cancelar</button>
+      </div>
+      <div id="rule-test-result" style="margin-top:14px;display:none">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">Resultado del test:</div>
+        <div id="rule-test-output" style="font-family:var(--mono);font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;white-space:pre-wrap"></div>
+      </div>
+    </div>
+  </div>
+
 </main>
-<footer>Centinela · banco de pruebas aislado · AGPL-3.0 — nada aquí altera datos reales ni el verificador público.</footer>
+<footer>Centinela · Sandbox UPNFM · AGPL-3.0 — nada aquí altera datos reales ni el verificador público.</footer>
 
 <script>
 "use strict";
@@ -469,6 +637,298 @@ function exportReport(mode){
 }
 
 loadAcc();
+
+// ── SUPABASE AUTH ──
+const SUPABASE_URL  = window.CENTINEL_SUPABASE_URL  || 'https://PROYECTO.supabase.co';
+const SUPABASE_ANON = window.CENTINEL_SUPABASE_ANON || 'ANON_KEY';
+const isDemo = SUPABASE_URL.includes('PROYECTO');
+let sb = null;
+let sbUser = null;
+
+if(!isDemo && window.supabase){
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+}
+
+async function checkAuth(){
+  if(isDemo || !sb){
+    // En modo demo se salta el login
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('login-user').textContent='Demo — sin Supabase';
+    return;
+  }
+  const {data:{user}} = await sb.auth.getUser();
+  if(user){
+    sbUser = user;
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('login-user').textContent=user.email;
+  }
+}
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if(!email||!pass){errEl.textContent='Ingresa email y contraseña.';return;}
+  if(!sb){errEl.textContent='Supabase no configurado (modo demo).';return;}
+  try{
+    const {data,error} = await sb.auth.signInWithPassword({email,password:pass});
+    if(error) throw error;
+    sbUser = data.user;
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('login-user').textContent=data.user.email;
+  }catch(e){
+    errEl.textContent = e.message||'Error de autenticación';
+  }
+}
+document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+checkAuth();
+
+// ── KILL SWITCH ──
+let auditActive = false;
+let auditInterval = null;
+let auditMins = 30;
+let killEngaged = false;
+
+async function doKillSwitch(){
+  if(killEngaged) return;
+  const btn = document.getElementById('kill-btn');
+  const st  = document.getElementById('kill-status');
+  killEngaged = true;
+  btn.textContent = '⏳ Deteniendo…';
+  btn.classList.add('halted');
+  clearInterval(auditInterval);
+  auditActive = false;
+  document.getElementById('audit-status').className='status-pill sp-idle';
+  document.getElementById('audit-status').textContent='⬤ DETENIDO';
+  document.getElementById('audit-countdown').textContent='';
+
+  const API = document.getElementById('pd-endpoint')?.value?.replace(/\/$/, '') || '';
+  if(API && !isDemo){
+    try{
+      const headers = {};
+      if(sb && sbUser){
+        const {data:{session}} = await sb.auth.getSession();
+        if(session) headers['Authorization']='Bearer '+session.access_token;
+      }
+      await fetch(API.replace(/(https?:\/\/[^/]+).*/, '$1')+'/api/control/halt', {method:'POST',headers});
+    }catch(_){}
+  }
+
+  const ts = new Date().toLocaleString('es-HN');
+  btn.textContent='⛔ DETENIDO';
+  st.textContent='Chain sellada: '+ts;
+  st.style.display='block';
+}
+
+// ── PROGRESSIVE DISCLOSURE ──
+const RULES_DEFS = [
+  {id:'benford',label:'Ley de Benford (χ²)',min:0,max:60,step:.5,def:15,unit:'χ²'},
+  {id:'zscore', label:'Z-score (sigma)',      min:1,max:8, step:.1,def:3, unit:'σ'},
+  {id:'velocity',label:'Velocidad máx actas', min:1,max:20,step:.5,def:10,unit:'actas/min'},
+  {id:'injection',label:'Inyección: ciclos mín',min:2,max:10,step:1,def:3,unit:'ciclos'},
+  {id:'asymm',   label:'Beneficio asimétrico',min:5,max:40,step:1, def:15,unit:'%'},
+  {id:'holdrel', label:'Estancamiento mín',   min:5,max:120,step:1,def:30,unit:'min'},
+  {id:'blackout',label:'Gap oscurecimiento',  min:10,max:120,step:1,def:30,unit:'min'},
+];
+const ruleVals = {};
+RULES_DEFS.forEach(r=>{ruleVals[r.id]=r.def;});
+
+function renderRulesSliders(){
+  const cont = document.getElementById('rules-sliders');
+  cont.innerHTML = RULES_DEFS.map(r=>`
+    <div class="rule-row">
+      <div class="rule-name">${r.label}</div>
+      <label class="rule-switch">
+        <input type="checkbox" checked onchange="toggleRule('${r.id}',this.checked)">
+        <span class="sw-slider"></span>
+      </label>
+      <input class="rule-slider" type="range" min="${r.min}" max="${r.max}" step="${r.step}" value="${r.def}"
+        oninput="updateRule('${r.id}',this.value)">
+      <span class="rule-val" id="rv-${r.id}">${r.def}${r.unit}</span>
+    </div>`).join('');
+}
+
+function updateRule(id, val){
+  const def = RULES_DEFS.find(r=>r.id===id);
+  ruleVals[id]=parseFloat(val);
+  document.getElementById('rv-'+id).textContent=val+(def?.unit||'');
+}
+
+function toggleRule(id, on){
+  const row = document.getElementById('rv-'+id)?.closest('.rule-row');
+  if(row) row.style.opacity = on ? '1' : '.4';
+}
+
+function resetRules(){
+  RULES_DEFS.forEach(r=>{
+    ruleVals[r.id]=r.def;
+    document.getElementById('rv-'+r.id).textContent=r.def+r.unit;
+    const slider=document.querySelector(`input[oninput*="updateRule('${r.id}"]`);
+    if(slider) slider.value=r.def;
+  });
+}
+
+renderRulesSliders();
+
+function toggleAdv(){
+  const l2=document.getElementById('pd-level2');
+  const arrow=document.getElementById('adv-arrow');
+  l2.classList.toggle('open');
+  arrow.textContent = l2.classList.contains('open') ? '▾' : '▸';
+}
+
+function selectCycle(el, mins){
+  document.querySelectorAll('.cycle-opt').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  auditMins = parseInt(mins);
+  document.getElementById('cycle-custom').value = mins;
+  document.getElementById('min-note').style.display='none';
+}
+
+function validateCycleInput(inp){
+  const v = parseInt(inp.value)||0;
+  const note = document.getElementById('min-note');
+  if(v < 5){inp.style.borderColor='var(--bad)';note.style.display='block';}
+  else{inp.style.borderColor='';note.style.display='none';auditMins=v;}
+}
+
+let countdownSecs = 0;
+function startAudit(){
+  if(auditActive) return;
+  const mins = Math.max(5, parseInt(document.getElementById('cycle-custom').value)||30);
+  auditMins = mins;
+  auditActive = true;
+  killEngaged = false;
+  document.getElementById('kill-btn').className=''; document.getElementById('kill-btn').textContent='⏹ DETENER TODO';
+  document.getElementById('kill-status').style.display='none';
+  document.getElementById('audit-status').className='status-pill sp-active';
+  document.getElementById('audit-status').textContent='⬤ ACTIVO';
+  countdownSecs = auditMins*60;
+  updateCountdown();
+  auditInterval = setInterval(()=>{
+    countdownSecs--;
+    if(countdownSecs<=0){countdownSecs=auditMins*60;}
+    updateCountdown();
+  },1000);
+}
+
+function stopAudit(){
+  clearInterval(auditInterval);
+  auditActive=false;
+  document.getElementById('audit-status').className='status-pill sp-idle';
+  document.getElementById('audit-status').textContent='⬤ DETENIDO';
+  document.getElementById('audit-countdown').textContent='';
+}
+
+function updateCountdown(){
+  const m=Math.floor(countdownSecs/60),s=countdownSecs%60;
+  document.getElementById('audit-countdown').textContent=
+    `— próxima captura en ${m}:${String(s).padStart(2,'0')}`;
+}
+
+// ── REGLAS EN VIVO ──
+let editingRuleId = null;
+
+async function loadRules(){
+  const list = document.getElementById('rules-list');
+  if(isDemo || !sb){
+    list.innerHTML='<div class="rule-item ri-inactive"><div class="ri-name">benford_estricto (demo)</div><div class="ri-meta">Inactiva · Creada hoy</div></div>';
+    return;
+  }
+  list.innerHTML='<div style="color:var(--muted);font-size:13px">Cargando…</div>';
+  try{
+    const {data,error} = await sb.from('upnfm_rules').select('*').order('created_at',{ascending:false});
+    if(error) throw error;
+    if(!data||data.length===0){list.innerHTML='<div style="color:var(--muted);font-size:13px">Sin reglas guardadas.</div>';return;}
+    list.innerHTML=data.map(r=>`
+      <div class="rule-item ${r.is_active?'ri-active':'ri-inactive'}" onclick="editRule(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+        <div class="ri-name">${r.rule_name}</div>
+        <div class="ri-meta">${r.is_active?'✓ Activa':'Pendiente de activación'} · ${r.description||'Sin descripción'}</div>
+      </div>`).join('');
+  }catch(e){
+    list.innerHTML=`<div style="color:var(--bad);font-size:12px">Error: ${e.message}</div>`;
+  }
+}
+
+function newRule(){
+  editingRuleId=null;
+  document.getElementById('rule-editor-title').textContent='Nueva regla';
+  document.getElementById('rule-name').value='';
+  document.getElementById('rule-desc').value='';
+  document.getElementById('rule-yaml').value='';
+  document.getElementById('rule-test-result').style.display='none';
+  document.getElementById('rule-editor-panel').style.display='block';
+}
+
+function editRule(r){
+  editingRuleId=r.id;
+  document.getElementById('rule-editor-title').textContent='Editar: '+r.rule_name;
+  document.getElementById('rule-name').value=r.rule_name;
+  document.getElementById('rule-desc').value=r.description||'';
+  document.getElementById('rule-yaml').value=r.rule_yaml;
+  document.getElementById('rule-test-result').style.display='none';
+  document.getElementById('rule-editor-panel').style.display='block';
+}
+
+function closeRuleEditor(){
+  document.getElementById('rule-editor-panel').style.display='none';
+}
+
+async function testRule(){
+  const yaml = document.getElementById('rule-yaml').value.trim();
+  if(!yaml){alert('Ingresa el YAML de la regla primero.');return;}
+  const res = document.getElementById('rule-test-result');
+  const out = document.getElementById('rule-test-output');
+  res.style.display='block';
+  out.textContent='Enviando al servidor…';
+
+  const baseUrl = document.getElementById('pd-endpoint').value.replace(/\/$/, '').replace(/(https?:\/\/[^/]+).*/, '$1');
+  try{
+    const headers={'Content-Type':'application/json'};
+    if(sb && sbUser){
+      const {data:{session}} = await sb.auth.getSession();
+      if(session) headers['Authorization']='Bearer '+session.access_token;
+    }
+    const resp = await fetch(baseUrl+'/audit/rules/test',{method:'POST',headers,body:JSON.stringify({rule_yaml:yaml})});
+    const data = await resp.json();
+    out.textContent = JSON.stringify(data,null,2);
+  }catch(e){
+    out.textContent = '(Sin servidor disponible)\n\nResultado simulado:\n'+JSON.stringify({flagged:0,stats:{chi2:3.4,pvalue:0.91},note:'demo mode'},null,2);
+  }
+}
+
+async function saveRule(){
+  const name = document.getElementById('rule-name').value.trim();
+  const desc = document.getElementById('rule-desc').value.trim();
+  const yaml = document.getElementById('rule-yaml').value.trim();
+  if(!name||!yaml){alert('Nombre y YAML son obligatorios.');return;}
+
+  if(isDemo||!sb){alert('Guardado en demo: no hay Supabase configurado.');return;}
+  try{
+    const row={rule_name:name,rule_yaml:yaml,description:desc,is_active:false};
+    let result;
+    if(editingRuleId){
+      result=await sb.from('upnfm_rules').update(row).eq('id',editingRuleId);
+    }else{
+      result=await sb.from('upnfm_rules').insert(row);
+    }
+    if(result.error) throw result.error;
+    alert('Regla guardada. El operador debe activarla desde el dashboard de Supabase.');
+    closeRuleEditor();
+    loadRules();
+  }catch(e){
+    alert('Error al guardar: '+e.message);
+  }
+}
+
+// Cargar reglas al entrar en esa pestaña
+const origTab = window.tab;
+window.tab = function(m){
+  origTab(m);
+  if(m==='rules') loadRules();
+};
 </script>
 </body>
 </html>
