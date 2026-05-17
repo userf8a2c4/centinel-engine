@@ -96,7 +96,6 @@ import random
 import requests
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
-from anchor.arbitrum_anchor import anchor_batch, anchor_root
 from core import logger as core_logger
 from core.attack_logger import AttackForensicsLogbook, AttackLogConfig, HoneypotServer
 from scripts.circuit_breaker import CircuitBreaker
@@ -1274,11 +1273,8 @@ def _anchor_if_due(config: dict[str, Any], state: dict[str, Any], now: datetime)
         )
         return
 
-    try:
-        result = anchor_batch(hashes)
-    except Exception as exc:  # noqa: BLE001
-        logger.error("anchor_failed error=%s", exc)
-        return
+    logger.info("anchor_skipped_arbitrum_removed")
+    return
 
     anchor_record = {
         "batch_id": result.get("batch_id"),
@@ -1329,15 +1325,8 @@ def _anchor_snapshot(
     anchor_hashes = compute_anchor_root(current_payload, diff_summary, rules_payload)
     root_hash = anchor_hashes["root_hash"]
 
-    try:
-        anchor_result = anchor_root(root_hash)
-    except Exception as exc:  # noqa: BLE001
-        logger.error("anchor_snapshot_failed error=%s", exc)
-        return
-
-    explorer_base = arbitrum_config.get("explorer_url", "https://arbiscan.io/tx/")
-    tx_hash = anchor_result.get("tx_hash")
-    tx_url = f"{explorer_base}{tx_hash}" if tx_hash else ""
+    logger.info("anchor_snapshot_skipped_arbitrum_removed")
+    return
 
     anchor_record = {
         "snapshot": snapshot_path.name,
@@ -1347,11 +1336,11 @@ def _anchor_snapshot(
         "rules_hash": anchor_hashes["rules_hash"],
         "diff_summary": diff_summary,
         "rules_report_path": rules_report_path.as_posix(),
-        "tx_hash": tx_hash,
-        "tx_url": tx_url,
-        "network": arbitrum_config.get("network", "Arbitrum One"),
-        "anchored_at": anchor_result.get("timestamp"),
-        "anchor_id": anchor_result.get("anchor_id"),
+        "tx_hash": None,
+        "tx_url": "",
+        "network": "Bitcoin (OTS)",
+        "anchored_at": None,
+        "anchor_id": None,
         "generated_at": now.isoformat(),
     }
 
