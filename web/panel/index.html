@@ -97,8 +97,6 @@ main{max-width:1100px;margin:0 auto;padding:28px 20px;display:grid;gap:20px}
 .dept-ep-dot{position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;pointer-events:none}
 /* ── INFO TIPS ── */
 .info-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:rgba(139,146,156,.12);color:var(--muted);font-size:9px;font-weight:700;cursor:help;margin-left:7px;position:relative;vertical-align:middle;flex-shrink:0;user-select:none}
-.info-tip::after{content:attr(data-tooltip);position:absolute;left:50%;top:calc(100% + 7px);transform:translateX(-50%);background:#1e2027;border:1px solid var(--border);color:var(--fg);font-size:11px;font-weight:400;line-height:1.55;border-radius:6px;padding:9px 12px;width:240px;white-space:normal;z-index:999;pointer-events:none;display:none;text-transform:none;letter-spacing:normal}
-.info-tip:hover::after,.info-tip.open::after{display:block}
 
 /* ── CANDIDATE ── */
 .cand-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
