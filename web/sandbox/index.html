@@ -157,9 +157,24 @@
   .rule-item .ri-meta{font-size:11px;color:var(--muted);margin-top:2px}
   .ri-active{border-left:3px solid var(--ok)}
   .ri-inactive{border-left:3px solid var(--border)}
+  #mfa-overlay{position:fixed;inset:0;background:var(--bg);z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column}
+  #mfa-overlay.hidden{display:none}
+  #mfa-code{width:100%;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--fg);font-size:26px;font-family:var(--mono);letter-spacing:.35em;text-align:center;outline:none;margin-bottom:12px;transition:.15s}
+  #mfa-code:focus{border-color:var(--accent)}
 </style>
 </head>
 <body>
+
+<!-- ── MFA OVERLAY ── -->
+<div id="mfa-overlay" class="hidden">
+  <div class="login-box">
+    <h1>Verificación en dos pasos</h1>
+    <p>Ingresa el código de 6 dígitos de tu app autenticadora.</p>
+    <input id="mfa-code" class="login-field" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000 000" autocomplete="one-time-code">
+    <button class="login-btn" onclick="doMfaVerify()">Verificar</button>
+    <div id="mfa-error" style="color:var(--bad);font-size:13px;margin-top:8px"></div>
+  </div>
+</div>
 
 <!-- ── LOGIN OVERLAY ── -->
 <div id="login-overlay">
@@ -747,6 +762,16 @@ async function doLogin(){
       errEl.textContent='Acceso no autorizado. Contacta al operador.';
       return;
     }
+    // ── MFA check ──
+    const {data:factors} = await sb.auth.mfa.listFactors();
+    const totp = (factors?.totp||[]).find(f=>f.status==='verified');
+    if(totp){
+      window._mfaFactorId = totp.id;
+      window._mfaPendingUser = data.user;
+      document.getElementById('mfa-overlay').classList.remove('hidden');
+      setTimeout(()=>document.getElementById('mfa-code').focus(),100);
+      return;
+    }
     sbUser = data.user;
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('login-user-email').textContent=data.user.email;
@@ -757,16 +782,44 @@ async function doLogin(){
   }
 }
 
+async function doMfaVerify(){
+  const code = document.getElementById('mfa-code').value.replace(/\s/g,'');
+  const errEl = document.getElementById('mfa-error');
+  errEl.textContent='';
+  if(!code||code.length!==6){errEl.textContent='Ingresa los 6 dígitos.';return;}
+  try{
+    const {error} = await sb.auth.mfa.challengeAndVerify({
+      factorId: window._mfaFactorId, code
+    });
+    if(error) throw error;
+    sbUser = window._mfaPendingUser;
+    delete window._mfaFactorId; delete window._mfaPendingUser;
+    document.getElementById('mfa-overlay').classList.add('hidden');
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('login-user-email').textContent=sbUser.email;
+    document.getElementById('logout-btn').hidden=false;
+    await applyRole();
+  }catch(e){
+    errEl.textContent=e.message||'Código inválido';
+    document.getElementById('mfa-code').value='';
+    document.getElementById('mfa-code').focus();
+  }
+}
+
 async function doLogout(){
   if(sb) await sb.auth.signOut();
   sbUser = null;
+  delete window._mfaFactorId; delete window._mfaPendingUser;
   document.getElementById('login-user-email').textContent='';
   document.getElementById('logout-btn').hidden=true;
+  document.getElementById('mfa-overlay').classList.add('hidden');
+  document.getElementById('mfa-code').value='';
   document.getElementById('login-overlay').classList.remove('hidden');
   document.getElementById('login-email').value='';
   document.getElementById('login-pass').value='';
 }
 document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('mfa-code').addEventListener('keydown',e=>{if(e.key==='Enter')doMfaVerify();});
 
 checkAuth();
 
