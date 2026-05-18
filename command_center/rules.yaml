@@ -145,6 +145,21 @@ rules:
     severity: "CRITICAL"
     total_tolerance: 1
 
+  # ── TASA DE INCONSISTENCIA ESTRUCTURAL ───────────────────
+  # Detecta % actas_inconsistentes / actas_divulgadas > umbral.
+  # Calibrado con datos reales Honduras 2025: baseline real = 14.3% constante.
+  # Umbral 10% detecta el estado anómalo desde el inicio (útil para elecciones
+  # donde el nivel normal debe ser <5%). Para Honduras, usar 14% como umbral
+  # de ESCALADA y monitorear tendencia más que nivel absoluto.
+  # Calibrated with real Honduras 2025 data: observed baseline = 14.3% constant.
+  inconsistency_rate:
+    enabled: true
+    severity: "CRITICAL"
+    critical_pct: 10
+    # Umbral de escalada: alerta si la tasa AUMENTA más de este % respecto al snapshot anterior.
+    # Escalation threshold: alert if rate INCREASES more than this % vs previous snapshot.
+    escalation_delta_pct: 1.0
+
   # ── RUNS TEST (aleatoriedad en secuencia de mesas) ───────
   # Módulo: runs_test_rule.py | Severity: CRITICAL
   runs_test:

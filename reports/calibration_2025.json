@@ -1,0 +1,2017 @@
+{
+  "alerts": [
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-03T16:25:27+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 16_25_27.json",
+      "message": "Actas inconsistentes=2,189 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2189,
+        "pct_inconsistentes": 14.297844546048335,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-03T17:00:14+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 17_00_14.json",
+      "message": "Actas inconsistentes=2,189 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2189,
+        "pct_inconsistentes": 14.294109964738148,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-03T18:00:55+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 18_00_55.json",
+      "message": "Actas inconsistentes=2,196 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2196,
+        "pct_inconsistentes": 14.314581839515025,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-03T19:00:13+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 19_00_13.json",
+      "message": "Actas inconsistentes=2,198 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2198,
+        "pct_inconsistentes": 14.3164202436006,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-03T20:00:19+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 20_00_19.json",
+      "message": "Actas inconsistentes=2,204 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2204,
+        "pct_inconsistentes": 14.332162830016907,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-03T20:47:52+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 20_47_52.json",
+      "message": "Actas inconsistentes=2,204 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2204,
+        "pct_inconsistentes": 14.324710776030159,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-03T21:00:11+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 21_00_11.json",
+      "message": "Actas inconsistentes=2,205 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2205,
+        "pct_inconsistentes": 14.312605478385047,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-03T21:15:34+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 21_15_34.json",
+      "message": "Actas inconsistentes=2,205 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2205,
+        "pct_inconsistentes": 14.306105235839874,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-03T22:00:40+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 22_00_40.json",
+      "message": "Actas inconsistentes=2,211 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2211,
+        "pct_inconsistentes": 14.322731100602448,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "snapshot_jump",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T11:06:50+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 11_06_50.json",
+      "message": "Salto del 6.4% en votos de 'PARTIDO NACIONAL DE HONDURAS' (1,022,189 → 1,087,873) en 786 min.",
+      "value": {
+        "partido": "PARTIDO NACIONAL DE HONDURAS",
+        "before": 1022189,
+        "after": 1087873,
+        "change_pct": 6.425817534722052,
+        "interval_minutes": 786.1666666666666
+      }
+    },
+    {
+      "rule": "snapshot_jump",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T11:06:50+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 11_06_50.json",
+      "message": "Salto del 6.5% en votos de 'PARTIDO LIBERTAD Y REFUNDACION' (489,457 → 521,040) en 786 min.",
+      "value": {
+        "partido": "PARTIDO LIBERTAD Y REFUNDACION",
+        "before": 489457,
+        "after": 521040,
+        "change_pct": 6.452660805750045,
+        "interval_minutes": 786.1666666666666
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T11:06:50+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 11_06_50.json",
+      "message": "Actas inconsistentes=2,308 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2308,
+        "pct_inconsistentes": 14.211822660098521,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T11:13:47+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 11_13_47.json",
+      "message": "Actas inconsistentes=2,308 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2308,
+        "pct_inconsistentes": 14.211822660098521,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T11:46:41+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 11_46_41.json",
+      "message": "Actas inconsistentes=2,311 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2311,
+        "pct_inconsistentes": 14.212792127921277,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T12:00:18+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 12_00_18.json",
+      "message": "Actas inconsistentes=2,314 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2314,
+        "pct_inconsistentes": 14.220747295968536,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_start",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T13:00:05+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 13_00_05.json",
+      "message": "INICIO BLACKOUT: resultados vacíos pero actas_divulgadas=16,487. El sistema oculta votos mientras sigue contando.",
+      "value": {
+        "actas_divulgadas": 16487
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T13:00:05+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 13_00_05.json",
+      "message": "Actas inconsistentes=2,341 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2341,
+        "pct_inconsistentes": 14.199065930733305,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_end",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T13:00:52+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 13_00_52.json",
+      "message": "FIN BLACKOUT: duración=1 min, actas contadas en sombra=+0. Votos totales restaurados=2,757,820.",
+      "value": {
+        "duration_minutes": 0.7833333333333333,
+        "actas_counted_in_shadow": 0,
+        "total_votes_after": 2757820
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T13:00:52+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 13_00_52.json",
+      "message": "Actas inconsistentes=2,341 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2341,
+        "pct_inconsistentes": 14.199065930733305,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "trend_reversal_at_blackout",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T13:00:52+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 13_00_52.json",
+      "message": "REVERSIÓN DE TENDENCIA POST-BLACKOUT: brecha lider-segundo cambió de 12,001 → 20,348 votos (+69.6%) durante el periodo de opacidad.",
+      "value": {
+        "gap_before_blackout": 12001,
+        "gap_after_blackout": 20348,
+        "gap_change": 8347,
+        "gap_change_pct": 69.5525372885593
+      }
+    },
+    {
+      "rule": "data_blackout_start",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T14:00:09+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 14_00_09.json",
+      "message": "INICIO BLACKOUT: resultados vacíos pero actas_divulgadas=16,508. El sistema oculta votos mientras sigue contando.",
+      "value": {
+        "actas_divulgadas": 16508
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T14:00:09+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 14_00_09.json",
+      "message": "Actas inconsistentes=2,344 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2344,
+        "pct_inconsistentes": 14.199176157014781,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_end",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T14:00:42+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 14_00_42.json",
+      "message": "FIN BLACKOUT: duración=1 min, actas contadas en sombra=+0. Votos totales restaurados=2,761,879.",
+      "value": {
+        "duration_minutes": 0.55,
+        "actas_counted_in_shadow": 0,
+        "total_votes_after": 2761879
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T14:00:42+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 14_00_42.json",
+      "message": "Actas inconsistentes=2,344 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2344,
+        "pct_inconsistentes": 14.199176157014781,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T15:00:09+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 15_00_09.json",
+      "message": "Actas inconsistentes=2,346 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2346,
+        "pct_inconsistentes": 14.187227866473147,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "universe_mutation",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T16:00:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 16_00_04.json",
+      "message": "actas_totales cambió de 19,152 → 0 (Δ=-19152). El universo electoral debe ser constante.",
+      "value": {
+        "before": 19152,
+        "after": 0,
+        "delta": -19152
+      }
+    },
+    {
+      "rule": "processing_speed",
+      "severity": "High",
+      "ts": "2025-12-04T17:00:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 17_00_04.json",
+      "message": "Velocidad=4142 actas/15min (umbral=500). Δactas=+16,568 en 60 min.",
+      "value": {
+        "rate_per_15min": 4142.0,
+        "delta_actas": 16568,
+        "interval_minutes": 60.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-04T17:00:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 17_00_04.json",
+      "message": "Actas inconsistentes=2,357 (14.2% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2357,
+        "pct_inconsistentes": 14.226219217769193,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-05T12:07:14+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 12_07_14.json",
+      "message": "Actas inconsistentes=2,404 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2404,
+        "pct_inconsistentes": 14.294208586038767,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-05T13:00:28+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 13_00_28.json",
+      "message": "Actas inconsistentes=2,404 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2404,
+        "pct_inconsistentes": 14.294208586038767,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-05T14:00:08+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 14_00_08.json",
+      "message": "Actas inconsistentes=2,404 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2404,
+        "pct_inconsistentes": 14.289960173571895,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_start",
+      "severity": "CRITICAL",
+      "ts": "2025-12-05T15:00:34+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 15_00_34.json",
+      "message": "INICIO BLACKOUT: resultados vacíos pero actas_divulgadas=16,824. El sistema oculta votos mientras sigue contando.",
+      "value": {
+        "actas_divulgadas": 16824
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-05T15:00:34+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 15_00_34.json",
+      "message": "Actas inconsistentes=2,404 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2404,
+        "pct_inconsistentes": 14.289110794103662,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_end",
+      "severity": "CRITICAL",
+      "ts": "2025-12-05T16:00:08+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 16_00_08.json",
+      "message": "FIN BLACKOUT: duración=60 min, actas contadas en sombra=+8. Votos totales restaurados=2,812,882.",
+      "value": {
+        "duration_minutes": 59.56666666666667,
+        "actas_counted_in_shadow": 8,
+        "total_votes_after": 2812882
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-05T16:00:08+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 16_00_08.json",
+      "message": "Actas inconsistentes=2,404 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2404,
+        "pct_inconsistentes": 14.282319391634982,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-05T17:00:37+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 17_00_37.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T04:00:51+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 04_00_51.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T06:00:07+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 06_00_07.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T07:00:05+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 07_00_05.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T09:00:09+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 09_00_09.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T10:00:21+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 10_00_21.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T11:00:12+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 11_00_12.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T12:00:13+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 12_00_13.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T13:00:06+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 13_00_06.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T14:00:12+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 14_00_12.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T15:00:05+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 15_00_05.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T16:00:29+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 16_00_29.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_start",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T17:00:03+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 17_00_03.json",
+      "message": "INICIO BLACKOUT: resultados vacíos pero actas_divulgadas=16,858. El sistema oculta votos mientras sigue contando.",
+      "value": {
+        "actas_divulgadas": 16858
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T17:00:03+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 17_00_03.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_end",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T18:00:08+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 18_00_08.json",
+      "message": "FIN BLACKOUT: duración=60 min, actas contadas en sombra=+0. Votos totales restaurados=2,816,846.",
+      "value": {
+        "duration_minutes": 60.083333333333336,
+        "actas_counted_in_shadow": 0,
+        "total_votes_after": 2816846
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T18:00:08+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 18_00_08.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T18:59:29+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 18_59_29.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-06T20:00:14+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 20_00_14.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_start",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T11:00:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 11_00_04.json",
+      "message": "INICIO BLACKOUT: resultados vacíos pero actas_divulgadas=16,858. El sistema oculta votos mientras sigue contando.",
+      "value": {
+        "actas_divulgadas": 16858
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T11:00:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 11_00_04.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T12:00:09+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 12_00_09.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_end",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T13:00:02+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 13_00_02.json",
+      "message": "FIN BLACKOUT: duración=120 min, actas contadas en sombra=+0. Votos totales restaurados=2,816,846.",
+      "value": {
+        "duration_minutes": 119.96666666666667,
+        "actas_counted_in_shadow": 0,
+        "total_votes_after": 2816846
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T13:00:02+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 13_00_02.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T14:00:06+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 14_00_06.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T15:00:13+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 15_00_13.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T16:00:16+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 16_00_16.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T17:00:18+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 17_00_18.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_start",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T18:00:16+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 18_00_16.json",
+      "message": "INICIO BLACKOUT: resultados vacíos pero actas_divulgadas=16,858. El sistema oculta votos mientras sigue contando.",
+      "value": {
+        "actas_divulgadas": 16858
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T18:00:16+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 18_00_16.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_end",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T19:00:07+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 19_00_07.json",
+      "message": "FIN BLACKOUT: duración=60 min, actas contadas en sombra=+0. Votos totales restaurados=2,816,846.",
+      "value": {
+        "duration_minutes": 59.85,
+        "actas_counted_in_shadow": 0,
+        "total_votes_after": 2816846
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-07T19:00:07+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 19_00_07.json",
+      "message": "Actas inconsistentes=2,407 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2407,
+        "pct_inconsistentes": 14.278087554870092,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "universe_mutation",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T11:00:22+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 11_00_22.json",
+      "message": "actas_totales cambió de 19,152 → 19,167 (Δ=+15). El universo electoral debe ser constante.",
+      "value": {
+        "before": 19152,
+        "after": 19167,
+        "delta": 15
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T11:00:22+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 11_00_22.json",
+      "message": "Actas inconsistentes=2,430 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2430,
+        "pct_inconsistentes": 14.273127753303966,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T12:00:03+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 12_00_03.json",
+      "message": "Actas inconsistentes=2,453 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2453,
+        "pct_inconsistentes": 14.31572804201926,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T13:00:06+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 13_00_06.json",
+      "message": "Actas inconsistentes=2,481 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2481,
+        "pct_inconsistentes": 14.314562658666052,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T14:00:12+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 14_00_12.json",
+      "message": "Actas inconsistentes=2,509 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2509,
+        "pct_inconsistentes": 14.293852902637727,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_start",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T15:00:17+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 15_00_17.json",
+      "message": "INICIO BLACKOUT: resultados vacíos pero actas_divulgadas=17,591. El sistema oculta votos mientras sigue contando.",
+      "value": {
+        "actas_divulgadas": 17591
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T15:00:17+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 15_00_17.json",
+      "message": "Actas inconsistentes=2,517 (14.3% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2517,
+        "pct_inconsistentes": 14.308453186288443,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T16:00:11+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 16_00_11.json",
+      "message": "Actas inconsistentes=2,605 (14.4% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2605,
+        "pct_inconsistentes": 14.41855316322577,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "data_blackout_end",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T17:00:00+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 17_00_00.json",
+      "message": "FIN BLACKOUT: duración=120 min, actas contadas en sombra=+1,086. Votos totales restaurados=3,145,704.",
+      "value": {
+        "duration_minutes": 119.71666666666667,
+        "actas_counted_in_shadow": 1086,
+        "total_votes_after": 3145704
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-08T17:00:00+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 17_00_00.json",
+      "message": "Actas inconsistentes=2,694 (14.4% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2694,
+        "pct_inconsistentes": 14.42415805536221,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-09T11:03:31+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 11_03_31.json",
+      "message": "Actas inconsistentes=2,773 (14.6% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2773,
+        "pct_inconsistentes": 14.554902372454334,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-09T12:00:12+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 12_00_12.json",
+      "message": "Actas inconsistentes=2,773 (14.6% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2773,
+        "pct_inconsistentes": 14.554902372454334,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-09T13:03:21+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 13_03_21.json",
+      "message": "Actas inconsistentes=2,773 (14.6% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2773,
+        "pct_inconsistentes": 14.554902372454334,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-09T14:01:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 14_01_04.json",
+      "message": "Actas inconsistentes=2,773 (14.6% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2773,
+        "pct_inconsistentes": 14.554902372454334,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-09T15:01:45+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 15_01_45.json",
+      "message": "Actas inconsistentes=2,773 (14.6% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2773,
+        "pct_inconsistentes": 14.554902372454334,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-09T16:00:55+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 16_00_55.json",
+      "message": "Actas inconsistentes=2,773 (14.6% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2773,
+        "pct_inconsistentes": 14.554902372454334,
+        "threshold": 10.0
+      }
+    },
+    {
+      "rule": "inconsistency_rate",
+      "severity": "CRITICAL",
+      "ts": "2025-12-10T17:03:59+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-10 17_03_59.json",
+      "message": "Actas inconsistentes=2,773 (14.6% del total divulgado). Umbral crítico: 10.0%.",
+      "value": {
+        "inconsistentes": 2773,
+        "pct_inconsistentes": 14.554902372454334,
+        "threshold": 10.0
+      }
+    }
+  ],
+  "summary": [
+    {
+      "ts": "2025-12-03T16:25:27+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 16_25_27.json",
+      "actas_divulgadas": 15310,
+      "pct_escrutinio": 79.94,
+      "lider": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_lider": 1027090,
+      "segundo": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_segundo": 1013050,
+      "brecha": 14040,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2189,
+      "pct_nulos_blancos": 5.61,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-03T17:00:14+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 17_00_14.json",
+      "actas_divulgadas": 15314,
+      "pct_escrutinio": 79.96,
+      "lider": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_lider": 1027547,
+      "segundo": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_segundo": 1013365,
+      "brecha": 14182,
+      "delta_actas": 4,
+      "delta_brecha": 142,
+      "inconsistentes": 2189,
+      "pct_nulos_blancos": 5.61,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-03T18:00:55+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 18_00_55.json",
+      "actas_divulgadas": 15341,
+      "pct_escrutinio": 80.1,
+      "lider": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_lider": 1029400,
+      "segundo": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_segundo": 1014987,
+      "brecha": 14413,
+      "delta_actas": 27,
+      "delta_brecha": 231,
+      "inconsistentes": 2196,
+      "pct_nulos_blancos": 5.61,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-03T19:00:13+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 19_00_13.json",
+      "actas_divulgadas": 15353,
+      "pct_escrutinio": 80.16,
+      "lider": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_lider": 1030154,
+      "segundo": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_segundo": 1015840,
+      "brecha": 14314,
+      "delta_actas": 12,
+      "delta_brecha": -99,
+      "inconsistentes": 2198,
+      "pct_nulos_blancos": 5.61,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-03T20:00:19+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 20_00_19.json",
+      "actas_divulgadas": 15378,
+      "pct_escrutinio": 80.29,
+      "lider": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_lider": 1031541,
+      "segundo": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_segundo": 1017614,
+      "brecha": 13927,
+      "delta_actas": 25,
+      "delta_brecha": -387,
+      "inconsistentes": 2204,
+      "pct_nulos_blancos": 5.61,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-03T20:47:52+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 20_47_52.json",
+      "actas_divulgadas": 15386,
+      "pct_escrutinio": 80.34,
+      "lider": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_lider": 1032014,
+      "segundo": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_segundo": 1018503,
+      "brecha": 13511,
+      "delta_actas": 8,
+      "delta_brecha": -416,
+      "inconsistentes": 2204,
+      "pct_nulos_blancos": 5.6,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-03T21:00:11+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 21_00_11.json",
+      "actas_divulgadas": 15406,
+      "pct_escrutinio": 80.44,
+      "lider": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_lider": 1033533,
+      "segundo": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_segundo": 1020166,
+      "brecha": 13367,
+      "delta_actas": 20,
+      "delta_brecha": -144,
+      "inconsistentes": 2205,
+      "pct_nulos_blancos": 5.6,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-03T21:15:34+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 21_15_34.json",
+      "actas_divulgadas": 15413,
+      "pct_escrutinio": 80.48,
+      "lider": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_lider": 1033999,
+      "segundo": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_segundo": 1020763,
+      "brecha": 13236,
+      "delta_actas": 7,
+      "delta_brecha": -131,
+      "inconsistentes": 2205,
+      "pct_nulos_blancos": 5.6,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-03T22:00:40+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-03 22_00_40.json",
+      "actas_divulgadas": 15437,
+      "pct_escrutinio": 80.6,
+      "lider": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_lider": 1034898,
+      "segundo": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_segundo": 1022189,
+      "brecha": 12709,
+      "delta_actas": 24,
+      "delta_brecha": -527,
+      "inconsistentes": 2211,
+      "pct_nulos_blancos": 5.6,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-04T11:06:50+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 11_06_50.json",
+      "actas_divulgadas": 16240,
+      "pct_escrutinio": 84.8,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1087873,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1077777,
+      "brecha": 10096,
+      "delta_actas": 803,
+      "delta_brecha": -2613,
+      "inconsistentes": 2308,
+      "pct_nulos_blancos": 5.63,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-04T11:13:47+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 11_13_47.json",
+      "actas_divulgadas": 16240,
+      "pct_escrutinio": 84.8,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1087873,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1077777,
+      "brecha": 10096,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2308,
+      "pct_nulos_blancos": 5.63,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-04T11:46:41+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 11_46_41.json",
+      "actas_divulgadas": 16260,
+      "pct_escrutinio": 84.9,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1089761,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1078764,
+      "brecha": 10997,
+      "delta_actas": 20,
+      "delta_brecha": 901,
+      "inconsistentes": 2311,
+      "pct_nulos_blancos": 5.63,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-04T12:00:18+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 12_00_18.json",
+      "actas_divulgadas": 16272,
+      "pct_escrutinio": 84.96,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1091180,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1079179,
+      "brecha": 12001,
+      "delta_actas": 12,
+      "delta_brecha": 1004,
+      "inconsistentes": 2314,
+      "pct_nulos_blancos": 5.63,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-04T13:00:05+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 13_00_05.json",
+      "actas_divulgadas": 16487,
+      "pct_escrutinio": 86.09,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": 215,
+      "delta_brecha": -12001,
+      "inconsistentes": 2341,
+      "pct_nulos_blancos": 0,
+      "blackout": true
+    },
+    {
+      "ts": "2025-12-04T13:00:52+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 13_00_52.json",
+      "actas_divulgadas": 16487,
+      "pct_escrutinio": 86.09,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1108922,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1088574,
+      "brecha": 20348,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2341,
+      "pct_nulos_blancos": 5.69,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-04T14:00:09+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 14_00_09.json",
+      "actas_divulgadas": 16508,
+      "pct_escrutinio": 86.19,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": 21,
+      "delta_brecha": -20348,
+      "inconsistentes": 2344,
+      "pct_nulos_blancos": 0,
+      "blackout": true
+    },
+    {
+      "ts": "2025-12-04T14:00:42+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 14_00_42.json",
+      "actas_divulgadas": 16508,
+      "pct_escrutinio": 86.19,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1111286,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1089195,
+      "brecha": 22091,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2344,
+      "pct_nulos_blancos": 5.68,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-04T15:00:09+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 15_00_09.json",
+      "actas_divulgadas": 16536,
+      "pct_escrutinio": 86.34,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1113966,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1090314,
+      "brecha": 23652,
+      "delta_actas": 28,
+      "delta_brecha": 1561,
+      "inconsistentes": 2346,
+      "pct_nulos_blancos": 5.68,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-04T16:00:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 16_00_04.json",
+      "actas_divulgadas": 0,
+      "pct_escrutinio": 0,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": -16536,
+      "delta_brecha": -23652,
+      "inconsistentes": 0,
+      "pct_nulos_blancos": 0,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-04T17:00:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-04 17_00_04.json",
+      "actas_divulgadas": 16568,
+      "pct_escrutinio": 86.51,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1116186,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1091800,
+      "brecha": 24386,
+      "delta_actas": 16568,
+      "delta_brecha": 24386,
+      "inconsistentes": 2357,
+      "pct_nulos_blancos": 5.75,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-05T12:07:14+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 12_07_14.json",
+      "actas_divulgadas": 16818,
+      "pct_escrutinio": 87.81,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1130230,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1109830,
+      "brecha": 20400,
+      "delta_actas": 250,
+      "delta_brecha": -3986,
+      "inconsistentes": 2404,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-05T13:00:28+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 13_00_28.json",
+      "actas_divulgadas": 16818,
+      "pct_escrutinio": 87.81,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1130230,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1109830,
+      "brecha": 20400,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2404,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-05T14:00:08+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 14_00_08.json",
+      "actas_divulgadas": 16823,
+      "pct_escrutinio": 87.84,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1130425,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1110062,
+      "brecha": 20363,
+      "delta_actas": 5,
+      "delta_brecha": -37,
+      "inconsistentes": 2404,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-05T15:00:34+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 15_00_34.json",
+      "actas_divulgadas": 16824,
+      "pct_escrutinio": 87.84,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": 1,
+      "delta_brecha": -20363,
+      "inconsistentes": 2404,
+      "pct_nulos_blancos": 0,
+      "blackout": true
+    },
+    {
+      "ts": "2025-12-05T16:00:08+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 16_00_08.json",
+      "actas_divulgadas": 16832,
+      "pct_escrutinio": 87.89,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1130939,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1110570,
+      "brecha": 20369,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2404,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-05T17:00:37+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-05 17_00_37.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 26,
+      "delta_brecha": -618,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T04:00:51+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 04_00_51.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T06:00:07+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 06_00_07.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T07:00:05+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 07_00_05.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T09:00:09+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 09_00_09.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T10:00:21+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 10_00_21.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T11:00:12+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 11_00_12.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T12:00:13+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 12_00_13.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T13:00:06+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 13_00_06.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T14:00:12+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 14_00_12.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T15:00:05+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 15_00_05.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T16:00:29+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 16_00_29.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T17:00:03+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 17_00_03.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": 0,
+      "delta_brecha": -19751,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 0,
+      "blackout": true
+    },
+    {
+      "ts": "2025-12-06T18:00:08+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 18_00_08.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T18:59:29+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 18_59_29.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-06T20:00:14+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-06 20_00_14.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-07T11:00:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 11_00_04.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": 0,
+      "delta_brecha": -19751,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 0,
+      "blackout": true
+    },
+    {
+      "ts": "2025-12-07T12:00:09+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 12_00_09.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 0,
+      "blackout": true
+    },
+    {
+      "ts": "2025-12-07T13:00:02+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 13_00_02.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-07T14:00:06+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 14_00_06.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-07T15:00:13+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 15_00_13.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-07T16:00:16+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 16_00_16.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-07T17:00:18+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 17_00_18.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-07T18:00:16+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 18_00_16.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": 0,
+      "delta_brecha": -19751,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 0,
+      "blackout": true
+    },
+    {
+      "ts": "2025-12-07T19:00:07+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-07 19_00_07.json",
+      "actas_divulgadas": 16858,
+      "pct_escrutinio": 88.02,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1132321,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1112570,
+      "brecha": 19751,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2407,
+      "pct_nulos_blancos": 5.74,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-08T11:00:22+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 11_00_22.json",
+      "actas_divulgadas": 17025,
+      "pct_escrutinio": 88.82,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1143325,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1123688,
+      "brecha": 19637,
+      "delta_actas": 167,
+      "delta_brecha": -114,
+      "inconsistentes": 2430,
+      "pct_nulos_blancos": 5.81,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-08T12:00:03+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 12_00_03.json",
+      "actas_divulgadas": 17135,
+      "pct_escrutinio": 89.4,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1150667,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1129583,
+      "brecha": 21084,
+      "delta_actas": 110,
+      "delta_brecha": 1447,
+      "inconsistentes": 2453,
+      "pct_nulos_blancos": 5.84,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-08T13:00:06+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 13_00_06.json",
+      "actas_divulgadas": 17332,
+      "pct_escrutinio": 90.43,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1165454,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1143708,
+      "brecha": 21746,
+      "delta_actas": 197,
+      "delta_brecha": 662,
+      "inconsistentes": 2481,
+      "pct_nulos_blancos": 5.89,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-08T14:00:12+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 14_00_12.json",
+      "actas_divulgadas": 17553,
+      "pct_escrutinio": 91.58,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1179577,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1168319,
+      "brecha": 11258,
+      "delta_actas": 221,
+      "delta_brecha": -10488,
+      "inconsistentes": 2509,
+      "pct_nulos_blancos": 5.85,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-08T15:00:17+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 15_00_17.json",
+      "actas_divulgadas": 17591,
+      "pct_escrutinio": 91.78,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": 38,
+      "delta_brecha": -11258,
+      "inconsistentes": 2517,
+      "pct_nulos_blancos": 0,
+      "blackout": true
+    },
+    {
+      "ts": "2025-12-08T16:00:11+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 16_00_11.json",
+      "actas_divulgadas": 18067,
+      "pct_escrutinio": 94.26,
+      "lider": "?",
+      "votos_lider": 0,
+      "segundo": "?",
+      "votos_segundo": 0,
+      "brecha": 0,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2605,
+      "pct_nulos_blancos": 0,
+      "blackout": true
+    },
+    {
+      "ts": "2025-12-08T17:00:00+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-08 17_00_00.json",
+      "actas_divulgadas": 18677,
+      "pct_escrutinio": 97.44,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1274781,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1232626,
+      "brecha": 42155,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2694,
+      "pct_nulos_blancos": 5.87,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-09T11:03:31+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 11_03_31.json",
+      "actas_divulgadas": 19052,
+      "pct_escrutinio": 99.4,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1298835,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1256428,
+      "brecha": 42407,
+      "delta_actas": 375,
+      "delta_brecha": 252,
+      "inconsistentes": 2773,
+      "pct_nulos_blancos": 5.87,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-09T12:00:12+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 12_00_12.json",
+      "actas_divulgadas": 19052,
+      "pct_escrutinio": 99.4,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1298835,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1256428,
+      "brecha": 42407,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2773,
+      "pct_nulos_blancos": 5.87,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-09T13:03:21+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 13_03_21.json",
+      "actas_divulgadas": 19052,
+      "pct_escrutinio": 99.4,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1298835,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1256428,
+      "brecha": 42407,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2773,
+      "pct_nulos_blancos": 5.87,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-09T14:01:04+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 14_01_04.json",
+      "actas_divulgadas": 19052,
+      "pct_escrutinio": 99.4,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1298835,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1256428,
+      "brecha": 42407,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2773,
+      "pct_nulos_blancos": 5.87,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-09T15:01:45+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 15_01_45.json",
+      "actas_divulgadas": 19052,
+      "pct_escrutinio": 99.4,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1298835,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1256428,
+      "brecha": 42407,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2773,
+      "pct_nulos_blancos": 5.87,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-09T16:00:55+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-09 16_00_55.json",
+      "actas_divulgadas": 19052,
+      "pct_escrutinio": 99.4,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1298835,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1256428,
+      "brecha": 42407,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2773,
+      "pct_nulos_blancos": 5.87,
+      "blackout": false
+    },
+    {
+      "ts": "2025-12-10T17:03:59+00:00",
+      "file": "HN.PRESIDENTE.00-TODOS.000-TODOS 2025-12-10 17_03_59.json",
+      "actas_divulgadas": 19052,
+      "pct_escrutinio": 99.4,
+      "lider": "PARTIDO NACIONAL DE HONDURAS",
+      "votos_lider": 1298835,
+      "segundo": "PARTIDO LIBERAL DE HONDURAS",
+      "votos_segundo": 1256428,
+      "brecha": 42407,
+      "delta_actas": 0,
+      "delta_brecha": 0,
+      "inconsistentes": 2773,
+      "pct_nulos_blancos": 5.87,
+      "blackout": false
+    }
+  ]
+}
