@@ -18,6 +18,10 @@ cd centinel-engine
 # Instalar
 poetry install
 
+# Configuración guiada interactiva (recomendado para nuevos operadores)
+# Interactive guided setup (recommended for new operators)
+make wizard
+
 # Verificar instalación
 poetry run centinel panel show
 ```

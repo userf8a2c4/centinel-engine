@@ -1,5 +1,5 @@
 .PHONY: help quickstart wizard setup install start stop restart status logs \
-        init snapshot collect audit analyze summary pipeline \
+        init snapshot collect audit analyze summary pipeline report \
         security test-stress security-scan test lint \
         test-security test-security-chaos test-security-all
 
@@ -76,6 +76,9 @@ summary: ## Resumir hallazgos / Summarize findings
 
 pipeline: ## Ejecutar pipeline UNA vez / Run pipeline ONCE
 	$(PYTHON_COMMAND) scripts/run_pipeline.py --once
+
+report: ## Generar informe PDF bilingüe / Generate bilingual PDF audit report
+	$(PYTHON_COMMAND) scripts/generate_report.py
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  TESTS Y CALIDAD / TESTS AND QUALITY

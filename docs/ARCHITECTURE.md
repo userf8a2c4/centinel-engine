@@ -1,7 +1,69 @@
 # Arquitectura Técnica — Deep-Dive
 
+**Version:** 2.0 | **Date:** 2026-05-18 | **Status:** Active
+
 **ES:** Arquitectura Técnica Completa — Teoremas, Flujos, Formatos  
 **EN:** Complete Technical Architecture — Theorems, Flows, Formats
+
+---
+
+## Diagrama de Arquitectura / Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    C.E.N.T.I.N.E.L. — Pipeline Flow                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  CNE API (electoral authority)
+        │
+        ▼
+  ┌───────────┐    SHA-256 hash     ┌──────────────────┐
+  │ download  │ ─────────────────▶ │  hash chain      │
+  │ (fetch)   │                    │  (Merkle root)   │
+  └───────────┘                    └──────────┬───────┘
+                                              │
+                                   ┌──────────▼───────┐
+                                   │   normalize      │
+                                   │ (Pydantic V2)    │
+                                   └──────────┬───────┘
+                                              │
+                                   ┌──────────▼───────────────────────────┐
+                                   │        rules_engine                  │
+                                   │  24 statistical detectors (D-01..24) │
+                                   │  + ML Isolation Forest (D-24)        │
+                                   └──────────┬───────────────────────────┘
+                                              │
+                              ┌───────────────┼───────────────┐
+                              │               │               │
+                    ┌─────────▼────┐  ┌───────▼──────┐  ┌────▼──────────┐
+                    │  anchor      │  │   alerts     │  │   report      │
+                    │  (OTS BTC    │  │  (FastAPI    │  │  (PDF bilingüe│
+                    │  + Arbitrum) │  │   public API)│  │  WeasyPrint)  │
+                    └──────────────┘  └──────────────┘  └───────────────┘
+                              │               │
+                    ┌─────────▼────┐  ┌───────▼──────────────┐
+                    │  Bitcoin     │  │  GitHub Pages panel  │
+                    │  timestamp   │  │  (static-first CDN + │
+                    │  (trustless) │  │   Service Worker)    │
+                    └──────────────┘  └──────────────────────┘
+
+  Federation layer: P2P witness replication across independent nodes
+  Resilience layer: auto-resume with exponential backoff + chaos injection
+```
+
+**Componentes clave / Key components:**
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Orchestrator | `scripts/run_pipeline.py` | Entry point, single run or cron loop |
+| Hash chain | `src/centinel/core/hashchain.py` | SHA-256 + Merkle root |
+| Normalizer | `src/centinel/core/normalize.py` | Pydantic V2 validation + aliasing |
+| Rules engine | `src/centinel/core/rules/` | 24 detectors, `@rule` decorator |
+| Rule config | `command_center/rules.yaml` | Thresholds, no redeployment needed |
+| Anchoring | `src/anchor/` | OTS (Bitcoin) + Arbitrum EVM |
+| Public API | `src/centinel/api/main.py` | FastAPI, read-only, slowapi rate-limit |
+| Web panel | `web/panel/index.html` | Static-first CDN, offline via SW |
+| Report gen | `scripts/generate_report.py` | Bilingual PDF via WeasyPrint |
 
 ---
 

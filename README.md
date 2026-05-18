@@ -3,7 +3,7 @@
 [![CI](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-2b6cb0.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-2b6cb0.svg)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-499%20passing-2f855a.svg)](#estado-de-validación)
+[![Tests](https://img.shields.io/badge/tests-526%20passing-2f855a.svg)](#estado-de-validación)
 [![Security](https://img.shields.io/badge/dependencies-audited-2f855a.svg)](docs/SECURITY-REVIEW.md)
 
 **Infraestructura de auditoría electoral verificable, sin confianza institucional.**
@@ -56,6 +56,7 @@ sigue siendo útil bajo presión:
 ```bash
 poetry install
 
+make wizard                  # Configuración interactiva guiada (recomendado)
 centinel panel show          # Estado del sistema
 centinel snapshot            # Captura y verificación puntual
 centinel cron --interval 30s # Captura continua automática

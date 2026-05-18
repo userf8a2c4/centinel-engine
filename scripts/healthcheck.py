@@ -1,4 +1,5 @@
-"""
+"""Internal library — not a CLI entry point. Imported by pipeline modules.
+
 ======================== ÍNDICE / INDEX ========================
 1. Descripción general / Overview
 2. Componentes principales / Main components
