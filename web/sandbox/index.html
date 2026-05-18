@@ -666,9 +666,9 @@ async function applyRole(){
     }
   }catch(_){}
   const al = userRole.access_level;
-  // role badge next to email
-  const chip = document.getElementById('login-user');
-  chip.textContent = sbUser.email + ' · ' + al;
+  // role badge next to email — update span only, preserve logout button
+  document.getElementById('login-user-email').textContent = sbUser.email + ' · ' + al;
+  document.getElementById('logout-btn').hidden = false;
   // admin: show replay link
   if(al==='admin'){
     let replayLink = document.getElementById('replay-link');
