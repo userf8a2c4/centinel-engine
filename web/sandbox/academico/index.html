@@ -1280,7 +1280,10 @@ function injectEvent(id){
     const snap=SIM.snapshots[SIM.idx]||{};
     ev.apply(snap,paramVal,SIM.idx);
     activeInjections.push({id,label:ev.label,mode:'inmediata',atIdx:SIM.idx,ts:new Date()});
-    renderActiveInjections();renderSimFrame(SIM.idx);
+    renderActiveInjections();
+    const prevSpeed=SIM.speed;SIM.speed=1; // force full chart redraw on inject
+    renderSimFrame(SIM.idx);
+    SIM.speed=prevSpeed;
   }else{
     const atIdx=parseInt(document.getElementById('inj-sched-idx').value)||100;
     scheduledInjections.push({id,paramVal,atIdx});
