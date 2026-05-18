@@ -107,6 +107,7 @@ ALERTS_LOG = BASE_DIR / "alerts.log"
 RULES_PATH = BASE_DIR / "command_center" / "rules.yaml"
 SUMMARY_PATH = BASE_DIR / "reports" / "summary.txt"
 
+
 @asynccontextmanager
 async def _lifespan(application: FastAPI):  # noqa: ARG001
     logger.warning(
@@ -226,7 +227,8 @@ def _ensure_schema(connection: sqlite3.Connection) -> None:
     English:
         Create the snapshot_index table if it does not exist.
     """
-    connection.execute("""
+    connection.execute(
+        """
         CREATE TABLE IF NOT EXISTS snapshot_index (
             department_code TEXT NOT NULL,
             timestamp_utc TEXT NOT NULL,
@@ -238,7 +240,8 @@ def _ensure_schema(connection: sqlite3.Connection) -> None:
             ipfs_tx_hash TEXT,
             PRIMARY KEY (department_code, timestamp_utc)
         )
-        """)
+        """
+    )
     connection.commit()
 
 
@@ -285,12 +288,14 @@ def fetch_latest_snapshot(connection: sqlite3.Connection) -> dict | None:
     Returns:
         dict | None: Latest snapshot or None if missing.
     """
-    row = connection.execute("""
+    row = connection.execute(
+        """
         SELECT department_code, timestamp_utc, table_name, hash, previous_hash, tx_hash
         FROM snapshot_index
         ORDER BY timestamp_utc DESC
         LIMIT 1
-        """).fetchone()
+        """
+    ).fetchone()
     if not row:
         return None
     table_name = _validate_table_name(row["table_name"])
@@ -633,11 +638,7 @@ def dashboard_data(request: Request) -> dict:
                         total_votes = snap["total_votes"] or 0
                         registered_voters = snap["registered_voters"] or 0
                         try:
-                            candidates = (
-                                json.loads(snap["candidates_json"])
-                                if snap["candidates_json"]
-                                else []
-                            )
+                            candidates = json.loads(snap["candidates_json"]) if snap["candidates_json"] else []
                         except (json.JSONDecodeError, TypeError):
                             candidates = []
                 except (ValueError, sqlite3.OperationalError):
@@ -653,9 +654,7 @@ def dashboard_data(request: Request) -> dict:
                 alert_state = "anomaly"
                 alert_department = dept_name
 
-            turnout = (
-                round((total_votes / registered_voters * 100), 1) if registered_voters else 0.0
-            )
+            turnout = round((total_votes / registered_voters * 100), 1) if registered_voters else 0.0
 
             # Normalize candidates into frontend format.
             fe_candidates = _format_candidates(candidates, total_votes)
@@ -836,12 +835,7 @@ def _department_status(connection: sqlite3.Connection) -> list[dict]:
     alerts = load_alerts_payload()
     alert_depts: dict[str, set[str]] = {}
     for alert in alerts:
-        dept = (
-            (alert.get("department_code") or alert.get("departamento") or "")
-            .strip()
-            .lower()
-            .replace(" ", "_")
-        )
+        dept = (alert.get("department_code") or alert.get("departamento") or "").strip().lower().replace(" ", "_")
         severity = (alert.get("severity") or alert.get("nivel") or "warning").lower()
         alert_depts.setdefault(dept, set()).add(severity)
 
@@ -922,17 +916,13 @@ def dashboard():
 # Mount React build assets (JS/CSS bundles) under /assets.
 # Must be registered after explicit routes to avoid shadowing API endpoints.
 if DASHBOARD_BUILD_DIR.exists():
-    app.mount(
-        "/assets", StaticFiles(directory=DASHBOARD_BUILD_DIR / "assets"), name="dashboard-assets"
-    )
+    app.mount("/assets", StaticFiles(directory=DASHBOARD_BUILD_DIR / "assets"), name="dashboard-assets")
 
 
 # EN: Log build info at startup for deploy verification.
 # ES: Registrar info de build al iniciar para verificar deploys.
 _build_info_path = BASE_DIR / "BUILD_INFO"
 _build_stamp = _build_info_path.read_text().strip() if _build_info_path.exists() else "dev"
-
-
 
 
 @app.get("/live")

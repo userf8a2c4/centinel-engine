@@ -49,7 +49,6 @@ Notes:
 #   - Integraciones / Integrations
 
 
-
 from __future__ import annotations
 
 import hashlib
@@ -315,9 +314,7 @@ class CircuitBreaker:
             open_log_interval_seconds=int(config.get("open_log_interval_seconds", 300)),
         )
         breaker.state = payload.get("state", "CLOSED")
-        breaker._failures = deque(
-            ts for ts in (_parse_iso(v) for v in payload.get("failures", [])) if ts is not None
-        )
+        breaker._failures = deque(ts for ts in (_parse_iso(v) for v in payload.get("failures", [])) if ts is not None)
         breaker._opened_at = _parse_iso(payload.get("opened_at"))
         breaker._next_log_at = _parse_iso(payload.get("next_log_at"))
         breaker._half_open_successes = int(payload.get("half_open_successes", 0))
@@ -333,9 +330,7 @@ class CircuitBreaker:
         """
         path.parent.mkdir(parents=True, exist_ok=True)
         state_dict = self.to_dict()
-        canonical = json.dumps(
-            state_dict, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")
+        canonical = json.dumps(state_dict, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         key = _resolve_state_hmac_key(path)
         envelope = {
             "mac_algorithm": "HMAC-SHA256",
@@ -397,9 +392,7 @@ class CircuitBreaker:
         if not isinstance(state_dict, dict):
             _LOGGER.warning("circuit_breaker_state_invalid path=%s reason=envelope_state", path)
             return None
-        canonical = json.dumps(
-            state_dict, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-        ).encode("utf-8")
+        canonical = json.dumps(state_dict, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         key = _resolve_state_hmac_key(path)
         expected = _compute_state_mac(canonical, key)
         if not hmac.compare_digest(expected, str(raw.get("mac", ""))):

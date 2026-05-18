@@ -358,9 +358,7 @@ def normalize_snapshot(
 
     field_map = field_map or {}
     totals_map = field_map.get("totals", {})
-    candidate_roots = field_map.get(
-        "candidate_roots", ["candidatos", "candidates", "resultados", "partidos"]
-    )
+    candidate_roots = field_map.get("candidate_roots", ["candidatos", "candidates", "resultados", "partidos"])
 
     registered_voters = _safe_int(
         _first_value(
@@ -446,9 +444,7 @@ def normalize_snapshot(
     raw_candidates = _extract_candidates_root(raw, candidate_roots)
     if isinstance(raw_candidates, list):
         candidate_count = max(candidate_count, len(raw_candidates))
-    candidates: List[CandidateResult] = list(
-        _iter_candidates(raw, candidate_count, candidate_roots)
-    )
+    candidates: List[CandidateResult] = list(_iter_candidates(raw, candidate_count, candidate_roots))
 
     return Snapshot(
         meta=meta,
