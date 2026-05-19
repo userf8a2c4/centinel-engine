@@ -224,15 +224,43 @@ body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-
   color:var(--bad);border-radius:4px;padding:2px 6px;cursor:default;
 }
 
+/* ── ANIMAL DEFENSES PANEL ── */
+.defenses-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.def-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;transition:border-color .3s,box-shadow .3s;
+}
+.def-card.triggered{border-color:rgba(212,176,102,.55)}
+.def-card.frozen{border-color:rgba(223,107,134,.7);animation:pulse-bad .9s ease infinite}
+.def-card.disabled{opacity:.42;border-color:rgba(139,146,156,.18)}
+@keyframes pulse-bad{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 4px rgba(223,107,134,.18)}}
+.def-emoji{font-size:22px;line-height:1}
+.def-name{font-size:13px;font-weight:700;margin-top:4px}
+.def-type{font-size:10px;color:var(--muted);margin-bottom:8px}
+.def-stat{
+  font-size:11px;color:var(--muted);display:flex;justify-content:space-between;
+  padding:3px 0;border-bottom:1px solid rgba(36,39,46,.5);
+}
+.def-stat:last-child{border-bottom:none}
+.def-stat-val{color:var(--fg);font-family:var(--mono)}
+.threat-bar-bg{height:6px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden}
+.threat-bar-fill{height:100%;border-radius:3px;transition:width .4s,background .4s}
+.inj-btn.d{border-color:rgba(87,192,141,.4);color:var(--ok)}
+.inj-btn.d:hover{background:rgba(87,192,141,.1);border-color:var(--ok)}
+.b-teal{background:rgba(87,192,141,.12);color:var(--ok);border:1px solid rgba(87,192,141,.3)}
+
 /* ── RESPONSIVE ── */
+@media(max-width:1100px){.defenses-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){
   .grid4{grid-template-columns:1fr 1fr}.grid2,.grid3{grid-template-columns:1fr}
   .telem-wrap{grid-template-columns:1fr}
   .inj-grid{grid-template-columns:1fr}
+  .defenses-grid{grid-template-columns:1fr 1fr}
 }
 @media(max-width:600px){
   .grid4{grid-template-columns:1fr}
   #sim-control-bar{gap:8px}
+  .defenses-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -407,13 +435,84 @@ body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-
   <div class="inj-grid" id="inj-grid-c"></div>
 </div>
 
+<!-- Bloque D -->
+<div class="inj-block">
+  <div class="inj-block-title">
+    <span class="badge b-teal">D</span> Defensas Animales — Simular Compromiso
+    <span style="font-size:10px;color:var(--muted)">Desactiva una capa de defensa para observar el impacto en tiempo real</span>
+  </div>
+  <div class="inj-grid" id="inj-grid-d"></div>
+</div>
+
 <!-- Active injections -->
 <div id="inj-active-panel">
   <h4>Inyecciones activas en esta sesión</h4>
   <div id="inj-active-list"><span id="inj-active-empty">Ninguna</span></div>
 </div>
 
-<!-- ══ SECTION 5 — DUAL TELEMETRY ════════════════════════════════════════════ -->
+<!-- ══ SECTION 5 — ANIMAL DEFENSES STATUS ════════════════════════════════════ -->
+<div class="section-title">Estado de Defensas Animales — 5 Capas Independientes</div>
+<div class="defenses-grid">
+  <!-- Cuervo -->
+  <div class="def-card" id="def-card-cuervo">
+    <div class="def-emoji">🐦</div>
+    <div class="def-name">Cuervo</div>
+    <div class="def-type">Gossip P2P</div>
+    <div id="def-status-cuervo"><span class="badge b-ok">ACTIVO ✓</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Hermanos</span><span class="def-stat-val" id="def-cuervo-siblings">3/3</span></div>
+      <div class="def-stat"><span>Consenso</span><span class="def-stat-val" id="def-cuervo-consensus">✓ OK</span></div>
+      <div class="def-stat"><span>Atestaciones</span><span class="def-stat-val" id="def-cuervo-att">0</span></div>
+    </div>
+  </div>
+  <!-- Pulpo -->
+  <div class="def-card" id="def-card-pulpo">
+    <div class="def-emoji">🦑</div>
+    <div class="def-name">Pulpo</div>
+    <div class="def-type">ChaCha20 Transport</div>
+    <div id="def-status-pulpo"><span class="badge b-ok">ACTIVO ✓</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Cifrado</span><span class="def-stat-val" id="def-pulpo-encrypted">0 KB</span></div>
+      <div class="def-stat"><span>Estado</span><span class="def-stat-val" id="def-pulpo-state">Normal</span></div>
+    </div>
+  </div>
+  <!-- Venado -->
+  <div class="def-card" id="def-card-venado">
+    <div class="def-emoji">🦌</div>
+    <div class="def-name">Venado</div>
+    <div class="def-type">Jitter ±30%</div>
+    <div id="def-status-venado"><span class="badge b-ok">ACTIVO ✓</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Jitter</span><span class="def-stat-val" id="def-venado-jitter">±0%</span></div>
+      <div class="def-stat"><span>Decoys</span><span class="def-stat-val" id="def-venado-decoys">0</span></div>
+    </div>
+  </div>
+  <!-- Lagartija -->
+  <div class="def-card" id="def-card-lagartija">
+    <div class="def-emoji">🦎</div>
+    <div class="def-name">Lagartija</div>
+    <div class="def-type">Sync Nightly</div>
+    <div id="def-status-lagartija"><span class="badge b-ok">ACTIVO ✓</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Mirrors</span><span class="def-stat-val" id="def-lagartija-mirrors">3/3 ✓</span></div>
+      <div class="def-stat"><span>Último sync</span><span class="def-stat-val" id="def-lagartija-sync">—</span></div>
+    </div>
+  </div>
+  <!-- Tejón -->
+  <div class="def-card" id="def-card-tejon">
+    <div class="def-emoji">⚔️</div>
+    <div class="def-name">Tejón</div>
+    <div class="def-type">Kill Switch</div>
+    <div id="def-status-tejon"><span class="badge b-na">LISTO</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Amenaza</span><span class="def-stat-val"><span id="def-tejon-score">0</span>/100</span></div>
+      <div class="threat-bar-bg"><div class="threat-bar-fill" id="def-tejon-bar" style="width:0%;background:var(--ok)"></div></div>
+      <div class="def-stat" style="margin-top:6px"><span>Intentos</span><span class="def-stat-val" id="def-tejon-attempts">0/5</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SECTION 6 — DUAL TELEMETRY ════════════════════════════════════════════ -->
 <div class="section-title">Centro de Telemetría Dual</div>
 <div class="telem-wrap">
   <div class="telem-panel">
@@ -459,6 +558,15 @@ let simChains = [];     // chain integrity history: array of booleans (true=ok)
 let historyBenford = []; // accumulated votes for Benford analysis
 let historyTimeline = []; // [{ts, actas, anomalias}]
 let historyIncons = [];
+
+// Defense state (D14–D18)
+const DEFENSES = {
+  cuervo:  { active:true, siblings:3, consensus:true, attestations:0 },
+  pulpo:   { active:true, encrypted:0, degraded:false },
+  venado:  { active:true, jitter:0, decoys:0 },
+  lagartija:{ active:true, mirrors:3, divergence:false, lastSync:null },
+  tejon:   { active:true, score:0, frozen:false, recoveryAttempts:0, _frozenAt:0 },
+};
 
 // Threshold values (keyed by id)
 let TV = {};
@@ -813,6 +921,58 @@ const EVENTS = {
       pushAlert('CRITICAL','GhostMesas',`Conteo imposible: ${s.actas_divulgadas} > ${s.actas_totales} actas`);
       logE('CRITICAL',`Mesa fantasma: actas_divulgadas=${s.actas_divulgadas} > totales=${s.actas_totales} → CRITICAL`);}
   },
+
+  // ── BLOQUE D — Comprometer defensas ───────────────────────────────────
+  D1:{block:'D',label:'🐦 Silenciar Cuervo',
+    desc:'Desactiva el gossip P2P entre testigos. Sistema queda sin consenso distribuido — testigo único vulnerable.',
+    breakpoint:'Sin hermanos activos → divergencia Merkle pasa desapercibida → ataque indetectable',
+    param:null,
+    apply(s){DEFENSES.cuervo.active=false;DEFENSES.cuervo.siblings=0;
+      logE('WARN','Defensa D14 Cuervo: gossip P2P desactivado — testigo único expuesto');
+      logA('WARN','attacker','D14 silenced: Cuervo gossip disabled','No P2P consensus · Single witness · Merkle divergence undetectable');},
+    cleanup(){DEFENSES.cuervo.active=true;DEFENSES.cuervo.siblings=3;
+      logE('OK','Defensa D14 Cuervo: reactivado — consenso P2P restaurado');}
+  },
+  D2:{block:'D',label:'🦑 Desactivar Pulpo',
+    desc:'Desactiva el cifrado ChaCha20Poly1305 de tránsito. Todo el tráfico entre testigos en texto claro.',
+    breakpoint:'MITM indetectable → tránsito sin cifrar → intercepción de datos posible',
+    param:null,
+    apply(s){DEFENSES.pulpo.active=false;DEFENSES.pulpo.degraded=true;
+      logE('WARN','Defensa D15 Pulpo: cifrado desactivado — tránsito en claro');
+      logA('CRITICAL','attacker','D15 silenced: Pulpo encryption disabled','Traffic plaintext · ChaCha20 off · MITM possible');},
+    cleanup(){DEFENSES.pulpo.active=true;DEFENSES.pulpo.degraded=false;
+      logE('OK','Defensa D15 Pulpo: reactivado — ChaCha20Poly1305 activo');}
+  },
+  D3:{block:'D',label:'🦌 Desactivar Venado',
+    desc:'Desactiva el jitter de timing. Capturas en intervalo fijo y predecible — timing attacks posibles.',
+    breakpoint:'Patrón de captura predecible → atacante puede inyectar exactamente antes del snapshot',
+    param:null,
+    apply(s){DEFENSES.venado.active=false;s._timing_predictable=true;
+      logE('WARN','Defensa D16 Venado: jitter desactivado — intervalos fijos predecibles');
+      logA('WARN','attacker','D16 silenced: Venado jitter disabled','Fixed 30s interval · Timing attacks possible · No decoys');},
+    cleanup(){DEFENSES.venado.active=true;delete SIM.snapshots[SIM.idx]?._timing_predictable;
+      logE('OK','Defensa D16 Venado: reactivado — jitter ±30% activo');}
+  },
+  D4:{block:'D',label:'🦎 Desactivar Lagartija',
+    desc:'Desactiva el sync nocturno con mirrors. Sin auto-regeneración ante rootkit local o tampering de binarios.',
+    breakpoint:'Rootkit local indetectable → datos modificados persisten sin restauración',
+    param:null,
+    apply(s){DEFENSES.lagartija.active=false;DEFENSES.lagartija.mirrors=0;
+      logE('WARN','Defensa D17 Lagartija: sync desactivado — sin auto-restauración');
+      logA('CRITICAL','attacker','D17 silenced: Lagartija sync disabled','No mirror sync · Rootkit/binary tamper undetectable');},
+    cleanup(){DEFENSES.lagartija.active=true;DEFENSES.lagartija.mirrors=3;
+      logE('OK','Defensa D17 Lagartija: reactivado — sync con mirrors activo');}
+  },
+  D5:{block:'D',label:'⚔️ Desactivar Tejón',
+    desc:'Desactiva el kill switch. El sistema no se congelará ante puntuaciones de amenaza ≥75 — ataques activos sin contención.',
+    breakpoint:'Score ≥75 sin freeze → ataque continúa sin respuesta autónoma → daño no contenido',
+    param:null,
+    apply(s){DEFENSES.tejon.active=false;
+      logE('WARN','Defensa D18 Tejón: kill switch desactivado — sin respuesta autónoma ante amenaza');
+      logA('CRITICAL','attacker','D18 silenced: Tejón kill switch disabled','No freeze · Threat score ignored · Active attacks uncontained');},
+    cleanup(){DEFENSES.tejon.active=true;
+      logE('OK','Defensa D18 Tejón: reactivado — kill switch armado');}
+  },
 };
 
 // Final party percentages (for uniformity injection)
@@ -927,6 +1087,12 @@ function simStop(){
   if(SERIES)SIM.snapshots=deepClone(SERIES.snapshots);
   activeInjections=[];scheduledInjections=[];simAlerts=[];
   historyBenford=[];historyTimeline=[];historyIncons=[];simChains=[];
+  // Reset all defense state
+  Object.assign(DEFENSES.cuervo,{active:true,siblings:3,consensus:true,attestations:0});
+  Object.assign(DEFENSES.pulpo,{active:true,encrypted:0,degraded:false});
+  Object.assign(DEFENSES.venado,{active:true,jitter:0,decoys:0});
+  Object.assign(DEFENSES.lagartija,{active:true,mirrors:3,divergence:false,lastSync:null});
+  Object.assign(DEFENSES.tejon,{active:true,score:0,frozen:false,recoveryAttempts:0,_frozenAt:0});
   Object.values(EVENTS).forEach(e=>{if(e._hc!==undefined)delete e._hc;if(e._cascade!==undefined)delete e._cascade;});
   renderActiveInjections();renderAlerts();
   updateBadge();updateScrubber();
@@ -1058,6 +1224,22 @@ function renderSimFrame(idx){
     snap._sig_invalid?'firma inválida':
     chainOk?'cadena íntegra':'cadena comprometida';
 
+  // Fast-path: Tejón kill switch always evaluates (no benf needed)
+  {
+    const qs=0+
+      (snap._false_hash||snap._chain_fork||snap._chain_broken_pct>=50?40:0)+
+      (snap.blackout||(snap._ep_disc||0)>=10||snap._vis_down?20:0)+
+      ((snap._cdn_mirrors_poisoned||0)>=3||snap._chain_fork?35:0);
+    if(DEFENSES.tejon.active&&qs>=75&&!DEFENSES.tejon.frozen){
+      DEFENSES.tejon.score=qs;
+      DEFENSES.tejon.frozen=true;DEFENSES.tejon._frozenAt=idx;DEFENSES.tejon.recoveryAttempts=0;
+      logA('CRITICAL','kill-switch',`⚔️ Tejón: CONGELADO — amenaza=${qs}/100 [fast]`,
+        'lock: /tmp/centinel.lock · recovery exponential backoff iniciado');
+      pushAlert('CRITICAL','TejonFreeze',`Kill switch D18: amenaza ${qs}/100 ≥ 75 → congelado`);
+      attemptTejonRecovery();
+    }
+  }
+
   if(fastMode)return; // skip charts at 60×
 
   const depts=getDeptData(snap);
@@ -1073,6 +1255,7 @@ function renderSimFrame(idx){
   renderNullBlank(depts);
   renderForensics(snap,benf,lastd,last10);
   emitEngineEvents(snap,idx,benf,lastd);
+  evaluateDefenses(snap,idx,benf);
 }
 
 const CHART_OPT={animation:false,responsive:true,
@@ -1220,6 +1403,257 @@ function emitEngineEvents(snap,idx,benf,lastd){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ANIMAL DEFENSES ENGINE — D14 Cuervo · D15 Pulpo · D16 Venado · D17 Lagartija · D18 Tejón
+// ═══════════════════════════════════════════════════════════════════════════
+function computeThreatScore(snap,benf){
+  let s=0;
+  // Merkle divergence +40
+  if(snap._false_hash||snap._chain_fork||snap._chain_broken_pct>=50)s+=40;
+  // Benford anomaly severe +25
+  if(benf&&benf.N>=15&&benf.pval<TV.benford_chi_pvalue&&TE.benford_chi_pvalue)s+=25;
+  // Connectivity lost +20
+  if(snap.blackout||(snap._ep_disc||0)>=10||snap._vis_down)s+=20;
+  // Federation broken +35
+  if((snap._cdn_mirrors_poisoned||0)>=3||snap._chain_fork)s+=35;
+  return Math.min(s,100);
+}
+
+const TEJON_BACKOFF=[2000,5000,10000,20000,30000];
+function attemptTejonRecovery(){
+  if(!DEFENSES.tejon.frozen)return;
+  const attempt=DEFENSES.tejon.recoveryAttempts;
+  if(attempt>=5){
+    logA('CRITICAL','kill-switch','⚔️ Tejón: máx intentos (5/5) — CONGELADO permanente',
+      'Escalar a autoridad electoral · attack_log.jsonl disponible para auditoría');
+    return;
+  }
+  const wait=TEJON_BACKOFF[Math.min(attempt,4)];
+  const jitter=0.7+Math.random()*0.6; // ±30%
+  const actual=Math.round(wait*jitter);
+  logA('WARN','kill-switch',`⚔️ Tejón: recuperación ${attempt+1}/5 en ${actual}ms`,
+    `backoff=${wait}ms ±30% · verificando cadena local...`);
+  DEFENSES.tejon.recoveryAttempts++;
+  setTimeout(()=>{
+    if(!DEFENSES.tejon.frozen)return;
+    if(DEFENSES.tejon.score<75){
+      DEFENSES.tejon.frozen=false;
+      logA('OK','kill-switch',`⚔️ Tejón: recuperado (intento ${DEFENSES.tejon.recoveryAttempts}/5)`,
+        `score=${DEFENSES.tejon.score}/100 < 75 · Operación normal ✓`);
+    }else{
+      logA('WARN','kill-switch',`⚔️ Tejón: fallo recuperación ${DEFENSES.tejon.recoveryAttempts}/5`,
+        `score=${DEFENSES.tejon.score}/100 ≥ 75 · próximo intento...`);
+      if(DEFENSES.tejon.recoveryAttempts<5)attemptTejonRecovery();
+    }
+  },actual);
+}
+
+function evaluateDefenses(snap,idx,benf){
+  const score=computeThreatScore(snap,benf);
+  DEFENSES.tejon.score=score;
+
+  // ── D14 Cuervo: gossip reaction to Merkle divergence ──
+  if(DEFENSES.cuervo.active){
+    if(snap._false_hash||snap._chain_fork){
+      if(DEFENSES.cuervo.consensus){DEFENSES.cuervo.consensus=false;}
+      if(idx%4===0){
+        const sib='Testigo-'+String.fromCharCode(65+(idx%3));
+        logA('WARN','10.0.'+rnd(1,9)+'.'+rnd(1,99),
+          `🐦 Cuervo: atestación de ${sib} — merkle DIVERGE`,
+          'Gossip P2P → consenso 2/3 fallido · alerta distribuida');
+      }
+    }else if(!DEFENSES.cuervo.consensus){
+      DEFENSES.cuervo.consensus=true;
+      logA('OK','10.0.'+rnd(1,9)+'.'+rnd(1,99),
+        '🐦 Cuervo: merkle reconciliado — consenso 3/3 restaurado','Gossip broadcast ✓');
+    }else if(idx%18===0){
+      DEFENSES.cuervo.attestations++;
+      logA('INFO','10.0.'+rnd(1,9)+'.'+rnd(1,99),
+        `🐦 Cuervo: atestación periódica #${DEFENSES.cuervo.attestations} — merkle OK`,
+        'Consenso 3/3 ✓ · corvid_broadcast.py activo');
+    }
+  }
+
+  // ── D15 Pulpo: ChaCha20 if any MITM-class attack is active ──
+  if(DEFENSES.pulpo.active&&!DEFENSES.pulpo.degraded){
+    if(snap._chain_broken_pct>0||activeInjections.some(i=>i.id==='B3')){
+      const bytes=rnd(2048,8192);
+      DEFENSES.pulpo.encrypted+=bytes;
+      if(idx%5===0)
+        logA('INFO',rndIP(),
+          `🦑 Pulpo: [ENCRYPTED: ${bytes} bytes] — ChaCha20Poly1305`,
+          'clave=SHA256(prev_merkle) · transport_blind.py · MITM frustrado');
+    }
+  }else if(!DEFENSES.pulpo.active&&activeInjections.some(i=>i.id==='B3')&&idx%5===0){
+    logA('CRITICAL',rndIP(),
+      '🦑 Pulpo: CIFRADO INACTIVO — tráfico MITM en texto claro',
+      'D15 desactivada · Datos interceptables sin defensa');
+  }
+
+  // ── D16 Venado: jitter + decoys when timing attack is active ──
+  if(DEFENSES.venado.active){
+    const timingAttack=snap._time_distorted||snap._ts_drift||activeInjections.some(i=>i.id==='B7');
+    if(timingAttack){
+      const jitter=(Math.random()*0.6-0.3);
+      DEFENSES.venado.jitter=jitter;
+      const actual=(30*(1+jitter)).toFixed(1);
+      if(idx%6===0)
+        logA('WARN','127.0.0.1',
+          `🦌 Venado: snapshot en ${actual}s (esperado: 30±30%)`,
+          'Jitter activo · evasion_scheduler.py · timing attack frustrado');
+      if(Math.random()<0.02){
+        DEFENSES.venado.decoys++;
+        logA('INFO','127.0.0.1',
+          `🦌 Venado: decoy #${DEFENSES.venado.decoys} emitido`,
+          'is_decoy=true · señuelo activado');
+      }
+    }else{
+      DEFENSES.venado.jitter=0;
+    }
+  }
+
+  // ── D17 Lagartija: nightly sync every 288 snaps (1 simulated day) ──
+  if(DEFENSES.lagartija.active&&idx>0&&idx%288===0){
+    if(snap._binary_tampered||snap._chain_broken_pct>0||snap._chain_fork){
+      DEFENSES.lagartija.divergence=true;
+      logA('CRITICAL','mirror.s3',
+        `🦎 Lagartija: divergencia detectada — sync nocturno snap${idx}`,
+        'Restaurando desde mirror 2/3 · backup: .archive/corrupted_chain_backup.json');
+      setTimeout(()=>{
+        DEFENSES.lagartija.divergence=false;
+        DEFENSES.lagartija.lastSync=tsLog();
+        if(SIM.state!=='stopped')
+          logA('OK','mirror.s3',
+            '🦎 Lagartija: auto-restauración completa','chain_root match ✓ · mirror 2/3 aplicado · regeneration.py');
+      },1800);
+    }else{
+      DEFENSES.lagartija.lastSync=tsLog();
+      logA('INFO','mirror.s3',
+        `🦎 Lagartija: sync nocturno ok — snap${idx}`,
+        `mirrors ${DEFENSES.lagartija.mirrors}/3 ✓ · cadena íntegra`);
+    }
+  }
+
+  // ── D18 Tejón: kill switch ──
+  if(DEFENSES.tejon.active){
+    if(score>=75&&!DEFENSES.tejon.frozen){
+      DEFENSES.tejon.frozen=true;
+      DEFENSES.tejon._frozenAt=idx;
+      DEFENSES.tejon.recoveryAttempts=0;
+      logA('CRITICAL','kill-switch',
+        `⚔️ Tejón: CONGELADO — amenaza=${score}/100`,
+        'lock: /tmp/centinel.lock · checkpoint_frozen.json · recovery exponential backoff iniciado');
+      pushAlert('CRITICAL','TejonFreeze',
+        `Kill switch D18: amenaza ${score}/100 ≥ 75 → sistema congelado · backoff [2,5,10,20,30]s`);
+      logE('CRITICAL',`Tejón: kill switch activado — amenaza ${score}/100 — snap${idx}`);
+      attemptTejonRecovery();
+    }else if(DEFENSES.tejon.frozen&&score<50){
+      DEFENSES.tejon.frozen=false;
+      logA('OK','kill-switch',
+        `⚔️ Tejón: amenaza resuelta — score=${score}/100`,
+        'Sistema descongelado · Operación normal reanudada ✓');
+    }
+  }else if(!DEFENSES.tejon.active&&score>=75&&idx%8===0){
+    logA('CRITICAL','kill-switch',
+      `⚔️ Tejón: KILL SWITCH INACTIVO — amenaza=${score}/100 sin respuesta`,
+      'D18 desactivada · ataque activo sin contención autónoma');
+  }
+
+  renderDefenseStatus(snap,idx);
+}
+
+function renderDefenseStatus(snap,idx){
+  // Cuervo
+  const cCard=document.getElementById('def-card-cuervo');
+  const cStat=document.getElementById('def-status-cuervo');
+  if(!DEFENSES.cuervo.active){
+    cCard.className='def-card disabled';
+    cStat.innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else if(!DEFENSES.cuervo.consensus){
+    cCard.className='def-card triggered';
+    cStat.innerHTML='<span class="badge b-warn">⚠ DIVERGENCIA</span>';
+  }else{
+    cCard.className='def-card';
+    cStat.innerHTML='<span class="badge b-ok">ACTIVO ✓</span>';
+  }
+  document.getElementById('def-cuervo-siblings').textContent=DEFENSES.cuervo.active?'3/3':'0/3';
+  document.getElementById('def-cuervo-consensus').textContent=DEFENSES.cuervo.consensus?'✓ OK':'✗ MISMATCH';
+  document.getElementById('def-cuervo-att').textContent=DEFENSES.cuervo.attestations;
+
+  // Pulpo
+  const pCard=document.getElementById('def-card-pulpo');
+  const pStat=document.getElementById('def-status-pulpo');
+  if(!DEFENSES.pulpo.active){
+    pCard.className='def-card disabled';
+    pStat.innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else{
+    pCard.className='def-card';
+    pStat.innerHTML='<span class="badge b-ok">ACTIVO ✓</span>';
+  }
+  document.getElementById('def-pulpo-encrypted').textContent=(DEFENSES.pulpo.encrypted/1024).toFixed(1)+' KB';
+  document.getElementById('def-pulpo-state').textContent=DEFENSES.pulpo.degraded?'⚠ Degradado':'Normal';
+
+  // Venado
+  const vCard=document.getElementById('def-card-venado');
+  const vStat=document.getElementById('def-status-venado');
+  const timingAttackOn=snap._time_distorted||snap._ts_drift||activeInjections.some(i=>i.id==='B7');
+  if(!DEFENSES.venado.active){
+    vCard.className='def-card disabled';
+    vStat.innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else if(timingAttackOn&&DEFENSES.venado.jitter!==0){
+    vCard.className='def-card triggered';
+    vStat.innerHTML='<span class="badge b-warn">EVASIÓN</span>';
+  }else{
+    vCard.className='def-card';
+    vStat.innerHTML='<span class="badge b-ok">ACTIVO ✓</span>';
+  }
+  const j=DEFENSES.venado.jitter||0;
+  document.getElementById('def-venado-jitter').textContent=(j>=0?'+':'')+Math.round(j*100)+'%';
+  document.getElementById('def-venado-decoys').textContent=DEFENSES.venado.decoys;
+
+  // Lagartija
+  const lCard=document.getElementById('def-card-lagartija');
+  const lStat=document.getElementById('def-status-lagartija');
+  if(!DEFENSES.lagartija.active){
+    lCard.className='def-card disabled';
+    lStat.innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else if(DEFENSES.lagartija.divergence){
+    lCard.className='def-card triggered';
+    lStat.innerHTML='<span class="badge b-bad">RESTAURANDO</span>';
+  }else{
+    lCard.className='def-card';
+    lStat.innerHTML='<span class="badge b-ok">ACTIVO ✓</span>';
+  }
+  document.getElementById('def-lagartija-mirrors').textContent=
+    DEFENSES.lagartija.mirrors+'/3'+(DEFENSES.lagartija.mirrors===3?' ✓':'');
+  document.getElementById('def-lagartija-sync').textContent=DEFENSES.lagartija.lastSync||'—';
+
+  // Tejón
+  const tCard=document.getElementById('def-card-tejon');
+  const tStat=document.getElementById('def-status-tejon');
+  const score=DEFENSES.tejon.score;
+  if(!DEFENSES.tejon.active){
+    tCard.className='def-card disabled';
+    tStat.innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else if(DEFENSES.tejon.frozen){
+    tCard.className='def-card frozen';
+    tStat.innerHTML='<span class="badge b-bad">CONGELADO ✗</span>';
+  }else if(score>=50){
+    tCard.className='def-card triggered';
+    tStat.innerHTML='<span class="badge b-warn">ALERTA</span>';
+  }else{
+    tCard.className='def-card';
+    tStat.innerHTML='<span class="badge b-na">LISTO</span>';
+  }
+  document.getElementById('def-tejon-score').textContent=score;
+  const bar=document.getElementById('def-tejon-bar');
+  bar.style.width=score+'%';
+  bar.style.background=score>=75?'var(--bad)':score>=50?'var(--warn)':'var(--ok)';
+  document.getElementById('def-tejon-attempts').textContent=
+    DEFENSES.tejon.recoveryAttempts+'/5'+
+    (DEFENSES.tejon.frozen&&DEFENSES.tejon.recoveryAttempts>=5?' — PERMANENTE':'');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // THRESHOLD PANEL
 // ═══════════════════════════════════════════════════════════════════════════
 function lockThresholds(){
@@ -1295,6 +1729,8 @@ function applyScheduledInjections(idx){
   scheduledInjections=scheduledInjections.filter(s=>s.atIdx>idx);
 }
 function cancelInjection(i){
+  const inj=activeInjections[i];
+  if(inj){const ev=EVENTS[inj.id];if(ev?.cleanup)ev.cleanup();}
   activeInjections.splice(i,1);renderActiveInjections();
 }
 function renderActiveInjections(){
@@ -1313,7 +1749,7 @@ function renderInjGrid(gridId,block){
   const container=document.getElementById(gridId);
   const evs=Object.entries(EVENTS).filter(([,e])=>e.block===block);
   container.innerHTML=evs.map(([id,ev])=>{
-    const btnCls=block==='B'?'b':block==='C'?'c':'';
+    const btnCls=block==='B'?'b':block==='C'?'c':block==='D'?'d':'';
     const paramHtml=ev.param?`
       <div class="inj-param-row">
         <span style="flex:0;white-space:nowrap;font-size:9px">${ev.param.label}</span>
@@ -1329,7 +1765,7 @@ function renderInjGrid(gridId,block){
       <div class="inj-card-desc">${ev.desc}</div>
       <div class="breaking-badge">⚡ ${ev.breakpoint}</div>
       ${paramHtml}
-      <button class="inj-btn ${btnCls}" onclick="injectEvent('${id}')">Inyectar</button>
+      <button class="inj-btn ${btnCls}" onclick="injectEvent('${id}')">${block==='D'?'Desactivar defensa':'Inyectar'}</button>
     </div>`;
   }).join('');
 }
@@ -1351,6 +1787,7 @@ function restoreVis(){
   renderInjGrid('inj-grid-a','A');
   renderInjGrid('inj-grid-b','B');
   renderInjGrid('inj-grid-c','C');
+  renderInjGrid('inj-grid-d','D');
   renderActiveInjections();
   // Restore pre-registration if exists
   const saved=localStorage.getItem('centinel_acad_prereg');
