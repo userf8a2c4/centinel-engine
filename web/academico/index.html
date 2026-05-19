@@ -660,7 +660,7 @@ const EVENTS = {
     desc:'Simula colapso total del sistema de entrega de datos externos.',
     breakpoint:'Visualización offline → todos los gráficos congelados',
     param:null,
-    apply(s){s._vis_down=true;document.getElementById('vis-overlay').classList.add('show');
+    apply(s){s._vis_down=true;s.blackout=true;document.getElementById('vis-overlay').classList.add('show');
       logE('CRITICAL','Sistema de visualización caído — modo offline activo');
       logA('CRITICAL','0.0.0.0','DoS — API down','Cached Persistent');}
   },
@@ -673,7 +673,7 @@ const EVENTS = {
       if(this._hc<5){s.actas_divulgadas=SIM.snapshots[Math.max(0,idx-1)].actas_divulgadas;
         logE('WARN',`Hold-and-Release: reteniendo ${p} actas — ciclo ${this._hc}/5`);}
       else{s.actas_divulgadas=Math.min(s.actas_divulgadas+p,s.actas_totales);
-        s.validos+=p*165; this._hc=0;
+        s.validos+=p*165; s._hold_release=true; this._hc=0;
         pushAlert('CRITICAL','HoldRelease',`Liberación masiva de ${p} actas — velocidad 5× la normal`);
         logE('CRITICAL',`Hold-and-Release: burst de ${p} actas liberadas`);}}
   },
@@ -914,7 +914,7 @@ const EVENTS = {
     apply(s){if(s.partidos)s.partidos.forEach((pt,i)=>{
       pt.votos=Math.round((s.validos||0)*PARTIDOS_FINAL[i].pct/100);
       pt.pct=PARTIDOS_FINAL[i].pct;});
-      s._uniformidad=true;
+      s._uniformidad_sospechosa=true;
       logE('WARN','Uniformidad sospechosa: todos los % idénticos al teórico → fabricación de datos');}
   },
   C8:{block:'C',label:'Inversión de Resultados post-Apagón',
@@ -926,7 +926,7 @@ const EVENTS = {
       s.partidos[0].votos=v1;s.partidos[1].votos=v0;
       s.partidos[0].pct=parseFloat((v1/(s.validos||1)*100).toFixed(2));
       s.partidos[1].pct=parseFloat((v0/(s.validos||1)*100).toFixed(2));}
-      s._inversion=true;
+      s._inversion=true; s._resultado_invertido=true;
       pushAlert('CRITICAL','ResultInversion','Candidato líder cambia post-apagón → trend_shift CRITICAL');
       logE('CRITICAL','Inversión de resultados: partido[0] y [1] intercambiados post-apagón');}
   },
@@ -1227,13 +1227,17 @@ function evaluateCheapRules(snap,idx){
     if(idx-last>=_COOLDOWN){_alertLast[ruleKey]=idx;logE(level,msg);}
   }
 
-  // snap_jump_pct — actas jump > threshold% of total in one 5-min snap
+  // snap_jump_pct — actas jump/drop > threshold% of total in one 5-min snap
   if(TE.snap_jump_pct&&prev){
     const delta=(snap.actas_divulgadas||0)-(prev.actas_divulgadas||0);
     const pct=delta/(snap.actas_totales||1)*100;
-    flag('snap_jump_pct',pct>TV.snap_jump_pct,'WARN',
-      `Salto snapshot: +${delta.toLocaleString()} actas (+${pct.toFixed(1)}%) en 5 min — umbral ${TV.snap_jump_pct}%`);
     d._actasDelta=delta;
+    if(delta<0)
+      flag('snap_jump_neg',true,'CRITICAL',
+        `Rollback de actas: −${Math.abs(delta).toLocaleString()} actas (${pct.toFixed(1)}%) — conteo retrocedió`);
+    else
+      flag('snap_jump_pct',pct>TV.snap_jump_pct,'WARN',
+        `Salto snapshot: +${delta.toLocaleString()} actas (+${pct.toFixed(1)}%) en 5 min — umbral ${TV.snap_jump_pct}%`);
   }
 
   // speed_max — actas processed per 15-min window (3 snaps × 5 min)
@@ -1324,6 +1328,73 @@ function evaluateCheapRules(snap,idx){
       }
     });
   }
+
+  // ── Infrastructure & multicapa defense checks ────────────────────────────
+  // DDoS / availability
+  if(snap._ddos){
+    flag('ddos',snap._ddos>100000,'CRITICAL',
+      `DDoS: ${snap._ddos.toLocaleString()} req/s — ${snap._ddos>100000?'rate limiter SUPERADO':'mitigado'}`);}
+
+  // CDN multi-mirror consensus
+  if(snap._cdn_mirrors_poisoned){
+    const lvl=snap._cdn_mirrors_poisoned>=3?'CRITICAL':'WARN';
+    flag('cdn_mirrors',true,lvl,
+      `CDN: ${snap._cdn_mirrors_poisoned}/5 espejos contaminados — ${snap._cdn_mirrors_poisoned>=3?'CONSENSO IMPOSIBLE':'divergencia'}`);}
+
+  // Cache staleness
+  if(snap._cache_stale){
+    const lvl=snap._cache_stale>60?'CRITICAL':'WARN';
+    flag('cache_stale',true,lvl,
+      `Caché: TTL=${snap._cache_stale}min — ${snap._cache_stale>60?'divergencia crítica del origen real':'monitoreo activo'}`);}
+
+  // OTS anchor integrity (always fails → always CRITICAL when attacked)
+  if(snap._ots_attack)
+    flag('ots_attack',true,'CRITICAL','OTS: intento de suplantar ancla Bitcoin — RECHAZADO (inmutable)');
+
+  // Zero-trust middleware bypass
+  if(snap._zt_bypass_attempt){
+    const lvl=snap._zt_bypass_attempt>=5?'CRITICAL':'WARN';
+    flag('zt_bypass',true,lvl,
+      `Zero-trust: ${snap._zt_bypass_attempt} cabeceras forjadas — ${snap._zt_bypass_attempt>=5?'BYPASS DETECTADO':'filtradas'}`);}
+
+  // Timestamp monotonicity
+  if(snap._ts_drift||snap._time_distorted){
+    const drift=snap._ts_drift||snap._time_distorted;
+    flag('ts_monotone',true,'WARN',
+      `Timestamp: +${drift}min de desincronización — monotonía comprometida`);}
+
+  // Binary auto-audit
+  if(snap._binary_tampered)
+    flag('binary_tamper',true,'CRITICAL',
+      `Auto-audit: ${snap._binary_tampered} módulos con hash distinto al baseline — CUARENTENA`);
+
+  // Vote duplication
+  if(snap._duplication)
+    flag('duplication',true,'CRITICAL',
+      `Duplicación de actas: +${snap._duplication} actas repetidas — votos inflados`);
+
+  // Visualization system
+  if(snap._vis_down)
+    flag('vis_down',true,'CRITICAL','Sistema de visualización caído — modo offline activo');
+
+  // Throttling / artificial stagnation (actas frozen)
+  if(snap._throttled&&prev){
+    const delta=(snap.actas_divulgadas||0)-(prev.actas_divulgadas||0);
+    if(delta===0)flag('throttled',true,'WARN','Throttling CNE: actualización congelada artificialmente');}
+
+  // Coordinated drag
+  if(snap._coordinated)
+    flag('coordinated',true,'WARN','Arrastre coordinado: distribución departamental perfectamente uniforme');
+
+  // Forced participation / abstention anomaly
+  if(snap._forced_part)
+    flag('forced_part',true,'CRITICAL',
+      `Participación forzada: ${snap._forced_part}% — salto imposible en un snap`);
+
+  // Concentration
+  if(snap._concentration)
+    flag('concentration',true,'CRITICAL',
+      `Concentración extrema: partido[0] captó 93% en ${snap._concentration} mesas`);
 
   // Track running history for expensive checks
   if(snap.partidos?.length){
@@ -1656,6 +1727,51 @@ function renderForensics(snap,benf,lastd,last10,ext){
   verdicts.push(card('Endpoints / Conectividad',badge(snap._ep_disc?'WARN':'OK'),
     snap._ep_disc?`${snap._ep_disc} endpoints desconectados`:'Todos los endpoints activos'));
 
+  // ── Capa de defensa de infraestructura ────────────────────────────────────
+  const cdnP=snap._cdn_mirrors_poisoned||0;
+  verdicts.push(card('CDN Multi-espejo (consenso)',
+    badge(cdnP>=3?'CRITICAL':cdnP>0?'WARN':'OK'),
+    `${cdnP}/5 espejos contaminados | umbral consenso: ≥3 | ${cdnP>=3?'⚠ MODO SOLO-LOCAL':cdnP>0?'divergencia detectada':'consenso OK'}`));
+
+  verdicts.push(card('Frescura de caché',
+    badge(snap._cache_stale>60?'CRITICAL':snap._cache_stale>0?'WARN':'OK'),
+    snap._cache_stale?`TTL falso: ${snap._cache_stale}min | umbral crítico: >60min`:'Caché alineada con origen real'));
+
+  verdicts.push(card('Ancla OTS (Bitcoin)',badge(snap._ots_attack?'CRITICAL':'OK'),
+    snap._ots_attack?'⚠ Intento de suplantar ancla Bitcoin — RECHAZADO (OTS inmutable)':'Ancla OTS íntegra'));
+
+  verdicts.push(card('Zero-Trust Middleware',
+    badge(cd.zt_bypass?.level||'OK'),
+    snap._zt_bypass_attempt
+      ?`${snap._zt_bypass_attempt} cabeceras forjadas | umbral bypass: ≥5 | ${snap._zt_bypass_attempt>=5?'⚠ BYPASS DETECTADO':'filtradas por middleware'}`
+      :'Todas las peticiones autenticadas'));
+
+  verdicts.push(card('Monotonía de Timestamps',badge(cd.ts_monotone?'WARN':'OK'),
+    snap._ts_drift||snap._time_distorted
+      ?`Drift detectado: +${snap._ts_drift||snap._time_distorted}min — timeline no monótona`
+      :'Timestamps monótonos'));
+
+  verdicts.push(card('Auto-auditoría binaria',badge(snap._binary_tampered?'CRITICAL':'OK'),
+    snap._binary_tampered
+      ?`⚠ ${snap._binary_tampered} módulos con hash ≠ baseline — CUARENTENA ACTIVADA`
+      :'Hash de binario íntegro'));
+
+  verdicts.push(card('DDoS / Disponibilidad',badge(snap._ddos>100000?'CRITICAL':snap._ddos?'WARN':'OK'),
+    snap._ddos?`${snap._ddos.toLocaleString()} req/s | umbral: 100k req/s | ${snap._ddos>100000?'⚠ RATE LIMITER SUPERADO':'mitigado'}`:'Sin tráfico anómalo detectado'));
+
+  verdicts.push(card('Duplicación de actas',badge(snap._duplication?'CRITICAL':'OK'),
+    snap._duplication
+      ?`+${snap._duplication} actas duplicadas → +${(snap._duplication*150).toLocaleString()} votos inflados`
+      :'Sin duplicados detectados'));
+
+  verdicts.push(card('Concentración de votos',badge(snap._concentration?'CRITICAL':'OK'),
+    snap._concentration
+      ?`Partido[0]: 93% en ${snap._concentration} mesas — z-score extremo`
+      :'Distribución proporcional por mesa'));
+
+  verdicts.push(card('Throttling / Estancamiento',badge(cd.throttled?'WARN':'OK'),
+    snap._throttled?'CNE: cadencia artificial detectada — conteo detenido deliberadamente':'Cadencia de actualización normal'));
+
   document.getElementById('s-forensic-list').innerHTML=verdicts.join('');
 }
 
@@ -1693,6 +1809,18 @@ function emitEngineEvents(snap,idx,benf,lastd,ext){
     logE('CRITICAL',`Conteo imposible: ${snap.actas_divulgadas} > ${snap.actas_totales} actas`);
   if(snap._ep_disc)logE('WARN',`${snap._ep_disc} endpoints desconectados`);
   if(snap._resultado_invertido)logE('CRITICAL','Inversión de resultados detectada post-apagón');
+  // Infrastructure multicapa
+  const cd2=snap._cd||{};
+  if(cd2.cdn_mirrors)logE(snap._cdn_mirrors_poisoned>=3?'CRITICAL':'WARN',cd2.cdn_mirrors.msg);
+  if(cd2.cache_stale)logE(snap._cache_stale>60?'CRITICAL':'WARN',cd2.cache_stale.msg);
+  if(cd2.ots_attack)logE('CRITICAL',cd2.ots_attack.msg);
+  if(cd2.zt_bypass)logE(snap._zt_bypass_attempt>=5?'CRITICAL':'WARN',cd2.zt_bypass.msg);
+  if(cd2.ts_monotone)logE('WARN',cd2.ts_monotone.msg);
+  if(cd2.binary_tamper)logE('CRITICAL',cd2.binary_tamper.msg);
+  if(cd2.ddos)logE(snap._ddos>100000?'CRITICAL':'WARN',cd2.ddos.msg);
+  if(cd2.duplication)logE('CRITICAL',cd2.duplication.msg);
+  if(cd2.forced_part)logE('CRITICAL',cd2.forced_part.msg);
+  if(cd2.concentration)logE('CRITICAL',cd2.concentration.msg);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
