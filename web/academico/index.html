@@ -276,7 +276,7 @@ body.auth-pending{visibility:hidden}
   <span class="sep">/</span>
   <span>Simulación Forense Académica</span>
   <div id="dl-btn">
-    <button class="dl-pill" onclick="downloadPNG()">↓ PNG</button>
+    <button class="dl-pill" onclick="downloadFullPNG()">↓ PNG completo</button>
     <button class="dl-pill" onclick="downloadPDF()">↓ PDF</button>
     <span id="user-email" style="font-size:11px;color:var(--muted);padding:0 4px"></span>
     <button class="dl-pill" id="btn-logout" onclick="doLogout()" style="border-color:rgba(223,107,134,.4);color:var(--bad)">Salir</button>
@@ -346,7 +346,7 @@ body.auth-pending{visibility:hidden}
 <div id="anom-marker-row" class="anom-marker-row" style="margin-top:12px;display:none"></div>
 
 <!-- ══ SECTION 2 — CHARTS ════════════════════════════════════════════════════ -->
-<div class="section-title">Panel de Visualización Forense</div>
+<div class="section-title">Panel de Visualización Forense<button class="section-dl" onclick="downloadPNG()">↓ PNG</button></div>
 <div class="card" style="margin-bottom:14px">
   <canvas id="s-chart-cand" height="80"></canvas>
 </div>
@@ -1456,29 +1456,96 @@ function restoreVis(){
   logE('INFO','Selecciona un dataset y presiona ▶ para iniciar la simulación');
 })();
 
+// ── shared canvas helpers ────────────────────────────────────────────────────
+function _ctxSectionBar(ctx,xOff,y,W,label){
+  ctx.fillStyle='#24272e';ctx.fillRect(xOff,y,W,22);
+  ctx.fillStyle='#6ea8fe';ctx.font='bold 10px system-ui';
+  ctx.fillText(label,xOff+8,y+14);
+  return y+26;
+}
+function _drawDetectorsOnCtx(ctx,xOff,y,W){
+  const cards=document.querySelectorAll('#s-forensic-list .forensic-card');
+  if(!cards.length)return y;
+  y=_ctxSectionBar(ctx,xOff,y,W,'DETECTORES FORENSES');
+  const ROW_H=38;
+  cards.forEach(card=>{
+    const title=card.querySelector('.forensic-title')?.textContent?.trim()||'';
+    const isAlert=card.querySelector('.badge')?.classList.contains('b-bad')||false;
+    const detail=card.querySelector('.forensic-body')?.textContent?.trim()||'';
+    ctx.fillStyle=isAlert?'rgba(223,107,134,.10)':'rgba(87,192,141,.06)';
+    ctx.fillRect(xOff,y,W,ROW_H-2);
+    ctx.fillStyle=isAlert?'#df6b86':'#57c08d';
+    ctx.fillRect(xOff,y,3,ROW_H-2);
+    ctx.fillStyle='#e7e9ec';ctx.font='bold 11px system-ui';
+    ctx.fillText(title,xOff+10,y+13);
+    ctx.fillStyle=isAlert?'#df6b86':'#57c08d';ctx.font='bold 9px system-ui';
+    ctx.fillText(isAlert?'ALERTA':'OK',xOff+W-54,y+13);
+    ctx.fillStyle='#8b929c';ctx.font='9.5px system-ui';
+    ctx.fillText(detail.substring(0,140),xOff+10,y+27);
+    y+=ROW_H;
+  });
+  return y+6;
+}
+function _drawAlertsOnCtx(ctx,xOff,y,W){
+  y=_ctxSectionBar(ctx,xOff,y,W,'TABLA DE ALERTAS');
+  if(!simAlerts.length){
+    ctx.fillStyle='#8b929c';ctx.font='10px system-ui';
+    ctx.fillText('Sin alertas activas',xOff+8,y+12);
+    return y+24;
+  }
+  const COL_X=[0,90,230,310]; // relative offsets
+  const COL_LABELS=['TIEMPO','TIPO','SEVER.','DESCRIPCIÓN'];
+  ctx.fillStyle='#1e2026';ctx.fillRect(xOff,y,W,18);
+  COL_LABELS.forEach((h,i)=>{
+    ctx.fillStyle='#8b929c';ctx.font='bold 9px system-ui';
+    ctx.fillText(h,xOff+COL_X[i]+4,y+12);
+  });
+  y+=18;
+  simAlerts.slice(-30).reverse().forEach((a,i)=>{
+    const sev=a.sev==='CRITICAL'?'#df6b86':a.sev==='HIGH'?'#e8a838':'#57c08d';
+    ctx.fillStyle=i%2===0?'#15171c':'#0f1115';
+    ctx.fillRect(xOff,y,W,17);
+    ctx.fillStyle='#e7e9ec';ctx.font='9px system-ui';
+    ctx.fillText(a.ts,xOff+COL_X[0]+4,y+12);
+    ctx.fillText(a.tipo.substring(0,18),xOff+COL_X[1]+4,y+12);
+    ctx.fillStyle=sev;ctx.fillText(a.sev,xOff+COL_X[2]+4,y+12);
+    ctx.fillStyle='#e7e9ec';
+    ctx.fillText(a.desc.substring(0,Math.floor((W-COL_X[3]-8)/5.5)),xOff+COL_X[3]+4,y+12);
+    y+=17;
+  });
+  return y+8;
+}
+// ── chart rows helper ────────────────────────────────────────────────────────
+function _chartRows(cs){
+  const rows=[[cs[0]],[cs[1]]];
+  if(cs[2]&&cs[3])rows.push([cs[2],cs[3]]);else if(cs[2])rows.push([cs[2]]);
+  const r3=cs.slice(4).filter(Boolean);if(r3.length)rows.push(r3);
+  return rows;
+}
+
 function downloadPNG(){
-  // Composite all Chart.js canvases using native Canvas API — no external lib
-  const charts=Array.from(document.querySelectorAll('.page canvas')).filter(c=>c.width>0);
   const IDS=['s-chart-cand','s-chart-timeline','s-chart-benford','s-chart-lastdigit',
              's-chart-zscore','s-chart-participation','s-chart-nullblank'];
   const cs=IDS.map(id=>document.getElementById(id)).filter(c=>c&&c.width>0&&c.offsetWidth>0);
   if(!cs.length){logE('WARN','No hay gráficas — inicia la simulación primero');return;}
   const PAD=20,GAP=10,S=2;
   const W=cs[0].offsetWidth;
-  const rows=[[cs[0]],[cs[1]]];
-  if(cs[2]&&cs[3])rows.push([cs[2],cs[3]]);else if(cs[2])rows.push([cs[2]]);
-  const r3=cs.slice(4).filter(Boolean);if(r3.length)rows.push(r3);
+  const rows=_chartRows(cs);
   const rowH=rows.map(r=>Math.max(...r.map(c=>c.offsetHeight)));
-  const totalH=rowH.reduce((a,b)=>a+b,0)+GAP*(rows.length-1)+PAD*2+36;
+  const chartsH=rowH.reduce((a,b)=>a+b,0)+GAP*(rows.length-1);
+  const detCards=document.querySelectorAll('#s-forensic-list .forensic-card').length;
+  const detH=detCards>0?26+detCards*38+6:0;
+  const alertsH=26+(simAlerts.length?18+Math.min(30,simAlerts.length)*17+8:24);
+  const totalH=PAD+36+chartsH+GAP+(detH>0?detH+GAP:0)+alertsH+PAD;
   const out=document.createElement('canvas');
-  out.width=(W+PAD*2)*S; out.height=totalH*S;
+  out.width=(W+PAD*2)*S;out.height=totalH*S;
   const ctx=out.getContext('2d');
   ctx.scale(S,S);
   ctx.fillStyle='#0f1115';ctx.fillRect(0,0,W+PAD*2,totalH);
   ctx.fillStyle='#b08cf0';ctx.font='bold 14px system-ui';
-  ctx.fillText('CENTINEL Electoral',PAD,PAD+12);
-  ctx.fillStyle='#8b929c';ctx.font='12px system-ui';
-  ctx.fillText(`Snap ${SIM.idx+1} / ${SIM.snapshots.length}  ·  ${new Date().toLocaleString('es-HN')}`,PAD,PAD+28);
+  ctx.fillText('CENTINEL Electoral Honduras',PAD,PAD+12);
+  ctx.fillStyle='#8b929c';ctx.font='11px system-ui';
+  ctx.fillText(`Panel Forense · Snap ${SIM.idx+1}/${SIM.snapshots.length} · ${new Date().toLocaleString('es-HN')}`,PAD,PAD+28);
   let y=PAD+40;
   rows.forEach((row,ri)=>{
     const cw=Math.floor((W-GAP*(row.length-1))/row.length);
@@ -1486,12 +1553,83 @@ function downloadPNG(){
     row.forEach(c=>{ctx.drawImage(c,x,y,cw,c.offsetHeight);x+=cw+GAP;});
     y+=rowH[ri]+GAP;
   });
+  y+=4;
+  if(detCards>0){y=_drawDetectorsOnCtx(ctx,PAD,y,W);y+=GAP;}
+  y=_drawAlertsOnCtx(ctx,PAD,y,W);
   try{
     const a=document.createElement('a');
     a.href=out.toDataURL('image/png');
     a.download=`centinel-panel-snap${SIM.idx+1}.png`;
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     logE('OK','PNG del panel descargado');
+  }catch(e){logE('WARN','Canvas bloqueado — baja los shields para esta página');}
+}
+
+function downloadFullPNG(){
+  const IDS=['s-chart-cand','s-chart-timeline','s-chart-benford','s-chart-lastdigit',
+             's-chart-zscore','s-chart-participation','s-chart-nullblank'];
+  const cs=IDS.map(id=>document.getElementById(id)).filter(c=>c&&c.width>0&&c.offsetWidth>0);
+  if(!cs.length){logE('WARN','No hay gráficas — inicia la simulación primero');return;}
+  const PAD=20,GAP=10,S=2;
+  const W=cs[0].offsetWidth;
+  const rows=_chartRows(cs);
+  const rowH=rows.map(r=>Math.max(...r.map(c=>c.offsetHeight)));
+  const chartsH=rowH.reduce((a,b)=>a+b,0)+GAP*(rows.length-1);
+  const detCards=document.querySelectorAll('#s-forensic-list .forensic-card').length;
+  const detH=detCards>0?26+detCards*38+6:0;
+  const alertsH=26+(simAlerts.length?18+Math.min(30,simAlerts.length)*17+8:24);
+  const kpiH=26+42;
+  const chartsSecH=26+chartsH;
+  const totalH=PAD+36+kpiH+GAP+chartsSecH+GAP+(detH>0?detH+GAP:0)+alertsH+PAD;
+  const out=document.createElement('canvas');
+  out.width=(W+PAD*2)*S;out.height=totalH*S;
+  const ctx=out.getContext('2d');
+  ctx.scale(S,S);
+  ctx.fillStyle='#0f1115';ctx.fillRect(0,0,W+PAD*2,totalH);
+  // Branding
+  ctx.fillStyle='#b08cf0';ctx.font='bold 16px system-ui';
+  ctx.fillText('CENTINEL Electoral Honduras',PAD,PAD+14);
+  ctx.fillStyle='#8b929c';ctx.font='11px system-ui';
+  ctx.fillText(`Simulación Forense Académica · Snap ${SIM.idx+1}/${SIM.snapshots.length} · ${new Date().toLocaleString('es-HN')}`,PAD,PAD+30);
+  let y=PAD+40;
+  // KPI section
+  y=_ctxSectionBar(ctx,PAD,y,W,'INDICADORES DE LA SIMULACIÓN');
+  const kpiDefs=[
+    {label:'Actas Divulgadas',id:'k-actas',sub:'k-actas-sub'},
+    {label:'Votos Válidos',id:'k-votos',sub:'k-votos-sub'},
+    {label:'% Escrutinio',id:'k-pct',sub:'k-pct-sub'},
+    {label:'Integridad Cadena',id:'k-int',sub:'k-int-sub'},
+  ];
+  const kpiW=Math.floor(W/kpiDefs.length);
+  kpiDefs.forEach((k,i)=>{
+    const kx=PAD+i*kpiW;
+    ctx.fillStyle='#15171c';ctx.fillRect(kx,y,kpiW-2,40);
+    ctx.fillStyle='#8b929c';ctx.font='bold 8.5px system-ui';
+    ctx.fillText(k.label.toUpperCase(),kx+6,y+10);
+    const val=(document.getElementById(k.id)?.textContent||'—').trim();
+    const sub=k.sub?(document.getElementById(k.sub)?.textContent||'').trim():'';
+    ctx.fillStyle='#e7e9ec';ctx.font='bold 13px system-ui';
+    ctx.fillText(val.substring(0,16),kx+6,y+27);
+    if(sub){ctx.fillStyle='#8b929c';ctx.font='8px system-ui';ctx.fillText(sub.substring(0,24),kx+6,y+38);}
+  });
+  y+=42+GAP;
+  // Charts section
+  y=_ctxSectionBar(ctx,PAD,y,W,'PANEL DE VISUALIZACIÓN FORENSE');
+  rows.forEach((row,ri)=>{
+    const cw=Math.floor((W-GAP*(row.length-1))/row.length);
+    let x=PAD;
+    row.forEach(c=>{ctx.drawImage(c,x,y,cw,c.offsetHeight);x+=cw+GAP;});
+    y+=rowH[ri]+GAP;
+  });
+  y+=4;
+  if(detCards>0){y=_drawDetectorsOnCtx(ctx,PAD,y,W);y+=GAP;}
+  y=_drawAlertsOnCtx(ctx,PAD,y,W);
+  try{
+    const a=document.createElement('a');
+    a.href=out.toDataURL('image/png');
+    a.download=`centinel-completo-snap${SIM.idx+1}.png`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    logE('OK','PNG completo de la plataforma descargado');
   }catch(e){logE('WARN','Canvas bloqueado — baja los shields para esta página');}
 }
 
