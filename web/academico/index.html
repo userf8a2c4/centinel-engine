@@ -1,0 +1,2834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CENTINEL — Sandbox Forense Académico</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<script src="../config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1115;--panel:#15171c;--border:#24272e;--fg:#e7e9ec;
+  --muted:#8b929c;--accent:#6ea8fe;--ok:#57c08d;--bad:#df6b86;
+  --warn:#d4b066;--purple:#b08cf0;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-size:14px;min-height:100vh}
+body.auth-pending{visibility:hidden}
+
+/* ── NAV ── */
+#breadcrumb{padding:10px 24px;background:var(--panel);border-bottom:1px solid var(--border);
+  font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+#breadcrumb span{color:var(--fg)}
+#breadcrumb a{color:var(--muted);text-decoration:none}
+#breadcrumb a:hover{color:var(--fg)}
+#dl-btn{margin-left:auto;display:flex;gap:6px}
+.dl-pill{background:transparent;border:1px solid var(--border);color:var(--muted);
+  border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;
+  letter-spacing:.03em;transition:.15s}
+.dl-pill:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── CONSOLA DE REPRODUCCIÓN FORENSE ── */
+#sim-control-bar{
+  position:sticky;top:0;z-index:150;
+  background:rgba(15,17,21,.96);backdrop-filter:blur(8px);
+  border-bottom:2px solid rgba(176,140,240,.25);
+  padding:8px 20px;display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow:hidden;
+}
+.sim-transport-btn{
+  background:var(--panel);border:1px solid var(--border);color:var(--fg);
+  border-radius:8px;padding:6px 14px;font-size:18px;cursor:pointer;transition:.15s;
+  line-height:1;
+}
+.sim-transport-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sim-transport-btn.active{border-color:var(--accent);color:var(--accent)}
+.speed-group{display:flex;gap:4px}
+.speed-pill{
+  background:var(--panel);border:1px solid var(--border);color:var(--muted);
+  border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;transition:.15s;
+}
+.speed-pill.on{border-color:var(--purple);color:var(--purple);background:rgba(176,140,240,.1)}
+#sim-timeline-wrap{
+  flex:1;min-width:160px;position:relative;height:22px;
+  background:var(--border);border-radius:11px;cursor:pointer;overflow:hidden;
+}
+#sim-progress-fill{
+  height:100%;border-radius:11px;
+  background:linear-gradient(90deg,var(--purple),var(--accent));
+  transition:width .12s;pointer-events:none;
+}
+#sim-scrubber{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+  accent-color:var(--purple);
+}
+.sim-badge{
+  border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap;
+  background:rgba(139,146,156,.12);border:1px solid rgba(139,146,156,.3);color:var(--muted);
+}
+.sim-badge.playing{background:rgba(87,192,141,.12);border-color:rgba(87,192,141,.3);color:var(--ok)}
+.sim-badge.paused{background:rgba(212,176,102,.12);border-color:rgba(212,176,102,.3);color:var(--warn)}
+#sim-info{font-size:11px;color:var(--muted);white-space:nowrap}
+.dataset-select{
+  background:var(--panel);border:1px solid var(--border);color:var(--fg);
+  border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;width:220px;flex-shrink:0;
+}
+.dataset-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.05em;white-space:nowrap;}
+
+/* ── LAYOUT ── */
+.page{max-width:1400px;margin:0 auto;padding:20px}
+.section-title{
+  font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;
+  letter-spacing:.07em;margin:28px 0 14px;display:flex;align-items:center;gap:8px;
+}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.section-dl{background:transparent;border:1px solid var(--border);color:var(--muted);
+  border-radius:5px;padding:2px 8px;font-size:10px;font-weight:600;cursor:pointer;
+  letter-spacing:.03em;transition:.15s;white-space:nowrap;text-transform:none}
+.section-dl:hover{border-color:var(--accent);color:var(--accent)}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* ── KPIs ── */
+.kpi-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.kpi-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.kpi-val{font-size:22px;font-weight:800;color:var(--fg)}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.kpi-bar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.kpi-bar-fill{height:100%;border-radius:2px;background:var(--accent);transition:width .4s}
+.badge{display:inline-block;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700}
+.b-ok{background:rgba(87,192,141,.12);color:var(--ok);border:1px solid rgba(87,192,141,.3)}
+.b-bad{background:rgba(223,107,134,.12);color:var(--bad);border:1px solid rgba(223,107,134,.3)}
+.b-warn{background:rgba(212,176,102,.12);color:var(--warn);border:1px solid rgba(212,176,102,.3)}
+.b-pur{background:rgba(176,140,240,.12);color:var(--purple);border:1px solid rgba(176,140,240,.3)}
+.b-na{background:rgba(139,146,156,.12);color:var(--muted);border:1px solid rgba(139,146,156,.2)}
+
+/* ── FORENSIC CARDS ── */
+.forensic-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px}
+.forensic-hdr{
+  display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+  cursor:pointer;background:var(--panel);
+}
+.forensic-hdr:hover{background:rgba(255,255,255,.02)}
+.forensic-title{font-size:12px;font-weight:600}
+.forensic-body{display:none;padding:12px 14px;font-size:12px;color:var(--muted);
+  background:rgba(255,255,255,.015);line-height:1.6}
+.forensic-body.open{display:block}
+
+/* ── ALERTS TABLE ── */
+.alerts-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.alerts-tbl th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.04em;padding:6px 10px;border-bottom:1px solid var(--border);text-align:left}
+.alerts-tbl td{padding:8px 10px;border-bottom:1px solid rgba(36,39,46,.6)}
+.alerts-tbl tr:last-child td{border-bottom:none}
+#alerts-empty{text-align:center;color:var(--muted);padding:20px;font-size:12px}
+
+/* ── THRESHOLD SECTION ── */
+.thresh-lock-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px}
+.thresh-lock-panel h4{font-size:12px;font-weight:700;margin-bottom:10px;color:var(--accent)}
+#thresh-prereg-text{
+  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  color:var(--fg);font-family:var(--mono);font-size:12px;padding:10px 12px;resize:vertical;min-height:72px;
+}
+#thresh-prereg-text:focus{outline:none;border-color:var(--accent)}
+.lock-btn{
+  margin-top:8px;background:rgba(110,168,254,.1);border:1px solid rgba(110,168,254,.4);
+  color:var(--accent);border-radius:7px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;
+}
+.lock-btn:hover{background:rgba(110,168,254,.18)}
+.lock-btn:disabled{opacity:.4;cursor:not-allowed}
+.thresh-sliders{opacity:.3;pointer-events:none;transition:.3s}
+.thresh-sliders.unlocked{opacity:1;pointer-events:auto}
+.thresh-group{border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+.thresh-group-label{font-size:10px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.rule-row{display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid rgba(36,39,46,.5)}
+.rule-row:last-child{border-bottom:none}
+.rule-name{font-size:11px;color:var(--muted);flex:1;min-width:160px}
+.rule-chk{accent-color:var(--purple);cursor:pointer}
+.rule-slider{flex:1;min-width:80px;accent-color:var(--accent);cursor:pointer}
+.rule-val{font-size:11px;font-family:var(--mono);color:var(--fg);min-width:60px;text-align:right}
+.reset-btn{background:transparent;border:1px solid var(--border);color:var(--muted);
+  border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;margin-bottom:12px}
+.reset-btn:hover{border-color:var(--fg);color:var(--fg)}
+
+/* ── INJECTION MATRIX ── */
+.inj-mode-bar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.inj-mode-btn{
+  background:var(--panel);border:1px solid var(--border);color:var(--muted);
+  border-radius:7px;padding:7px 18px;cursor:pointer;font-size:13px;transition:.15s;
+}
+.inj-mode-btn.on{border-color:var(--accent);color:var(--accent);background:rgba(110,168,254,.08)}
+#inj-schedule-wrap{display:none;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+#inj-schedule-wrap.show{display:flex}
+#inj-sched-idx{
+  width:90px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  color:var(--fg);padding:5px 8px;font-size:12px;font-family:var(--mono);
+}
+.inj-block{border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.inj-block-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.inj-block-title span{font-size:10px}
+.inj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.inj-card{
+  background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;display:flex;flex-direction:column;gap:7px;
+}
+.inj-card-label{font-size:12px;font-weight:600}
+.inj-card-desc{font-size:10px;color:var(--muted);line-height:1.45}
+.inj-param-row{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
+.inj-param-row input[type=range]{flex:1;accent-color:var(--bad)}
+.inj-param-val{font-family:var(--mono);color:var(--fg);min-width:45px;text-align:right}
+.inj-btn{
+  background:transparent;border:1px solid rgba(223,107,134,.4);color:var(--bad);
+  border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;
+  transition:.15s;align-self:flex-end;
+}
+.inj-btn:hover{background:rgba(223,107,134,.1);border-color:var(--bad)}
+.inj-btn.b{border-color:rgba(212,176,102,.4);color:var(--warn)}
+.inj-btn.b:hover{background:rgba(212,176,102,.1);border-color:var(--warn)}
+.inj-btn.c{border-color:rgba(176,140,240,.4);color:var(--purple)}
+.inj-btn.c:hover{background:rgba(176,140,240,.1);border-color:var(--purple)}
+.breaking-badge{font-size:9px;background:rgba(223,107,134,.12);border:1px solid rgba(223,107,134,.3);
+  color:var(--bad);border-radius:4px;padding:1px 5px;white-space:nowrap}
+
+/* ── ACTIVE INJECTIONS ── */
+.inj-active-block{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;margin-bottom:10px}
+.inj-active-block:empty{display:none;margin:0}
+.inj-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(223,107,134,.1);border:1px solid rgba(223,107,134,.3);
+  color:var(--bad);border-radius:5px;padding:3px 8px;font-size:10px;font-weight:600;
+}
+.inj-tag.sched{background:rgba(212,176,102,.1);border-color:rgba(212,176,102,.3);color:var(--warn)}
+.inj-tag button{background:none;border:none;color:inherit;cursor:pointer;font-size:12px;padding:0 1px;line-height:1}
+/* ── SETTINGS MODAL ── */
+#settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+#settings-overlay.open{display:flex}
+#settings-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  width:100%;max-width:460px;max-height:90vh;overflow-y:auto;padding:24px}
+#settings-card::-webkit-scrollbar{width:4px}
+#settings-card::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.cfg-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.cfg-hdr h3{margin:0;font-size:16px;font-weight:600}
+.cfg-hdr button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;
+  padding:2px 6px;border-radius:4px}
+.cfg-hdr button:hover{color:var(--fg)}
+.cfg-email{font-size:12px;color:var(--muted);margin-bottom:20px;
+  padding-bottom:14px;border-bottom:1px solid var(--border)}
+.cfg-section{margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid var(--border)}
+.cfg-section:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.cfg-section-title{font-size:10px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.cfg-input{width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:7px;padding:8px 10px;color:var(--fg);font-size:13px;margin-bottom:8px;
+  font-family:inherit}
+.cfg-input:focus{outline:none;border-color:var(--accent)}
+.cfg-btn{background:var(--accent);border:none;color:#0f1115;font-weight:700;
+  font-size:12px;border-radius:7px;padding:8px 16px;cursor:pointer;margin-top:4px}
+.cfg-btn:hover{filter:brightness(1.1)}
+.cfg-btn.danger{background:transparent;border:1px solid rgba(223,107,134,.5);
+  color:var(--bad)}
+.cfg-btn.danger:hover{background:rgba(223,107,134,.1)}
+.cfg-msg{font-size:11px;margin-top:8px;min-height:16px}
+.cfg-msg.ok{color:var(--ok)}.cfg-msg.err{color:var(--bad)}
+.cfg-2fa-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cfg-2fa-status{font-size:12px}
+#cfg-qr-wrap{text-align:center;margin:12px 0}
+#cfg-qr-wrap img{width:140px;height:140px;border-radius:8px;border:1px solid var(--border)}
+.cfg-secret{font-family:ui-monospace,monospace;font-size:10px;background:var(--bg);
+  border:1px solid var(--border);border-radius:5px;padding:4px 8px;
+  color:var(--muted);word-break:break-all;margin-bottom:8px;display:block}
+.cfg-textarea{width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:7px;padding:8px 10px;color:var(--fg);font-size:12px;
+  font-family:inherit;resize:vertical;min-height:80px;margin-bottom:8px}
+.cfg-textarea:focus{outline:none;border-color:var(--accent)}
+/* ── ACTIVE INJECTIONS TOPBAR ── */
+#inj-topbar{max-width:1400px;margin:0 auto;padding:5px 24px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:5px;
+  background:rgba(223,107,134,.06);border-bottom:1px solid rgba(223,107,134,.18)}
+#inj-topbar-label{color:var(--muted);font-weight:700;font-size:9px;
+  letter-spacing:.07em;flex-shrink:0;margin-right:2px;text-transform:uppercase}
+.inj-tag-top{display:inline-flex;align-items:center;gap:4px;
+  background:rgba(223,107,134,.1);border:1px solid rgba(223,107,134,.3);
+  color:var(--bad);border-radius:4px;padding:2px 7px;font-size:9.5px;font-weight:600}
+.inj-tag-top.sched{background:rgba(212,176,102,.1);border-color:rgba(212,176,102,.3);color:var(--warn)}
+.inj-tag-top button{background:none;border:none;color:inherit;cursor:pointer;
+  font-size:11px;padding:0 1px;line-height:1;opacity:.7}
+.inj-tag-top button:hover{opacity:1}
+.inj-count-badge{display:inline-block;background:rgba(223,107,134,.2);
+  color:var(--bad);border-radius:999px;font-size:9px;font-weight:700;
+  padding:1px 6px;margin-left:6px;vertical-align:middle}
+
+/* ── TELEMETRY ── */
+.telem-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.telem-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.telem-panel h4{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.telem-log{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:10px;height:260px;overflow-y:auto;
+  font-family:var(--mono);font-size:10.5px;line-height:1.65;
+}
+.telem-log div{margin-bottom:1px;word-break:break-all}
+.tl-ok{color:var(--ok)}.tl-warn{color:var(--warn)}.tl-bad{color:var(--bad)}.tl-muted{color:var(--muted)}
+
+/* ── VIS OVERLAY ── */
+#vis-overlay{
+  display:none;position:fixed;inset:0;background:rgba(15,17,21,.88);
+  z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:16px;
+}
+#vis-overlay.show{display:flex}
+.overlay-msg{font-size:26px;font-weight:800;color:var(--bad);animation:blink 1s step-start infinite}
+@keyframes blink{50%{opacity:0}}
+.overlay-restore{
+  background:rgba(223,107,134,.12);border:1px solid var(--bad);color:var(--bad);
+  border-radius:8px;padding:8px 20px;cursor:pointer;font-size:13px;font-weight:600;
+}
+
+/* ── ANOMALY TIMELINE MARKERS ── */
+.anom-marker-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.anom-marker{
+  font-size:9px;background:rgba(223,107,134,.1);border:1px solid rgba(223,107,134,.3);
+  color:var(--bad);border-radius:4px;padding:2px 6px;cursor:default;
+}
+
+/* ── ANIMAL DEFENSES PANEL ── */
+.defenses-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.def-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;transition:border-color .3s,box-shadow .3s;
+}
+.def-card.triggered{border-color:rgba(212,176,102,.55)}
+.def-card.frozen{border-color:rgba(223,107,134,.7);animation:pulse-bad .9s ease infinite}
+.def-card.disabled{opacity:.42;border-color:rgba(139,146,156,.18)}
+@keyframes pulse-bad{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 4px rgba(223,107,134,.18)}}
+.def-emoji{font-size:22px;line-height:1}
+.def-name{font-size:13px;font-weight:700;margin-top:4px}
+.def-type{font-size:10px;color:var(--muted);margin-bottom:8px}
+.def-stat{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(36,39,46,.5)}
+.def-stat:last-child{border-bottom:none}
+.def-stat-val{color:var(--fg);font-family:var(--mono)}
+.threat-bar-bg{height:6px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden}
+.threat-bar-fill{height:100%;border-radius:3px;transition:width .4s,background .4s}
+.inj-btn.d{border-color:rgba(87,192,141,.4);color:var(--ok)}
+.inj-btn.d:hover{background:rgba(87,192,141,.1);border-color:var(--ok)}
+.b-teal{background:rgba(87,192,141,.12);color:var(--ok);border:1px solid rgba(87,192,141,.3)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px){.defenses-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){
+  .grid4{grid-template-columns:1fr 1fr}.grid2,.grid3{grid-template-columns:1fr}
+  .telem-wrap{grid-template-columns:1fr}
+  .inj-grid{grid-template-columns:1fr}
+  .defenses-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  .grid4{grid-template-columns:1fr}
+  #sim-control-bar{gap:8px}
+  .defenses-grid{grid-template-columns:1fr}
+}
+@media print{
+  #breadcrumb,#sim-control-bar,.section-title,
+  #thresh-section,#inj-section,#telem-section,
+  .thresh-lock-panel,.inj-active-block,#anom-marker-row,#inj-topbar{display:none!important}
+  body{background:#0f1115!important;color:#e7e9ec!important}
+  .page{padding:0!important}
+  .card{background:#15171c!important;border-color:#24272e!important;break-inside:avoid}
+  canvas{max-width:100%!important}
+  @page{margin:8mm;size:A4 portrait}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+}
+</style>
+</head>
+<body>
+
+<!-- VIS OVERLAY -->
+<div id="vis-overlay">
+  <div class="overlay-msg">⚠ SISTEMA DE VISUALIZACIÓN CAÍDO</div>
+  <div style="font-size:14px;color:var(--muted)">Evento A3 activo — datos congelados</div>
+  <button class="overlay-restore" onclick="restoreVis()">Restaurar visualización</button>
+</div>
+
+<!-- BREADCRUMB -->
+<div id="breadcrumb">
+  <a href="../">CENTINEL</a>
+  <span class="sep">/</span>
+  <span>Simulación Forense Académica</span>
+  <div id="dl-btn">
+    <button class="dl-pill" onclick="downloadFullPNG()">↓ PNG</button>
+    <button class="dl-pill" onclick="downloadPDF()">↓ PDF</button>
+    <span id="user-email" style="font-size:11px;color:var(--muted);padding:0 4px"></span>
+    <button class="dl-pill" onclick="openSettings()" title="Configuración de cuenta" style="font-size:14px;padding:3px 9px">⚙</button>
+    <button class="dl-pill" id="btn-logout" onclick="doLogout()" style="border-color:rgba(223,107,134,.4);color:var(--bad)">Salir</button>
+  </div>
+</div>
+
+<!-- CONSOLA DE REPRODUCCIÓN FORENSE -->
+<div id="sim-control-bar">
+  <span class="dataset-label">Dataset</span>
+  <select class="dataset-select" id="dataset-select" onchange="loadDataset(this.value)">
+    <optgroup label="Datos reales">
+      <option value="../data/hnd_2025_series.json">HN 2025 · 30 nov 2025 · 64 snaps</option>
+    </optgroup>
+    <optgroup label="Simulación estándar · 5 min · 576 snaps">
+      <option value="../data/sim_eleccion_limpia_5min.json">Limpia — sin anomalías</option>
+      <option value="../data/sim_eleccion_anomala_5min.json">Con anomalías embebidas [GT]</option>
+    </optgroup>
+    <optgroup label="Adversarial HN 2025 · 28 días · 5 min · 8 064 snaps">
+      <option value="../data/sim_mes_adversarial_5min.json">Calibrada — limpia</option>
+      <option value="../data/sim_mes_adversarial_anomala_5min.json">Calibrada — con anomalías [GT]</option>
+    </optgroup>
+  </select>
+
+  <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
+
+  <button class="sim-transport-btn" id="btn-play" onclick="simToggle()" title="Play / Pausa">▶</button>
+  <button class="sim-transport-btn" onclick="simStop()" title="Stop">⏹</button>
+  <button class="sim-transport-btn" id="btn-loop" onclick="toggleLoop()" title="Loop">⟳</button>
+
+  <div class="speed-group" id="speed-group">
+    <button class="speed-pill on" data-s="1"   onclick="setSpeed(1)">1×</button>
+    <button class="speed-pill"    data-s="10"  onclick="setSpeed(10)">10×</button>
+    <button class="speed-pill"    data-s="100" onclick="setSpeed(100)">100×</button>
+    <button class="speed-pill"    data-s="500" onclick="setSpeed(500)">500×</button>
+  </div>
+
+  <div id="sim-timeline-wrap">
+    <div id="sim-progress-fill" style="width:0%"></div>
+    <input type="range" id="sim-scrubber" min="0" max="575" value="0"
+           oninput="simJumpTo(this.value)" style="cursor:pointer">
+  </div>
+
+  <span id="sim-info">Snap 0 / — | 0%</span>
+  <span class="sim-badge" id="sim-badge">DETENIDO</span>
+</div>
+
+<!-- Active injections quick-bar — appears only when injections are active -->
+<div id="inj-topbar" style="display:none"></div>
+
+<div class="page">
+
+<!-- ══ SECTION 1 — KPIs ══════════════════════════════════════════════════════ -->
+<div class="section-title">Indicadores de la Simulación</div>
+<div class="grid4">
+  <div class="kpi-card">
+    <div class="kpi-label">Actas Divulgadas</div>
+    <div class="kpi-val" id="k-actas">—</div>
+    <div class="kpi-sub" id="k-actas-sub">de — totales</div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" id="k-actas-bar" style="width:0%"></div></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Votos Válidos</div>
+    <div class="kpi-val" id="k-votos">—</div>
+    <div class="kpi-sub" id="k-votos-sub">—</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">% Escrutinio</div>
+    <div class="kpi-val" id="k-pct">—</div>
+    <div class="kpi-sub" id="k-pct-sub">—</div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" id="k-pct-bar" style="width:0%;background:var(--purple)"></div></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Integridad de Cadena</div>
+    <div class="kpi-val" id="k-int">—</div>
+    <div class="kpi-sub" id="k-int-sub">—</div>
+  </div>
+</div>
+
+<!-- Anomaly markers (shown when anomalous dataset) -->
+<div id="anom-marker-row" class="anom-marker-row" style="margin-top:12px;display:none"></div>
+
+<!-- ══ SECTION 2 — CHARTS ════════════════════════════════════════════════════ -->
+<div class="section-title">Panel de Visualización Forense<button class="section-dl" onclick="downloadPNG()">↓ PNG</button></div>
+<div class="card" style="margin-bottom:14px">
+  <canvas id="s-chart-cand" height="80"></canvas>
+</div>
+<div class="card" style="margin-bottom:14px">
+  <canvas id="s-chart-timeline" height="70"></canvas>
+</div>
+<div class="grid2" style="margin-bottom:14px">
+  <div class="card">
+    <canvas id="s-chart-benford" height="120"></canvas>
+    <div id="s-benford-stats" style="margin-top:8px;font-size:11px;color:var(--muted)"></div>
+  </div>
+  <div class="card">
+    <canvas id="s-chart-lastdigit" height="120"></canvas>
+    <div id="s-lastdigit-stats" style="margin-top:8px;font-size:11px;color:var(--muted)"></div>
+  </div>
+</div>
+<div class="grid3" style="margin-bottom:14px">
+  <div class="card"><canvas id="s-chart-zscore" height="140"></canvas></div>
+  <div class="card"><canvas id="s-chart-participation" height="140"></canvas></div>
+  <div class="card"><canvas id="s-chart-nullblank" height="140"></canvas></div>
+</div>
+
+<!-- Forensic detector cards -->
+<div id="s-forensic-list" style="margin-bottom:14px"></div>
+
+<!-- Alerts table -->
+<div class="card" style="margin-bottom:14px">
+  <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Tabla de Alertas</div>
+  <div id="alerts-empty" style="color:var(--muted);font-size:12px;padding:12px 0">Sin alertas activas</div>
+  <table class="alerts-tbl" id="alerts-table" style="display:none">
+    <thead><tr>
+      <th>Tiempo</th><th>Tipo</th><th>Severidad</th><th>Descripción</th>
+    </tr></thead>
+    <tbody id="alerts-tbody"></tbody>
+  </table>
+</div>
+
+<!-- ══ SECTION 3 — THRESHOLDS ════════════════════════════════════════════════ -->
+<div class="section-title">Umbrales de Sensibilidad de Reglas<button class="section-dl" onclick="downloadUmbralesPNG()">↓ PNG</button></div>
+<div class="thresh-lock-panel">
+  <h4>Pre-registro de Hipótesis</h4>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+    Registra tu hipótesis antes de ajustar los umbrales. Una vez bloqueada, no se puede modificar (previene p-hacking).
+  </div>
+  <textarea id="thresh-prereg-text" placeholder="Hipótesis de investigación: ej. 'Si se reduce el umbral de Benford MAD a 0.005, el motor detectará la anomalía de ballot stuffing antes del snapshot 100 en la serie anómala.'"></textarea>
+  <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
+    <button class="lock-btn" id="thresh-lock-btn" onclick="lockThresholds()">Bloquear hipótesis y habilitar sliders</button>
+    <button class="lock-btn" id="thresh-unlock-btn" onclick="unlockThresholds()" style="display:none;background:transparent;border-color:var(--muted);color:var(--muted)">Desbloquear y borrar hipótesis</button>
+    <span id="thresh-lock-stat"></span>
+  </div>
+</div>
+<div class="thresh-sliders" id="thresh-sliders">
+  <button class="reset-btn" onclick="resetThresholds()">Restaurar defaults</button>
+  <div id="thresh-sliders-container"></div>
+</div>
+
+<!-- ══ SECTION 4 — INJECTION MATRIX ══════════════════════════════════════════ -->
+<div class="section-title">Matriz de Inyección de Eventos<button class="section-dl" onclick="downloadMatrizPNG()">↓ PNG</button></div>
+
+<div class="inj-mode-bar">
+  <button class="inj-mode-btn on" id="btn-inj-instant" onclick="setInjMode('instant')">Inmediata</button>
+  <button class="inj-mode-btn" id="btn-inj-sched" onclick="setInjMode('scheduled')">Programada</button>
+  <div id="inj-schedule-wrap">
+    en snapshot nº <input type="number" id="inj-sched-idx" min="0" max="575" value="100" style="width:70px">
+    <span style="font-size:10px;color:var(--muted)">(0–575)</span>
+  </div>
+</div>
+
+<!-- Bloque A -->
+<div class="inj-block">
+  <div class="inj-block-title">
+    <span class="badge b-bad">A</span> Anomalías del Sitio Origen — Vectores del Scraper
+    <span style="font-size:10px;color:var(--muted)">Fallos extrínsecos de la infraestructura de datos</span>
+  </div>
+  <div class="inj-active-block" id="inj-active-block-a"></div>
+  <div class="inj-grid" id="inj-grid-a"></div>
+</div>
+
+<!-- Bloque B -->
+<div class="inj-block">
+  <div class="inj-block-title">
+    <span class="badge b-warn">B</span> Escenario Red Team — Ataques a CENTINEL
+    <span style="font-size:10px;color:var(--muted)">Una defensa por tarjeta · escala hasta el punto de quiebre</span>
+  </div>
+  <div class="inj-active-block" id="inj-active-block-b"></div>
+  <div class="inj-grid" id="inj-grid-b"></div>
+</div>
+
+<!-- Bloque C -->
+<div class="inj-block">
+  <div class="inj-block-title">
+    <span class="badge b-pur">C</span> Anomalías Electorales Estadísticas
+    <span style="font-size:10px;color:var(--muted)">Patrones de fraude/error para evaluar mecanismos de detección</span>
+  </div>
+  <div class="inj-active-block" id="inj-active-block-c"></div>
+  <div class="inj-grid" id="inj-grid-c"></div>
+</div>
+
+<!-- Bloque D -->
+<div class="inj-block">
+  <div class="inj-block-title">
+    <span class="badge b-teal">D</span> Defensas Animales — Simular Compromiso
+    <span style="font-size:10px;color:var(--muted)">Desactiva una capa de defensa para observar el impacto en tiempo real</span>
+  </div>
+  <div class="inj-active-block" id="inj-active-block-d"></div>
+  <div class="inj-grid" id="inj-grid-d"></div>
+</div>
+
+<!-- ══ SECTION 5 — ANIMAL DEFENSES STATUS ════════════════════════════════════ -->
+<div class="section-title">Estado de Defensas Animales — 5 Capas Independientes</div>
+<div class="defenses-grid">
+  <div class="def-card" id="def-card-cuervo">
+    <div class="def-emoji">🐦</div>
+    <div class="def-name">Cuervo</div>
+    <div class="def-type">Gossip P2P</div>
+    <div id="def-status-cuervo"><span class="badge b-ok">ACTIVO ✓</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Hermanos</span><span class="def-stat-val" id="def-cuervo-siblings">3/3</span></div>
+      <div class="def-stat"><span>Consenso</span><span class="def-stat-val" id="def-cuervo-consensus">✓ OK</span></div>
+      <div class="def-stat"><span>Atestaciones</span><span class="def-stat-val" id="def-cuervo-att">0</span></div>
+    </div>
+  </div>
+  <div class="def-card" id="def-card-pulpo">
+    <div class="def-emoji">🦑</div>
+    <div class="def-name">Pulpo</div>
+    <div class="def-type">ChaCha20 Transport</div>
+    <div id="def-status-pulpo"><span class="badge b-ok">ACTIVO ✓</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Cifrado</span><span class="def-stat-val" id="def-pulpo-encrypted">0 KB</span></div>
+      <div class="def-stat"><span>Estado</span><span class="def-stat-val" id="def-pulpo-state">Normal</span></div>
+    </div>
+  </div>
+  <div class="def-card" id="def-card-venado">
+    <div class="def-emoji">🦌</div>
+    <div class="def-name">Venado</div>
+    <div class="def-type">Jitter ±30%</div>
+    <div id="def-status-venado"><span class="badge b-ok">ACTIVO ✓</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Jitter</span><span class="def-stat-val" id="def-venado-jitter">±0%</span></div>
+      <div class="def-stat"><span>Decoys</span><span class="def-stat-val" id="def-venado-decoys">0</span></div>
+    </div>
+  </div>
+  <div class="def-card" id="def-card-lagartija">
+    <div class="def-emoji">🦎</div>
+    <div class="def-name">Lagartija</div>
+    <div class="def-type">Sync Nightly</div>
+    <div id="def-status-lagartija"><span class="badge b-ok">ACTIVO ✓</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Mirrors</span><span class="def-stat-val" id="def-lagartija-mirrors">3/3 ✓</span></div>
+      <div class="def-stat"><span>Último sync</span><span class="def-stat-val" id="def-lagartija-sync">—</span></div>
+    </div>
+  </div>
+  <div class="def-card" id="def-card-tejon">
+    <div class="def-emoji">⚔️</div>
+    <div class="def-name">Tejón</div>
+    <div class="def-type">Kill Switch</div>
+    <div id="def-status-tejon"><span class="badge b-na">LISTO</span></div>
+    <div style="margin-top:8px">
+      <div class="def-stat"><span>Amenaza</span><span class="def-stat-val"><span id="def-tejon-score">0</span>/100</span></div>
+      <div class="threat-bar-bg"><div class="threat-bar-fill" id="def-tejon-bar" style="width:0%;background:var(--ok)"></div></div>
+      <div class="def-stat" style="margin-top:6px"><span>Intentos</span><span class="def-stat-val" id="def-tejon-attempts">0/5</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SECTION 6 — DUAL TELEMETRY ════════════════════════════════════════════ -->
+<div class="section-title">Centro de Telemetría Dual<button class="section-dl" onclick="downloadTelemTxt('engine')">↓ Engine TXT</button><button class="section-dl" onclick="downloadTelemTxt('attack')">↓ Attack TXT</button></div>
+<div class="telem-wrap">
+  <div class="telem-panel">
+    <h4>
+      <span style="width:8px;height:8px;background:var(--ok);border-radius:50%;display:inline-block"></span>
+      Pantalla 1 — Engine Telemetry
+    </h4>
+    <div class="telem-log" id="telem-engine"></div>
+  </div>
+  <div class="telem-panel">
+    <h4>
+      <span style="width:8px;height:8px;background:var(--bad);border-radius:50%;display:inline-block"></span>
+      Pantalla 2 — Attack Logger
+    </h4>
+    <div class="telem-log" id="telem-attack"></div>
+  </div>
+</div>
+
+<div style="height:60px"></div>
+</div><!-- /page -->
+
+<script>
+"use strict";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTH GATE
+// ═══════════════════════════════════════════════════════════════════════════
+const _sb = supabase.createClient(
+  window.CENTINEL_SUPABASE_URL  || '',
+  window.CENTINEL_SUPABASE_ANON || ''
+);
+(async()=>{
+  document.body.classList.add('auth-pending');
+  const {data:{session}} = await _sb.auth.getSession();
+  if(!session){window.location.replace('login.html');return;}
+  document.body.classList.remove('auth-pending');
+  const email = session.user.email || '';
+  const el = document.getElementById('user-email');
+  if(el) el.textContent = email;
+})();
+
+async function doLogout(){
+  await _sb.auth.signOut();
+  window.location.replace('login.html');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let SERIES = null;
+let SIM = {
+  snapshots: [],
+  idx: 0,
+  speed: 1,
+  state: 'stopped', // 'playing' | 'paused' | 'stopped'
+  timer: null,
+  loop: false,
+};
+const TICK_MS = { 1: 1500, 10: 200, 100: 20, 500: 4 };
+
+let activeInjections = [];
+let scheduledInjections = [];
+let injMode = 'instant';
+let simAlerts = [];
+let simChains = [];
+let historyBenford = [];
+let historyTimeline = [];
+let historyIncons = [];
+let historyLeader = [];   // sequence of leading party abbrev (for runs test)
+let historyLeadPct = [];  // leading party pct over time (for trend)
+
+// Defense state (D14–D18)
+const DEFENSES = {
+  cuervo:   { active:true, siblings:3, consensus:true, attestations:0 },
+  pulpo:    { active:true, encrypted:0, degraded:false },
+  venado:   { active:true, jitter:0, decoys:0 },
+  lagartija:{ active:true, mirrors:3, divergence:false, lastSync:null },
+  tejon:    { active:true, score:0, frozen:false, recoveryAttempts:0, _frozenAt:0 },
+};
+
+
+// Alert cooldown: prevents log spam for same rule within COOLDOWN_SNAPS
+const _alertLast = {};
+const _COOLDOWN = 144; // ~12h simulated time at 5-min intervals
+
+// Threshold values (keyed by id)
+let TV = {};
+let TE = {}; // enabled flags
+let threshLocked = false;
+
+// Charts registry
+let SC = {};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RULES DEFINITIONS
+// ═══════════════════════════════════════════════════════════════════════════
+const RULES_DEFS = [
+  {id:'benford_mad_warning',   grp:'Benford (1er dígito)',      label:'MAD warning',           min:0.001, max:0.05,  step:0.001, def:0.008, unit:''},
+  {id:'benford_mad_critical',  grp:'Benford (1er dígito)',      label:'MAD critical',           min:0.001, max:0.05,  step:0.001, def:0.015, unit:''},
+  {id:'benford_chi_pvalue',    grp:'Benford (ley candidatos)',  label:'Chi² p-valor',           min:0.001, max:0.1,   step:0.001, def:0.05,  unit:''},
+  {id:'benford_dev_pct',       grp:'Benford (ley candidatos)',  label:'Desviación %',           min:5,     max:40,    step:1,     def:15,    unit:'%'},
+  {id:'lastdigit_chi',         grp:'Uniformidad último dígito', label:'Chi² p-valor crítico',   min:0.0001,max:0.05,  step:0.0001,def:0.001, unit:''},
+  {id:'zscore_thr',            grp:'Anomalía granular',         label:'Z-score umbral',         min:1,     max:8,     step:0.1,   def:3.0,   unit:'σ'},
+  {id:'delta_pct',             grp:'Anomalía granular',         label:'Delta % alerta',         min:0.5,   max:15,    step:0.5,   def:3.0,   unit:'%'},
+  {id:'reversal_min',          grp:'Anomalía granular',         label:'Margen mín reversión',   min:100,   max:5000,  step:100,   def:500,   unit:' v'},
+  {id:'snap_jump_pct',         grp:'Salto de snapshot',         label:'Salto máx %',            min:1,     max:50,    step:1,     def:5,     unit:'%'},
+  {id:'snap_jump_min',         grp:'Salto de snapshot',         label:'Ventana (min)',           min:5,     max:60,    step:5,     def:10,    unit:'min'},
+  {id:'null_warn',             grp:'Nulos y Blancos',           label:'Warning %',              min:3,     max:20,    step:0.5,   def:8,     unit:'%'},
+  {id:'null_crit',             grp:'Nulos y Blancos',           label:'Critical %',             min:5,     max:30,    step:0.5,   def:12,    unit:'%'},
+  {id:'part_jump',             grp:'Participación anómala',     label:'Salto escrutinio',       min:1,     max:20,    step:0.5,   def:5,     unit:'%'},
+  {id:'part_mean',             grp:'Participación avanzada',    label:'Media histórica',        min:50,    max:100,   step:0.5,   def:88.15, unit:'%'},
+  {id:'part_std',              grp:'Participación avanzada',    label:'Stdev histórica',        min:0.5,   max:20,    step:0.5,   def:5.51,  unit:'%'},
+  {id:'speed_max',             grp:'Velocidad procesamiento',   label:'Máx actas / 15min',      min:100,   max:2000,  step:50,    def:500,   unit:''},
+  {id:'incons_crit',           grp:'Tasa inconsistencia',       label:'Inconsistencia critical',min:2,     max:30,    step:0.5,   def:10,    unit:'%'},
+  {id:'incons_delta',          grp:'Tasa inconsistencia',       label:'Escalada Δ',             min:0.1,   max:5,     step:0.1,   def:0.5,   unit:'%'},
+  {id:'geo_cv',                grp:'Dispersión geográfica',     label:'CV crítico',             min:0.1,   max:0.9,   step:0.05,  def:0.45,  unit:''},
+  {id:'corr_r',                grp:'Correlación part.-voto',    label:'Correlación R crítica',  min:0.5,   max:0.99,  step:0.01,  def:0.85,  unit:''},
+  {id:'runs_pval',             grp:'Corrida aleatoria',         label:'P-valor crítico',        min:0.001, max:0.1,   step:0.001, def:0.01,  unit:''},
+  {id:'trend_pct',             grp:'Desviación de tendencia',   label:'Umbral tendencia',       min:2,     max:30,    step:1,     def:10,    unit:'%'},
+  {id:'lln_z',                 grp:'Grandes números',           label:'Z umbral',               min:1,     max:6,     step:0.1,   def:3.0,   unit:'σ'},
+  {id:'vote_change',           grp:'Diferencia básica',         label:'Cambio relativo votos',  min:5,     max:40,    step:1,     def:15,    unit:'%'},
+];
+RULES_DEFS.forEach(r => { TV[r.id] = r.def; TE[r.id] = true; });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INJECTION EVENTS REGISTRY
+// ═══════════════════════════════════════════════════════════════════════════
+const EVENTS = {
+  // ── BLOQUE A ──────────────────────────────────────────────────────────
+  A1:{block:'A',label:'Desconexión de Endpoints',
+    desc:'Apaga selectivamente endpoints de datos; detiene el incremento de actas.',
+    breakpoint:'Sin datos nuevos → blackout activado',
+    param:{label:'Endpoints',min:1,max:19,def:5,unit:''},
+    apply(s,p){s.blackout=true;s._ep_disc=p;
+      logE('WARN',`Inyección A1: ${p} endpoints desconectados — blackout activado`);
+      logA('ALERT','10.0.0.1','Endpoint kill','Mitigated · Rerouted');}
+  },
+  A2:{block:'A',label:'Rollback de Datos',
+    desc:'Revierte actas_divulgadas y votos a un estado anterior (timestamp no monótono).',
+    breakpoint:'Snapshot_jump negativo → Benford gap → alerta de reversión',
+    param:{label:'Snapshots atrás',min:1,max:20,def:5,unit:''},
+    apply(s,p,idx){
+      const t=Math.max(0,idx-p); const old=SIM.snapshots[t];
+      s.actas_divulgadas=old.actas_divulgadas; s.validos=old.validos;
+      s.nulos=old.nulos; s.blancos=old.blancos; s._rollback=true;
+      pushAlert('CRITICAL','Rollback',`Datos revertidos ${p} snapshots — reversión detectada`);
+      logE('CRITICAL',`Rollback: datos revertidos al estado del snapshot ${t}`);}
+  },
+  A3:{block:'A',label:'Caída del Sistema de Visualización',
+    desc:'Simula colapso total del sistema de entrega de datos externos.',
+    breakpoint:'Visualización offline → todos los gráficos congelados',
+    param:null,
+    apply(s){s._vis_down=true;s.blackout=true;document.getElementById('vis-overlay').classList.add('show');
+      logE('CRITICAL','Sistema de visualización caído — modo offline activo');
+      logA('CRITICAL','0.0.0.0','DoS — API down','Cached Persistent');}
+  },
+  A4:{block:'A',label:'Hold-and-Release Masivo',
+    desc:'Congela el flujo de actas y luego las libera todas de golpe (burst masivo).',
+    breakpoint:'Spike de velocidad → processing_speed alerta → snapshot_jump crítico',
+    param:{label:'Actas retenidas',min:200,max:5000,def:1200,unit:''},
+    apply(s,p,idx){
+      if(!this._hc)this._hc=0; this._hc++;
+      if(this._hc<5){s.actas_divulgadas=SIM.snapshots[Math.max(0,idx-1)].actas_divulgadas;
+        logE('WARN',`Hold-and-Release: reteniendo ${p} actas — ciclo ${this._hc}/5`);}
+      else{s.actas_divulgadas=Math.min(s.actas_divulgadas+p,s.actas_totales);
+        s.validos+=p*165; s._hold_release=true; this._hc=0;
+        pushAlert('CRITICAL','HoldRelease',`Liberación masiva de ${p} actas — velocidad 5× la normal`);
+        logE('CRITICAL',`Hold-and-Release: burst de ${p} actas liberadas`);}}
+  },
+  A5:{block:'A',label:'Apagón Geográfico',
+    desc:'Todas las actas de un departamento dejan de llegar simultáneamente.',
+    breakpoint:'CV geográfico spike → dispersión crítica',
+    param:{label:'Intensidad',min:1,max:5,def:1,unit:'×'},
+    apply(s,p){s._geo_blackout=true;s._geo_factor=p;
+      pushAlert('HIGH','GeoBlackout','Francisco Morazán: sin datos');
+      logE('CRITICAL','Apagón geográfico: Francisco Morazán sin actas');}
+  },
+  A6:{block:'A',label:'Desincronización de Timestamps',
+    desc:'Timestamps consecutivos no monótonos o con salto al futuro.',
+    breakpoint:'Trend analysis colapsado → timeline inconsistente',
+    param:{label:'Drift (min)',min:5,max:180,def:45,unit:''},
+    apply(s,p){const d=new Date(s.ts);d.setMinutes(d.getMinutes()+p);s.ts=d.toISOString();
+      s._ts_drift=p;
+      logE('WARN',`Desincronización: timestamp +${p}min — monotonía rota`);}
+  },
+  A7:{block:'A',label:'Duplicación de Actas',
+    desc:'Mismo lote de actas repetido con votos distintos (detección de duplicados).',
+    breakpoint:'Votos inflados → Benford violation → mesa_reconciliation alerta',
+    param:{label:'Actas duplicadas',min:10,max:500,def:80,unit:''},
+    apply(s,p){const bonus=p*150;s.validos+=bonus;
+      s.partidos.forEach(pt=>{pt.votos+=Math.round(bonus*(pt.pct/100));});
+      s._duplication=p;
+      pushAlert('HIGH','AktaDuplication',`${p} actas duplicadas — +${bonus.toLocaleString()} votos inflados`);
+      logE('CRITICAL',`Duplicación: +${p} actas → +${bonus.toLocaleString()} votos fantasma`);}
+  },
+  A8:{block:'A',label:'Datos Parciales / Truncados',
+    desc:'Payloads JSON con campos críticos nulos o ausentes.',
+    breakpoint:'basic_diff alerta → table_consistency violation',
+    param:{label:'Probabilidad %',min:10,max:80,def:30,unit:'%'},
+    apply(s,p){const pr=p/100;
+      if(Math.random()<pr)s.validos=null;
+      if(Math.random()<pr)s.nulos=null;
+      if(Math.random()<pr)s.blancos=null;
+      s._partial=true;
+      logE('WARN',`Datos truncados: ${p}% probabilidad de campos nulos por snapshot`);}
+  },
+  A9:{block:'A',label:'Throttling Artificial del CNE',
+    desc:'Solo 1 actualización de actas cada N ticks (cadencia artificialmente reducida).',
+    breakpoint:'Participation anomaly → latency detectada',
+    param:{label:'Ticks entre updates',min:2,max:8,def:3,unit:''},
+    apply(s,p,idx){if(idx%p!==0){s.actas_divulgadas=SIM.snapshots[Math.max(0,idx-1)].actas_divulgadas;
+      s._throttled=true;} logE('WARN',`Throttling: actualización cada ${p} ticks`);}
+  },
+
+  // ── BLOQUE B ──────────────────────────────────────────────────────────
+  B1:{block:'B',label:'DDoS Sostenido',
+    desc:'Simula carga masiva de solicitudes. Evalúa rate limiting y arquitectura Static-First.',
+    breakpoint:'> 100k req/s → Rate limiter exhausto → logs muestran "503 flooding"',
+    param:{label:'Intensidad (req/s)',min:100,max:200000,def:5000,unit:''},
+    apply(s,p){s._ddos=p;
+      for(let i=0;i<Math.min(4,1+Math.floor(p/10000));i++){
+        logA('CRITICAL',`${rndIP()}`,'DDoS HTTP flood',
+          p>100000?'⚠ Rate limiter EXHAUSTO':'Mitigated · Rate limited');}
+      if(p>100000)pushAlert('CRITICAL','DDoS',`Rate limiter superado: ${p.toLocaleString()} req/s`);
+      logE('CRITICAL',`DDoS: ${p.toLocaleString()} req/s — ${p>100000?'LÍMITE SUPERADO':'mitigado'}`);}
+  },
+  B2:{block:'B',label:'Activación de Honeypots',
+    desc:'Peticiones a rutas trampa (/admin, /debug, /.git). Evalúa detección perimetral.',
+    breakpoint:'Sin escalada → "Honeypot muted" (falso negativo)',
+    param:{label:'Intentos por tick',min:1,max:50,def:5,unit:''},
+    apply(s,p){const routes=['/admin','/debug','/.git','/.env','/api/internal','/metrics'];
+      for(let i=0;i<Math.min(p,6);i++){
+        logA('WARN',rndIP(),`Honeypot trigger → ${routes[i%routes.length]}`,
+          'Blacklisted · Fingerprinted');}
+      logE('INFO',`Honeypots: ${p} peticiones a rutas trampa capturadas`);}
+  },
+  B3:{block:'B',label:'Tampering / Alteración en Tránsito',
+    desc:'Inyecta votos alterados y hash SHA-256 incorrecto. Evalúa integridad de cadena.',
+    breakpoint:'100% alteración → integridad 0% → cadena "ROTA"',
+    param:{label:'% actas alteradas',min:1,max:100,def:10,unit:'%'},
+    apply(s,p){const f=p/100;
+      if(s.partidos&&s.partidos.length>=2){const d=Math.round(s.partidos[1].votos*f*0.1);
+        s.partidos[0].votos+=d;s.partidos[1].votos-=d;}
+      s._chain_broken_pct=p;
+      if(p>=80)pushAlert('CRITICAL','ChainTampering',`${p}% actas alteradas — cadena comprometida`);
+      logE('CRITICAL',`Tampering: ${p}% votos alterados → SHA-256 mismatch → integridad ${(100-p).toFixed(0)}%`);
+      logA('CRITICAL',rndIP(),'MITM hash tampering',
+        p>=100?'⚠ CADENA ROTA':'SHA-256 rejected · Mitigated');}
+  },
+  B4:{block:'B',label:'Inyección de Hash Falso',
+    desc:'Inserta un bloque forjado. Evalúa verificación del árbol de Merkle.',
+    breakpoint:'Merkle root mismatch persistente → chain verification = FAIL',
+    param:null,
+    apply(s){s._false_hash=fakeHash(Math.random());
+      pushAlert('CRITICAL','MerkleInject','Merkle root mismatch — bloque forjado detectado');
+      logE('CRITICAL','Hash falso: divergencia de Merkle root → chain fork rechazado');
+      logA('CRITICAL',rndIP(),'Block hash injection','Blacklisted · Chain fork rejected');}
+  },
+  B5:{block:'B',label:'Contaminación de Espejo CDN',
+    desc:'Uno o más espejos sirven datos modificados. Evalúa consenso multi-espejo.',
+    breakpoint:'≥50% contaminados → consenso imposible → modo offline',
+    param:{label:'Espejos comprometidos',min:1,max:5,def:1,unit:' de 5'},
+    apply(s,p){s._cdn_mirrors_poisoned=p;
+      if(p>=3)pushAlert('CRITICAL','CDNPoison',`${p}/5 espejos contaminados — consenso imposible`);
+      logE(p>=3?'CRITICAL':'WARN',`CDN: ${p}/5 espejos contaminados — ${p>=3?'CONSENSO IMPOSIBLE':'divergencia detectada'}`);
+      logA('WARN','CDN-Edge-Node-'+p,'Mirror poisoning',
+        p>=3?'⚠ CONSENSUS FAILED':'Cached Persistent · Mitigated');}
+  },
+  B6:{block:'B',label:'Envenenamiento de Caché',
+    desc:'TTL falso: datos obsoletos servidos durante N ticks. Evalúa frescura de datos.',
+    breakpoint:'TTL > 60min → divergencia >25% del origen real → alerta de consistencia',
+    param:{label:'TTL falso (min)',min:5,max:240,def:30,unit:'min'},
+    apply(s,p){s._cache_stale=p;
+      if(p>60)pushAlert('HIGH','CachePoison',`Caché venenoso: TTL=${p}min → datos obsoletos`);
+      logE(p>60?'CRITICAL':'WARN',`Caché: TTL=${p}min — ${p>60?'divergencia crítica':'monitoreo activo'}`);
+      logA('WARN',rndIP(),'Cache poisoning',`TTL=${p}min · Cached Persistent`);}
+  },
+  B7:{block:'B',label:'Ataque de Sincronización Temporal',
+    desc:'Manipula timestamps para crear falsa estabilidad en el análisis de tendencias.',
+    breakpoint:'Todos timestamps iguales → trend analysis colapsado',
+    param:{label:'Distorsión (min)',min:1,max:120,def:15,unit:'min'},
+    apply(s,p){if(SIM.idx<SIM.snapshots.length-1){
+      s.ts=SIM.snapshots[Math.min(SIM.idx+1,SIM.snapshots.length-1)].ts;}
+      s._time_distorted=p;
+      logE('WARN',`Sincronización temporal: timestamps distorsionados ±${p}min`);
+      logA('WARN',rndIP(),'NTP timing attack',`+${p}min drift · Mitigated`);}
+  },
+  B8:{block:'B',label:'Falsificación de Ancla OTS',
+    desc:'Intenta reemplazar el Merkle root anclado en Bitcoin. Evalúa inmutabilidad OTS.',
+    breakpoint:'Siempre falla (OTS inmutable) — muestra "OTS anchor mismatch"',
+    param:null,
+    apply(s){s._ots_attack=true;
+      logE('CRITICAL','Ataque OTS: intento de suplantar ancla Bitcoin → RECHAZADO (OTS inmutable)');
+      logA('CRITICAL',rndIP(),'OpenTimestamps spoof','⚠ OTS ANCHOR MISMATCH · Rejected');}
+  },
+  B9:{block:'B',label:'Bypass de Firma Ed25519',
+    desc:'Inyecta payload sin firma válida de operador. Evalúa verificación de firma.',
+    breakpoint:'Checkpoint rechazado → KPI muestra "Firma inválida"',
+    param:null,
+    apply(s){s._sig_invalid=true;
+      pushAlert('CRITICAL','SigBypass','Firma Ed25519 inválida — checkpoint rechazado');
+      logE('CRITICAL','Firma de operador inválida — checkpoint rechazado por verificador');
+      logA('CRITICAL',rndIP(),'Ed25519 bypass attempt','Signature rejected · Blacklisted');}
+  },
+  B10:{block:'B',label:'Tampering del Binario (Auto-audit)',
+    desc:'Simula hash de binario diferente al baseline. Evalúa auto-auditoría de integridad.',
+    breakpoint:'Auto-audit falla → todos los semáforos rojos → modo cuarentena',
+    param:{label:'Módulos comprometidos',min:1,max:5,def:2,unit:''},
+    apply(s,p){s._binary_tampered=p;
+      pushAlert('CRITICAL','BinaryTamper',`Auto-audit: ${p} módulos con hash diferente al baseline`);
+      logE('CRITICAL',`Binary integrity: ${p} módulos comprometidos → AUTO-AUDIT FALLA → cuarentena`);
+      logA('CRITICAL',rndIP(),'Binary tampering',`${p} modules → Quarantine mode`);}
+  },
+  B11:{block:'B',label:'Bypass de Zero-Trust Middleware',
+    desc:'Peticiones con cabeceras forjadas (X-Forwarded-For, Origin falso). Evalúa middleware.',
+    breakpoint:'Middleware no filtra → "ZT bypass" en log → datos no autorizados',
+    param:{label:'Cabeceras forjadas',min:1,max:10,def:3,unit:''},
+    apply(s,p){s._zt_bypass_attempt=p;
+      for(let i=0;i<Math.min(p,5);i++){
+        logA(p>=5?'CRITICAL':'WARN',rndIP(),
+          `ZT bypass: X-Forwarded-For spoof`,p>=5?'⚠ ZT BYPASS DETECTED':'Filtered · Mitigated');}
+      if(p>=5)pushAlert('CRITICAL','ZTBypass',`Zero-trust bypass: ${p} cabeceras forjadas penetraron`);
+      logE(p>=5?'CRITICAL':'WARN',`Zero-trust middleware: ${p} cabeceras forjadas — ${p>=5?'BYPASS DETECTADO':'filtradas'}`);}
+  },
+  B12:{block:'B',label:'Colapso Cascada de Espejos',
+    desc:'Contamina espejos 1→2→3 en ticks consecutivos hasta consenso imposible.',
+    breakpoint:'3er espejo contaminado → sistema entra en modo solo-local',
+    param:{label:'Velocidad cascada (ticks)',min:1,max:10,def:3,unit:''},
+    apply(s,p){if(!this._cascade)this._cascade=0;this._cascade++;
+      s._cdn_mirrors_poisoned=Math.min(this._cascade,5);
+      const msg=this._cascade>=3?'⚠ MODO SOLO-LOCAL ACTIVADO':'Escalando...';
+      if(this._cascade>=3)pushAlert('CRITICAL','MirrorCascade','Consenso imposible — modo solo-local');
+      logE(this._cascade>=3?'CRITICAL':'WARN',`Cascada espejos: ${this._cascade} comprometidos — ${msg}`);
+      logA('WARN',`CDN-Mirror-${this._cascade}`,'Mirror cascade poisoning',msg);}
+  },
+  B13:{block:'B',label:'Bifurcación de Cadena (Chain Fork)',
+    desc:'Dos nodos reciben versiones distintas del mismo snapshot — fork detectado.',
+    breakpoint:'Fork persistente → ingesta pausada hasta reconciliación',
+    param:null,
+    apply(s){s._chain_fork=true;
+      pushAlert('CRITICAL','ChainFork','Fork de cadena detectado — motor pausado hasta reconciliación');
+      logE('CRITICAL','Chain fork: dos versiones del snapshot divergen — ingesta suspendida');
+      logA('CRITICAL',rndIP(),'Chain split attack','Fork isolated · Reconciliation pending');}
+  },
+
+  // ── BLOQUE C ──────────────────────────────────────────────────────────
+  C1:{block:'C',label:'Inyección Progresiva de Ventaja',
+    desc:'Un candidato gana votos adicionales por snapshot de forma sistemática.',
+    breakpoint:'Asymmetric benefit detector → CRITICAL tras N snapshots',
+    param:{label:'Votos extra / snap',min:50,max:3000,def:400,unit:''},
+    apply(s,p){const acc=activeInjections.filter(i=>i.id==='C1').length*p;
+      if(s.partidos&&s.partidos.length>0){s.partidos[0].votos+=acc;s.validos+=acc;}
+      logE('CRITICAL',`Inyección progresiva: partido[0] acumula +${acc.toLocaleString()} votos`);}
+  },
+  C2:{block:'C',label:'Votos Redondeados (Ballot Stuffing)',
+    desc:'Totales redondeados al múltiplo de N → viola Benford y uniformidad de último dígito.',
+    breakpoint:'Benford MAD spike → último dígito chi² → CRITICAL',
+    param:{label:'Redondeo a múltiplo de',min:100,max:1000,def:500,unit:''},
+    apply(s,p){if(s.partidos)s.partidos.forEach(pt=>{pt.votos=Math.round(pt.votos/p)*p;});
+      s._benford_biased=true;
+      logE('WARN',`Votos redondeados a ×${p} — violación Benford y último dígito inminente`);}
+  },
+  C3:{block:'C',label:'Abstención Anormal por Zona',
+    desc:'Un departamento salta a participación imposible en un tick.',
+    breakpoint:'Participation_anomaly_advanced z-score > 3σ → CRITICAL',
+    param:{label:'Participación forzada %',min:50,max:100,def:97,unit:'%'},
+    apply(s,p){const implied=Math.round(s.actas_totales*p/100);
+      s.actas_divulgadas=Math.max(s.actas_divulgadas,implied);
+      s._forced_part=p;
+      pushAlert('HIGH','AbnormalAbstention',`Participación forzada a ${p}% en zona afectada`);
+      logE('CRITICAL',`Abstención anormal: participación ${p}% → z-score > 3σ`);}
+  },
+  C4:{block:'C',label:'Concentración Extrema de Votos',
+    desc:'Un candidato obtiene >90% de todas las actas nuevas de una zona.',
+    breakpoint:'Z-score departamental extremo → geographic_dispersion CRITICAL',
+    param:{label:'Mesas afectadas',min:10,max:300,def:80,unit:''},
+    apply(s,p){const tv=p*150,p0=Math.round(tv*0.93);
+      if(s.partidos&&s.partidos.length>0){s.partidos[0].votos+=p0;s.validos+=tv;}
+      s._concentration=p;
+      pushAlert('CRITICAL','VoteConcentration',`Partido[0]: 93% en ${p} mesas → z-score extremo`);
+      logE('CRITICAL',`Concentración: partido[0] obtiene 93% en ${p} mesas — dispersión geográfica crítica`);}
+  },
+  C5:{block:'C',label:'Campaña de Votos Nulos',
+    desc:'Spike sistemático de nulos en zonas de oposición.',
+    breakpoint:'null_blank_votes: critical_pct superado → CRITICAL',
+    param:{label:'Factor multiplicador',min:1.5,max:10,def:3.5,unit:'×'},
+    apply(s,p){s.nulos=Math.round((s.nulos||0)*p);
+      pushAlert('HIGH','NullCampaign',`Votos nulos ×${p} — campaña de nulización detectada`);
+      logE('WARN',`Campaña de nulos: ×${p} — umbral null_blank_critical superado`);}
+  },
+  C6:{block:'C',label:'Aceleración Nocturna (2–4 AM)',
+    desc:'40% de las actas pendientes llegan en un solo tick de madrugada.',
+    breakpoint:'processing_speed: max_actas_per_15min superado → CRITICAL',
+    param:{label:'Actas madrugada',min:200,max:3000,def:900,unit:''},
+    apply(s,p){s.actas_divulgadas=Math.min(s.actas_divulgadas+p,s.actas_totales);
+      s.validos+=(p*165);s._nocturnal=true;
+      pushAlert('CRITICAL','NocturnalAccel',`+${p} actas a las 2–4 AM → velocidad 8× la normal`);
+      logE('CRITICAL',`Aceleración nocturna: +${p} actas → processing_speed CRÍTICO`);}
+  },
+  C7:{block:'C',label:'Uniformidad Sospechosa de Mesas',
+    desc:'Porcentajes de candidatos idénticos durante N ticks → datos fabricados.',
+    breakpoint:'last_digit_uniformity chi² spike → runs_test → CRITICAL',
+    param:null,
+    apply(s){if(s.partidos)s.partidos.forEach((pt,i)=>{
+      pt.votos=Math.round((s.validos||0)*PARTIDOS_FINAL[i].pct/100);
+      pt.pct=PARTIDOS_FINAL[i].pct;});
+      s._uniformidad_sospechosa=true;
+      logE('WARN','Uniformidad sospechosa: todos los % idénticos al teórico → fabricación de datos');}
+  },
+  C8:{block:'C',label:'Inversión de Resultados post-Apagón',
+    desc:'Tras un apagón, el candidato líder cambia abruptamente.',
+    breakpoint:'trend_shift critical + asymmetric_benefit → CRITICAL',
+    param:null,
+    apply(s){if(s.partidos&&s.partidos.length>=2){
+      const v0=s.partidos[0].votos,v1=s.partidos[1].votos;
+      s.partidos[0].votos=v1;s.partidos[1].votos=v0;
+      s.partidos[0].pct=parseFloat((v1/(s.validos||1)*100).toFixed(2));
+      s.partidos[1].pct=parseFloat((v0/(s.validos||1)*100).toFixed(2));}
+      s._inversion=true; s._resultado_invertido=true;
+      pushAlert('CRITICAL','ResultInversion','Candidato líder cambia post-apagón → trend_shift CRITICAL');
+      logE('CRITICAL','Inversión de resultados: partido[0] y [1] intercambiados post-apagón');}
+  },
+  C9:{block:'C',label:'Arrastre Coordinado de Partido',
+    desc:'Exactamente +N% para un partido en todos los departamentos simultáneamente.',
+    breakpoint:'geographic_dispersion: demasiado uniforme → runs_test → CRITICAL',
+    param:{label:'Votos coordinados / snap',min:100,max:2000,def:500,unit:''},
+    apply(s,p){if(s.partidos&&s.partidos.length>0){s.partidos[0].votos+=p;s.validos+=p;}
+      s._coordinated=true;
+      logE('WARN',`Arrastre coordinado: +${p} votos uniformes para partido[0] en todos los dptos`);}
+  },
+  C10:{block:'C',label:'Mesa Fantasma / Conteo Imposible',
+    desc:'actas_divulgadas supera actas_totales — mesas que no existen.',
+    breakpoint:'turnout_impossible rule → CRITICAL inmediato',
+    param:{label:'Actas fantasma',min:10,max:1000,def:300,unit:''},
+    apply(s,p){s.actas_divulgadas=(s.actas_totales||19167)+p;
+      pushAlert('CRITICAL','GhostMesas',`Conteo imposible: ${s.actas_divulgadas} > ${s.actas_totales} actas`);
+      logE('CRITICAL',`Mesa fantasma: actas_divulgadas=${s.actas_divulgadas} > totales=${s.actas_totales} → CRITICAL`);}
+  },
+
+  // ── BLOQUE D — Comprometer defensas animales ──────────────────────────
+  D1:{block:'D',label:'🐦 Silenciar Cuervo',
+    desc:'Desactiva el gossip P2P entre testigos. El sistema queda sin consenso distribuido — testigo único vulnerable.',
+    breakpoint:'Sin hermanos activos → divergencia Merkle pasa desapercibida → ataque indetectable',
+    param:null,
+    apply(s){DEFENSES.cuervo.active=false;DEFENSES.cuervo.siblings=0;
+      logE('WARN','Defensa D14 Cuervo: gossip P2P desactivado — testigo único expuesto');
+      logA('WARN','attacker','D14 silenced: Cuervo gossip disabled','No P2P consensus · Single witness · Merkle divergence undetectable');},
+    cleanup(){DEFENSES.cuervo.active=true;DEFENSES.cuervo.siblings=3;
+      logE('OK','Defensa D14 Cuervo: reactivado — consenso P2P restaurado');}
+  },
+  D2:{block:'D',label:'🦑 Desactivar Pulpo',
+    desc:'Desactiva el cifrado ChaCha20Poly1305 de tránsito. Todo el tráfico entre testigos en texto claro.',
+    breakpoint:'MITM indetectable → tránsito sin cifrar → intercepción de datos posible',
+    param:null,
+    apply(s){DEFENSES.pulpo.active=false;DEFENSES.pulpo.degraded=true;
+      logE('WARN','Defensa D15 Pulpo: cifrado desactivado — tránsito en claro');
+      logA('CRITICAL','attacker','D15 silenced: Pulpo encryption disabled','Traffic plaintext · MITM possible');},
+    cleanup(){DEFENSES.pulpo.active=true;DEFENSES.pulpo.degraded=false;
+      logE('OK','Defensa D15 Pulpo: reactivado — ChaCha20Poly1305 activo');}
+  },
+  D3:{block:'D',label:'🦌 Desactivar Venado',
+    desc:'Desactiva el jitter de timing. Capturas en intervalo fijo y predecible — timing attacks posibles.',
+    breakpoint:'Patrón de captura predecible → atacante puede inyectar exactamente antes del snapshot',
+    param:null,
+    apply(s){DEFENSES.venado.active=false;
+      logE('WARN','Defensa D16 Venado: jitter desactivado — intervalos fijos predecibles');
+      logA('WARN','attacker','D16 silenced: Venado jitter disabled','Fixed interval · Timing attacks possible · No decoys');},
+    cleanup(){DEFENSES.venado.active=true;
+      logE('OK','Defensa D16 Venado: reactivado — jitter ±30% activo');}
+  },
+  D4:{block:'D',label:'🦎 Desactivar Lagartija',
+    desc:'Desactiva el sync nocturno con mirrors. Sin auto-regeneración ante rootkit local o tampering de binarios.',
+    breakpoint:'Rootkit local indetectable → datos modificados persisten sin restauración',
+    param:null,
+    apply(s){DEFENSES.lagartija.active=false;DEFENSES.lagartija.mirrors=0;
+      logE('WARN','Defensa D17 Lagartija: sync desactivado — sin auto-restauración');
+      logA('CRITICAL','attacker','D17 silenced: Lagartija sync disabled','No mirror sync · Rootkit undetectable');},
+    cleanup(){DEFENSES.lagartija.active=true;DEFENSES.lagartija.mirrors=3;
+      logE('OK','Defensa D17 Lagartija: reactivado — sync con mirrors activo');}
+  },
+  D5:{block:'D',label:'⚔️ Desactivar Tejón',
+    desc:'Desactiva el kill switch. El sistema no se congelará ante puntuaciones de amenaza ≥75 — ataques sin contención.',
+    breakpoint:'Score ≥75 sin freeze → ataque activo continúa sin respuesta autónoma',
+    param:null,
+    apply(s){DEFENSES.tejon.active=false;
+      logE('WARN','Defensa D18 Tejón: kill switch desactivado — sin respuesta autónoma');
+      logA('CRITICAL','attacker','D18 silenced: Tejón kill switch disabled','No freeze · Active attacks uncontained');},
+    cleanup(){DEFENSES.tejon.active=true;
+      logE('OK','Defensa D18 Tejón: reactivado — kill switch armado');}
+  },
+};
+
+// Final party percentages (for uniformity injection)
+const PARTIDOS_FINAL=[
+  {pct:38.28},{pct:37.03},{pct:18.23},{pct:0.75},{pct:0.16}
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function rndIP(){return `${rnd(1,223)}.${rnd(1,254)}.${rnd(1,254)}.${rnd(1,254)}`;}
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function fakeHash(seed){
+  let s=(seed*1000)|0; s=s^(s<<13);s=s^(s>>7);s=s^(s<<17);
+  return Array.from({length:32},()=>{s=((s*1664525+1013904223)>>>0);
+    return (s&0xff).toString(16).padStart(2,'0');}).join('');
+}
+function deepClone(o){return JSON.parse(JSON.stringify(o));}
+function fmt(n){return n==null?'—':(n|0).toLocaleString('es-HN');}
+function fmtPct(p){return p==null?'—':parseFloat(p).toFixed(2)+'%';}
+function tsShort(ts){try{return new Date(ts).toLocaleString('es-HN',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});}catch{return ts||'';}}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TELEMETRY
+// ═══════════════════════════════════════════════════════════════════════════
+const MAX_LOG=250;
+function tsLog(){return new Date().toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function appendLog(id,cls,html){
+  const el=document.getElementById(id);
+  const d=document.createElement('div');d.className=cls;d.innerHTML=html;
+  el.appendChild(d);while(el.children.length>MAX_LOG)el.removeChild(el.firstChild);
+  el.scrollTop=el.scrollHeight;
+}
+function logE(sev,msg){
+  const cls={INFO:'tl-muted',WARN:'tl-warn',CRITICAL:'tl-bad',OK:'tl-ok'}[sev]||'tl-muted';
+  appendLog('telem-engine',cls,`[${tsLog()}] [${sev.padEnd(8,' ')}] ${msg}`);
+}
+function logA(sev,ip,vector,cm){
+  const cls={ALERT:'tl-bad',CRITICAL:'tl-bad',WARN:'tl-warn',INFO:'tl-muted'}[sev]||'tl-muted';
+  const ua=['Mozilla/5.0 (Scrapy)','python-req/2.31','Go-http/2.0','curl/7.88','libwww/6.72'][rnd(0,4)];
+  appendLog('telem-attack',cls,`[${tsLog()}] IP=${ip} | ${vector} | UA:${ua} | → ${cm}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════════════════════════════════════
+function pushAlert(sev,tipo,desc){
+  const now=tsShort(SIM.snapshots[SIM.idx]?.ts||new Date().toISOString());
+  simAlerts.push({ts:now,tipo,sev,desc});
+  renderAlerts();
+}
+function renderAlerts(){
+  const tbody=document.getElementById('alerts-tbody');
+  const empty=document.getElementById('alerts-empty');
+  const tbl=document.getElementById('alerts-table');
+  if(!simAlerts.length){tbl.style.display='none';empty.style.display='';return;}
+  tbl.style.display='';empty.style.display='none';
+  tbody.innerHTML=simAlerts.slice(-50).reverse().map(a=>{
+    const cls=a.sev==='CRITICAL'?'b-bad':a.sev==='HIGH'?'b-warn':'b-ok';
+    return `<tr><td>${a.ts}</td><td>${a.tipo}</td>
+      <td><span class="badge ${cls}">${a.sev}</span></td><td>${a.desc}</td></tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadDataset(url){
+  simStop();
+  logE('INFO','Cargando dataset: '+url);
+  try{
+    const r=await fetch(url);
+    if(!r.ok)throw new Error(r.status);
+    SERIES=await r.json();
+    SIM.snapshots=deepClone(SERIES.snapshots);
+    document.getElementById('sim-scrubber').max=String(SIM.snapshots.length-1);
+    // Show anomaly markers if applicable
+    const markerRow=document.getElementById('anom-marker-row');
+    if(SERIES.meta?.anomalias_embebidas?.length){
+      markerRow.style.display='flex';
+      markerRow.innerHTML='<span style="font-size:10px;color:var(--muted);margin-right:4px">Anomalías embebidas:</span>'+
+        SERIES.meta.anomalias_embebidas.map(a=>
+          `<span class="anom-marker" title="${a.descripcion}">idx=${a.snapshot_idx} · ${a.tipo.replace(/_/g,' ')}</span>`
+        ).join('');
+    }else{markerRow.style.display='none';}
+    renderSimFrame(0);
+    logE('OK',`Dataset listo: ${SIM.snapshots.length} snapshots cargados`);
+  }catch(e){logE('CRITICAL','Error cargando dataset: '+e.message);}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIMULATION ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+function simToggle(){
+  if(SIM.state==='playing') simPause(); else simPlay();
+}
+function simPlay(){
+  if(!SERIES){logE('WARN','Carga un dataset primero');return;}
+  if(SIM.state==='playing')return;
+  SIM.state='playing';
+  updateBadge();
+  const btn=document.getElementById('btn-play');
+  btn.textContent='⏸';btn.classList.add('active');
+  clearInterval(SIM.timer);
+  SIM.timer=setInterval(simTick,TICK_MS[SIM.speed]||(SIM.speed<=10?200:4));
+  logE('INFO',`Simulación iniciada — velocidad ${SIM.speed}×`);
+}
+function simPause(){
+  SIM.state='paused';clearInterval(SIM.timer);
+  const btn=document.getElementById('btn-play');
+  btn.textContent='▶';btn.classList.remove('active');
+  updateBadge();logE('INFO','Simulación pausada');
+  renderSimFrame(SIM.idx); // always render full charts on pause regardless of speed
+}
+function simStop(){
+  SIM.state='stopped';clearInterval(SIM.timer);SIM.idx=0;
+  const _b=document.getElementById('btn-play');_b.textContent='▶';_b.classList.remove('active');
+  if(SERIES)SIM.snapshots=deepClone(SERIES.snapshots);
+  activeInjections=[];scheduledInjections=[];simAlerts=[];
+  historyBenford=[];historyTimeline=[];historyIncons=[];simChains=[];
+  historyLeader=[];historyLeadPct=[];
+  Object.keys(_alertLast).forEach(k=>delete _alertLast[k]);
+  Object.values(EVENTS).forEach(e=>{if(e._hc!==undefined)delete e._hc;if(e._cascade!==undefined)delete e._cascade;});
+  // Reset defense state
+  Object.assign(DEFENSES.cuervo,{active:true,siblings:3,consensus:true,attestations:0});
+  Object.assign(DEFENSES.pulpo,{active:true,encrypted:0,degraded:false});
+  Object.assign(DEFENSES.venado,{active:true,jitter:0,decoys:0});
+  Object.assign(DEFENSES.lagartija,{active:true,mirrors:3,divergence:false,lastSync:null});
+  Object.assign(DEFENSES.tejon,{active:true,score:0,frozen:false,recoveryAttempts:0,_frozenAt:0});
+  renderActiveInjections();renderAlerts();
+  updateBadge();updateScrubber();
+  if(SERIES)renderSimFrame(0);
+  document.getElementById('vis-overlay').classList.remove('show');
+  logE('INFO','Simulación detenida y reiniciada');
+}
+function simTick(){
+  if(SIM.idx>=SIM.snapshots.length-1){
+    if(SIM.loop){
+      SIM.idx=0;SIM.snapshots=deepClone(SERIES.snapshots);
+      logE('INFO','Loop — reiniciando desde snapshot 1');
+    }else{simPause();logE('OK','Simulación completada');return;}
+  }
+  SIM.idx++;applyScheduledInjections(SIM.idx);
+  updateScrubber();renderSimFrame(SIM.idx);
+}
+function toggleLoop(){
+  SIM.loop=!SIM.loop;
+  const btn=document.getElementById('btn-loop');
+  btn.classList.toggle('active',SIM.loop);
+  btn.style.color=SIM.loop?'var(--purple)':'';
+  btn.style.borderColor=SIM.loop?'var(--purple)':'';
+  logE('INFO',`Loop ${SIM.loop?'activado':'desactivado'}`);
+}
+function simJumpTo(val){
+  SIM.idx=parseInt(val);updateScrubber();
+  if(SERIES)renderSimFrame(SIM.idx);
+}
+function setSpeed(s){
+  SIM.speed=s;
+  document.querySelectorAll('#speed-group .speed-pill').forEach(b=>{
+    b.classList.toggle('on',parseInt(b.dataset.s)===s);});
+  if(SIM.state==='playing'){clearInterval(SIM.timer);
+    SIM.timer=setInterval(simTick,TICK_MS[s]||(s<=10?150:25));}
+  logE('INFO',`Velocidad → ${s}×`);
+}
+function updateBadge(){
+  const el=document.getElementById('sim-badge');
+  el.textContent={playing:'SIMULANDO',paused:'PAUSADO',stopped:'DETENIDO'}[SIM.state];
+  el.className='sim-badge '+SIM.state;
+}
+function updateScrubber(){
+  const sc=document.getElementById('sim-scrubber');
+  const n=SIM.snapshots.length||1;sc.max=n-1;sc.value=SIM.idx;
+  const pct=((SIM.idx/(n-1))*100||0).toFixed(1);
+  document.getElementById('sim-progress-fill').style.width=pct+'%';
+  const snap=SIM.snapshots[SIM.idx];
+  document.getElementById('sim-info').textContent=
+    `Snap ${SIM.idx+1}/${n} | ${tsShort(snap?.ts||'')} | ${fmtPct(snap?.pct_escrutinio||0)}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FORENSICS COMPUTATION
+// ═══════════════════════════════════════════════════════════════════════════
+function computeBenford(votes){
+  const exp=[.301,.176,.125,.097,.079,.067,.058,.051,.046];
+  const counts=new Array(9).fill(0);
+  votes.forEach(v=>{if(v>0){const d=parseInt(String(Math.abs(v))[0]);if(d>=1&&d<=9)counts[d-1]++;}});
+  const N=counts.reduce((a,b)=>a+b,0)||1;
+  let chi2=0;
+  const digits=counts.map((c,i)=>{const e=exp[i]*N;chi2+=Math.pow(c-e,2)/e;
+    return{d:i+1,exp:+(exp[i]*100).toFixed(1),obs:+(c/N*100).toFixed(1)};});
+  const pval=chi2pval(chi2,8);
+  return{chi2,pval,digits,N};
+}
+function computeLastDigit(votes){
+  const counts=new Array(10).fill(0);
+  votes.forEach(v=>{if(v>0)counts[Math.abs(v)%10]++;});
+  const N=counts.reduce((a,b)=>a+b,0)||1;
+  let chi2=0;
+  const digits=counts.map((c,i)=>{const e=N/10;chi2+=Math.pow(c-e,2)/e;
+    return{d:i,obs:+(c/N*100).toFixed(1)};});
+  const pval=chi2pval(chi2,9);
+  return{chi2,pval,digits,N};
+}
+function computeBenfordMAD(benf){
+  if(benf.N<15)return null;
+  return benf.digits.reduce((a,d)=>a+Math.abs(d.obs/100-d.exp/100),0)/9;
+}
+function computeRunsTest(seq){
+  if(seq.length<20)return null;
+  let runs=1;
+  for(let i=1;i<seq.length;i++)if(seq[i]!==seq[i-1])runs++;
+  const n=seq.length;
+  const n1=seq.filter(s=>s===seq[0]).length, n2=n-n1;
+  if(!n1||!n2)return null;
+  const mu=2*n1*n2/n+1;
+  const v=(2*n1*n2*(2*n1*n2-n))/(n*n*(n-1));
+  if(v<=0)return null;
+  const z=(runs-mu)/Math.sqrt(v);
+  return{runs,n,z,pval:2*(1-normalCDF(Math.abs(z)))};
+}
+function computeTrendDev(pcts,cur){
+  if(pcts.length<5)return null;
+  const n=pcts.length,xm=(n-1)/2,ym=pcts.reduce((a,b)=>a+b,0)/n;
+  let num=0,den=0;
+  pcts.forEach((y,x)=>{num+=(x-xm)*(y-ym);den+=(x-xm)**2;});
+  if(!den)return null;
+  const s=num/den,b=ym-s*xm,pred=b+s*n;
+  return{predicted:pred,dev:Math.abs(cur-pred)};
+}
+function computeLLNZ(votes){
+  if(votes.length<50)return null;
+  const exp=[.301,.176,.125,.097,.079,.067,.058,.051,.046];
+  const cnt=new Array(9).fill(0);
+  votes.forEach(v=>{if(v>0){const d=parseInt(String(Math.abs(v))[0]);if(d>=1&&d<=9)cnt[d-1]++;}});
+  const N=cnt.reduce((a,b)=>a+b,0)||1;
+  const obsVar=exp.map((e,i)=>(cnt[i]/N-e)**2).reduce((a,b)=>a+b,0)/9;
+  const expVar=exp.reduce((a,p)=>a+p*(1-p)/N,0)/9;
+  const se=Math.sqrt(2)*expVar/Math.sqrt(N);
+  return se>0?{z:(obsVar-expVar)/se,N}:null;
+}
+function chi2pval(chi2,df){
+  const x=chi2/df;
+  const z=(Math.pow(x,1/3)-(1-2/(9*df)))/Math.sqrt(2/(9*df));
+  return 1-normalCDF(z);
+}
+function normalCDF(x){return 0.5*(1+erf(x/Math.SQRT2));}
+function erf(x){
+  const t=1/(1+0.3275911*Math.abs(x));
+  const y=1-(0.254829592*t-0.284496736*t**2+1.421413741*t**3-1.453152027*t**4+1.061405429*t**5)*Math.exp(-x*x);
+  return x<0?-y:y;
+}
+const PARTY_COLORS={'PN':'#0D3B99','PLH':'#FF0000','LIBRE':'#1a1a1a','PSH':'#00AEEF','DC':'#008751','PINU':'#FF6600','ALIANZA':'#0047AB'};
+function partyColor(p){return(PARTY_COLORS[p.abbrev]||p.color||'#555555')+'cc';}
+function seededRng(seed){let s=seed>>>0;return()=>{s=((s*1664525+1013904223)>>>0);return s/4294967296;};}
+const DEPTS=['Francisco Morazán','Cortés','Yoro','Olancho','Santa Bárbara','Atlántida',
+  'Choluteca','Comayagua','El Paraíso','Colón','La Paz','Lempira','Copán',
+  'Intibucá','Ocotepeque','Valle','Gracias a Dios','Islas Bahía'];
+const DEPT_W=[.18,.17,.09,.08,.07,.07,.06,.05,.04,.04,.03,.03,.03,.02,.02,.01,.005,.005];
+function getDeptData(snap){
+  const r=seededRng((snap.idx||0)*31337+1);
+  return DEPTS.map((name,i)=>{
+    if(snap._geo_blackout&&i===0)return{name,actas:0,pct:0,nulos:0,blancos:0,zscore:8.5};
+    const base=DEPT_W[i];const noise=0.9+r()*0.2;const f=base*noise;
+    const pct=snap.actas_totales>0?(f*snap.actas_divulgadas/snap.actas_totales/(base||0.01)*100):0;
+    const zscore=+((f-0.055)/0.045+(r()-0.5)*0.4).toFixed(2);
+    return{name,pct:Math.min(pct,100),nulos:Math.round((snap.nulos||0)*f),
+           blancos:Math.round((snap.blancos||0)*f),zscore,
+           actas:Math.round((snap.actas_divulgadas||0)*f)};
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CENTINEL RULE ENGINE — evaluated on every tick
+// ═══════════════════════════════════════════════════════════════════════════
+function evaluateCheapRules(snap,idx){
+  const d=snap._cd={};
+  const prev=idx>0?SIM.snapshots[idx-1]:null;
+
+  function flag(ruleKey,cond,level,msg){
+    if(!cond)return;
+    d[ruleKey]={level,msg};
+    const last=_alertLast[ruleKey]||0;
+    if(idx-last>=_COOLDOWN){_alertLast[ruleKey]=idx;logE(level,msg);}
+  }
+
+  // A8 — Datos parciales/truncados: campos críticos son null → instrumentos perdidos
+  const hasNullFields=snap.validos===null||snap.nulos===null||snap.blancos===null;
+  if(hasNullFields||snap._partial){
+    const nulled=[snap.validos===null?'validos':null,snap.nulos===null?'nulos':null,
+                  snap.blancos===null?'blancos':null].filter(Boolean);
+    flag('partial_data',true,'CRITICAL',
+      `Datos truncados: campo(s) ${nulled.length?nulled.join(', '):'críticos'} ausentes — integridad comprometida`);
+    d._nullFields=nulled;
+  }
+  // Safe totals — use null-aware values for downstream rules
+  const total=(snap.validos??0)+(snap.nulos??0)+(snap.blancos??0);
+
+  // snap_jump_pct — actas jump/drop > threshold% of total in one 5-min snap
+  if(TE.snap_jump_pct&&prev){
+    const delta=(snap.actas_divulgadas||0)-(prev.actas_divulgadas||0);
+    const pct=delta/(snap.actas_totales||1)*100;
+    d._actasDelta=delta;
+    if(delta<0)
+      flag('snap_jump_neg',true,'CRITICAL',
+        `Rollback de actas: −${Math.abs(delta).toLocaleString()} actas (${pct.toFixed(1)}%) — conteo retrocedió`);
+    else
+      flag('snap_jump_pct',pct>TV.snap_jump_pct,'WARN',
+        `Salto snapshot: +${delta.toLocaleString()} actas (+${pct.toFixed(1)}%) en 5 min — umbral ${TV.snap_jump_pct}%`);
+  }
+
+  // speed_max — actas processed per 15-min window (3 snaps × 5 min)
+  if(TE.speed_max){
+    const p3=SIM.snapshots[Math.max(0,idx-3)];
+    const spd=(snap.actas_divulgadas||0)-(p3?.actas_divulgadas||0);
+    d._speed15=spd;
+    flag('speed_max',spd>TV.speed_max,'WARN',
+      `Velocidad: ${spd.toLocaleString()} actas/15 min — límite ${TV.speed_max}`);
+  }
+
+  // null_warn / null_crit
+  if(total>100){
+    const np=(snap.nulos??0)/total*100;
+    d._nullPct=np;
+    if(TE.null_crit&&np>TV.null_crit)
+      flag('null_crit',true,'CRITICAL',`Nulos críticos: ${np.toFixed(1)}% — umbral ${TV.null_crit}%`);
+    else if(TE.null_warn&&np>TV.null_warn)
+      flag('null_warn',true,'WARN',`Nulos elevados: ${np.toFixed(1)}% — umbral ${TV.null_warn}%`);
+  }
+
+  // part_jump — escrutinio delta > threshold in one snap
+  if(TE.part_jump&&prev){
+    const jp=(snap.pct_escrutinio||0)-(prev.pct_escrutinio||0);
+    flag('part_jump',jp>TV.part_jump,'WARN',
+      `Salto escrutinio: +${jp.toFixed(2)}% en 5 min — umbral ${TV.part_jump}%`);
+  }
+
+  // part_mean/part_std — Z-score of escrutinio vs configured historical baseline
+  if(TE.part_mean&&TV.part_std>0){
+    const z=Math.abs((snap.pct_escrutinio||0)-TV.part_mean)/TV.part_std;
+    d._partZ=+z.toFixed(2);
+    flag('part_zscore',z>3,'WARN',
+      `Participación z=${z.toFixed(2)}σ vs histórico (μ=${TV.part_mean}%, σ=${TV.part_std}%)`);
+  }
+
+  // incons_crit
+  if(TE.incons_crit&&snap.actas_divulgadas>0){
+    const ip=(snap.inconsistentes||0)/snap.actas_divulgadas*100;
+    d._inconsPct=+ip.toFixed(2);
+    flag('incons_crit',ip>TV.incons_crit,'CRITICAL',
+      `Inconsistencias: ${ip.toFixed(1)}% de actas — umbral ${TV.incons_crit}%`);
+  }
+
+  // incons_delta — escalation rate between consecutive snaps
+  if(TE.incons_delta&&prev&&prev.actas_divulgadas>0&&snap.actas_divulgadas>0){
+    const r1=(snap.inconsistentes||0)/snap.actas_divulgadas*100;
+    const r0=(prev.inconsistentes||0)/prev.actas_divulgadas*100;
+    flag('incons_delta',r1-r0>TV.incons_delta,'WARN',
+      `Escalada inconsistencias: +${(r1-r0).toFixed(2)}% — umbral Δ${TV.incons_delta}%`);
+  }
+
+  // reversal_min — candidate vote count drops
+  if(TE.reversal_min&&prev?.partidos&&snap.partidos){
+    snap.partidos.forEach((p,i)=>{
+      const loss=(prev.partidos[i]?.votos||0)-p.votos;
+      if(loss>=TV.reversal_min){
+        (d.reversals=d.reversals||[]).push({abbrev:p.abbrev,loss});
+        flag('reversal_'+p.abbrev,true,'CRITICAL',
+          `Reversión ${p.abbrev}: −${loss.toLocaleString()} votos — umbral ${TV.reversal_min}`);
+      }
+    });
+  }
+
+  // delta_pct — candidate % shift per snap
+  if(TE.delta_pct&&prev?.partidos&&snap.partidos){
+    snap.partidos.forEach((p,i)=>{
+      const delta=Math.abs(p.pct-(prev.partidos[i]?.pct||0));
+      if(delta>TV.delta_pct){
+        d.delta_pct=true;
+        flag('delta_pct_'+p.abbrev,true,'WARN',
+          `Delta porcentual ${p.abbrev}: Δ${delta.toFixed(2)}% en 5 min — umbral ${TV.delta_pct}%`);
+      }
+    });
+  }
+
+  // vote_change — relative vote count change
+  if(TE.vote_change&&prev?.partidos&&snap.partidos){
+    snap.partidos.forEach((p,i)=>{
+      const pv=prev.partidos[i]?.votos||0;
+      if(pv>0){
+        const rel=Math.abs(p.votos-pv)/pv*100;
+        if(rel>TV.vote_change){
+          d.vote_change=true;
+          flag('vote_chg_'+p.abbrev,true,'WARN',
+            `Cambio relativo ${p.abbrev}: ${rel.toFixed(1)}% — umbral ${TV.vote_change}%`);
+        }
+      }
+    });
+  }
+
+  // ── Infrastructure & multicapa defense checks ────────────────────────────
+  // DDoS / availability
+  if(snap._ddos){
+    flag('ddos',snap._ddos>100000,'CRITICAL',
+      `DDoS: ${snap._ddos.toLocaleString()} req/s — ${snap._ddos>100000?'rate limiter SUPERADO':'mitigado'}`);}
+
+  // CDN multi-mirror consensus
+  if(snap._cdn_mirrors_poisoned){
+    const lvl=snap._cdn_mirrors_poisoned>=3?'CRITICAL':'WARN';
+    flag('cdn_mirrors',true,lvl,
+      `CDN: ${snap._cdn_mirrors_poisoned}/5 espejos contaminados — ${snap._cdn_mirrors_poisoned>=3?'CONSENSO IMPOSIBLE':'divergencia'}`);}
+
+  // Cache staleness
+  if(snap._cache_stale){
+    const lvl=snap._cache_stale>60?'CRITICAL':'WARN';
+    flag('cache_stale',true,lvl,
+      `Caché: TTL=${snap._cache_stale}min — ${snap._cache_stale>60?'divergencia crítica del origen real':'monitoreo activo'}`);}
+
+  // OTS anchor integrity (always fails → always CRITICAL when attacked)
+  if(snap._ots_attack)
+    flag('ots_attack',true,'CRITICAL','OTS: intento de suplantar ancla Bitcoin — RECHAZADO (inmutable)');
+
+  // Zero-trust middleware bypass
+  if(snap._zt_bypass_attempt){
+    const lvl=snap._zt_bypass_attempt>=5?'CRITICAL':'WARN';
+    flag('zt_bypass',true,lvl,
+      `Zero-trust: ${snap._zt_bypass_attempt} cabeceras forjadas — ${snap._zt_bypass_attempt>=5?'BYPASS DETECTADO':'filtradas'}`);}
+
+  // Timestamp monotonicity
+  if(snap._ts_drift||snap._time_distorted){
+    const drift=snap._ts_drift||snap._time_distorted;
+    flag('ts_monotone',true,'WARN',
+      `Timestamp: +${drift}min de desincronización — monotonía comprometida`);}
+
+  // Binary auto-audit
+  if(snap._binary_tampered)
+    flag('binary_tamper',true,'CRITICAL',
+      `Auto-audit: ${snap._binary_tampered} módulos con hash distinto al baseline — CUARENTENA`);
+
+  // Vote duplication
+  if(snap._duplication)
+    flag('duplication',true,'CRITICAL',
+      `Duplicación de actas: +${snap._duplication} actas repetidas — votos inflados`);
+
+  // Visualization system
+  if(snap._vis_down)
+    flag('vis_down',true,'CRITICAL','Sistema de visualización caído — modo offline activo');
+
+  // Throttling / artificial stagnation (actas frozen)
+  if(snap._throttled&&prev){
+    const delta=(snap.actas_divulgadas||0)-(prev.actas_divulgadas||0);
+    if(delta===0)flag('throttled',true,'WARN','Throttling CNE: actualización congelada artificialmente');}
+
+  // Coordinated drag
+  if(snap._coordinated)
+    flag('coordinated',true,'WARN','Arrastre coordinado: distribución departamental perfectamente uniforme');
+
+  // Forced participation / abstention anomaly
+  if(snap._forced_part)
+    flag('forced_part',true,'CRITICAL',
+      `Participación forzada: ${snap._forced_part}% — salto imposible en un snap`);
+
+  // Concentration
+  if(snap._concentration)
+    flag('concentration',true,'CRITICAL',
+      `Concentración extrema: partido[0] captó 93% en ${snap._concentration} mesas`);
+
+  // Track running history for expensive checks
+  if(snap.partidos?.length){
+    const leader=snap.partidos.reduce((a,b)=>b.votos>a.votos?b:a);
+    historyLeader.push(leader.abbrev);
+    historyLeadPct.push(leader.pct);
+    if(historyLeader.length>288)historyLeader.shift();
+    if(historyLeadPct.length>288)historyLeadPct.shift();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FRAME RENDERING
+// ═══════════════════════════════════════════════════════════════════════════
+function renderSimFrame(idx){
+  const snap=SIM.snapshots[idx]; if(!snap)return;
+  // Skip heavy chart redraws at 60× (only update KPIs)
+  const fastMode=SIM.speed>=100;
+
+  // Accumulate history
+  historyBenford=SIM.snapshots.slice(0,idx+1)
+    .flatMap(s=>(s.partidos||[]).map(p=>p.votos)).filter(v=>v>0);
+  const last10=SIM.snapshots.slice(Math.max(0,idx-9),idx+1);
+  historyTimeline=SIM.snapshots.slice(0,idx+1).map((s,i)=>({
+    ts:tsShort(s.ts),actas:s.actas_divulgadas||0,anom:s._chain_broken_pct||s._false_hash||s._rollback?1:0}));
+  historyIncons=SIM.snapshots.slice(0,idx+1).map(s=>s.inconsistentes||0);
+
+  // Chain integrity
+  const chainOk=!snap._chain_broken_pct&&!snap._false_hash&&!snap._sig_invalid&&!snap._chain_fork;
+  const chainPct=snap._chain_broken_pct?Math.max(0,100-snap._chain_broken_pct):100;
+  simChains.push(chainOk);
+
+  // KPIs
+  document.getElementById('k-actas').textContent=fmt(snap.actas_divulgadas);
+  document.getElementById('k-actas-sub').textContent=`de ${fmt(snap.actas_totales)} totales`;
+  document.getElementById('k-actas-bar').style.width=
+    Math.min(100,(snap.actas_divulgadas||0)/(snap.actas_totales||1)*100).toFixed(1)+'%';
+  document.getElementById('k-votos').textContent=snap.validos==null?'TRUNCADO':fmt(snap.validos);
+  document.getElementById('k-votos-sub').textContent=snap._partial?'⚠ datos parciales':'votos válidos';
+  document.getElementById('k-pct').textContent=fmtPct(snap.pct_escrutinio);
+  document.getElementById('k-pct-bar').style.width=(snap.pct_escrutinio||0)+'%';
+  const intEl=document.getElementById('k-int');
+  intEl.textContent=snap._binary_tampered?'CUARENTENA':chainPct+'%';
+  intEl.style.color=chainPct<50?'var(--bad)':chainPct<90?'var(--warn)':'var(--ok)';
+  document.getElementById('k-int-sub').textContent=
+    snap._binary_tampered?`auto-audit: ${snap._binary_tampered} módulos`:
+    snap._chain_fork?'chain fork detectado':
+    snap._sig_invalid?'firma inválida':
+    chainOk?'cadena íntegra':'cadena comprometida';
+
+  // Cheap rule evaluation — runs every tick regardless of speed
+  evaluateCheapRules(snap,idx);
+
+  // Fast-path: Tejón kill switch evaluates at all speeds (no benf needed)
+  {const qs=0+
+    (snap._false_hash||snap._chain_fork||snap._chain_broken_pct>=50?40:0)+
+    (snap.blackout||(snap._ep_disc||0)>=10||snap._vis_down?20:0)+
+    ((snap._cdn_mirrors_poisoned||0)>=3||snap._chain_fork?35:0);
+  DEFENSES.tejon.score=qs;
+  if(DEFENSES.tejon.active&&qs>=75&&!DEFENSES.tejon.frozen){
+    DEFENSES.tejon.frozen=true;DEFENSES.tejon._frozenAt=idx;DEFENSES.tejon.recoveryAttempts=0;
+    logA('CRITICAL','kill-switch',`⚔️ Tejón: CONGELADO — amenaza=${qs}/100`,
+      'lock: /tmp/centinel.lock · recovery exponential backoff iniciado');
+    pushAlert('CRITICAL','TejonFreeze',`Kill switch D18: amenaza ${qs}/100 ≥ 75 → congelado`);
+    attemptTejonRecovery();
+  }}
+
+  if(fastMode && SIM.state==='playing' && idx%144!==0)return;
+
+  const depts=getDeptData(snap);
+  const benf=computeBenford(historyBenford);
+  const lastd=computeLastDigit(historyBenford);
+  const mad=computeBenfordMAD(benf);
+  const runs=computeRunsTest(historyLeader.slice());
+  const trend=computeTrendDev(historyLeadPct.slice(-20),historyLeadPct[historyLeadPct.length-1]||0);
+  const llnz=computeLLNZ(historyBenford);
+
+  renderCandidates(snap);
+  renderTimeline();
+  renderBenford(benf,snap);
+  renderLastDigit(lastd,snap);
+  renderZScore(depts);
+  renderParticipation(depts);
+  renderNullBlank(depts);
+  renderForensics(snap,benf,lastd,last10,{mad,runs,trend,llnz,depts});
+  emitEngineEvents(snap,idx,benf,lastd,{mad,runs,trend,llnz});
+  evaluateDefenses(snap,idx,benf);
+}
+
+const CHART_OPT={animation:false,responsive:true,
+  plugins:{legend:{labels:{color:'#8b929c',font:{size:11}}}},
+  scales:{x:{ticks:{color:'#8b929c',font:{size:10}},grid:{color:'#1c1f26'}},
+         y:{ticks:{color:'#8b929c'},grid:{color:'#1c1f26'}}}};
+function mk(id,cfg){if(SC[id])SC[id].destroy();
+  const c=document.getElementById(id);if(!c)return;SC[id]=new Chart(c,cfg);}
+
+function renderCandidates(snap){
+  if(!snap.partidos)return;
+  const labs=snap.partidos.map(p=>p.abbrev);
+  const data=snap.partidos.map(p=>p.votos||0);
+  const bgs=snap.partidos.map(p=>partyColor(p));
+  const barLabelPlugin={id:'candLabels',afterDatasetsDraw(chart){
+    const ctx=chart.ctx;
+    chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+      const v=data[i]; if(!v)return;
+      const pct=snap.partidos[i]?.pct||0;
+      const x=bar.x, top=bar.y;
+      ctx.save();
+      ctx.textAlign='center';
+      ctx.font='bold 11px system-ui,sans-serif';
+      ctx.fillStyle='#e8eaed';
+      ctx.fillText(v.toLocaleString('es-HN'),x,Math.max(top-18,12));
+      ctx.font='10px system-ui,sans-serif';
+      ctx.fillStyle='#8b929c';
+      ctx.fillText(pct+'%',x,Math.max(top-6,22));
+      ctx.restore();
+    });
+  }};
+  mk('s-chart-cand',{type:'bar',data:{labels:labs,datasets:[{label:'Votos',data,backgroundColor:bgs,borderRadius:5}]},
+    plugins:[barLabelPlugin],
+    options:{...CHART_OPT,layout:{padding:{top:28}},plugins:{title:{display:true,text:'Votos por Partido',color:'#8b929c',font:{size:11,weight:'600'},padding:{bottom:6}},legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw.toLocaleString('es-HN')} votos (${snap.partidos[c.dataIndex]?.pct||0}%)`}}}}});
+}
+
+function renderTimeline(){
+  const labs=historyTimeline.map(h=>h.ts);
+  const a=historyTimeline.map(h=>h.actas);
+  const an=historyTimeline.map(h=>h.anom);
+  mk('s-chart-timeline',{type:'line',data:{labels:labs,datasets:[
+    {label:'Actas acumuladas',data:a,borderColor:'#6ea8fe',fill:false,tension:.3,pointRadius:0,yAxisID:'y'},
+    {label:'Anomalías',data:an,borderColor:'#df6b86',fill:false,tension:.1,pointRadius:2,yAxisID:'y2'}]},
+    options:{...CHART_OPT,plugins:{...CHART_OPT.plugins,
+      decimation:{enabled:true,algorithm:'lttb',samples:400,threshold:400},
+      title:{display:true,text:'Actas Acumuladas y Eventos Anómalos en el Tiempo',color:'#8b929c',font:{size:11,weight:'600'},padding:{bottom:6}}},scales:{
+      x:{ticks:{color:'#8b929c',maxTicksLimit:10,font:{size:9}},grid:{color:'#1c1f26'}},
+      y:{ticks:{color:'#8b929c'},grid:{color:'#1c1f26'},title:{display:true,text:'Actas',color:'#8b929c'}},
+      y2:{position:'right',ticks:{color:'#df6b86'},grid:{drawOnChartArea:false},title:{display:true,text:'Anomalías',color:'#df6b86'}}}}});
+}
+
+function renderBenford(benf,snap){
+  const labs=benf.digits.map(d=>'D'+d.d);
+  const exp=benf.digits.map(d=>d.exp);
+  const obs=benf.digits.map(d=>d.obs);
+  const violated=TE.benford_chi_pvalue&&benf.pval<TV.benford_chi_pvalue;
+  const obsBg=violated?'rgba(223,107,134,.7)':'rgba(110,168,254,.7)';
+  mk('s-chart-benford',{type:'bar',data:{labels:labs,datasets:[
+    {label:'Esperado %',data:exp,backgroundColor:'rgba(110,168,254,.25)',borderColor:'#6ea8fe',borderWidth:1},
+    {label:'Observado %',data:obs,backgroundColor:obsBg,borderColor:'#6ea8fe',borderWidth:1}]},
+    options:{...CHART_OPT,plugins:{title:{display:true,text:'Ley de Benford — Distribución del Primer Dígito',color:'#8b929c',font:{size:11,weight:'600'},padding:{bottom:4}},legend:{labels:{color:'#8b929c',font:{size:10}}}},
+      scales:{x:{ticks:{color:'#8b929c',font:{size:9}},grid:{color:'#1c1f26'}},y:{ticks:{color:'#8b929c'},grid:{color:'#1c1f26'}}}}});
+  const stats=document.getElementById('s-benford-stats');
+  if(benf.N<15){stats.innerHTML='<span style="color:var(--muted)">n insuficiente (&lt;15 muestras)</span>';return;}
+  stats.innerHTML=`χ² = ${benf.chi2.toFixed(2)} | p = ${benf.pval.toFixed(3)} | n=${benf.N} → `+
+    (violated?'<span style="color:var(--bad)">⚠ Umbral violado</span>':'<span style="color:var(--ok)">Normal</span>');
+}
+
+function renderLastDigit(lastd,snap){
+  const labs=lastd.digits.map(d=>String(d.d));
+  const obs=lastd.digits.map(d=>d.obs);
+  const violated=TE.lastdigit_chi&&lastd.pval<TV.lastdigit_chi;
+  const bg=obs.map((_,i)=>violated&&(i===0||i===5)?'rgba(223,107,134,.7)':'rgba(176,140,240,.5)');
+  mk('s-chart-lastdigit',{type:'bar',data:{labels:labs,datasets:[
+    {label:'Uniforme 10%',data:new Array(10).fill(10),backgroundColor:'rgba(87,192,141,.2)',borderColor:'#57c08d',borderWidth:1},
+    {label:'Observado %',data:obs,backgroundColor:bg,borderWidth:0}]},
+    options:{...CHART_OPT,plugins:{title:{display:true,text:'Uniformidad del Último Dígito',color:'#8b929c',font:{size:11,weight:'600'},padding:{bottom:4}},legend:{labels:{color:'#8b929c',font:{size:10}}}},
+      scales:{x:{ticks:{color:'#8b929c',font:{size:9}},grid:{color:'#1c1f26'}},y:{ticks:{color:'#8b929c'},grid:{color:'#1c1f26'}}}}});
+  const stats=document.getElementById('s-lastdigit-stats');
+  stats.innerHTML=lastd.N<20?'<span style="color:var(--muted)">n insuficiente</span>':
+    `χ² = ${lastd.chi2.toFixed(2)} | p = ${lastd.pval.toFixed(3)} → `+
+    (violated?'<span style="color:var(--bad)">⚠ Violación detectada</span>':'<span style="color:var(--ok)">Uniforme</span>');
+}
+
+function renderZScore(depts){
+  const labs=depts.map(d=>d.name.split(' ')[0]);
+  const zs=depts.map(d=>d.zscore);
+  const bgs=zs.map(z=>Math.abs(z)>TV.zscore_thr?'rgba(223,107,134,.7)':'rgba(110,168,254,.5)');
+  mk('s-chart-zscore',{type:'bar',data:{labels:labs,datasets:[{label:'Z-score',data:zs,backgroundColor:bgs,borderRadius:3}]},
+    options:{...CHART_OPT,indexAxis:'y',plugins:{title:{display:true,text:'Z-score de Participación por Departamento',color:'#8b929c',font:{size:11,weight:'600'},padding:{bottom:4}},legend:{display:false}},
+      scales:{x:{ticks:{color:'#8b929c',font:{size:9}},grid:{color:'#1c1f26'}},
+             y:{ticks:{color:'#8b929c',font:{size:8}},grid:{color:'#1c1f26'}}}}});
+}
+
+function renderParticipation(depts){
+  const labs=depts.map(d=>d.name.split(' ')[0]);
+  const pcts=depts.map(d=>parseFloat(d.pct.toFixed(1)));
+  const bgs=pcts.map(p=>p>95?'rgba(223,107,134,.7)':p>80?'rgba(110,168,254,.5)':'rgba(87,192,141,.5)');
+  mk('s-chart-participation',{type:'bar',data:{labels:labs,datasets:[{label:'% Escrutinio',data:pcts,backgroundColor:bgs,borderRadius:3}]},
+    options:{...CHART_OPT,indexAxis:'y',plugins:{title:{display:true,text:'Escrutinio por Departamento (%)',color:'#8b929c',font:{size:11,weight:'600'},padding:{bottom:4}},legend:{display:false}},
+      scales:{x:{ticks:{color:'#8b929c',font:{size:9}},grid:{color:'#1c1f26'},max:110},
+             y:{ticks:{color:'#8b929c',font:{size:8}},grid:{color:'#1c1f26'}}}}});
+}
+
+function renderNullBlank(depts){
+  const labs=depts.map(d=>d.name.split(' ')[0]);
+  mk('s-chart-nullblank',{type:'bar',data:{labels:labs,datasets:[
+    {label:'Nulos',data:depts.map(d=>d.nulos),backgroundColor:'rgba(223,107,134,.6)',borderRadius:2},
+    {label:'Blancos',data:depts.map(d=>d.blancos),backgroundColor:'rgba(212,176,102,.5)',borderRadius:2}]},
+    options:{...CHART_OPT,indexAxis:'y',plugins:{...CHART_OPT.plugins,title:{display:true,text:'Votos Nulos y Blancos por Departamento',color:'#8b929c',font:{size:11,weight:'600'},padding:{bottom:4}}},
+      scales:{x:{ticks:{color:'#8b929c',font:{size:9}},grid:{color:'#1c1f26'},stacked:true},
+             y:{ticks:{color:'#8b929c',font:{size:8}},grid:{color:'#1c1f26'},stacked:true}}}});
+}
+
+function renderForensics(snap,benf,lastd,last10,ext){
+  const cd=snap._cd||{};
+  const {mad,runs,trend,llnz,depts}=ext||{};
+  // geo_cv from dept data
+  const geoZs=depts?depts.map(d=>d.zscore).filter(z=>isFinite(z)):[];
+  const geoMean=geoZs.length?geoZs.reduce((a,b)=>a+b,0)/geoZs.length:0;
+  const geoStd=geoZs.length?Math.sqrt(geoZs.reduce((a,z)=>a+(z-geoMean)**2,0)/geoZs.length):0;
+  const geoCv=geoMean?Math.abs(geoStd/geoMean):0;
+  // corr_r: participation vs winner pct across depts (simplified)
+  const corrR=depts&&depts.length>3?(()=>{
+    const xs=depts.map(d=>d.pct),ys=depts.map(d=>d.zscore);
+    const xm=xs.reduce((a,b)=>a+b,0)/xs.length,ym=ys.reduce((a,b)=>a+b,0)/ys.length;
+    let num=0,dx=0,dy=0;
+    xs.forEach((x,i)=>{num+=(x-xm)*(ys[i]-ym);dx+=(x-xm)**2;dy+=(ys[i]-ym)**2;});
+    return dx&&dy?num/Math.sqrt(dx*dy):0;
+  })():0;
+
+  const ok='<span class="badge b-ok">OK</span>';
+  const warn='<span class="badge b-warn">ALERTA</span>';
+  const crit='<span class="badge b-bad">CRÍTICO</span>';
+  const na='<span class="badge b-na">N/A</span>';
+  function badge(level){return level==='CRITICAL'?crit:level==='WARN'?warn:ok;}
+  function card(label,status,detail){
+    return`<div class="forensic-card"><div class="forensic-hdr" onclick="this.nextElementSibling.classList.toggle('open')"><span class="forensic-title">${label}</span>${status}</div><div class="forensic-body">${detail}</div></div>`;
+  }
+  const verdicts=[];
+
+  // 0. Integridad de payload — campos críticos presentes
+  const pdCD=cd.partial_data;
+  verdicts.push(card('Integridad del payload',badge(pdCD?'CRITICAL':'OK'),
+    pdCD?`⚠ Campos ausentes: ${(cd._nullFields||[]).join(', ')||'validos/nulos/blancos'} — datos truncados`
+        :'Todos los campos críticos presentes'));
+
+  // 1. Benford — chi² p-value
+  const bfViol=benf.N>=15&&benf.pval<TV.benford_chi_pvalue&&TE.benford_chi_pvalue;
+  verdicts.push(card('Benford — chi² candidatos',badge(bfViol?'WARN':'OK'),
+    benf.N<15?`Datos insuficientes (n=${benf.N})`:`χ²=${benf.chi2.toFixed(2)} | p=${benf.pval.toFixed(4)} | umbral p<${TV.benford_chi_pvalue} | n=${benf.N}`));
+
+  // 2. Benford — MAD
+  const madWarn=mad!=null&&TE.benford_mad_warning&&mad>TV.benford_mad_warning;
+  const madCrit=mad!=null&&TE.benford_mad_critical&&mad>TV.benford_mad_critical;
+  verdicts.push(card('Benford — MAD (1er dígito)',badge(madCrit?'CRITICAL':madWarn?'WARN':'OK'),
+    mad==null?'Datos insuficientes':`MAD=${mad.toFixed(4)} | warn>${TV.benford_mad_warning} | crit>${TV.benford_mad_critical}`));
+
+  // 3. Último dígito
+  const ldViol=lastd.N>=20&&lastd.pval<TV.lastdigit_chi&&TE.lastdigit_chi;
+  verdicts.push(card('Uniformidad último dígito',badge(ldViol?'WARN':'OK'),
+    lastd.N<20?`Datos insuficientes (n=${lastd.N})`:`χ²=${lastd.chi2.toFixed(2)} | p=${lastd.pval.toFixed(4)} | umbral p<${TV.lastdigit_chi}`));
+
+  // 4. Salto de snapshot
+  const sjCD=cd.snap_jump_pct;
+  verdicts.push(card('Salto de snapshot',badge(sjCD?.level||'OK'),
+    sjCD?sjCD.msg:`Sin saltos anómalos — umbral ${TV.snap_jump_pct}% del total de actas`));
+
+  // 5. Velocidad de procesamiento
+  const spCD=cd.speed_max;
+  verdicts.push(card('Velocidad procesamiento',badge(spCD?.level||'OK'),
+    `Actual 15 min: ${(cd._speed15||0).toLocaleString()} actas | límite ${TV.speed_max}`));
+
+  // 6. Nulos y Blancos
+  const ncCD=cd.null_crit||cd.null_warn;
+  verdicts.push(card('Nulos y Blancos',badge(cd.null_crit?'CRITICAL':cd.null_warn?'WARN':'OK'),
+    `Tasa nulos: ${(cd._nullPct||0).toFixed(1)}% | warn>${TV.null_warn}% | crit>${TV.null_crit}%`));
+
+  // 7. Salto de participación
+  const pjCD=cd.part_jump;
+  verdicts.push(card('Salto de participación',badge(pjCD?.level||'OK'),
+    pjCD?pjCD.msg:`Sin saltos — umbral ${TV.part_jump}% por snap | escrutinio actual ${fmtPct(snap.pct_escrutinio)}`));
+
+  // 8. Participación vs histórico
+  verdicts.push(card('Participación vs histórico',badge(cd.part_zscore?'WARN':'OK'),
+    `z=${cd._partZ??'—'}σ | μ=${TV.part_mean}% σ=${TV.part_std}% | escrutinio=${fmtPct(snap.pct_escrutinio)}`));
+
+  // 9. Inconsistencias
+  verdicts.push(card('Tasa de inconsistencias',badge(cd.incons_crit?'CRITICAL':cd.incons_delta?'WARN':'OK'),
+    `${(cd._inconsPct||0).toFixed(2)}% de actas inconsistentes | umbral crit ${TV.incons_crit}% | Δ umbral ${TV.incons_delta}%`));
+
+  // 10. Reversión de votos
+  const revs=cd.reversals||[];
+  verdicts.push(card('Reversión de votos',badge(revs.length?'CRITICAL':'OK'),
+    revs.length?revs.map(r=>`${r.abbrev} −${r.abbrev.toLocaleString?r.abbrev:''}${r.loss.toLocaleString()} votos`).join(', '):`Sin reversiones — umbral ${TV.reversal_min} votos`));
+
+  // 11. Delta porcentual candidatos
+  verdicts.push(card('Delta % candidatos',badge(cd.delta_pct?'WARN':'OK'),
+    cd.delta_pct?`Cambio > ${TV.delta_pct}% en candidato detectado`:`Sin saltos > ${TV.delta_pct}% en último snap`));
+
+  // 12. Cambio relativo de votos
+  verdicts.push(card('Cambio relativo de votos',badge(cd.vote_change?'WARN':'OK'),
+    cd.vote_change?`Cambio relativo > ${TV.vote_change}%`:`Sin cambios relativos > ${TV.vote_change}%`));
+
+  // 13. Z-score geográfico
+  const geoViol=TE.zscore_thr&&geoZs.some(z=>Math.abs(z)>TV.zscore_thr);
+  verdicts.push(card('Z-score geográfico',badge(geoViol?'WARN':'OK'),
+    `CV departamental: ${geoCv.toFixed(3)} | umbral z>${TV.zscore_thr}σ | ${geoViol?'anomalía detectada en ≥1 dpto':'distribución normal'}`));
+
+  // 14. Correlación participación–voto
+  const corrViol=TE.corr_r&&Math.abs(corrR)>TV.corr_r;
+  verdicts.push(card('Correlación part.–resultado',badge(corrViol?'WARN':'OK'),
+    `R=${corrR.toFixed(3)} | umbral |R|>${TV.corr_r}`));
+
+  // 15. Dispersión geográfica (CV)
+  const cvViol=TE.geo_cv&&geoCv>TV.geo_cv;
+  verdicts.push(card('Dispersión geográfica (CV)',badge(cvViol?'WARN':'OK'),
+    `CV=${geoCv.toFixed(3)} | umbral ${TV.geo_cv}`));
+
+  // 16. Test de corridas (runs)
+  const runsViol=runs&&TE.runs_pval&&runs.pval<TV.runs_pval;
+  verdicts.push(card('Test de corridas (aleatoriedad)',badge(runsViol?'WARN':'OK'),
+    runs?`Corridas=${runs.runs} | z=${runs.z.toFixed(2)} | p=${runs.pval.toFixed(4)} | umbral p<${TV.runs_pval} | n=${runs.n}`:'Historial insuficiente (min 20 snaps)'));
+
+  // 17. Desviación de tendencia
+  const trendViol=trend&&TE.trend_pct&&trend.dev>TV.trend_pct;
+  verdicts.push(card('Desviación de tendencia',badge(trendViol?'WARN':'OK'),
+    trend?`Desv=${trend.dev.toFixed(2)}% vs tendencia ${trend.predicted.toFixed(2)}% | umbral ${TV.trend_pct}%`:'Datos insuficientes'));
+
+  // 18. Ley de Grandes Números (LLN)
+  const llnViol=llnz&&TE.lln_z&&Math.abs(llnz.z)>TV.lln_z;
+  verdicts.push(card('Ley de Grandes Números',badge(llnViol?'WARN':'OK'),
+    llnz?`z=${llnz.z.toFixed(2)} | umbral ${TV.lln_z}σ | n=${llnz.N}`:'Datos insuficientes (min 50 obs)'));
+
+  // 19. Apagón / Blackout
+  verdicts.push(card('Apagón / Blackout',badge((snap.blackout||snap._geo_blackout)?'CRITICAL':'OK'),
+    snap.blackout?'Blackout de sistema activo':snap._geo_blackout?`Blackout geográfico: ${snap._geo_blackout_dept||'depto desconocido'}`:'Sin blackout en snapshot actual'));
+
+  // 20. Hold-and-Release
+  const holdDetected=activeInjections.some(i=>i.id==='A4')||snap._hold_release;
+  verdicts.push(card('Hold-and-Release',badge(holdDetected?'WARN':'OK'),
+    holdDetected?'Patrón hold-and-release activo o detectado':'Sin stagnación seguida de liberación masiva'));
+
+  // 21. Integridad de cadena
+  const chainOk2=!snap._chain_broken_pct&&!snap._false_hash&&!snap._sig_invalid&&!snap._chain_fork;
+  verdicts.push(card('Integridad de cadena',badge(chainOk2?'OK':'CRITICAL'),
+    chainOk2?`Hash SHA-256 íntegro — ${fakeHash(snap.idx||0).slice(0,16)}…`:
+    `⚠ ${snap._chain_fork?'fork detectado':snap._sig_invalid?'firma inválida':snap._false_hash?'hash adulterado':'cadena rota'}`));
+
+  // 22. Conteo imposible
+  const imp=snap.actas_divulgadas>snap.actas_totales||snap._mesa_fantasma;
+  verdicts.push(card('Conteo imposible / Mesa fantasma',badge(imp?'CRITICAL':'OK'),
+    imp?`${snap.actas_divulgadas} actas > ${snap.actas_totales} total — ${snap._mesa_fantasma?'mesa fantasma detectada':'conteo imposible'}`:'Conteo dentro de límites'));
+
+  // 23. Reversión de datos (rollback)
+  verdicts.push(card('Rollback de datos',badge(snap._rollback?'CRITICAL':'OK'),
+    snap._rollback?'actas_divulgadas retrocedió — timestamp no monótono':'Sin regresión temporal detectada'));
+
+  // 24. Uniformidad sospechosa
+  verdicts.push(card('Uniformidad sospechosa',badge(snap._uniformidad_sospechosa?'WARN':'OK'),
+    snap._uniformidad_sospechosa?'Distribución de votos perfectamente teórica — posible fabricación':'Varianza normal en distribución de votos'));
+
+  // 25. Endpoints desconectados
+  verdicts.push(card('Endpoints / Conectividad',badge(snap._ep_disc?'WARN':'OK'),
+    snap._ep_disc?`${snap._ep_disc} endpoints desconectados`:'Todos los endpoints activos'));
+
+  // ── Capa de defensa de infraestructura ────────────────────────────────────
+  const cdnP=snap._cdn_mirrors_poisoned||0;
+  verdicts.push(card('CDN Multi-espejo (consenso)',
+    badge(cdnP>=3?'CRITICAL':cdnP>0?'WARN':'OK'),
+    `${cdnP}/5 espejos contaminados | umbral consenso: ≥3 | ${cdnP>=3?'⚠ MODO SOLO-LOCAL':cdnP>0?'divergencia detectada':'consenso OK'}`));
+
+  verdicts.push(card('Frescura de caché',
+    badge(snap._cache_stale>60?'CRITICAL':snap._cache_stale>0?'WARN':'OK'),
+    snap._cache_stale?`TTL falso: ${snap._cache_stale}min | umbral crítico: >60min`:'Caché alineada con origen real'));
+
+  verdicts.push(card('Ancla OTS (Bitcoin)',badge(snap._ots_attack?'CRITICAL':'OK'),
+    snap._ots_attack?'⚠ Intento de suplantar ancla Bitcoin — RECHAZADO (OTS inmutable)':'Ancla OTS íntegra'));
+
+  verdicts.push(card('Zero-Trust Middleware',
+    badge(cd.zt_bypass?.level||'OK'),
+    snap._zt_bypass_attempt
+      ?`${snap._zt_bypass_attempt} cabeceras forjadas | umbral bypass: ≥5 | ${snap._zt_bypass_attempt>=5?'⚠ BYPASS DETECTADO':'filtradas por middleware'}`
+      :'Todas las peticiones autenticadas'));
+
+  verdicts.push(card('Monotonía de Timestamps',badge(cd.ts_monotone?'WARN':'OK'),
+    snap._ts_drift||snap._time_distorted
+      ?`Drift detectado: +${snap._ts_drift||snap._time_distorted}min — timeline no monótona`
+      :'Timestamps monótonos'));
+
+  verdicts.push(card('Auto-auditoría binaria',badge(snap._binary_tampered?'CRITICAL':'OK'),
+    snap._binary_tampered
+      ?`⚠ ${snap._binary_tampered} módulos con hash ≠ baseline — CUARENTENA ACTIVADA`
+      :'Hash de binario íntegro'));
+
+  verdicts.push(card('DDoS / Disponibilidad',badge(snap._ddos>100000?'CRITICAL':snap._ddos?'WARN':'OK'),
+    snap._ddos?`${snap._ddos.toLocaleString()} req/s | umbral: 100k req/s | ${snap._ddos>100000?'⚠ RATE LIMITER SUPERADO':'mitigado'}`:'Sin tráfico anómalo detectado'));
+
+  verdicts.push(card('Duplicación de actas',badge(snap._duplication?'CRITICAL':'OK'),
+    snap._duplication
+      ?`+${snap._duplication} actas duplicadas → +${(snap._duplication*150).toLocaleString()} votos inflados`
+      :'Sin duplicados detectados'));
+
+  verdicts.push(card('Concentración de votos',badge(snap._concentration?'CRITICAL':'OK'),
+    snap._concentration
+      ?`Partido[0]: 93% en ${snap._concentration} mesas — z-score extremo`
+      :'Distribución proporcional por mesa'));
+
+  verdicts.push(card('Throttling / Estancamiento',badge(cd.throttled?'WARN':'OK'),
+    snap._throttled?'CNE: cadencia artificial detectada — conteo detenido deliberadamente':'Cadencia de actualización normal'));
+
+  document.getElementById('s-forensic-list').innerHTML=verdicts.join('');
+}
+
+function emitEngineEvents(snap,idx,benf,lastd,ext){
+  const {mad,runs,trend,llnz}=ext||{};
+  if(idx%6===0)logE('INFO',`SHA-256 verificado ✓ snap ${idx} — hash=${fakeHash(idx).slice(0,12)}…`);
+  if(snap.blackout||snap._geo_blackout)logE('CRITICAL',`Apagón detectado — snap ${idx}`);
+  if(benf.N>=15&&benf.pval<TV.benford_chi_pvalue&&TE.benford_chi_pvalue){
+    const k='benford_chi';const last=_alertLast[k]||0;
+    if(idx-last>=_COOLDOWN){_alertLast[k]=idx;
+      logE('WARN',`Benford χ²=${benf.chi2.toFixed(2)} p=${benf.pval.toFixed(4)} → umbral violado`);}}
+  if(mad!=null&&TE.benford_mad_critical&&mad>TV.benford_mad_critical){
+    const k='benford_mad';const last=_alertLast[k]||0;
+    if(idx-last>=_COOLDOWN){_alertLast[k]=idx;
+      logE('CRITICAL',`Benford MAD=${mad.toFixed(4)} → supera umbral crítico ${TV.benford_mad_critical}`);}}
+  if(lastd.N>=20&&lastd.pval<TV.lastdigit_chi&&TE.lastdigit_chi){
+    const k='lastdigit';const last=_alertLast[k]||0;
+    if(idx-last>=_COOLDOWN){_alertLast[k]=idx;
+      logE('WARN',`Último dígito chi²=${lastd.chi2.toFixed(2)} p=${lastd.pval.toFixed(4)} → uniformidad rota`);}}
+  if(runs&&TE.runs_pval&&runs.pval<TV.runs_pval){
+    const k='runs';const last=_alertLast[k]||0;
+    if(idx-last>=_COOLDOWN){_alertLast[k]=idx;
+      logE('WARN',`Test de corridas: z=${runs.z.toFixed(2)} p=${runs.pval.toFixed(4)} → aleatoriedad comprometida`);}}
+  if(trend&&TE.trend_pct&&trend.dev>TV.trend_pct){
+    const k='trend';const last=_alertLast[k]||0;
+    if(idx-last>=_COOLDOWN){_alertLast[k]=idx;
+      logE('WARN',`Tendencia: desviación ${trend.dev.toFixed(1)}% vs predicción ${trend.predicted.toFixed(1)}%`);}}
+  if(llnz&&TE.lln_z&&Math.abs(llnz.z)>TV.lln_z){
+    const k='llnz';const last=_alertLast[k]||0;
+    if(idx-last>=_COOLDOWN){_alertLast[k]=idx;
+      logE('WARN',`LLN: z=${llnz.z.toFixed(2)}σ → convergencia anómala (n=${llnz.N})`);}}
+  if(snap._rollback)logE('CRITICAL','Rollback: actas_divulgadas retrocedió — timestamp no monótono');
+  if(snap._uniformidad_sospechosa)logE('WARN','Uniformidad sospechosa: distribución perfectamente teórica');
+  if(snap.actas_divulgadas>snap.actas_totales||snap._mesa_fantasma)
+    logE('CRITICAL',`Conteo imposible: ${snap.actas_divulgadas} > ${snap.actas_totales} actas`);
+  if(snap._ep_disc)logE('WARN',`${snap._ep_disc} endpoints desconectados`);
+  if(snap._resultado_invertido)logE('CRITICAL','Inversión de resultados detectada post-apagón');
+  // Infrastructure multicapa
+  const cd2=snap._cd||{};
+  if(cd2.cdn_mirrors)logE(snap._cdn_mirrors_poisoned>=3?'CRITICAL':'WARN',cd2.cdn_mirrors.msg);
+  if(cd2.cache_stale)logE(snap._cache_stale>60?'CRITICAL':'WARN',cd2.cache_stale.msg);
+  if(cd2.ots_attack)logE('CRITICAL',cd2.ots_attack.msg);
+  if(cd2.zt_bypass)logE(snap._zt_bypass_attempt>=5?'CRITICAL':'WARN',cd2.zt_bypass.msg);
+  if(cd2.ts_monotone)logE('WARN',cd2.ts_monotone.msg);
+  if(cd2.binary_tamper)logE('CRITICAL',cd2.binary_tamper.msg);
+  if(cd2.ddos)logE(snap._ddos>100000?'CRITICAL':'WARN',cd2.ddos.msg);
+  if(cd2.duplication)logE('CRITICAL',cd2.duplication.msg);
+  if(cd2.forced_part)logE('CRITICAL',cd2.forced_part.msg);
+  if(cd2.concentration)logE('CRITICAL',cd2.concentration.msg);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ANIMAL DEFENSES ENGINE — D14 Cuervo · D15 Pulpo · D16 Venado · D17 Lagartija · D18 Tejón
+// ═══════════════════════════════════════════════════════════════════════════
+function computeThreatScore(snap,benf){
+  let s=0;
+  if(snap._false_hash||snap._chain_fork||snap._chain_broken_pct>=50)s+=40;
+  if(benf&&benf.N>=15&&benf.pval<TV.benford_chi_pvalue&&TE.benford_chi_pvalue)s+=25;
+  if(snap.blackout||(snap._ep_disc||0)>=10||snap._vis_down)s+=20;
+  if((snap._cdn_mirrors_poisoned||0)>=3||snap._chain_fork)s+=35;
+  return Math.min(s,100);
+}
+
+const TEJON_BACKOFF=[2000,5000,10000,20000,30000];
+function attemptTejonRecovery(){
+  if(!DEFENSES.tejon.frozen)return;
+  const attempt=DEFENSES.tejon.recoveryAttempts;
+  if(attempt>=5){
+    logA('CRITICAL','kill-switch','⚔️ Tejón: máx intentos (5/5) — CONGELADO permanente',
+      'Escalar a autoridad electoral · attack_log.jsonl disponible');
+    return;
+  }
+  const wait=TEJON_BACKOFF[Math.min(attempt,4)];
+  const jitter=0.7+Math.random()*0.6;
+  const actual=Math.round(wait*jitter);
+  logA('WARN','kill-switch',`⚔️ Tejón: recuperación ${attempt+1}/5 en ${actual}ms`,
+    `backoff=${wait}ms ±30% · verificando cadena local…`);
+  DEFENSES.tejon.recoveryAttempts++;
+  setTimeout(()=>{
+    if(!DEFENSES.tejon.frozen)return;
+    if(DEFENSES.tejon.score<75){
+      DEFENSES.tejon.frozen=false;
+      logA('OK','kill-switch',`⚔️ Tejón: recuperado (${DEFENSES.tejon.recoveryAttempts}/5)`,
+        `score=${DEFENSES.tejon.score}/100 < 75 · Operación normal ✓`);
+    }else{
+      logA('WARN','kill-switch',`⚔️ Tejón: fallo recuperación ${DEFENSES.tejon.recoveryAttempts}/5`,
+        `score=${DEFENSES.tejon.score}/100 ≥ 75 · próximo intento…`);
+      if(DEFENSES.tejon.recoveryAttempts<5)attemptTejonRecovery();
+    }
+  },actual);
+}
+
+function evaluateDefenses(snap,idx,benf){
+  const score=computeThreatScore(snap,benf);
+  DEFENSES.tejon.score=score;
+
+  // D14 Cuervo — gossip P2P reacts to Merkle divergence
+  if(DEFENSES.cuervo.active){
+    if(snap._false_hash||snap._chain_fork){
+      if(DEFENSES.cuervo.consensus)DEFENSES.cuervo.consensus=false;
+      if(idx%4===0){
+        const sib='Testigo-'+String.fromCharCode(65+(idx%3));
+        logA('WARN','10.0.'+rnd(1,9)+'.'+rnd(1,99),
+          `🐦 Cuervo: atestación de ${sib} — merkle DIVERGE`,
+          'Gossip P2P → consenso 2/3 fallido · alerta distribuida');
+      }
+    }else if(!DEFENSES.cuervo.consensus){
+      DEFENSES.cuervo.consensus=true;
+      logA('OK','10.0.'+rnd(1,9)+'.'+rnd(1,99),
+        '🐦 Cuervo: merkle reconciliado — consenso 3/3 restaurado','Gossip broadcast ✓');
+    }else if(idx%18===0){
+      DEFENSES.cuervo.attestations++;
+      logA('INFO','10.0.'+rnd(1,9)+'.'+rnd(1,99),
+        `🐦 Cuervo: atestación periódica #${DEFENSES.cuervo.attestations} — merkle OK`,
+        'Consenso 3/3 ✓ · corvid_broadcast.py activo');
+    }
+  }
+
+  // D15 Pulpo — ChaCha20 transport encryption when MITM-class attack active
+  if(DEFENSES.pulpo.active&&!DEFENSES.pulpo.degraded){
+    if(snap._chain_broken_pct>0||activeInjections.some(i=>i.id==='B3')){
+      const bytes=rnd(2048,8192);
+      DEFENSES.pulpo.encrypted+=bytes;
+      if(idx%5===0)
+        logA('INFO',rndIP(),
+          `🦑 Pulpo: [ENCRYPTED: ${bytes} bytes] — ChaCha20Poly1305`,
+          'clave=SHA256(prev_merkle) · MITM frustrado');
+    }
+  }else if(!DEFENSES.pulpo.active&&activeInjections.some(i=>i.id==='B3')&&idx%5===0){
+    logA('CRITICAL',rndIP(),
+      '🦑 Pulpo: CIFRADO INACTIVO — tráfico MITM en texto claro',
+      'D15 desactivada · Datos interceptables sin defensa');
+  }
+
+  // D16 Venado — timing jitter + decoys when timing attack active
+  if(DEFENSES.venado.active){
+    const timingAttack=snap._time_distorted||snap._ts_drift||activeInjections.some(i=>i.id==='B7');
+    if(timingAttack){
+      const jit=(Math.random()*0.6-0.3);
+      DEFENSES.venado.jitter=jit;
+      if(idx%6===0)
+        logA('WARN','127.0.0.1',
+          `🦌 Venado: snapshot en ${(30*(1+jit)).toFixed(1)}s (esperado: 30±30%)`,
+          'Jitter activo · evasion_scheduler.py · timing attack frustrado');
+      if(Math.random()<0.02){
+        DEFENSES.venado.decoys++;
+        logA('INFO','127.0.0.1',
+          `🦌 Venado: decoy #${DEFENSES.venado.decoys} emitido`,
+          'is_decoy=true · señuelo activado');
+      }
+    }else{DEFENSES.venado.jitter=0;}
+  }
+
+  // D17 Lagartija — nightly mirror sync every 288 snaps (1 simulated day)
+  if(DEFENSES.lagartija.active&&idx>0&&idx%288===0){
+    if(snap._binary_tampered||snap._chain_broken_pct>0||snap._chain_fork){
+      DEFENSES.lagartija.divergence=true;
+      logA('CRITICAL','mirror.s3',
+        `🦎 Lagartija: divergencia detectada — sync nocturno snap${idx}`,
+        'Restaurando cadena desde mirror 2/3 · .archive/corrupted_chain_backup.json');
+      setTimeout(()=>{
+        DEFENSES.lagartija.divergence=false;
+        DEFENSES.lagartija.lastSync=tsLog();
+        if(SIM.state!=='stopped')
+          logA('OK','mirror.s3','🦎 Lagartija: auto-restauración completa',
+            'chain_root match ✓ · mirror 2/3 aplicado · regeneration.py');
+      },1800);
+    }else{
+      DEFENSES.lagartija.lastSync=tsLog();
+      logA('INFO','mirror.s3',`🦎 Lagartija: sync nocturno ok — snap${idx}`,
+        `mirrors ${DEFENSES.lagartija.mirrors}/3 ✓ · cadena íntegra`);
+    }
+  }
+
+  // D18 Tejón — kill switch with exponential backoff
+  if(DEFENSES.tejon.active){
+    if(score>=75&&!DEFENSES.tejon.frozen){
+      DEFENSES.tejon.frozen=true;DEFENSES.tejon._frozenAt=idx;DEFENSES.tejon.recoveryAttempts=0;
+      logA('CRITICAL','kill-switch',`⚔️ Tejón: CONGELADO — amenaza=${score}/100`,
+        'lock: /tmp/centinel.lock · checkpoint_frozen.json · backoff [2,5,10,20,30]s iniciado');
+      pushAlert('CRITICAL','TejonFreeze',
+        `Kill switch D18: amenaza ${score}/100 ≥ 75 → sistema congelado`);
+      logE('CRITICAL',`Tejón: kill switch activado — snap${idx} — score ${score}/100`);
+      attemptTejonRecovery();
+    }else if(DEFENSES.tejon.frozen&&score<50){
+      DEFENSES.tejon.frozen=false;
+      logA('OK','kill-switch',`⚔️ Tejón: amenaza resuelta — score=${score}/100`,
+        'Sistema descongelado · Operación normal reanudada ✓');
+    }
+  }else if(!DEFENSES.tejon.active&&score>=75&&idx%8===0){
+    logA('CRITICAL','kill-switch',
+      `⚔️ Tejón: KILL SWITCH INACTIVO — amenaza=${score}/100 sin respuesta`,
+      'D18 desactivada · ataque activo sin contención autónoma');
+  }
+
+  renderDefenseStatus(snap);
+}
+
+function renderDefenseStatus(snap){
+  // Cuervo
+  const cCard=document.getElementById('def-card-cuervo');
+  if(!DEFENSES.cuervo.active){
+    cCard.className='def-card disabled';
+    document.getElementById('def-status-cuervo').innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else if(!DEFENSES.cuervo.consensus){
+    cCard.className='def-card triggered';
+    document.getElementById('def-status-cuervo').innerHTML='<span class="badge b-warn">⚠ DIVERGENCIA</span>';
+  }else{
+    cCard.className='def-card';
+    document.getElementById('def-status-cuervo').innerHTML='<span class="badge b-ok">ACTIVO ✓</span>';
+  }
+  document.getElementById('def-cuervo-siblings').textContent=DEFENSES.cuervo.active?'3/3':'0/3';
+  document.getElementById('def-cuervo-consensus').textContent=DEFENSES.cuervo.consensus?'✓ OK':'✗ MISMATCH';
+  document.getElementById('def-cuervo-att').textContent=DEFENSES.cuervo.attestations;
+
+  // Pulpo
+  const pCard=document.getElementById('def-card-pulpo');
+  if(!DEFENSES.pulpo.active){
+    pCard.className='def-card disabled';
+    document.getElementById('def-status-pulpo').innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else{
+    pCard.className='def-card';
+    document.getElementById('def-status-pulpo').innerHTML='<span class="badge b-ok">ACTIVO ✓</span>';
+  }
+  document.getElementById('def-pulpo-encrypted').textContent=(DEFENSES.pulpo.encrypted/1024).toFixed(1)+' KB';
+  document.getElementById('def-pulpo-state').textContent=DEFENSES.pulpo.degraded?'⚠ Degradado':'Normal';
+
+  // Venado
+  const vCard=document.getElementById('def-card-venado');
+  const timingOn=snap._time_distorted||snap._ts_drift||activeInjections.some(i=>i.id==='B7');
+  if(!DEFENSES.venado.active){
+    vCard.className='def-card disabled';
+    document.getElementById('def-status-venado').innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else if(timingOn&&DEFENSES.venado.jitter!==0){
+    vCard.className='def-card triggered';
+    document.getElementById('def-status-venado').innerHTML='<span class="badge b-warn">EVASIÓN</span>';
+  }else{
+    vCard.className='def-card';
+    document.getElementById('def-status-venado').innerHTML='<span class="badge b-ok">ACTIVO ✓</span>';
+  }
+  const j=DEFENSES.venado.jitter||0;
+  document.getElementById('def-venado-jitter').textContent=(j>=0?'+':'')+Math.round(j*100)+'%';
+  document.getElementById('def-venado-decoys').textContent=DEFENSES.venado.decoys;
+
+  // Lagartija
+  const lCard=document.getElementById('def-card-lagartija');
+  if(!DEFENSES.lagartija.active){
+    lCard.className='def-card disabled';
+    document.getElementById('def-status-lagartija').innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else if(DEFENSES.lagartija.divergence){
+    lCard.className='def-card triggered';
+    document.getElementById('def-status-lagartija').innerHTML='<span class="badge b-bad">RESTAURANDO</span>';
+  }else{
+    lCard.className='def-card';
+    document.getElementById('def-status-lagartija').innerHTML='<span class="badge b-ok">ACTIVO ✓</span>';
+  }
+  document.getElementById('def-lagartija-mirrors').textContent=
+    DEFENSES.lagartija.mirrors+'/3'+(DEFENSES.lagartija.mirrors===3?' ✓':'');
+  document.getElementById('def-lagartija-sync').textContent=DEFENSES.lagartija.lastSync||'—';
+
+  // Tejón
+  const tCard=document.getElementById('def-card-tejon');
+  const score=DEFENSES.tejon.score;
+  if(!DEFENSES.tejon.active){
+    tCard.className='def-card disabled';
+    document.getElementById('def-status-tejon').innerHTML='<span class="badge b-na">INACTIVO</span>';
+  }else if(DEFENSES.tejon.frozen){
+    tCard.className='def-card frozen';
+    document.getElementById('def-status-tejon').innerHTML='<span class="badge b-bad">CONGELADO ✗</span>';
+  }else if(score>=50){
+    tCard.className='def-card triggered';
+    document.getElementById('def-status-tejon').innerHTML='<span class="badge b-warn">ALERTA</span>';
+  }else{
+    tCard.className='def-card';
+    document.getElementById('def-status-tejon').innerHTML='<span class="badge b-na">LISTO</span>';
+  }
+  document.getElementById('def-tejon-score').textContent=score;
+  const bar=document.getElementById('def-tejon-bar');
+  bar.style.width=score+'%';
+  bar.style.background=score>=75?'var(--bad)':score>=50?'var(--warn)':'var(--ok)';
+  document.getElementById('def-tejon-attempts').textContent=
+    DEFENSES.tejon.recoveryAttempts+'/5'+
+    (DEFENSES.tejon.frozen&&DEFENSES.tejon.recoveryAttempts>=5?' — PERMANENTE':'');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THRESHOLD PANEL
+// ═══════════════════════════════════════════════════════════════════════════
+function lockThresholds(){
+  const txt=document.getElementById('thresh-prereg-text').value.trim();
+  if(!txt){alert('Escribe tu hipótesis primero.');return;}
+  threshLocked=true;
+  document.getElementById('thresh-prereg-text').setAttribute('readonly','');
+  document.getElementById('thresh-lock-btn').style.display='none';
+  document.getElementById('thresh-unlock-btn').style.display='';
+  document.getElementById('thresh-lock-stat').innerHTML='<span class="badge b-ok">hipótesis bloqueada</span>';
+  document.getElementById('thresh-sliders').classList.add('unlocked');
+  localStorage.setItem('centinel_acad_prereg',JSON.stringify({txt,ts:new Date().toISOString()}));
+  logE('INFO','Pre-registro de umbrales bloqueado por investigador');
+}
+function unlockThresholds(){
+  if(!confirm('¿Borrar la hipótesis y deshabilitar los sliders? Esta acción no se puede deshacer.'))return;
+  threshLocked=false;
+  const ta=document.getElementById('thresh-prereg-text');
+  ta.value='';ta.removeAttribute('readonly');
+  document.getElementById('thresh-lock-btn').style.display='';
+  document.getElementById('thresh-unlock-btn').style.display='none';
+  document.getElementById('thresh-lock-stat').innerHTML='';
+  document.getElementById('thresh-sliders').classList.remove('unlocked');
+  localStorage.removeItem('centinel_acad_prereg');
+  logE('INFO','Pre-registro de umbrales cancelado — sliders bloqueados');
+}
+function resetThresholds(){RULES_DEFS.forEach(r=>{TV[r.id]=r.def;
+  const sl=document.getElementById('sl-'+r.id);if(sl)sl.value=r.def;
+  const vl=document.getElementById('tv-'+r.id);if(vl)vl.textContent=r.def+(r.unit||'');});
+  logE('INFO','Umbrales restaurados a valores por defecto');}
+function updateTV(id,val){
+  const r=RULES_DEFS.find(x=>x.id===id); TV[id]=parseFloat(val);
+  document.getElementById('tv-'+id).textContent=val+(r?.unit||'');
+  if(SERIES)renderSimFrame(SIM.idx);}
+function toggleTE(id,on){TE[id]=on;if(SERIES)renderSimFrame(SIM.idx);}
+
+function renderThresholdSliders(){
+  const grps={};
+  RULES_DEFS.forEach(r=>{if(!grps[r.grp])grps[r.grp]=[];grps[r.grp].push(r);});
+  document.getElementById('thresh-sliders-container').innerHTML=
+    Object.entries(grps).map(([g,rules])=>`
+      <div class="thresh-group">
+        <div class="thresh-group-label">${g}</div>
+        ${rules.map(r=>`<div class="rule-row">
+          <span class="rule-name">${r.label}</span>
+          <input type="checkbox" class="rule-chk" ${TE[r.id]?'checked':''} onchange="toggleTE('${r.id}',this.checked)">
+          <input type="range" class="rule-slider" id="sl-${r.id}"
+            min="${r.min}" max="${r.max}" step="${r.step}" value="${r.def}"
+            oninput="updateTV('${r.id}',this.value)">
+          <span class="rule-val" id="tv-${r.id}">${r.def}${r.unit||''}</span>
+        </div>`).join('')}
+      </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INJECTION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+function setInjMode(m){
+  injMode=m;
+  document.getElementById('btn-inj-instant').classList.toggle('on',m==='instant');
+  document.getElementById('btn-inj-sched').classList.toggle('on',m==='scheduled');
+  const sw=document.getElementById('inj-schedule-wrap');
+  m==='scheduled'?sw.classList.add('show'):sw.classList.remove('show');
+}
+function injectEvent(id){
+  const ev=EVENTS[id];if(!ev)return;
+  const paramEl=document.querySelector(`[data-ev="${id}"] .inj-param-range`);
+  const paramVal=paramEl?parseFloat(paramEl.value):null;
+  if(injMode==='instant'){
+    const snap=SIM.snapshots[SIM.idx]||{};
+    ev.apply(snap,paramVal,SIM.idx);
+    activeInjections.push({id,label:ev.label,mode:'inmediata',atIdx:SIM.idx,ts:new Date()});
+    renderActiveInjections();
+    const prevSpeed=SIM.speed;SIM.speed=1; // force full chart redraw on inject
+    renderSimFrame(SIM.idx);
+    SIM.speed=prevSpeed;
+  }else{
+    const atIdx=parseInt(document.getElementById('inj-sched-idx').value)||100;
+    scheduledInjections.push({id,paramVal,atIdx});
+    activeInjections.push({id,label:ev.label,mode:'programada',atIdx,schedRef:scheduledInjections.length-1});
+    renderActiveInjections();
+    logE('INFO',`Inyección programada: ${ev.label} en snapshot ${atIdx}`);
+  }
+}
+function applyScheduledInjections(idx){
+  scheduledInjections.filter(s=>s.atIdx===idx).forEach(s=>{
+    const ev=EVENTS[s.id];if(ev)ev.apply(SIM.snapshots[idx],s.paramVal,idx);
+  });
+  scheduledInjections=scheduledInjections.filter(s=>s.atIdx>idx);
+}
+function cancelInjection(i){
+  const inj=activeInjections[i];
+  if(inj){const ev=EVENTS[inj.id];if(ev?.cleanup)ev.cleanup();}
+  activeInjections.splice(i,1);renderActiveInjections();
+}
+function renderActiveInjections(){
+  const topbar=document.getElementById('inj-topbar');
+  const n=activeInjections.length;
+  // Clear per-block lists
+  ['a','b','c','d'].forEach(b=>{
+    const el=document.getElementById('inj-active-block-'+b);
+    if(el)el.innerHTML='';
+  });
+  if(!n){topbar.style.display='none';topbar.innerHTML='';return;}
+  // Populate per-block badge rows + topbar
+  activeInjections.forEach((inj,i)=>{
+    const block=inj.id[0].toLowerCase();
+    const el=document.getElementById('inj-active-block-'+block);
+    if(!el)return;
+    const schedCls=inj.mode==='programada'?'sched':'';
+    const label=inj.id+': '+inj.label.split(' ').slice(0,3).join(' ')+(inj.mode==='programada'?` @snap${inj.atIdx+1}`:'');
+    el.innerHTML+=`<span class="inj-tag ${schedCls}">${label}<button onclick="cancelInjection(${i})" title="Cancelar">×</button></span>`;
+  });
+  // Mini topbar
+  topbar.style.display='flex';
+  topbar.innerHTML=`<span id="inj-topbar-label">Inyecciones activas (${n}):</span>`+
+    activeInjections.map((inj,i)=>{
+      const schedCls=inj.mode==='programada'?'sched':'';
+      const shortLabel=inj.id+' · '+inj.label.split(' ').slice(0,3).join(' ')+(inj.mode==='programada'?` @snap${inj.atIdx+1}`:'');
+      return `<span class="inj-tag-top ${schedCls}">${shortLabel}<button onclick="cancelInjection(${i})" title="Cancelar inyección">×</button></span>`;
+    }).join('');
+}
+
+function renderInjGrid(gridId,block){
+  const container=document.getElementById(gridId);
+  const evs=Object.entries(EVENTS).filter(([,e])=>e.block===block);
+  container.innerHTML=evs.map(([id,ev])=>{
+    const btnCls=block==='B'?'b':block==='C'?'c':block==='D'?'d':'';
+    const paramHtml=ev.param?`
+      <div class="inj-param-row">
+        <span style="flex:0;white-space:nowrap;font-size:9px">${ev.param.label}</span>
+        <input type="range" class="inj-param-range"
+          min="${ev.param.min}" max="${ev.param.max}" value="${ev.param.def}"
+          oninput="this.nextElementSibling.textContent=this.value+'${ev.param.unit||''}'">
+        <span class="inj-param-val">${ev.param.def}${ev.param.unit||''}</span>
+      </div>`:'';
+    return `<div class="inj-card" data-ev="${id}">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="inj-card-label">${id}: ${ev.label}</span>
+      </div>
+      <div class="inj-card-desc">${ev.desc}</div>
+      <div class="breaking-badge">⚡ ${ev.breakpoint}</div>
+      ${paramHtml}
+      <button class="inj-btn ${btnCls}" onclick="injectEvent('${id}')">${block==='D'?'Desactivar defensa':'Inyectar'}</button>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RESTORE VIS
+// ═══════════════════════════════════════════════════════════════════════════
+function restoreVis(){
+  document.getElementById('vis-overlay').classList.remove('show');
+  if(SIM.snapshots[SIM.idx])SIM.snapshots[SIM.idx]._vis_down=false;
+  logE('OK','Sistema de visualización restaurado');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+(async function init(){
+  renderThresholdSliders();
+  renderInjGrid('inj-grid-a','A');
+  renderInjGrid('inj-grid-b','B');
+  renderInjGrid('inj-grid-c','C');
+  renderInjGrid('inj-grid-d','D');
+  renderActiveInjections();
+  // Restore pre-registration if exists
+  const saved=localStorage.getItem('centinel_acad_prereg');
+  if(saved){try{const{txt}=JSON.parse(saved);
+    document.getElementById('thresh-prereg-text').value=txt;lockThresholds();}catch{}}
+  // Load default dataset
+  await loadDataset('../data/hnd_2025_series.json');
+  logE('OK','Sandbox Forense Académico listo — CENTINEL v1');
+  logE('INFO','Selecciona un dataset y presiona ▶ para iniciar la simulación');
+})();
+
+// ── shared canvas helpers ────────────────────────────────────────────────────
+function _ctxSectionBar(ctx,xOff,y,W,label){
+  ctx.fillStyle='#24272e';ctx.fillRect(xOff,y,W,22);
+  ctx.fillStyle='#6ea8fe';ctx.font='bold 10px system-ui';
+  ctx.fillText(label,xOff+8,y+14);
+  return y+26;
+}
+function _drawDetectorsOnCtx(ctx,xOff,y,W){
+  const cards=document.querySelectorAll('#s-forensic-list .forensic-card');
+  if(!cards.length)return y;
+  y=_ctxSectionBar(ctx,xOff,y,W,'DETECTORES FORENSES');
+  const ROW_H=38;
+  cards.forEach(card=>{
+    const title=card.querySelector('.forensic-title')?.textContent?.trim()||'';
+    const isAlert=card.querySelector('.badge')?.classList.contains('b-bad')||false;
+    const detail=card.querySelector('.forensic-body')?.textContent?.trim()||'';
+    ctx.fillStyle=isAlert?'rgba(223,107,134,.10)':'rgba(87,192,141,.06)';
+    ctx.fillRect(xOff,y,W,ROW_H-2);
+    ctx.fillStyle=isAlert?'#df6b86':'#57c08d';
+    ctx.fillRect(xOff,y,3,ROW_H-2);
+    ctx.fillStyle='#e7e9ec';ctx.font='bold 11px system-ui';
+    ctx.fillText(title,xOff+10,y+13);
+    ctx.fillStyle=isAlert?'#df6b86':'#57c08d';ctx.font='bold 9px system-ui';
+    ctx.fillText(isAlert?'ALERTA':'OK',xOff+W-54,y+13);
+    ctx.fillStyle='#8b929c';ctx.font='9.5px system-ui';
+    ctx.fillText(detail.substring(0,140),xOff+10,y+27);
+    y+=ROW_H;
+  });
+  return y+6;
+}
+function _drawAlertsOnCtx(ctx,xOff,y,W){
+  y=_ctxSectionBar(ctx,xOff,y,W,'TABLA DE ALERTAS');
+  if(!simAlerts.length){
+    ctx.fillStyle='#8b929c';ctx.font='10px system-ui';
+    ctx.fillText('Sin alertas activas',xOff+8,y+12);
+    return y+24;
+  }
+  const COL_X=[0,90,230,310]; // relative offsets
+  const COL_LABELS=['TIEMPO','TIPO','SEVER.','DESCRIPCIÓN'];
+  ctx.fillStyle='#1e2026';ctx.fillRect(xOff,y,W,18);
+  COL_LABELS.forEach((h,i)=>{
+    ctx.fillStyle='#8b929c';ctx.font='bold 9px system-ui';
+    ctx.fillText(h,xOff+COL_X[i]+4,y+12);
+  });
+  y+=18;
+  simAlerts.slice(-30).reverse().forEach((a,i)=>{
+    const sev=a.sev==='CRITICAL'?'#df6b86':a.sev==='HIGH'?'#e8a838':'#57c08d';
+    ctx.fillStyle=i%2===0?'#15171c':'#0f1115';
+    ctx.fillRect(xOff,y,W,17);
+    ctx.fillStyle='#e7e9ec';ctx.font='9px system-ui';
+    ctx.fillText(a.ts,xOff+COL_X[0]+4,y+12);
+    ctx.fillText(a.tipo.substring(0,18),xOff+COL_X[1]+4,y+12);
+    ctx.fillStyle=sev;ctx.fillText(a.sev,xOff+COL_X[2]+4,y+12);
+    ctx.fillStyle='#e7e9ec';
+    ctx.fillText(a.desc.substring(0,Math.floor((W-COL_X[3]-8)/5.5)),xOff+COL_X[3]+4,y+12);
+    y+=17;
+  });
+  return y+8;
+}
+// ── chart rows helper ────────────────────────────────────────────────────────
+function _chartRows(cs){
+  const rows=[[cs[0]],[cs[1]]];
+  if(cs[2]&&cs[3])rows.push([cs[2],cs[3]]);else if(cs[2])rows.push([cs[2]]);
+  const r3=cs.slice(4).filter(Boolean);if(r3.length)rows.push(r3);
+  return rows;
+}
+
+function downloadPNG(){
+  const IDS=['s-chart-cand','s-chart-timeline','s-chart-benford','s-chart-lastdigit',
+             's-chart-zscore','s-chart-participation','s-chart-nullblank'];
+  const cs=IDS.map(id=>document.getElementById(id)).filter(c=>c&&c.width>0&&c.offsetWidth>0);
+  if(!cs.length){logE('WARN','No hay gráficas — inicia la simulación primero');return;}
+  const PAD=20,GAP=10,S=2;
+  const W=cs[0].offsetWidth;
+  const rows=_chartRows(cs);
+  const rowH=rows.map(r=>Math.max(...r.map(c=>c.offsetHeight)));
+  const chartsH=rowH.reduce((a,b)=>a+b,0)+GAP*(rows.length-1);
+  const detCards=document.querySelectorAll('#s-forensic-list .forensic-card').length;
+  const detH=detCards>0?26+detCards*38+6:0;
+  const alertsH=26+(simAlerts.length?18+Math.min(30,simAlerts.length)*17+8:24);
+  const totalH=PAD+36+chartsH+GAP+(detH>0?detH+GAP:0)+alertsH+PAD;
+  const out=document.createElement('canvas');
+  out.width=(W+PAD*2)*S;out.height=totalH*S;
+  const ctx=out.getContext('2d');
+  ctx.scale(S,S);
+  ctx.fillStyle='#0f1115';ctx.fillRect(0,0,W+PAD*2,totalH);
+  ctx.fillStyle='#b08cf0';ctx.font='bold 14px system-ui';
+  ctx.fillText('CENTINEL Electoral Honduras',PAD,PAD+12);
+  ctx.fillStyle='#8b929c';ctx.font='11px system-ui';
+  ctx.fillText(`Panel Forense · Snap ${SIM.idx+1}/${SIM.snapshots.length} · ${new Date().toLocaleString('es-HN')}`,PAD,PAD+28);
+  let y=PAD+40;
+  rows.forEach((row,ri)=>{
+    const cw=Math.floor((W-GAP*(row.length-1))/row.length);
+    let x=PAD;
+    row.forEach(c=>{ctx.drawImage(c,x,y,cw,c.offsetHeight);x+=cw+GAP;});
+    y+=rowH[ri]+GAP;
+  });
+  y+=4;
+  if(detCards>0){y=_drawDetectorsOnCtx(ctx,PAD,y,W);y+=GAP;}
+  y=_drawAlertsOnCtx(ctx,PAD,y,W);
+  try{
+    const a=document.createElement('a');
+    a.href=out.toDataURL('image/png');
+    a.download=`centinel-panel-snap${SIM.idx+1}.png`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    logE('OK','PNG del panel descargado');
+  }catch(e){logE('WARN','Canvas bloqueado — baja los shields para esta página');}
+}
+
+function downloadFullPNG(){
+  const IDS=['s-chart-cand','s-chart-timeline','s-chart-benford','s-chart-lastdigit',
+             's-chart-zscore','s-chart-participation','s-chart-nullblank'];
+  const cs=IDS.map(id=>document.getElementById(id)).filter(c=>c&&c.width>0&&c.offsetWidth>0);
+  if(!cs.length){logE('WARN','No hay gráficas — inicia la simulación primero');return;}
+  const PAD=20,GAP=10,S=2;
+  const W=cs[0].offsetWidth;
+  const rows=_chartRows(cs);
+  const rowH=rows.map(r=>Math.max(...r.map(c=>c.offsetHeight)));
+  const chartsH=rowH.reduce((a,b)=>a+b,0)+GAP*(rows.length-1);
+  const detCards=document.querySelectorAll('#s-forensic-list .forensic-card').length;
+  const detH=detCards>0?26+detCards*38+6:0;
+  const alertsH=26+(simAlerts.length?18+Math.min(30,simAlerts.length)*17+8:24);
+  const kpiH=26+42;
+  const chartsSecH=26+chartsH;
+  const totalH=PAD+36+kpiH+GAP+chartsSecH+GAP+(detH>0?detH+GAP:0)+alertsH+PAD;
+  const out=document.createElement('canvas');
+  out.width=(W+PAD*2)*S;out.height=totalH*S;
+  const ctx=out.getContext('2d');
+  ctx.scale(S,S);
+  ctx.fillStyle='#0f1115';ctx.fillRect(0,0,W+PAD*2,totalH);
+  // Branding
+  ctx.fillStyle='#b08cf0';ctx.font='bold 16px system-ui';
+  ctx.fillText('CENTINEL Electoral Honduras',PAD,PAD+14);
+  ctx.fillStyle='#8b929c';ctx.font='11px system-ui';
+  ctx.fillText(`Simulación Forense Académica · Snap ${SIM.idx+1}/${SIM.snapshots.length} · ${new Date().toLocaleString('es-HN')}`,PAD,PAD+30);
+  let y=PAD+40;
+  // KPI section
+  y=_ctxSectionBar(ctx,PAD,y,W,'INDICADORES DE LA SIMULACIÓN');
+  const kpiDefs=[
+    {label:'Actas Divulgadas',id:'k-actas',sub:'k-actas-sub'},
+    {label:'Votos Válidos',id:'k-votos',sub:'k-votos-sub'},
+    {label:'% Escrutinio',id:'k-pct',sub:'k-pct-sub'},
+    {label:'Integridad Cadena',id:'k-int',sub:'k-int-sub'},
+  ];
+  const kpiW=Math.floor(W/kpiDefs.length);
+  kpiDefs.forEach((k,i)=>{
+    const kx=PAD+i*kpiW;
+    ctx.fillStyle='#15171c';ctx.fillRect(kx,y,kpiW-2,40);
+    ctx.fillStyle='#8b929c';ctx.font='bold 8.5px system-ui';
+    ctx.fillText(k.label.toUpperCase(),kx+6,y+10);
+    const val=(document.getElementById(k.id)?.textContent||'—').trim();
+    const sub=k.sub?(document.getElementById(k.sub)?.textContent||'').trim():'';
+    ctx.fillStyle='#e7e9ec';ctx.font='bold 13px system-ui';
+    ctx.fillText(val.substring(0,16),kx+6,y+27);
+    if(sub){ctx.fillStyle='#8b929c';ctx.font='8px system-ui';ctx.fillText(sub.substring(0,24),kx+6,y+38);}
+  });
+  y+=42+GAP;
+  // Charts section
+  y=_ctxSectionBar(ctx,PAD,y,W,'PANEL DE VISUALIZACIÓN FORENSE');
+  rows.forEach((row,ri)=>{
+    const cw=Math.floor((W-GAP*(row.length-1))/row.length);
+    let x=PAD;
+    row.forEach(c=>{ctx.drawImage(c,x,y,cw,c.offsetHeight);x+=cw+GAP;});
+    y+=rowH[ri]+GAP;
+  });
+  y+=4;
+  if(detCards>0){y=_drawDetectorsOnCtx(ctx,PAD,y,W);y+=GAP;}
+  y=_drawAlertsOnCtx(ctx,PAD,y,W);
+  try{
+    const a=document.createElement('a');
+    a.href=out.toDataURL('image/png');
+    a.download=`centinel-completo-snap${SIM.idx+1}.png`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    logE('OK','PNG completo de la plataforma descargado');
+  }catch(e){logE('WARN','Canvas bloqueado — baja los shields para esta página');}
+}
+
+function _makePNG(title, lines, filename){
+  const S=2,PAD=20,LH=22,COLS=2;
+  const colLines=Math.ceil(lines.length/COLS);
+  const W=900,H=PAD*2+30+colLines*LH+10;
+  const out=document.createElement('canvas');
+  out.width=W*S;out.height=H*S;
+  const ctx=out.getContext('2d');
+  ctx.scale(S,S);
+  ctx.fillStyle='#0f1115';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#b08cf0';ctx.font='bold 13px system-ui';ctx.fillText(title,PAD,PAD+12);
+  ctx.fillStyle='#8b929c';ctx.font='10px system-ui';
+  ctx.fillText(`CENTINEL · ${new Date().toLocaleString('es-HN')}`,PAD,PAD+26);
+  const colW=Math.floor((W-PAD*2)/COLS);
+  lines.forEach((ln,i)=>{
+    const col=Math.floor(i/colLines),row=i%colLines;
+    const x=PAD+col*colW,y=PAD+36+row*LH;
+    ctx.fillStyle=ln.startsWith('⚠')||ln.includes('CRÍTICO')?'#df6b86':
+                  ln.startsWith('✓')||ln.includes('OK')?'#57c08d':'#e7e9ec';
+    ctx.font=ln.startsWith('──')?'bold 10px system-ui':'11px system-ui';
+    ctx.fillText(ln.substring(0,60),x,y);
+  });
+  try{
+    const a=document.createElement('a');
+    a.href=out.toDataURL('image/png');a.download=filename;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }catch(e){logE('WARN','Canvas bloqueado — baja los shields');}
+}
+
+function downloadUmbralesPNG(){
+  const lines=[];
+  RULES_DEFS.forEach(r=>{
+    if(r.grp&&(!lines.length||lines[lines.length-1]!=='── '+r.grp))
+      lines.push('── '+r.grp);
+    const on=TE[r.id]!==false;
+    const val=TV[r.id]!==undefined?TV[r.id]:r.def;
+    lines.push(`  ${on?'✓':'✗'} ${r.label}: ${val}${r.unit||''}  [${r.min}–${r.max}]`);
+  });
+  _makePNG('Umbrales de Sensibilidad de Reglas',lines,`centinel-umbrales-snap${SIM.idx+1}.png`);
+  logE('OK','PNG de umbrales descargado');
+}
+
+function downloadMatrizPNG(){
+  const lines=[];
+  if(!activeInjections.length&&!scheduledInjections.length){
+    lines.push('Sin inyecciones activas ni programadas.');
+  }else{
+    if(activeInjections.length){
+      lines.push('── Inyecciones activas');
+      activeInjections.forEach(inj=>lines.push(
+        `  [${inj.id}] ${inj.label} · ${inj.mode} · snap ${inj.atIdx+1}`));
+    }
+    if(scheduledInjections.length){
+      lines.push('── Programadas en cola');
+      scheduledInjections.forEach(s=>lines.push(
+        `  [${s.id}] → snap ${s.atIdx+1}  param=${s.paramVal}`));
+    }
+  }
+  _makePNG('Matriz de Inyección de Eventos — Estado actual',lines,`centinel-inyecciones-snap${SIM.idx+1}.png`);
+  logE('OK','PNG de inyecciones descargado');
+}
+
+function downloadTelemTxt(panel){
+  const el=document.getElementById(`telem-${panel}`);
+  const txt=Array.from(el.querySelectorAll('div')).map(d=>d.innerText||d.textContent).join('\n');
+  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`centinel-${panel}-snap${SIM.idx+1}.txt`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  logE('OK',`Log ${panel} descargado como TXT`);
+}
+
+function downloadPDF(){
+  logE('INFO','Abriendo diálogo de impresión — selecciona "Guardar como PDF"');
+  window.print();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETTINGS MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function openSettings(){
+  document.getElementById('settings-overlay').classList.add('open');
+  document.getElementById('settings-email-val').textContent=
+    document.getElementById('user-email').textContent.trim()||'—';
+  document.getElementById('cfg-pw1').value='';
+  document.getElementById('cfg-pw2').value='';
+  document.getElementById('cfg-pw-msg').textContent='';
+  load2FAStatus();
+}
+function closeSettings(){
+  document.getElementById('settings-overlay').classList.remove('open');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings();});
+
+async function changePassword(){
+  const p1=document.getElementById('cfg-pw1').value;
+  const p2=document.getElementById('cfg-pw2').value;
+  const msg=document.getElementById('cfg-pw-msg');
+  msg.className='cfg-msg';
+  if(!p1||p1.length<8){msg.className='cfg-msg err';msg.textContent='Mínimo 8 caracteres.';return;}
+  if(p1!==p2){msg.className='cfg-msg err';msg.textContent='Las contraseñas no coinciden.';return;}
+  msg.textContent='Actualizando…';
+  const{error}=await _sb.auth.updateUser({password:p1});
+  if(error){msg.className='cfg-msg err';msg.textContent='Error: '+error.message;}
+  else{msg.className='cfg-msg ok';msg.textContent='Contraseña actualizada correctamente.';
+    document.getElementById('cfg-pw1').value='';document.getElementById('cfg-pw2').value='';}
+}
+
+async function load2FAStatus(){
+  const status=document.getElementById('cfg-2fa-status');
+  const panel=document.getElementById('cfg-2fa-panel');
+  status.textContent='Consultando…';panel.innerHTML='';
+  try{
+    const{data,error}=await _sb.auth.mfa.listFactors();
+    if(error)throw error;
+    const verified=(data.totp||[]).filter(f=>f.status==='verified');
+    if(verified.length){
+      status.innerHTML='<span style="color:var(--ok)">● Activado</span>';
+      panel.innerHTML=`<button class="cfg-btn danger" onclick="disable2FA('${verified[0].id}')">Desactivar 2FA</button>`;
+    }else{
+      status.innerHTML='<span style="color:var(--muted)">● Desactivado</span>';
+      panel.innerHTML=`<button class="cfg-btn" onclick="enroll2FA()">Activar verificación en dos pasos</button>`;
+    }
+  }catch(e){
+    status.innerHTML='<span style="color:var(--muted)">No disponible en este plan de Supabase</span>';
+  }
+}
+
+async function enroll2FA(){
+  const panel=document.getElementById('cfg-2fa-panel');
+  panel.innerHTML='<span style="color:var(--muted);font-size:11px">Generando QR…</span>';
+  const{data,error}=await _sb.auth.mfa.enroll({factorType:'totp',friendlyName:'CENTINEL'});
+  if(error){panel.innerHTML=`<span style="color:var(--bad);font-size:11px">Error: ${error.message}</span>`;return;}
+  const{id:factorId,totp:{qr_code,secret}}=data;
+  panel.innerHTML=`
+    <div id="cfg-qr-wrap"><img src="${qr_code}" alt="QR 2FA"></div>
+    <span class="cfg-secret">${secret}</span>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:10px">
+      Escanea el QR con Google Authenticator, Authy o similar.<br>
+      O ingresa la clave manualmente.
+    </div>
+    <input id="cfg-totp-code" class="cfg-input" type="text" inputmode="numeric"
+      maxlength="6" placeholder="Código de 6 dígitos del autenticador">
+    <button class="cfg-btn" onclick="verify2FA('${factorId}')">Verificar y activar</button>
+    <div id="cfg-totp-msg" class="cfg-msg"></div>`;
+}
+
+async function verify2FA(factorId){
+  const code=document.getElementById('cfg-totp-code').value.trim();
+  const msg=document.getElementById('cfg-totp-msg');
+  msg.className='cfg-msg';
+  if(code.length!==6){msg.className='cfg-msg err';msg.textContent='Ingresa exactamente 6 dígitos.';return;}
+  msg.textContent='Verificando…';
+  const{data:chal,error:e1}=await _sb.auth.mfa.challenge({factorId});
+  if(e1){msg.className='cfg-msg err';msg.textContent='Error: '+e1.message;return;}
+  const{error:e2}=await _sb.auth.mfa.verify({factorId,challengeId:chal.id,code});
+  if(e2){msg.className='cfg-msg err';msg.textContent='Código incorrecto o expirado.';return;}
+  msg.className='cfg-msg ok';msg.textContent='2FA activado correctamente.';
+  setTimeout(()=>load2FAStatus(),1500);
+}
+
+async function disable2FA(factorId){
+  if(!confirm('¿Desactivar la verificación en dos pasos?'))return;
+  const{error}=await _sb.auth.mfa.unenroll({factorId});
+  if(error){alert('Error: '+error.message);return;}
+  load2FAStatus();
+}
+
+function sendFeedback(){
+  const msg=document.getElementById('cfg-feedback-msg').value.trim();
+  if(!msg){document.getElementById('cfg-feedback-msg').focus();return;}
+  const email=document.getElementById('user-email').textContent.trim();
+  const ds=document.getElementById('dataset-select')?.options[document.getElementById('dataset-select').selectedIndex]?.text||'—';
+  const body=`**Mensaje:**\n${msg}\n\n---\n**Usuario:** ${email}  \n**Snap:** ${SIM.idx+1}/${SIM.snapshots.length}  \n**Dataset:** ${ds}  \n**Fecha:** ${new Date().toISOString()}`;
+  const url='https://github.com/userf8a2c4/centinel-engine/issues/new'
+    +'?labels=sandbox-feedback'
+    +'&title='+encodeURIComponent('[Sandbox] Comentario de usuario')
+    +'&body='+encodeURIComponent(body);
+  window.open(url,'_blank','noopener');
+  document.getElementById('cfg-feedback-msg').value='';
+  document.getElementById('cfg-feedback-stat').className='cfg-msg ok';
+  document.getElementById('cfg-feedback-stat').textContent='Issue abierto en GitHub — completa el envío en la pestaña nueva.';
+}
+</script>
+
+<!-- ══ SETTINGS MODAL ════════════════════════════════════════════════════════ -->
+<div id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+  <div id="settings-card">
+    <div class="cfg-hdr">
+      <h3>⚙ Configuración de cuenta</h3>
+      <button onclick="closeSettings()">✕</button>
+    </div>
+    <div class="cfg-email">Sesión activa como <strong id="settings-email-val"></strong></div>
+
+    <!-- CAMBIAR CONTRASEÑA -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">Cambiar contraseña</div>
+      <input id="cfg-pw1" class="cfg-input" type="password" placeholder="Nueva contraseña (mín. 8 caracteres)" autocomplete="new-password">
+      <input id="cfg-pw2" class="cfg-input" type="password" placeholder="Confirmar nueva contraseña" autocomplete="new-password">
+      <button class="cfg-btn" onclick="changePassword()">Actualizar contraseña</button>
+      <div id="cfg-pw-msg" class="cfg-msg"></div>
+    </div>
+
+    <!-- VERIFICACIÓN EN DOS PASOS -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">Verificación en dos pasos (TOTP)</div>
+      <div class="cfg-2fa-row">
+        <span class="cfg-2fa-status">Estado:</span>
+        <span id="cfg-2fa-status" style="font-size:12px">…</span>
+      </div>
+      <div id="cfg-2fa-panel"></div>
+    </div>
+
+    <!-- COMENTARIOS Y CONTACTO -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">Comentarios y contacto</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+        Tu mensaje se enviará como un Issue al repositorio del proyecto. Requiere cuenta de GitHub.
+      </div>
+      <textarea id="cfg-feedback-msg" class="cfg-textarea" placeholder="Tu comentario, sugerencia o reporte de problema…"></textarea>
+      <button class="cfg-btn" onclick="sendFeedback()">Abrir issue en GitHub →</button>
+      <div id="cfg-feedback-stat" class="cfg-msg"></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
