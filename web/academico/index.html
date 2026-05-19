@@ -7,7 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script src="../config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 :root{
   --bg:#0f1115;--panel:#15171c;--border:#24272e;--fg:#e7e9ec;
@@ -244,6 +243,17 @@ body.auth-pending{visibility:hidden}
 @media(max-width:600px){
   .grid4{grid-template-columns:1fr}
   #sim-control-bar{gap:8px}
+}
+@media print{
+  #breadcrumb,#sim-control-bar,.section-title,
+  #thresh-section,#inj-section,#telem-section,
+  .thresh-lock-panel,#inj-active-list,#anom-marker-row{display:none!important}
+  body{background:#0f1115!important;color:#e7e9ec!important}
+  .page{padding:0!important}
+  .card{background:#15171c!important;border-color:#24272e!important;break-inside:avoid}
+  canvas{max-width:100%!important}
+  @page{margin:8mm;size:A4 portrait}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
 </style>
 </head>
@@ -1409,36 +1419,37 @@ function restoreVis(){
   logE('INFO','Selecciona un dataset y presiona ▶ para iniciar la simulación');
 })();
 
-function _captureCanvas(){
-  return html2canvas(document.querySelector('.page'),{
-    backgroundColor:'#0f1115',scale:2,useCORS:true,logging:false});
-}
 function downloadPNG(){
-  if(typeof html2canvas==='undefined'){logE('WARN','html2canvas no cargado');return;}
-  logE('INFO','Generando PNG…');
-  _captureCanvas().then(canvas=>{
+  // Composite all Chart.js canvases using native Canvas API — no external lib
+  const charts=Array.from(document.querySelectorAll('.page canvas')).filter(c=>c.width>0);
+  if(!charts.length){logE('WARN','No hay gráficas renderizadas — inicia la simulación primero');return;}
+  const PAD=16, GAP=12;
+  const W=Math.max(...charts.map(c=>c.width));
+  const H=charts.reduce((s,c)=>s+c.height+GAP,0)+PAD*2;
+  const out=document.createElement('canvas');
+  out.width=W+PAD*2; out.height=H;
+  const ctx=out.getContext('2d');
+  ctx.fillStyle='#0f1115';
+  ctx.fillRect(0,0,out.width,out.height);
+  // header
+  ctx.fillStyle='#8b929c';ctx.font='bold 22px system-ui';
+  ctx.fillText(`CENTINEL · Snap ${SIM.idx+1} / ${SIM.snapshots.length}`,PAD,PAD+16);
+  let y=PAD+36;
+  charts.forEach(c=>{ctx.drawImage(c,PAD,y,c.width,c.height);y+=c.height+GAP;});
+  try{
     const a=document.createElement('a');
-    a.href=canvas.toDataURL('image/png');
+    a.href=out.toDataURL('image/png');
     a.download=`centinel-snap${SIM.idx+1}.png`;
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     logE('OK','PNG descargado');
-  }).catch(e=>logE('WARN','Error PNG: '+e.message));
+  }catch(e){
+    logE('WARN','Canvas bloqueado por el navegador (escudos activos) — baja los shields para esta página');
+  }
 }
 function downloadPDF(){
-  if(typeof html2canvas==='undefined'){logE('WARN','html2canvas no cargado');return;}
-  logE('INFO','Generando PDF… abre la ventana emergente y usa Imprimir → Guardar como PDF');
-  _captureCanvas().then(canvas=>{
-    const dataUrl=canvas.toDataURL('image/png');
-    const win=window.open('','_blank');
-    if(!win){logE('WARN','Popup bloqueado — permite ventanas emergentes');return;}
-    win.document.write(`<!DOCTYPE html><html><head><title>CENTINEL · Snap ${SIM.idx+1}</title>
-      <style>*{margin:0;padding:0}body{background:#0f1115}
-      img{display:block;width:100%}
-      @media print{@page{margin:0}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head>
-      <body><img src="${dataUrl}" onload="window.print()"></body></html>`);
-    win.document.close();
-    logE('OK','Ventana abierta — elige Guardar como PDF en el diálogo de impresión');
-  }).catch(e=>logE('WARN','Error PDF: '+e.message));
+  // Native window.print() on the current page — works in all browsers including Brave
+  logE('INFO','Abriendo diálogo de impresión — selecciona "Guardar como PDF"');
+  window.print();
 }
 </script>
 </body>
