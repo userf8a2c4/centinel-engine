@@ -1,8 +1,8 @@
 name: Deploy web verifier to GitHub Pages
 
-# Pages must be enabled ONCE by an admin (Settings -> Pages -> Source:
-# "GitHub Actions"). Once enabled, every push to dev-v9 that touches
-# web/ auto-publishes to https://<owner>.github.io/centinel-engine/.
+# El setup-wizard activa Pages automáticamente al hacer fork.
+# Si falla, abre un Issue con un link directo a Settings → Pages.
+# URL: https://<owner>.github.io/centinel-engine/
 on:
   push:
     branches: [main, dev-v10, dev-v9]
