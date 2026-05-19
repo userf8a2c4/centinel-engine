@@ -204,6 +204,48 @@ body.auth-pending{visibility:hidden}
 }
 .inj-tag.sched{background:rgba(212,176,102,.1);border-color:rgba(212,176,102,.3);color:var(--warn)}
 .inj-tag button{background:none;border:none;color:inherit;cursor:pointer;font-size:12px;padding:0 1px;line-height:1}
+/* ── SETTINGS MODAL ── */
+#settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+#settings-overlay.open{display:flex}
+#settings-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  width:100%;max-width:460px;max-height:90vh;overflow-y:auto;padding:24px}
+#settings-card::-webkit-scrollbar{width:4px}
+#settings-card::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.cfg-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.cfg-hdr h3{margin:0;font-size:16px;font-weight:600}
+.cfg-hdr button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;
+  padding:2px 6px;border-radius:4px}
+.cfg-hdr button:hover{color:var(--fg)}
+.cfg-email{font-size:12px;color:var(--muted);margin-bottom:20px;
+  padding-bottom:14px;border-bottom:1px solid var(--border)}
+.cfg-section{margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid var(--border)}
+.cfg-section:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.cfg-section-title{font-size:10px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.cfg-input{width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:7px;padding:8px 10px;color:var(--fg);font-size:13px;margin-bottom:8px;
+  font-family:inherit}
+.cfg-input:focus{outline:none;border-color:var(--accent)}
+.cfg-btn{background:var(--accent);border:none;color:#0f1115;font-weight:700;
+  font-size:12px;border-radius:7px;padding:8px 16px;cursor:pointer;margin-top:4px}
+.cfg-btn:hover{filter:brightness(1.1)}
+.cfg-btn.danger{background:transparent;border:1px solid rgba(223,107,134,.5);
+  color:var(--bad)}
+.cfg-btn.danger:hover{background:rgba(223,107,134,.1)}
+.cfg-msg{font-size:11px;margin-top:8px;min-height:16px}
+.cfg-msg.ok{color:var(--ok)}.cfg-msg.err{color:var(--bad)}
+.cfg-2fa-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cfg-2fa-status{font-size:12px}
+#cfg-qr-wrap{text-align:center;margin:12px 0}
+#cfg-qr-wrap img{width:140px;height:140px;border-radius:8px;border:1px solid var(--border)}
+.cfg-secret{font-family:ui-monospace,monospace;font-size:10px;background:var(--bg);
+  border:1px solid var(--border);border-radius:5px;padding:4px 8px;
+  color:var(--muted);word-break:break-all;margin-bottom:8px;display:block}
+.cfg-textarea{width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:7px;padding:8px 10px;color:var(--fg);font-size:12px;
+  font-family:inherit;resize:vertical;min-height:80px;margin-bottom:8px}
+.cfg-textarea:focus{outline:none;border-color:var(--accent)}
 /* ── ACTIVE INJECTIONS TOPBAR ── */
 #inj-topbar{max-width:1400px;margin:0 auto;padding:5px 24px;
   display:flex;align-items:center;flex-wrap:wrap;gap:5px;
@@ -295,6 +337,7 @@ body.auth-pending{visibility:hidden}
     <button class="dl-pill" onclick="downloadFullPNG()">↓ PNG completo</button>
     <button class="dl-pill" onclick="downloadPDF()">↓ PDF</button>
     <span id="user-email" style="font-size:11px;color:var(--muted);padding:0 4px"></span>
+    <button class="dl-pill" onclick="openSettings()" title="Configuración de cuenta" style="font-size:14px;padding:3px 9px">⚙</button>
     <button class="dl-pill" id="btn-logout" onclick="doLogout()" style="border-color:rgba(223,107,134,.4);color:var(--bad)">Salir</button>
   </div>
 </div>
@@ -1744,6 +1787,154 @@ function downloadPDF(){
   logE('INFO','Abriendo diálogo de impresión — selecciona "Guardar como PDF"');
   window.print();
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETTINGS MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function openSettings(){
+  document.getElementById('settings-overlay').classList.add('open');
+  document.getElementById('settings-email-val').textContent=
+    document.getElementById('user-email').textContent.trim()||'—';
+  document.getElementById('cfg-pw1').value='';
+  document.getElementById('cfg-pw2').value='';
+  document.getElementById('cfg-pw-msg').textContent='';
+  load2FAStatus();
+}
+function closeSettings(){
+  document.getElementById('settings-overlay').classList.remove('open');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings();});
+
+async function changePassword(){
+  const p1=document.getElementById('cfg-pw1').value;
+  const p2=document.getElementById('cfg-pw2').value;
+  const msg=document.getElementById('cfg-pw-msg');
+  msg.className='cfg-msg';
+  if(!p1||p1.length<8){msg.className='cfg-msg err';msg.textContent='Mínimo 8 caracteres.';return;}
+  if(p1!==p2){msg.className='cfg-msg err';msg.textContent='Las contraseñas no coinciden.';return;}
+  msg.textContent='Actualizando…';
+  const{error}=await _sb.auth.updateUser({password:p1});
+  if(error){msg.className='cfg-msg err';msg.textContent='Error: '+error.message;}
+  else{msg.className='cfg-msg ok';msg.textContent='Contraseña actualizada correctamente.';
+    document.getElementById('cfg-pw1').value='';document.getElementById('cfg-pw2').value='';}
+}
+
+async function load2FAStatus(){
+  const status=document.getElementById('cfg-2fa-status');
+  const panel=document.getElementById('cfg-2fa-panel');
+  status.textContent='Consultando…';panel.innerHTML='';
+  try{
+    const{data,error}=await _sb.auth.mfa.listFactors();
+    if(error)throw error;
+    const verified=(data.totp||[]).filter(f=>f.status==='verified');
+    if(verified.length){
+      status.innerHTML='<span style="color:var(--ok)">● Activado</span>';
+      panel.innerHTML=`<button class="cfg-btn danger" onclick="disable2FA('${verified[0].id}')">Desactivar 2FA</button>`;
+    }else{
+      status.innerHTML='<span style="color:var(--muted)">● Desactivado</span>';
+      panel.innerHTML=`<button class="cfg-btn" onclick="enroll2FA()">Activar verificación en dos pasos</button>`;
+    }
+  }catch(e){
+    status.innerHTML='<span style="color:var(--muted)">No disponible en este plan de Supabase</span>';
+  }
+}
+
+async function enroll2FA(){
+  const panel=document.getElementById('cfg-2fa-panel');
+  panel.innerHTML='<span style="color:var(--muted);font-size:11px">Generando QR…</span>';
+  const{data,error}=await _sb.auth.mfa.enroll({factorType:'totp',friendlyName:'CENTINEL'});
+  if(error){panel.innerHTML=`<span style="color:var(--bad);font-size:11px">Error: ${error.message}</span>`;return;}
+  const{id:factorId,totp:{qr_code,secret}}=data;
+  panel.innerHTML=`
+    <div id="cfg-qr-wrap"><img src="${qr_code}" alt="QR 2FA"></div>
+    <span class="cfg-secret">${secret}</span>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:10px">
+      Escanea el QR con Google Authenticator, Authy o similar.<br>
+      O ingresa la clave manualmente.
+    </div>
+    <input id="cfg-totp-code" class="cfg-input" type="text" inputmode="numeric"
+      maxlength="6" placeholder="Código de 6 dígitos del autenticador">
+    <button class="cfg-btn" onclick="verify2FA('${factorId}')">Verificar y activar</button>
+    <div id="cfg-totp-msg" class="cfg-msg"></div>`;
+}
+
+async function verify2FA(factorId){
+  const code=document.getElementById('cfg-totp-code').value.trim();
+  const msg=document.getElementById('cfg-totp-msg');
+  msg.className='cfg-msg';
+  if(code.length!==6){msg.className='cfg-msg err';msg.textContent='Ingresa exactamente 6 dígitos.';return;}
+  msg.textContent='Verificando…';
+  const{data:chal,error:e1}=await _sb.auth.mfa.challenge({factorId});
+  if(e1){msg.className='cfg-msg err';msg.textContent='Error: '+e1.message;return;}
+  const{error:e2}=await _sb.auth.mfa.verify({factorId,challengeId:chal.id,code});
+  if(e2){msg.className='cfg-msg err';msg.textContent='Código incorrecto o expirado.';return;}
+  msg.className='cfg-msg ok';msg.textContent='2FA activado correctamente.';
+  setTimeout(()=>load2FAStatus(),1500);
+}
+
+async function disable2FA(factorId){
+  if(!confirm('¿Desactivar la verificación en dos pasos?'))return;
+  const{error}=await _sb.auth.mfa.unenroll({factorId});
+  if(error){alert('Error: '+error.message);return;}
+  load2FAStatus();
+}
+
+function sendFeedback(){
+  const msg=document.getElementById('cfg-feedback-msg').value.trim();
+  if(!msg){document.getElementById('cfg-feedback-msg').focus();return;}
+  const email=document.getElementById('user-email').textContent.trim();
+  const ds=document.getElementById('dataset-select')?.options[document.getElementById('dataset-select').selectedIndex]?.text||'—';
+  const body=`**Mensaje:**\n${msg}\n\n---\n**Usuario:** ${email}  \n**Snap:** ${SIM.idx+1}/${SIM.snapshots.length}  \n**Dataset:** ${ds}  \n**Fecha:** ${new Date().toISOString()}`;
+  const url='https://github.com/userf8a2c4/centinel-engine/issues/new'
+    +'?labels=sandbox-feedback'
+    +'&title='+encodeURIComponent('[Sandbox] Comentario de usuario')
+    +'&body='+encodeURIComponent(body);
+  window.open(url,'_blank','noopener');
+  document.getElementById('cfg-feedback-msg').value='';
+  document.getElementById('cfg-feedback-stat').className='cfg-msg ok';
+  document.getElementById('cfg-feedback-stat').textContent='Issue abierto en GitHub — completa el envío en la pestaña nueva.';
+}
 </script>
+
+<!-- ══ SETTINGS MODAL ════════════════════════════════════════════════════════ -->
+<div id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+  <div id="settings-card">
+    <div class="cfg-hdr">
+      <h3>⚙ Configuración de cuenta</h3>
+      <button onclick="closeSettings()">✕</button>
+    </div>
+    <div class="cfg-email">Sesión activa como <strong id="settings-email-val"></strong></div>
+
+    <!-- CAMBIAR CONTRASEÑA -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">Cambiar contraseña</div>
+      <input id="cfg-pw1" class="cfg-input" type="password" placeholder="Nueva contraseña (mín. 8 caracteres)" autocomplete="new-password">
+      <input id="cfg-pw2" class="cfg-input" type="password" placeholder="Confirmar nueva contraseña" autocomplete="new-password">
+      <button class="cfg-btn" onclick="changePassword()">Actualizar contraseña</button>
+      <div id="cfg-pw-msg" class="cfg-msg"></div>
+    </div>
+
+    <!-- VERIFICACIÓN EN DOS PASOS -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">Verificación en dos pasos (TOTP)</div>
+      <div class="cfg-2fa-row">
+        <span class="cfg-2fa-status">Estado:</span>
+        <span id="cfg-2fa-status" style="font-size:12px">…</span>
+      </div>
+      <div id="cfg-2fa-panel"></div>
+    </div>
+
+    <!-- COMENTARIOS Y CONTACTO -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">Comentarios y contacto</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+        Tu mensaje se enviará como un Issue al repositorio del proyecto. Requiere cuenta de GitHub.
+      </div>
+      <textarea id="cfg-feedback-msg" class="cfg-textarea" placeholder="Tu comentario, sugerencia o reporte de problema…"></textarea>
+      <button class="cfg-btn" onclick="sendFeedback()">Abrir issue en GitHub →</button>
+      <div id="cfg-feedback-stat" class="cfg-msg"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
