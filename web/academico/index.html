@@ -193,10 +193,8 @@ body.auth-pending{visibility:hidden}
   color:var(--bad);border-radius:4px;padding:1px 5px;white-space:nowrap}
 
 /* ── ACTIVE INJECTIONS ── */
-#inj-active-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
-#inj-active-panel h4{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
-#inj-active-list{display:flex;flex-wrap:wrap;gap:6px;min-height:28px}
-#inj-active-empty{font-size:11px;color:var(--muted);font-style:italic}
+.inj-active-block{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.inj-active-block:empty{display:none}
 .inj-tag{
   display:inline-flex;align-items:center;gap:5px;
   background:rgba(223,107,134,.1);border:1px solid rgba(223,107,134,.3);
@@ -309,7 +307,7 @@ body.auth-pending{visibility:hidden}
 @media print{
   #breadcrumb,#sim-control-bar,.section-title,
   #thresh-section,#inj-section,#telem-section,
-  .thresh-lock-panel,#inj-active-list,#anom-marker-row,#inj-topbar{display:none!important}
+  .thresh-lock-panel,.inj-active-block,#anom-marker-row,#inj-topbar{display:none!important}
   body{background:#0f1115!important;color:#e7e9ec!important}
   .page{padding:0!important}
   .card{background:#15171c!important;border-color:#24272e!important;break-inside:avoid}
@@ -466,7 +464,7 @@ body.auth-pending{visibility:hidden}
 </div>
 
 <!-- ══ SECTION 4 — INJECTION MATRIX ══════════════════════════════════════════ -->
-<div class="section-title">Matriz de Inyección de Eventos<span id="matriz-title-badge" style="margin-left:8px;display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center;vertical-align:middle"></span><button class="section-dl" onclick="downloadMatrizPNG()">↓ PNG</button></div>
+<div class="section-title">Matriz de Inyección de Eventos<button class="section-dl" onclick="downloadMatrizPNG()">↓ PNG</button></div>
 
 <div class="inj-mode-bar">
   <button class="inj-mode-btn on" id="btn-inj-instant" onclick="setInjMode('instant')">Inmediata</button>
@@ -484,6 +482,7 @@ body.auth-pending{visibility:hidden}
     <span style="font-size:10px;color:var(--muted)">Fallos extrínsecos de la infraestructura de datos</span>
   </div>
   <div class="inj-grid" id="inj-grid-a"></div>
+  <div class="inj-active-block" id="inj-active-block-a"></div>
 </div>
 
 <!-- Bloque B -->
@@ -493,6 +492,7 @@ body.auth-pending{visibility:hidden}
     <span style="font-size:10px;color:var(--muted)">Una defensa por tarjeta · escala hasta el punto de quiebre</span>
   </div>
   <div class="inj-grid" id="inj-grid-b"></div>
+  <div class="inj-active-block" id="inj-active-block-b"></div>
 </div>
 
 <!-- Bloque C -->
@@ -502,12 +502,7 @@ body.auth-pending{visibility:hidden}
     <span style="font-size:10px;color:var(--muted)">Patrones de fraude/error para evaluar mecanismos de detección</span>
   </div>
   <div class="inj-grid" id="inj-grid-c"></div>
-</div>
-
-<!-- Active injections -->
-<div id="inj-active-panel">
-  <h4>Inyecciones activas en esta sesión</h4>
-  <div id="inj-active-list"><span id="inj-active-empty">Ninguna</span></div>
+  <div class="inj-active-block" id="inj-active-block-c"></div>
 </div>
 
 <!-- ══ SECTION 5 — DUAL TELEMETRY ════════════════════════════════════════════ -->
@@ -1454,33 +1449,31 @@ function cancelInjection(i){
   activeInjections.splice(i,1);renderActiveInjections();
 }
 function renderActiveInjections(){
-  const el=document.getElementById('inj-active-list');
-  const empty=document.getElementById('inj-active-empty');
   const topbar=document.getElementById('inj-topbar');
   const n=activeInjections.length;
-  const matrizTitle=document.getElementById('matriz-title-badge');
-  if(!n){
-    el.innerHTML='';el.appendChild(empty);
-    topbar.style.display='none';topbar.innerHTML='';
-    if(matrizTitle)matrizTitle.innerHTML='';
-    return;
-  }
-  const miniBadges=activeInjections.map((inj,i)=>{
+  // Clear per-block lists
+  ['a','b','c'].forEach(b=>{
+    const el=document.getElementById('inj-active-block-'+b);
+    if(el)el.innerHTML='';
+  });
+  if(!n){topbar.style.display='none';topbar.innerHTML='';return;}
+  // Populate per-block badge rows + topbar
+  activeInjections.forEach((inj,i)=>{
+    const block=inj.id[0].toLowerCase();
+    const el=document.getElementById('inj-active-block-'+block);
+    if(!el)return;
     const schedCls=inj.mode==='programada'?'sched':'';
-    const shortLabel=inj.id+' · '+inj.label.split(' ').slice(0,3).join(' ')+(inj.mode==='programada'?` @snap${inj.atIdx+1}`:'');
-    return `<span class="inj-tag-top ${schedCls}">${shortLabel}<button onclick="cancelInjection(${i})" title="Cancelar inyección">×</button></span>`;
-  }).join('');
-  const fullBadges=activeInjections.map((inj,i)=>{
-    const schedCls=inj.mode==='programada'?'sched':'';
-    return `<span class="inj-tag ${schedCls}">${inj.id}: ${inj.label.split(' ').slice(0,3).join(' ')}${inj.mode==='programada'?` @snap${inj.atIdx+1}`:''}<button onclick="cancelInjection(${i})" title="Cancelar">×</button></span>`;
-  }).join('');
-  // Full list in #inj-active-panel
-  el.innerHTML=fullBadges;
-  // Mini topbar (below console)
+    const label=inj.id+': '+inj.label.split(' ').slice(0,3).join(' ')+(inj.mode==='programada'?` @snap${inj.atIdx+1}`:'');
+    el.innerHTML+=`<span class="inj-tag ${schedCls}">${label}<button onclick="cancelInjection(${i})" title="Cancelar">×</button></span>`;
+  });
+  // Mini topbar
   topbar.style.display='flex';
-  topbar.innerHTML=`<span id="inj-topbar-label">Inyecciones activas (${n}):</span>`+miniBadges;
-  // Inline badges in Matriz section title
-  if(matrizTitle)matrizTitle.innerHTML=miniBadges;
+  topbar.innerHTML=`<span id="inj-topbar-label">Inyecciones activas (${n}):</span>`+
+    activeInjections.map((inj,i)=>{
+      const schedCls=inj.mode==='programada'?'sched':'';
+      const shortLabel=inj.id+' · '+inj.label.split(' ').slice(0,3).join(' ')+(inj.mode==='programada'?` @snap${inj.atIdx+1}`:'');
+      return `<span class="inj-tag-top ${schedCls}">${shortLabel}<button onclick="cancelInjection(${i})" title="Cancelar inyección">×</button></span>`;
+    }).join('');
 }
 
 function renderInjGrid(gridId,block){
