@@ -801,13 +801,6 @@ def register_strict_health_endpoints(app: FastAPI) -> None:
 
         English: Async function live defined in src/monitoring/strict_health.py.
         """
-        response: dict[str, Any] = {"status": "alive"}
-        fly_region = os.getenv("FLY_REGION")
-        if fly_region:
-            response["region"] = fly_region
-        fly_alloc = os.getenv("FLY_ALLOC_ID")
-        if fly_alloc:
-            response["alloc_id"] = fly_alloc
-        return response
+        return {"status": "alive"}
 
     app.include_router(router)
