@@ -7,6 +7,33 @@
 
 ---
 
+## Separación Código / Datos — Code / Data Separation
+
+Centinel separa el código (centinel-engine) de los datos (centinel-data) en repositorios distintos. Esta separación no es conveniencia operativa: es una decisión de diseño con implicaciones de auditoría.
+
+```
+  centinel-engine (este repo)        centinel-data (auto-creado)
+  ┌──────────────────────────┐       ┌──────────────────────────┐
+  │ código fuente            │       │ snapshots/               │
+  │ workflows CI/CD          │ push  │ hashes/                  │
+  │ scripts de análisis  ────┼──────▶│ diffs/                   │
+  │ tests                    │       │ reports/                 │
+  │ documentación            │       │ observer-packs/          │
+  └──────────────────────────┘       │ ipfs-manifest.json       │
+                                     └──────────────────────────┘
+```
+
+**Propiedades que esto garantiza:**
+
+- **Historial de código separado del historial de datos.** Un auditor revisando cambios de código no ve ruido de actualizaciones de datos cada 15 minutos.
+- **Los datos sobreviven al código.** Si centinel-engine es eliminado, centinel-data permanece público e independiente.
+- **Verificación sin ejecutar el motor.** Cualquier organización puede clonar centinel-data y verificar la cadena de hashes sin instalar ni ejecutar Centinel.
+- **Fork simple.** Al hacer fork, el usuario obtiene el motor sin los datos de otra elección. Los datos se generan desde cero al activar el sistema.
+
+El mecanismo de publicación es silencioso: si `DATA_REPO_TOKEN` no está configurado, los datos permanecen en centinel-engine sin error. Ver [DATA-REPOS.md](DATA-REPOS.md) para detalles.
+
+---
+
 ## Diagrama de Arquitectura / Architecture Diagram
 
 ```

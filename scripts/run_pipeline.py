@@ -372,35 +372,6 @@ def compute_backoff_delay(attempt: int, base_seconds: float, max_seconds: float)
     return min(max(delay, 0.0), max_seconds)
 
 
-def _has_private_key(arbitrum_config: dict[str, Any]) -> bool:
-    """/** Determina si hay private key disponible. / Determine if a private key is available. **/"""
-    raw_key = arbitrum_config.get("private_key")
-    placeholder_values = {"", None, "0x...", "REPLACE_ME"}
-    if raw_key not in placeholder_values:
-        return True
-    return bool(os.getenv("ARBITRUM_PRIVATE_KEY"))
-
-
-def _ensure_decrypted_private_key(arbitrum_config: dict[str, Any]) -> None:
-    """/** Desencripta private key sólo si falta. / Decrypt private key only when missing. **/"""
-    security_settings = load_security_settings()
-    if not security_settings.get("encrypt_enabled", False):
-        return
-    if _has_private_key(arbitrum_config):
-        return
-    try:
-        decrypted = decrypt_secrets(keys=["ARBITRUM_PRIVATE_KEY"])
-    except ValueError:
-        # Seguridad: si falla la desencriptación, evitar anclaje. / Security: avoid anchoring if decryption fails.
-        logger.error("anchor_decrypt_failed")
-        return
-    private_key = decrypted.get("ARBITRUM_PRIVATE_KEY")
-    if private_key:
-        # Seguridad: mantener secreto en memoria/env sin escribir en disco. / Security: keep secret in memory/env only.
-        os.environ["ARBITRUM_PRIVATE_KEY"] = private_key
-        arbitrum_config["private_key"] = private_key
-
-
 def resolve_max_json_limit(config: dict[str, Any]) -> int:
     """/** Resuelve límite de JSON presidenciales. / Resolve presidential JSON limit. **"""
     rules_thresholds = load_rules_thresholds()
@@ -1048,7 +1019,6 @@ def run_pipeline(config: dict[str, Any]) -> None:
             )
             maybe_inject_chaos_failure("anchor", resilience_settings, chaos_rng)
             _anchor_snapshot(config, state, now, latest_snapshot)
-            _anchor_if_due(config, state, now)
 
         _publish_forensics(
             config,
@@ -1291,34 +1261,6 @@ def _should_anchor(state: dict[str, Any], now: datetime, interval_minutes: int) 
     return now - last_dt >= timedelta(minutes=interval_minutes)
 
 
-def _anchor_if_due(config: dict[str, Any], state: dict[str, Any], now: datetime) -> None:
-    """/** Ejecuta anclaje de hashes si corresponde. / Execute hash anchoring when due. **"""
-    arbitrum_config = config.get("arbitrum", {})
-    if not arbitrum_config.get("enabled", False):
-        return
-    _ensure_decrypted_private_key(arbitrum_config)
-    if not _has_private_key(arbitrum_config):
-        logger.warning("anchor_skipped_missing_private_key")
-        return
-
-    interval_minutes = int(arbitrum_config.get("interval_minutes", 15))
-    batch_size = int(arbitrum_config.get("batch_size", 19))
-    if not _should_anchor(state, now, interval_minutes):
-        return
-
-    hashes = _read_hashes_for_anchor(batch_size)
-    if len(hashes) < batch_size:
-        logger.warning(
-            "anchor_skipped_not_enough_hashes expected=%s actual=%s",
-            batch_size,
-            len(hashes),
-        )
-        return
-
-    logger.info("anchor_skipped_arbitrum_removed")
-    return
-
-
 def _generate_and_upload_pdf(output_filename: str = "centinel_informe.pdf") -> str | None:
     """Run generate_report.py --upload and return the public URL printed to stdout."""
     try:
@@ -1413,17 +1355,7 @@ def _anchor_snapshot(
     now: datetime,
     snapshot_path: Path,
 ) -> None:
-    """/** Genera hash raíz post-reglas y ancla snapshot. / Generate post-rule root hash and anchor snapshot. **"""
-    arbitrum_config = config.get("arbitrum", {})
-    if not arbitrum_config.get("enabled", False):
-        return
-    if not arbitrum_config.get("auto_anchor_snapshots", False):
-        return
-    _ensure_decrypted_private_key(arbitrum_config)
-    if not _has_private_key(arbitrum_config):
-        logger.warning("anchor_snapshot_skipped_missing_private_key")
-        return
-
+    """/** Genera hash raíz post-reglas y ancla snapshot vía OpenTimestamps. / Generate post-rule root hash and anchor snapshot via OpenTimestamps. **"""
     current_payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
     snapshots = iter_all_snapshots(data_root=DATA_DIR)
     previous_snapshot = snapshots[-2] if len(snapshots) > 1 else None
@@ -1461,9 +1393,6 @@ def _anchor_snapshot(
         )
     else:
         logger.warning("ots_proof_unavailable root_hash=%s", root_hash[:16])
-
-    logger.info("anchor_snapshot_skipped_arbitrum_removed")
-    return
 
 
 def main():

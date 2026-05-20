@@ -98,10 +98,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
-import boto3
 import psutil
 import yaml
-from botocore.exceptions import ClientError, EndpointConnectionError
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
@@ -133,17 +131,6 @@ CONFIG_PATH = Path("command_center/config.yaml")
 
 
 @dataclass(frozen=True)
-class BucketConfig:
-    """Configuration for S3-compatible bucket operations."""
-
-    bucket: str
-    endpoint_url: Optional[str]
-    region: Optional[str]
-    access_key: Optional[str]
-    secret_key: Optional[str]
-
-
-@dataclass(frozen=True)
 class RuntimeConfig:
     """Runtime settings loaded from environment or defaults."""
 
@@ -151,7 +138,6 @@ class RuntimeConfig:
     run_id: str
     checkpoint_state_path: Path
     panic_flag_path: Path
-    backup_bucket: Optional[str]
     backup_secret: Optional[str]
     backup_salt: Optional[str]
     log_path: Path
@@ -325,7 +311,6 @@ def parse_runtime_config() -> RuntimeConfig:
     run_id = os.getenv("CENTINEL_RUN_ID", "").strip()
     checkpoint_state_path = Path(os.getenv("CENTINEL_CHECKPOINT_STATE_PATH", "data/temp/checkpoint_state.json"))
     panic_flag_path = Path(os.getenv("CENTINEL_PANIC_FLAG", "data/panic.flag"))
-    backup_bucket = os.getenv("CENTINEL_BACKUP_BUCKET")
     backup_secret = os.getenv("CENTINEL_BACKUP_SECRET")
     backup_salt = os.getenv("CENTINEL_BACKUP_SALT")
     log_path = Path(os.getenv("CENTINEL_MAINTENANCE_LOG", str(DEFAULT_LOG_PATH)))
@@ -339,36 +324,10 @@ def parse_runtime_config() -> RuntimeConfig:
         run_id=run_id,
         checkpoint_state_path=checkpoint_state_path,
         panic_flag_path=panic_flag_path,
-        backup_bucket=backup_bucket,
         backup_secret=backup_secret,
         backup_salt=backup_salt,
         log_path=log_path,
         assume_yes=assume_yes,
-    )
-
-
-def build_bucket_config(bucket: Optional[str] = None) -> BucketConfig:
-    """Create bucket configuration from env variables."""
-
-    return BucketConfig(
-        bucket=bucket or os.getenv("CENTINEL_CHECKPOINT_BUCKET") or os.getenv("CHECKPOINT_BUCKET") or "",
-        endpoint_url=os.getenv("CENTINEL_S3_ENDPOINT") or os.getenv("STORAGE_ENDPOINT_URL"),
-        region=os.getenv("CENTINEL_S3_REGION") or os.getenv("AWS_REGION") or "us-east-1",
-        access_key=os.getenv("CENTINEL_S3_ACCESS_KEY") or os.getenv("AWS_ACCESS_KEY_ID"),
-        secret_key=os.getenv("CENTINEL_S3_SECRET_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY"),
-    )
-
-
-def build_s3_client(config: BucketConfig) -> Any:
-    """Build a boto3 S3 client based on configuration."""
-
-    session = boto3.session.Session()
-    return session.client(
-        "s3",
-        endpoint_url=config.endpoint_url,
-        region_name=config.region,
-        aws_access_key_id=config.access_key,
-        aws_secret_access_key=config.secret_key,
     )
 
 
@@ -398,7 +357,7 @@ def retry_operation(
     for attempt in range(1, attempts + 1):
         try:
             return operation()
-        except (ClientError, EndpointConnectionError, OSError) as exc:
+        except OSError as exc:
             last_exc = exc
             logger.warning(
                 "Operación falló (%s) intento=%s/%s error=%s",
@@ -414,20 +373,14 @@ def retry_operation(
 
 
 def build_checkpoint_manager(runtime: RuntimeConfig, logger: logging.Logger) -> CheckpointManager:
-    """Create a checkpoint manager using environment configuration."""
+    """Create a checkpoint manager using local filesystem."""
 
-    bucket_config = build_bucket_config()
-    if not bucket_config.bucket:
-        raise RuntimeError("Bucket de checkpoints no configurado.")
+    checkpoint_dir = os.getenv("CENTINEL_CHECKPOINT_DIR", "checkpoints/")
     checkpoint_config = CheckpointConfig(
-        bucket=bucket_config.bucket,
         pipeline_version=runtime.pipeline_version,
         run_id=runtime.run_id,
+        checkpoint_dir=checkpoint_dir,
         checkpoint_interval=50,
-        s3_endpoint_url=bucket_config.endpoint_url,
-        s3_region=bucket_config.region,
-        s3_access_key=bucket_config.access_key,
-        s3_secret_key=bucket_config.secret_key,
     )
     return CheckpointManager(checkpoint_config, logger=logger)
 
@@ -450,59 +403,23 @@ def command_checkpoint_now(runtime: RuntimeConfig, logger: logging.Logger) -> No
     logger.info("Checkpoint guardado correctamente en el bucket.")
 
 
-def _latest_checkpoint_key(runtime: RuntimeConfig) -> str:
-    """Español: Función _latest_checkpoint_key del módulo maintain.py.
-
-    English: Function _latest_checkpoint_key defined in maintain.py.
-    """
-    return f"centinel/checkpoints/{runtime.pipeline_version}/{runtime.run_id}/latest.json"
-
-
 def fetch_latest_checkpoint_metadata(runtime: RuntimeConfig, logger: logging.Logger) -> dict[str, Any]:
-    """Español:
-        Obtiene metadata del último checkpoint con rate limiting interno.
+    """Fetch latest checkpoint metadata from the local filesystem."""
 
-    English:
-        Fetch latest checkpoint metadata with internal rate limiting.
-
-    Args:
-        runtime: Configuración de runtime.
-        logger: Logger para registrar eventos.
-
-    Returns:
-        Diccionario con metadata o estado de error.
-    """
-
-    bucket_config = build_bucket_config()
-    if not bucket_config.bucket:
-        return {"status": "bucket_not_configured"}
-    cooldown_seconds, state_path = resolve_rate_limit_settings(logger)
-    if is_rate_limited(state_path, cooldown_seconds, logger):
-        return {
-            "status": "rate_limited",
-            "cooldown_seconds": cooldown_seconds,
-        }
-    s3 = build_s3_client(bucket_config)
-    key = _latest_checkpoint_key(runtime)
-
-    def _get() -> dict[str, Any]:
-        """Español: Función _get del módulo maintain.py.
-
-        English: Function _get defined in maintain.py.
-        """
-        response = s3.get_object(Bucket=bucket_config.bucket, Key=key)
-        body = response.get("Body")
-        raw = body.read() if body else b""
-        payload = json.loads(raw.decode("utf-8")) if raw else {}
+    checkpoint_dir = Path(os.getenv("CENTINEL_CHECKPOINT_DIR", "checkpoints/"))
+    latest_path = checkpoint_dir / "latest.json"
+    if not latest_path.exists():
+        return {"status": "checkpoint_not_found"}
+    try:
+        payload = json.loads(latest_path.read_text(encoding="utf-8"))
+        stat = latest_path.stat()
         return {
             "status": "ok",
-            "last_modified": response.get("LastModified"),
+            "last_modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
             "payload": payload,
         }
-
-    try:
-        return retry_operation(_get, logger=logger, description="checkpoint_metadata_read")
-    except RuntimeError:
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("checkpoint_metadata_read_failed error=%s", exc)
         return {"status": "unavailable"}
 
 
@@ -611,69 +528,31 @@ def command_rotate_keys(runtime: RuntimeConfig, logger: logging.Logger) -> None:
 
 
 def command_clean_old_checkpoints(runtime: RuntimeConfig, logger: logging.Logger, days: int) -> None:
-    """Delete checkpoints older than the specified number of days."""
+    """Delete checkpoints older than the specified number of days from the local filesystem."""
 
     confirm_action(
         f"Se eliminarán checkpoints con más de {days} días.",
         runtime.assume_yes,
     )
-    bucket_config = build_bucket_config()
-    if not bucket_config.bucket:
-        raise RuntimeError("Bucket de checkpoints no configurado.")
-
-    s3 = build_s3_client(bucket_config)
-    prefix = f"centinel/checkpoints/{runtime.pipeline_version}/{runtime.run_id}/"
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-
-    keys_to_delete: list[dict[str, str]] = []
-    continuation: Optional[str] = None
-
-    while True:
-
-        def _list_page() -> dict[str, Any]:
-            """Español: Función _list_page del módulo maintain.py.
-
-            English: Function _list_page defined in maintain.py.
-            """
-            params = {"Bucket": bucket_config.bucket, "Prefix": prefix}
-            if continuation:
-                params["ContinuationToken"] = continuation
-            return s3.list_objects_v2(**params)
-
-        page = retry_operation(_list_page, logger=logger, description="checkpoint_list")
-
-        for obj in page.get("Contents", []):
-            key = obj.get("Key", "")
-            last_modified = obj.get("LastModified")
-            if not key or key.endswith("latest.json"):
-                continue
-            if last_modified and last_modified < cutoff:
-                keys_to_delete.append({"Key": key})
-
-        if not page.get("IsTruncated"):
-            break
-        continuation = page.get("NextContinuationToken")
-
-    if not keys_to_delete:
-        logger.info("No hay checkpoints antiguos para eliminar.")
+    checkpoint_dir = Path(os.getenv("CENTINEL_CHECKPOINT_DIR", "checkpoints/"))
+    if not checkpoint_dir.exists():
+        logger.info("No hay directorio de checkpoints en %s.", checkpoint_dir)
         return
 
-    def _delete_batch(batch: list[dict[str, str]]) -> Any:
-        """Español: Función _delete_batch del módulo maintain.py.
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    deleted = 0
+    for entry in checkpoint_dir.glob("*.json"):
+        if entry.name == "latest.json":
+            continue
+        mtime = datetime.fromtimestamp(entry.stat().st_mtime, tz=timezone.utc)
+        if mtime < cutoff:
+            entry.unlink(missing_ok=True)
+            deleted += 1
 
-        English: Function _delete_batch defined in maintain.py.
-        """
-        return s3.delete_objects(Bucket=bucket_config.bucket, Delete={"Objects": batch})
-
-    for idx in range(0, len(keys_to_delete), 1000):
-        batch = keys_to_delete[idx : idx + 1000]
-        retry_operation(
-            lambda batch=batch: _delete_batch(batch),
-            logger=logger,
-            description="checkpoint_cleanup",
-        )
-
-    logger.info("Checkpoints eliminados: %s", len(keys_to_delete))
+    if deleted == 0:
+        logger.info("No hay checkpoints antiguos para eliminar.")
+    else:
+        logger.info("Checkpoints eliminados: %s", deleted)
 
 
 def _build_backup_fernet(runtime: RuntimeConfig) -> Fernet:
@@ -691,21 +570,15 @@ def _build_backup_fernet(runtime: RuntimeConfig) -> Fernet:
 
 
 def command_backup_config(runtime: RuntimeConfig, logger: logging.Logger) -> None:
-    """Backup sensitive configuration files to an encrypted bucket."""
-
-    bucket_name = runtime.backup_bucket or os.getenv("CENTINEL_CHECKPOINT_BUCKET")
-    if not bucket_name:
-        raise RuntimeError("No se configuró bucket para backup.")
+    """Backup sensitive configuration files to a local encrypted directory."""
 
     fernet = _build_backup_fernet(runtime)
-    bucket_config = build_bucket_config(bucket=bucket_name)
-    s3 = build_s3_client(bucket_config)
-
     extra_files = [path.strip() for path in os.getenv("CENTINEL_BACKUP_EXTRA_FILES", "").split(",") if path.strip()]
-
     candidate_files = [".env", "config.yaml", "config.example.yaml"] + extra_files
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    uploaded = 0
+    backup_dir = Path("backups") / "config" / timestamp
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    saved = 0
 
     for file_name in candidate_files:
         path = Path(file_name)
@@ -714,21 +587,11 @@ def command_backup_config(runtime: RuntimeConfig, logger: logging.Logger) -> Non
             continue
         raw = path.read_bytes()
         encrypted = fernet.encrypt(raw)
-        key = f"centinel/backups/config/{timestamp}/{path.name}.enc"
+        dest = backup_dir / (path.name + ".enc")
+        dest.write_bytes(encrypted)
+        saved += 1
 
-        retry_operation(
-            lambda key=key, encrypted=encrypted: s3.put_object(
-                Bucket=bucket_name,
-                Key=key,
-                Body=encrypted,
-                ContentType="application/octet-stream",
-            ),
-            logger=logger,
-            description="backup_config",
-        )
-        uploaded += 1
-
-    logger.info("Backup completado. Archivos subidos: %s", uploaded)
+    logger.info("Backup completado. Archivos guardados en %s: %s", backup_dir, saved)
 
 
 def command_test_recovery(runtime: RuntimeConfig, logger: logging.Logger) -> None:
@@ -765,20 +628,13 @@ def command_panic(runtime: RuntimeConfig, logger: logging.Logger) -> None:
         encoding="utf-8",
     )
 
-    bucket_config = build_bucket_config()
-    if bucket_config.bucket:
-        s3 = build_s3_client(bucket_config)
-        key = f"centinel/panic/{runtime.run_id}-{int(time.time())}.json"
-        retry_operation(
-            lambda: s3.put_object(
-                Bucket=bucket_config.bucket,
-                Key=key,
-                Body=json.dumps(panic_payload).encode("utf-8"),
-                ContentType="application/json",
-            ),
-            logger=logger,
-            description="panic_publish",
-        )
+    panic_report_dir = Path("reports") / "panic"
+    panic_report_dir.mkdir(parents=True, exist_ok=True)
+    panic_report_path = panic_report_dir / f"{int(time.time())}.json"
+    panic_report_path.write_text(
+        json.dumps(panic_payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
     panic_webhook = os.getenv("CENTINEL_PANIC_WEBHOOK")
     if panic_webhook:

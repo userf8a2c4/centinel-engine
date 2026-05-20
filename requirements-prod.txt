@@ -1,4 +1,4 @@
-# requirements-prod.txt — Production dependencies for Fly.io deployment
+# requirements-prod.txt — Production dependencies
 # Excludes test, dev, and heavy scraping dependencies not needed at runtime.
 
 # API server
@@ -20,9 +20,6 @@ aiohttp>=3.13.5,<4.0.0
 httpx>=0.27.0,<1.0.0
 apscheduler>=3.10.4,<4.0.0
 
-# Storage & cloud
-boto3>=1.34.0,<2.0.0
-cloudflare>=3.0.0,<4.0.0
 
 # Crypto & blockchain
 cryptography>=46.0.7,<49.0.0

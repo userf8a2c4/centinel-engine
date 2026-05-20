@@ -32,16 +32,16 @@ def test_pin_dns_resolution_blocks_rebinding_to_unpinned_ip(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def _fake_getaddrinfo(host, port, *args, **kwargs):
-        if host == "api.telegram.org":
+        if host == "webhook.example.com":
             return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.1.2.3", port))]
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
 
     monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo)
     target = OutboundTarget(
-        url="https://api.telegram.org/bot123/sendMessage",
-        host="api.telegram.org",
+        url="https://webhook.example.com/notify",
+        host="webhook.example.com",
         port=443,
-        resolved_ips=frozenset({"149.154.167.220"}),
+        resolved_ips=frozenset({"203.0.113.42"}),
     )
 
     with pytest.raises(socket.gaierror):
@@ -55,14 +55,14 @@ def test_pin_dns_resolution_does_not_monkeypatch_global_getaddrinfo(
     original = socket.getaddrinfo
 
     def _fake_getaddrinfo(host, port, *args, **kwargs):
-        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("149.154.167.220", port))]
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("203.0.113.42", port))]
 
     monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo)
     target = OutboundTarget(
-        url="https://api.telegram.org/bot123/sendMessage",
-        host="api.telegram.org",
+        url="https://webhook.example.com/notify",
+        host="webhook.example.com",
         port=443,
-        resolved_ips=frozenset({"149.154.167.220"}),
+        resolved_ips=frozenset({"203.0.113.42"}),
     )
 
     with pin_dns_resolution(target):

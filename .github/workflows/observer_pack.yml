@@ -113,3 +113,25 @@ jobs:
               git push -u origin main
             fi
           fi
+
+      - name: Push data to centinel-data
+        if: always()
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          if [ -z "$DATA_REPO_TOKEN" ]; then
+            echo "INFO: DATA_REPO_TOKEN not configured — data stays local"
+            exit 0
+          fi
+          git clone "https://x-access-token:${DATA_REPO_TOKEN}@github.com/${REPO_OWNER}/centinel-data.git" /tmp/centinel-data
+          if [ -f observer_pack/dist/centinel_observer_pack.zip ]; then
+            cp observer_pack/dist/centinel_observer_pack.zip      /tmp/centinel-data/observer-packs/ || true
+            cp observer_pack/dist/centinel_observer_pack.zip.sha256 /tmp/centinel-data/observer-packs/ 2>/dev/null || true
+          fi
+          cd /tmp/centinel-data
+          git config user.name "centinel-bot"
+          git config user.email "bot@centinel.app"
+          git add .
+          git diff --cached --quiet || git commit -m "data: $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push origin main

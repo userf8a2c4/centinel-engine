@@ -160,18 +160,6 @@ except BaseException:  # noqa: BLE001 – PanicException (pyo3) is not an Except
     _HAS_CRYPTOGRAPHY = False
 
 
-try:  # optional dependency at runtime
-    import boto3
-except Exception:  # noqa: BLE001
-    boto3 = None
-
-try:  # optional dependency at runtime
-    from b2sdk.v2 import InMemoryAccountInfo, B2Api
-except Exception:  # noqa: BLE001
-    B2Api = None
-    InMemoryAccountInfo = None
-
-
 LOGGER = logging.getLogger("centinel.advanced_security")
 
 
@@ -460,9 +448,6 @@ class AlertManager:
         ALERT_COUNTER.labels(event=event, level=str(level)).inc()
         if level == 1:
             return
-        if level >= 3 and self._send_telegram(payload):
-            self._send_sms_webhook(payload)
-            return
         self._send_email(payload)
         if level >= 2:
             self._send_sms_webhook(payload)
@@ -490,28 +475,6 @@ class AlertManager:
             if user and password:
                 smtp.login(user, password)
             smtp.send_message(msg)
-
-    def _send_telegram(self, payload: dict[str, Any]) -> bool:
-        token = os.getenv("TELEGRAM_TOKEN", "")
-        chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
-        if not token or not chat_id:
-            return False
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        target = resolve_outbound_target(
-            url,
-            allowed_domains={"api.telegram.org"},
-            enforce_public_ip_resolution=True,
-        )
-        if target is None:
-            return False
-        with pin_dns_resolution(target):
-            resp = requests.post(
-                url,
-                timeout=10,
-                json={"chat_id": chat_id, "text": json.dumps(payload, ensure_ascii=False)},
-                headers={"Connection": "close"},
-            )
-        return resp.status_code < 300
 
     def _send_sms_webhook(self, payload: dict[str, Any]) -> bool:
         endpoint = os.getenv("SMS_WEBHOOK_URL", "")
@@ -622,21 +585,6 @@ class BackupManager:
 
     def _upload(self, archive: Path) -> None:
         provider = self.config.backup_provider.lower()
-        if provider == "s3" and boto3:
-            s3 = boto3.client("s3")
-            bucket = os.getenv("AWS_BACKUP_BUCKET", "")
-            if bucket:
-                s3.upload_file(str(archive), bucket, archive.name)
-                return
-        if provider == "b2" and B2Api and InMemoryAccountInfo:
-            key_id = os.getenv("B2_KEY_ID", "")
-            key = os.getenv("B2_APP_KEY", "")
-            bucket_name = os.getenv("B2_BUCKET", "")
-            if key_id and key and bucket_name:
-                api = B2Api(InMemoryAccountInfo())
-                api.authorize_account("production", key_id, key)
-                api.get_bucket_by_name(bucket_name).upload_local_file(local_file=str(archive), file_name=archive.name)
-                return
         if provider == "github":
             repo = os.getenv("BACKUP_GIT_REPO", "")
             allowed = {

@@ -1,0 +1,385 @@
+name: Setup Wizard
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'  # hourly mientras haya un issue de setup abierto
+
+permissions:
+  issues: write
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  wizard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check setup state
+        id: check
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          if [ -z "$DATA_REPO_TOKEN" ]; then
+            echo "state=needs_token" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $DATA_REPO_TOKEN" \
+            "https://api.github.com/repos/$REPO_OWNER/centinel-data")
+          if [ "$HTTP" = "404" ]; then
+            echo "state=needs_repo" >> $GITHUB_OUTPUT
+          elif [ "$HTTP" = "200" ]; then
+            echo "state=ready" >> $GITHUB_OUTPUT
+          else
+            echo "state=error_$HTTP" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Open setup issue (token missing)
+        if: steps.check.outputs.state == 'needs_token'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const existing = await github.rest.issues.listForRepo({
+              owner, repo, labels: 'centinel-setup', state: 'open', per_page: 1
+            });
+            if (existing.data.length > 0) {
+              console.log('Setup issue already open, skipping');
+              return;
+            }
+            await github.rest.issues.create({
+              owner, repo,
+              title: '⚙️ Acción requerida: conectar repositorio de datos',
+              labels: ['centinel-setup'],
+              body: [
+                '> 📍 **Estás en el paso 3** de la guía de despliegue en tu README.',
+                '> Cuando termines los dos pasos de abajo, usa el link del final para continuar con el **paso 4**.',
+                '',
+                '## Crear y conectar el token de acceso',
+                '',
+                'El sistema necesita un token para crear y gestionar el repositorio de datos.',
+                'Es el único paso que GitHub no permite automatizar por razones de seguridad.',
+                '',
+                '### Paso 1 — Crear el token (30 segundos)',
+                '',
+                `**[→ Abrir GitHub: crear token](https://github.com/settings/tokens/new?description=centinel-data&scopes=repo)**`,
+                '',
+                '- Baja hasta el botón **"Generate token"**',
+                '- Clic en **"Generate token"**',
+                '- **Copia el token** que aparece (solo se muestra una vez)',
+                '',
+                '### Paso 2 — Guardar el token (30 segundos)',
+                '',
+                `**[→ Abrir GitHub: añadir secret](https://github.com/${owner}/${repo}/settings/secrets/actions/new)**`,
+                '',
+                '- **Name:** `DATA_REPO_TOKEN`',
+                '- **Secret:** pega el token copiado',
+                '- Clic en **"Add secret"**',
+                '',
+                '---',
+                '',
+                '**✅ Cuando termines los dos pasos, vuelve aquí y haz clic:**',
+                `**[→ Re-ejecutar el Setup Wizard](https://github.com/${owner}/${repo}/actions/workflows/setup-wizard.yml)**`,
+                '→ Clic en **"Run workflow"** → **"Run workflow"**',
+                '',
+                'El wizard completará el setup automáticamente sin que tengas que hacer nada más.',
+              ].join('\n')
+            });
+
+      - name: Create centinel-data repo automatically
+        if: steps.check.outputs.state == 'needs_repo'
+        id: create_repo
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          # Create the repo
+          curl -sS --fail \
+            -H "Authorization: Bearer $DATA_REPO_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"centinel-data\",\"description\":\"Datos públicos de auditoría electoral — publicados automáticamente por centinel-engine\",\"private\":false,\"auto_init\":true}" \
+            "https://api.github.com/user/repos"
+
+          sleep 3  # wait for repo to initialize
+
+          # Push initial structure via GitHub API (tree + commit)
+          BASE_URL="https://api.github.com/repos/$REPO_OWNER/centinel-data"
+          AUTH="-H \"Authorization: Bearer $DATA_REPO_TOKEN\""
+
+          push_file() {
+            local path="$1"
+            local content_b64="$2"
+            curl -sS --fail \
+              -H "Authorization: Bearer $DATA_REPO_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"message\":\"init: $path\",\"content\":\"$content_b64\"}" \
+              "$BASE_URL/contents/$path" > /dev/null
+          }
+
+          # .gitkeep files for directories
+          EMPTY=$(echo -n "" | base64)
+          for dir in snapshots hashes diffs reports observer-packs; do
+            push_file "$dir/.gitkeep" "$EMPTY"
+          done
+
+          # ipfs-manifest.json
+          MANIFEST=$(echo -n '{"snapshots":[],"last_updated":null,"schema_version":"1.0"}' | base64 -w 0)
+          push_file "ipfs-manifest.json" "$MANIFEST"
+
+          echo "repo_created=true" >> $GITHUB_OUTPUT
+
+      - name: Initialize centinel-data workflows
+        if: steps.create_repo.outputs.repo_created == 'true'
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          BASE_URL="https://api.github.com/repos/$REPO_OWNER/centinel-data"
+
+          push_file() {
+            local path="$1"
+            local content="$2"
+            local b64=$(echo "$content" | base64 -w 0)
+            curl -sS --fail \
+              -H "Authorization: Bearer $DATA_REPO_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"message\":\"init: $path\",\"content\":\"$b64\"}" \
+              "$BASE_URL/contents/$path" > /dev/null
+          }
+
+          push_file ".github/workflows/ipfs-pin.yml" 'name: IPFS Pin (Optional)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pin to IPFS via Pinata
+        if: ${{ toJSON(secrets.PINATA_JWT) != '"'"'null'"'"' }}
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+        run: |
+          tar czf /tmp/centinel-data.tar.gz --exclude='"'"'.git'"'"' .
+          RESPONSE=$(curl -sS --fail \
+            -H "Authorization: Bearer $PINATA_JWT" \
+            -F "file=@/tmp/centinel-data.tar.gz" \
+            "https://api.pinata.cloud/pinning/pinFileToIPFS")
+          CID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['"'"'IpfsHash'"'"'])")
+          echo "Pinned: ipfs://$CID"
+          python3 - <<EOF
+import json, os
+from datetime import datetime, timezone
+with open("ipfs-manifest.json") as f:
+    m = json.load(f)
+m["snapshots"].append({"cid": "$CID", "timestamp": datetime.now(timezone.utc).isoformat()})
+m["last_updated"] = datetime.now(timezone.utc).isoformat()
+with open("ipfs-manifest.json", "w") as f:
+    json.dump(m, f, indent=2)
+EOF
+          git config user.name "centinel-bot"
+          git config user.email "bot@centinel.app"
+          git add ipfs-manifest.json
+          git diff --cached --quiet || git commit -m "ipfs: pin $CID"
+          git push'
+
+          push_file ".github/workflows/auto-release.yml" 'name: Weekly Backup Release
+on:
+  schedule:
+    - cron: '"'"'0 3 * * 0'"'"'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create backup archive
+        run: |
+          TAG="backup-$(date -u +%Y-%m-%d)"
+          zip -r "centinel-data-${TAG}.zip" . --exclude "*.git*"
+          SHA=$(sha256sum "centinel-data-${TAG}.zip" | cut -d" " -f1)
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "SHA=$SHA" >> $GITHUB_ENV
+          echo "ZIPFILE=centinel-data-${TAG}.zip" >> $GITHUB_ENV
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: "Backup ${{ env.TAG }}"
+          body: |
+            Backup automático semanal de centinel-data.
+            SHA256: `${{ env.SHA }}`
+          files: ${{ env.ZIPFILE }}'
+
+          echo "Workflows initialized"
+
+      - name: Enable GitHub Pages automatically
+        if: steps.check.outputs.state == 'ready' || steps.check.outputs.state == 'needs_repo'
+        id: pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          PAGES_HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/pages")
+
+          if [ "$PAGES_HTTP" = "200" ]; then
+            echo "pages_enabled=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Try to enable Pages with Actions as source
+          ENABLE_HTTP=$(curl -s -o /tmp/pages_resp.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            -d '{"build_type":"workflow"}' \
+            "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/pages")
+
+          if [ "$ENABLE_HTTP" = "201" ] || [ "$ENABLE_HTTP" = "200" ]; then
+            echo "pages_enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "pages_enabled=false" >> $GITHUB_OUTPUT
+            echo "pages_http=$ENABLE_HTTP" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Open Pages setup issue (if auto-enable failed)
+        if: steps.pages.outputs.pages_enabled == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const existing = await github.rest.issues.listForRepo({
+              owner, repo, labels: 'centinel-pages', state: 'open', per_page: 1
+            });
+            if (existing.data.length > 0) return;
+            await github.rest.issues.create({
+              owner, repo,
+              title: '🌐 Acción requerida: activar el panel de visualización',
+              labels: ['centinel-pages'],
+              body: [
+                '## Un solo clic para activar el panel público',
+                '',
+                'El sistema intentó activar GitHub Pages automáticamente pero necesita confirmación manual.',
+                '',
+                '### Único paso',
+                '',
+                `**[→ Abrir configuración de Pages](https://github.com/${owner}/${repo}/settings/pages)**`,
+                '',
+                '- En **"Source"**, selecciona: **GitHub Actions**',
+                '- Clic en **"Save"**',
+                '',
+                '---',
+                '',
+                `**Tu panel estará disponible en:** \`https://${owner}.github.io/${repo}/\``,
+                '',
+                '**✅ Cuando lo actives, el panel se desplegará automáticamente** en cada actualización de datos.',
+                '',
+                '> Para personalizar credenciales (Supabase) o dominio propio: [docs/PAGES-GUIDE.md](https://github.com/' + owner + '/' + repo + '/blob/main/docs/PAGES-GUIDE.md)',
+              ].join('\n')
+            });
+
+      - name: Finalize README and deploy panel
+        if: steps.check.outputs.state == 'ready' || steps.check.outputs.state == 'needs_repo'
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Update data and Pages links
+          DATA_LINK="[centinel-data →](https://github.com/${REPO_OWNER}/centinel-data)"
+          sed -i "s|<!-- CENTINEL_DATA_URL -->.*<!-- /CENTINEL_DATA_URL -->|<!-- CENTINEL_DATA_URL -->${DATA_LINK}<!-- /CENTINEL_DATA_URL -->|" README.md
+
+          PAGES_LINK="[Panel →](https://${REPO_OWNER}.github.io/${REPO_NAME}/)"
+          sed -i "s|<!-- CENTINEL_PAGES_URL -->.*<!-- /CENTINEL_PAGES_URL -->|<!-- CENTINEL_PAGES_URL -->${PAGES_LINK}<!-- /CENTINEL_PAGES_URL -->|" README.md
+
+          # In forks: update CI badge + replace INSTANCE-STATUS with live status
+          ORIGINAL_OWNER="userf8a2c4"
+          ORIGINAL_REPO="centinel-engine"
+          if [ "$REPO_OWNER" != "$ORIGINAL_OWNER" ] || [ "$REPO_NAME" != "$ORIGINAL_REPO" ]; then
+            sed -i "s|github.com/${ORIGINAL_OWNER}/${ORIGINAL_REPO}/actions|github.com/${REPO_OWNER}/${REPO_NAME}/actions|g" README.md
+            python3 - "$REPO_OWNER" "$REPO_NAME" <<'PYEOF'
+import re, sys
+owner, repo = sys.argv[1:]
+with open('README.md') as f:
+    content = f.read()
+status = f"""<!-- INSTANCE-STATUS-START -->
+---
+
+## ✅ Esta instancia está operativa
+
+**Repositorio de datos:** [centinel-data →](https://github.com/{owner}/centinel-data)
+**Panel de visualización:** [Panel →](https://{owner}.github.io/{repo}/)
+
+<!-- INSTANCE-STATUS-END -->"""
+content = re.sub(
+    r'<!-- INSTANCE-STATUS-START -->.*?<!-- INSTANCE-STATUS-END -->',
+    status, content, flags=re.DOTALL
+)
+with open('README.md', 'w') as f:
+    f.write(content)
+PYEOF
+          fi
+
+          git config user.name "centinel-bot"
+          git config user.email "bot@centinel.app"
+          git add README.md
+          git diff --cached --quiet || git commit -m "setup: activate instance, transform guide to live status"
+          git push
+
+          # Trigger panel deployment so it's live without needing a manual push
+          curl -sS \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"ref\":\"main\"}" \
+            "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/pages.yml/dispatches" || true
+
+      - name: Close setup issue
+        if: steps.check.outputs.state == 'ready' || steps.check.outputs.state == 'needs_repo'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'centinel-setup',
+              state: 'open'
+            });
+            for (const issue of issues.data) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: [
+                  '✅ **Setup completado.**',
+                  '',
+                  `- Repositorio de datos: https://github.com/${context.repo.owner}/centinel-data`,
+                  `- Panel: https://${context.repo.owner}.github.io/${context.repo.repo}/`,
+                  '',
+                  'El panel se está desplegando ahora — estará disponible en unos minutos.',
+                ].join('\n')
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            }

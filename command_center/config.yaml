@@ -300,19 +300,6 @@ logging:
   # Log file path relative to repo root.
   file: "C.E.N.T.I.N.E.L.log"
 
-# Blockchain (opcional).
-# Blockchain (optional).
-blockchain:
-  # Habilitar publicación en cadena.
-  # Enable on-chain publishing.
-  enabled: false
-  # Red objetivo.
-  # Target network.
-  network: polygon-mumbai
-  # Llave privada — SOLO via env var BLOCKCHAIN_PRIVATE_KEY (valores aquí se ignoran).
-  # Private key — ONLY via env var BLOCKCHAIN_PRIVATE_KEY (values here are ignored).
-  private_key: "REPLACE_ME"
-
 # Alertas críticas.
 # Critical alerts.
 alerts:

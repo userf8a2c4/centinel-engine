@@ -72,25 +72,8 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib.util import find_spec
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-
-if find_spec("boto3"):
-    import boto3
-else:
-    boto3 = None
-
-if find_spec("botocore"):
-    from botocore.config import Config
-    from botocore.exceptions import ClientError, EndpointConnectionError
-else:
-    Config = None
-
-    class ClientError(Exception):
-        """Fallback error when botocore is unavailable."""
-
-    class EndpointConnectionError(Exception):
-        """Fallback error when botocore is unavailable."""
-
 
 if find_spec("cryptography"):
     from cryptography.fernet import Fernet, InvalidToken
@@ -114,16 +97,11 @@ CheckpointState = Dict[str, Any]
 class CheckpointConfig:
     """Configuración necesaria para operar el checkpointing."""
 
-    bucket: str
     pipeline_version: str
     run_id: str
-    prefix: str = "centinel/checkpoints"
+    checkpoint_dir: str = "checkpoints/"
     encryption_key_env: str = "CHECKPOINT_KEY"
     checkpoint_interval: int = 50
-    s3_endpoint_url: Optional[str] = None
-    s3_region: Optional[str] = None
-    s3_access_key: Optional[str] = None
-    s3_secret_key: Optional[str] = None
 
 
 class CheckpointError(Exception):
@@ -139,7 +117,7 @@ class CheckpointValidationError(CheckpointError):
 
 
 class CheckpointManager:
-    """Administra checkpoints cifrados en un bucket S3-compatible.
+    """Administra checkpoints cifrados en el sistema de archivos local.
 
     This manager stores encrypted checkpoints with a per-checkpoint IV, handles
     retries with exponential backoff, validates state shape, and provides
@@ -156,14 +134,12 @@ class CheckpointManager:
 
     def __init__(
         self,
-        config: CheckpointConfig | str | None = None,
+        config: CheckpointConfig | None = None,
         *,
-        bucket_name: str | None = None,
-        prefix: str = "centinel/checkpoints",
+        checkpoint_dir: str = "checkpoints/",
         version: str | None = None,
         run_id: str | None = None,
         encryption_key_env: str = "CHECKPOINT_KEY",
-        s3_client: Any | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """Español: Función __init__ del módulo src/centinel/checkpointing.py.
@@ -173,29 +149,23 @@ class CheckpointManager:
         if isinstance(config, CheckpointConfig):
             resolved = config
         else:
-            if config is not None and bucket_name is None:
-                bucket_name = config if isinstance(config, str) else None
-            if not bucket_name or not version or not run_id:
+            if not version or not run_id:
                 raise CheckpointValidationError("checkpoint_config_missing_fields")
             resolved = CheckpointConfig(
-                bucket=bucket_name,
                 pipeline_version=version,
                 run_id=run_id,
-                prefix=prefix,
+                checkpoint_dir=checkpoint_dir,
                 encryption_key_env=encryption_key_env,
             )
 
         self.config = resolved
-        self.bucket_name = resolved.bucket
-        self.prefix = resolved.prefix.rstrip("/")
+        self.checkpoint_dir = Path(resolved.checkpoint_dir)
         self.version = resolved.pipeline_version
         self.run_id = resolved.run_id
         self.encryption_key_env = resolved.encryption_key_env
         self.checkpoint_interval = resolved.checkpoint_interval
         self.logger = logger or logging.getLogger(__name__)
-        self._timeout_seconds = 15
         self._base_key = self._load_base_key()
-        self._s3_client = s3_client or self._build_s3_client()
 
     async def save_checkpoint(self, state_dict: CheckpointState) -> str:
         """Guarda un checkpoint cifrado y devuelve su hash.
@@ -240,15 +210,19 @@ class CheckpointManager:
         }
         blob = json.dumps(envelope, ensure_ascii=False, indent=2).encode("utf-8")
 
-        latest_key = self._latest_key()
-        history_key = self._history_key(timestamp)
+        checkpoint_dir = self.checkpoint_dir
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-        await self._put_object_with_retry(latest_key, blob)
-        await self._put_object_with_retry(history_key, blob)
+        safe_timestamp = timestamp.replace(":", "-")
+        latest_path = checkpoint_dir / "latest.json"
+        history_path = checkpoint_dir / f"{safe_timestamp}.json"
+
+        latest_path.write_bytes(blob)
+        history_path.write_bytes(blob)
         self.logger.info(
             "checkpoint_saved",
             extra={
-                "checkpoint_key": latest_key,
+                "checkpoint_path": str(latest_path),
                 "checkpoint_hash": encrypted_hash,
                 "timestamp": timestamp,
             },
@@ -256,26 +230,25 @@ class CheckpointManager:
         return encrypted_hash
 
     async def load_latest_checkpoint(self) -> Optional[CheckpointState]:
-        """Carga el último checkpoint válido desde el bucket.
+        """Carga el último checkpoint válido desde el directorio local.
 
         Returns:
             Estado del pipeline si existe un checkpoint válido; ``None`` si no hay.
         """
-        latest_key = self._latest_key()
-        try:
-            raw_blob = await self._get_object_with_retry(latest_key)
-        except ClientError as exc:
-            if exc.response.get("Error", {}).get("Code") in {"NoSuchKey", "404"}:
-                self.logger.warning(
-                    "checkpoint_not_found",
-                    extra={"checkpoint_key": latest_key},
-                )
-                return None
-            raise
-        except EndpointConnectionError as exc:
+        latest_path = self.checkpoint_dir / "latest.json"
+        if not latest_path.exists():
             self.logger.warning(
-                "checkpoint_endpoint_unreachable",
-                extra={"checkpoint_key": latest_key, "error": str(exc)},
+                "checkpoint_not_found",
+                extra={"checkpoint_path": str(latest_path)},
+            )
+            return None
+
+        try:
+            raw_blob = latest_path.read_bytes()
+        except OSError as exc:
+            self.logger.warning(
+                "checkpoint_read_failed",
+                extra={"checkpoint_path": str(latest_path), "error": str(exc)},
             )
             return None
 
@@ -284,14 +257,14 @@ class CheckpointManager:
         except CheckpointValidationError as exc:
             self.logger.warning(
                 "checkpoint_decrypt_failed",
-                extra={"checkpoint_key": latest_key, "error": str(exc)},
+                extra={"checkpoint_path": str(latest_path), "error": str(exc)},
             )
             return None
         is_valid, reason = await self.validate_checkpoint(payload)
         if not is_valid:
             self.logger.warning(
                 "checkpoint_invalid",
-                extra={"checkpoint_key": latest_key, "reason": reason},
+                extra={"checkpoint_path": str(latest_path), "reason": reason},
             )
             return None
         return payload["state"]
@@ -326,26 +299,21 @@ class CheckpointManager:
 
     async def list_historical_checkpoints(self) -> List[Dict[str, Any]]:
         """Lista los últimos 10 checkpoints históricos."""
-        prefix = self._base_prefix()
-        response = await self._list_objects_with_retry(prefix)
-        contents = response.get("Contents", [])
+        if not self.checkpoint_dir.exists():
+            return []
         history = []
-        for entry in contents:
-            key = entry.get("Key", "")
-            if not key.endswith(".json.enc") or key.endswith("latest.json.enc"):
+        for entry in sorted(self.checkpoint_dir.glob("*.json"), key=lambda p: p.name, reverse=True):
+            if entry.name == "latest.json":
                 continue
-            timestamp = key.split("/")[-1].replace(".json.enc", "")
+            stat = entry.stat()
             history.append(
                 {
-                    "key": key,
-                    "timestamp": timestamp,
-                    "size": entry.get("Size"),
-                    "last_modified": (
-                        entry.get("LastModified").isoformat() if entry.get("LastModified") else None
-                    ),
+                    "path": str(entry),
+                    "timestamp": entry.stem,
+                    "size": stat.st_size,
+                    "last_modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
                 }
             )
-        history.sort(key=lambda item: item.get("timestamp", ""), reverse=True)
         return history[:10]
 
     async def _decrypt_envelope(self, blob: bytes) -> Dict[str, Any]:
@@ -384,36 +352,6 @@ class CheckpointManager:
         except json.JSONDecodeError as exc:
             raise CheckpointValidationError("checkpoint_payload_invalid_json") from exc
 
-    async def _put_object_with_retry(self, key: str, data: bytes) -> None:
-        """Español: Función asíncrona _put_object_with_retry del módulo src/centinel/checkpointing.py.
-
-        English: Async function _put_object_with_retry defined in src/centinel/checkpointing.py.
-        """
-        for attempt in range(1, 6):
-            try:
-                await self._run_with_timeout(
-                    self._put_object,
-                    key,
-                    data,
-                )
-                return
-            except (ClientError, EndpointConnectionError, asyncio.TimeoutError) as exc:
-                self.logger.warning(
-                    "checkpoint_write_retry",
-                    extra={
-                        "checkpoint_key": key,
-                        "attempt": attempt,
-                        "error": str(exc),
-                    },
-                )
-                if attempt == 5:
-                    self.logger.critical(
-                        "checkpoint_write_failed",
-                        extra={"checkpoint_key": key, "error": str(exc)},
-                    )
-                    raise CheckpointStorageError("checkpoint_write_failed") from exc
-                await asyncio.sleep(2 ** (attempt - 1))
-
     def _alert_critical(self, code: str, payload: Dict[str, Any]) -> None:
         """Español: Función _alert_critical del módulo src/centinel/checkpointing.py.
 
@@ -429,13 +367,6 @@ class CheckpointManager:
                 {"code": code, "payload": payload, "source": "checkpointing"},
             )
 
-    def _list_objects_raw(self, prefix: str) -> Dict[str, Any]:
-        """Español: Función _list_objects_raw del módulo src/centinel/checkpointing.py.
-
-        English: Function _list_objects_raw defined in src/centinel/checkpointing.py.
-        """
-        return self._s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
-
     def _ensure_required_state(self, state_dict: CheckpointState) -> None:
         """Español: Función _ensure_required_state del módulo src/centinel/checkpointing.py.
 
@@ -448,54 +379,6 @@ class CheckpointManager:
             raise CheckpointValidationError("checkpoint_missing_last_acta_or_hash")
         if not (state_dict.get("current_offset") or state_dict.get("batch_id")):
             raise CheckpointValidationError("checkpoint_missing_offset_or_batch")
-
-    def _latest_key(self) -> str:
-        """Español: Función _latest_key del módulo src/centinel/checkpointing.py.
-
-        English: Function _latest_key defined in src/centinel/checkpointing.py.
-        """
-        return f"{self._base_prefix()}/latest.json.enc"
-
-    def _history_key(self, timestamp: str) -> str:
-        """Español: Función _history_key del módulo src/centinel/checkpointing.py.
-
-        English: Function _history_key defined in src/centinel/checkpointing.py.
-        """
-        return f"{self._base_prefix()}/{timestamp}.json.enc"
-
-    def _base_prefix(self) -> str:
-        """Español: Función _base_prefix del módulo src/centinel/checkpointing.py.
-
-        English: Function _base_prefix defined in src/centinel/checkpointing.py.
-        """
-        return f"{self.prefix}/{self.version}/{self.run_id}"
-
-    def _build_s3_client(self) -> Any:
-        """Español: Función _build_s3_client del módulo src/centinel/checkpointing.py.
-
-        English: Function _build_s3_client defined in src/centinel/checkpointing.py.
-        """
-        if boto3 is None or Config is None:
-            raise CheckpointStorageError("boto3 and botocore are required for checkpoint storage")
-        endpoint = (
-            self.config.s3_endpoint_url
-            or os.environ.get("CENTINEL_S3_ENDPOINT")
-            or os.environ.get("S3_ENDPOINT_URL")
-        )
-        region = (
-            self.config.s3_region
-            or os.environ.get("AWS_REGION")
-            or os.environ.get("CENTINEL_S3_REGION")
-        )
-        config = Config(connect_timeout=self._timeout_seconds, read_timeout=self._timeout_seconds)
-        return boto3.client(
-            "s3",
-            endpoint_url=endpoint,
-            region_name=region,
-            aws_access_key_id=self.config.s3_access_key,
-            aws_secret_access_key=self.config.s3_secret_key,
-            config=config,
-        )
 
     def _load_base_key(self) -> bytes:
         """Español: Función _load_base_key del módulo src/centinel/checkpointing.py.
@@ -566,8 +449,7 @@ if __name__ == "__main__":
         logging.debug("CHECKPOINT_KEY_VALUE=%s", key)
 
     manager = CheckpointManager(
-        bucket_name=os.environ.get("CENTINEL_CHECKPOINT_BUCKET", "centinel-checkpoints"),
-        prefix="centinel/checkpoints",
+        checkpoint_dir=os.environ.get("CENTINEL_CHECKPOINT_DIR", "checkpoints/"),
         version="v1.0.0",
         run_id="run-2024-11-05-001",
     )

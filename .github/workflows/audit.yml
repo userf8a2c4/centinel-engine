@@ -53,10 +53,24 @@ jobs:
             echo "Sin cambios reales, no se commitea"
           fi
 
-      - name: Enviar actualización a Telegram
+      - name: Push data to centinel-data
+        if: always()
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_TEMPLATE: ${{ secrets.TELEGRAM_TEMPLATE }}
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
-          python scripts/post_to_telegram.py "Actualización automática completada. Snapshot generado y hasheado. Ver repo: https://github.com/userf8a2c4/hnd-centinel-2029"
+          if [ -z "$DATA_REPO_TOKEN" ]; then
+            echo "INFO: DATA_REPO_TOKEN not configured — data stays local"
+            exit 0
+          fi
+          git clone "https://x-access-token:${DATA_REPO_TOKEN}@github.com/${REPO_OWNER}/centinel-data.git" /tmp/centinel-data
+          [ -d data ]    && cp -r data/.    /tmp/centinel-data/snapshots/ || true
+          [ -d hashes ]  && cp -r hashes/.  /tmp/centinel-data/hashes/   || true
+          [ -d diffs ]   && cp -r diffs/.   /tmp/centinel-data/diffs/    || true
+          [ -d reports ] && cp -r reports/. /tmp/centinel-data/reports/  || true
+          cd /tmp/centinel-data
+          git config user.name "centinel-bot"
+          git config user.email "bot@centinel.app"
+          git add .
+          git diff --cached --quiet || git commit -m "data: $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push origin main

@@ -96,6 +96,26 @@ jobs:
             git commit -m "data: snapshot $(date -u +%Y%m%dT%H%MZ) [skip ci]"
           git push
 
+      - name: Push data to centinel-data
+        if: always()
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          if [ -z "$DATA_REPO_TOKEN" ]; then
+            echo "INFO: DATA_REPO_TOKEN not configured — data stays local"
+            exit 0
+          fi
+          git clone "https://x-access-token:${DATA_REPO_TOKEN}@github.com/${REPO_OWNER}/centinel-data.git" /tmp/centinel-data
+          mkdir -p /tmp/centinel-data/snapshots/latest
+          [ -f web/data/snapshot.json ] && cp web/data/snapshot.json /tmp/centinel-data/snapshots/latest/ || true
+          cd /tmp/centinel-data
+          git config user.name "centinel-bot"
+          git config user.email "bot@centinel.app"
+          git add .
+          git diff --cached --quiet || git commit -m "data: $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push origin main
+
   security:
     runs-on: ubuntu-latest
     timeout-minutes: 12

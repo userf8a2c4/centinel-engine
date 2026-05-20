@@ -472,9 +472,9 @@ def simulate_dos(cfg: DaemonConfig) -> None:
     (Simular alto uso de recursos para probar el pipeline de curación.)
 
     This does NOT actually consume resources — it fakes diagnostic results
-    to trigger the full healing sequence including Telegram alerts.
+    to trigger the full healing sequence.
     (Esto NO consume recursos realmente — falsifica resultados de diagnóstico
-    para disparar la secuencia completa de curación incluyendo alertas Telegram.)
+    para disparar la secuencia completa de curación.)
     """
     logger.warning("=== DoS SIMULATION STARTED (SIMULACIÓN DoS INICIADA) ===")
 
@@ -489,53 +489,12 @@ def simulate_dos(cfg: DaemonConfig) -> None:
     for result in fake_failures:
         logger.warning("SIMULATED diagnostic: %s ok=%s detail=%s", result.name, result.ok, result.detail)
 
-    # Attempt Telegram alert (Intentar alerta Telegram)
-    _try_send_telegram_alert(fake_failures, simulated=True)
-
     # Show what healing *would* do (Mostrar qué haría la curación)
     logger.info("healing_sequence: reset_proxy → clear_caches → remove_locks → restart_pipeline")
     logger.info("(In simulation mode, no actual changes are made)")
     logger.info("(En modo simulación, no se realizan cambios reales)")
 
     logger.warning("=== DoS SIMULATION COMPLETE (SIMULACIÓN DoS COMPLETA) ===")
-
-
-# ---------------------------------------------------------------------------
-# Telegram integration (Integración Telegram)
-# ---------------------------------------------------------------------------
-
-
-def _try_send_telegram_alert(
-    failures: list[DiagnosticResult],
-    simulated: bool = False,
-) -> None:
-    """Send a Telegram alert with diagnostic details.
-    (Enviar alerta Telegram con detalles de diagnóstico.)
-
-    Uses the existing monitoring.alerts module if available.
-    (Usa el módulo monitoring.alerts existente si está disponible.)
-    """
-    try:
-        from monitoring.alerts import dispatch_alert
-    except ImportError:
-        logger.info("telegram_alert_skipped reason=monitoring.alerts_not_importable")
-        return
-
-    prefix = "[SIMULATION] " if simulated else ""
-    lines = [f"{prefix}WATCHDOG DAEMON — {'DoS Simulation' if simulated else 'Failures Detected'}"]
-    lines.append(f"Timestamp: {datetime.now(timezone.utc).isoformat()}")
-    lines.append("")
-
-    for f in failures:
-        status = "FAIL" if not f.ok else "OK"
-        lines.append(f"  [{status}] {f.name}: {f.detail}")
-
-    if psutil:
-        lines.append("")
-        lines.append(f"System: CPU={psutil.cpu_percent():.1f}% MEM={psutil.virtual_memory().percent:.1f}%")
-
-    message = "\n".join(lines)
-    dispatch_alert("CRITICAL", message)
 
 
 # ---------------------------------------------------------------------------
@@ -594,7 +553,6 @@ def daemon_loop(cfg: DaemonConfig) -> None:
                 # Act only after threshold consecutive failures AND cooldown elapsed
                 # (Actuar solo después de umbral de fallos consecutivos Y cooldown transcurrido)
                 if state.consecutive_failures >= cfg.failure_threshold and state.can_act(cfg.cooldown_seconds):
-                    _try_send_telegram_alert(failures)
                     execute_healing(cfg, failures)
                     state.record_action()
                     logger.info(
@@ -618,9 +576,6 @@ def daemon_loop(cfg: DaemonConfig) -> None:
 
     # Graceful shutdown (Apagado graceful)
     logger.info("daemon_stopped total_healings=%d uptime_since=%s", state.total_healings, state.started_at)
-    _try_send_telegram_alert(
-        [DiagnosticResult("shutdown", False, "daemon_stopped_gracefully")],
-    )
 
 
 # ---------------------------------------------------------------------------

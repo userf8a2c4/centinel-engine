@@ -81,13 +81,6 @@ try:
 except Exception:  # noqa: BLE001
     _HAS_DROPBOX = False
 
-try:
-    import boto3  # type: ignore[import-untyped]
-
-    _HAS_BOTO3 = True
-except Exception:  # noqa: BLE001
-    _HAS_BOTO3 = False
-
 DEFAULT_HEALTH_STATE_PATH = Path("data/health_state.json")
 DEFAULT_HASH_CHAIN_DIR = Path("data/hashes")
 DEFAULT_BACKUP_DIR = Path("backups")
@@ -96,8 +89,6 @@ DEFAULT_BACKUP_INTERVAL_SECONDS = 1800
 ENV_BACKUP_KEY = "CENTINEL_BACKUP_KEY"
 ENV_DROPBOX_TOKEN = "CENTINEL_DROPBOX_TOKEN"
 ENV_DROPBOX_FOLDER = "CENTINEL_DROPBOX_FOLDER"
-ENV_S3_BUCKET = "CENTINEL_S3_BUCKET"
-ENV_S3_PREFIX = "CENTINEL_S3_PREFIX"
 
 
 def _generate_backup_key() -> bytes:
@@ -293,36 +284,6 @@ def _backup_to_dropbox(payload: bytes, remote_path: str) -> bool:
         return False
 
 
-def _backup_to_s3(payload: bytes, remote_path: str) -> bool:
-    """Upload payload to S3 when SDK and bucket credentials are available.
-
-    Bilingual: Sube payload a S3 cuando SDK y credenciales están disponibles.
-
-    Args:
-        payload: Backup payload bytes.
-        remote_path: Remote object key suffix.
-
-    Returns:
-        bool: True on successful upload.
-
-    Raises:
-        None.
-    """
-    if not _HAS_BOTO3:
-        return False
-    bucket = os.getenv(ENV_S3_BUCKET)
-    if not bucket:
-        return False
-    try:
-        prefix = os.getenv(ENV_S3_PREFIX, "centinel-backups")
-        key = f"{prefix}/{remote_path}"
-        boto3.client("s3").put_object(Bucket=bucket, Key=key, Body=payload)
-        return True
-    except Exception as exc:  # noqa: BLE001
-        logger.error("backup_s3_failed | %s", exc)
-        return False
-
-
 def backup_critical_assets(
     health_state_path: Path = DEFAULT_HEALTH_STATE_PATH,
     hash_chain_dir: Path = DEFAULT_HASH_CHAIN_DIR,
@@ -346,7 +307,6 @@ def backup_critical_assets(
     report: Dict[str, Any] = {
         "local": False,
         "dropbox": False,
-        "s3": False,
         "files_backed_up": [],
         "errors": [],
     }
@@ -377,7 +337,6 @@ def backup_critical_assets(
 
         report["local"] = _backup_to_local(backup_dir, encrypted_payload, filename, manifest)
         report["dropbox"] = _backup_to_dropbox(encrypted_payload, filename)
-        report["s3"] = _backup_to_s3(encrypted_payload, filename)
         return report
     except Exception as exc:  # noqa: BLE001
         report["errors"].append(str(exc))

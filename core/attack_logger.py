@@ -132,7 +132,6 @@ class AttackLogConfig:
     external_summary_channel: str = "webhook"
     anonymize_summaries: bool = True
     webhook_url: str = ""
-    telegram_chat_id: str = ""
     honeypot_enabled: bool = False
     honeypot_host: str = "127.0.0.1"
     honeypot_port: int = 8080
@@ -184,7 +183,6 @@ class AttackLogConfig:
             external_summary_channel=str(external.get("channel", "webhook")),
             anonymize_summaries=bool(external.get("anonymize", True)),
             webhook_url=str(external.get("webhook_url", "")),
-            telegram_chat_id=str(external.get("telegram_chat_id", "")),
             honeypot_enabled=bool(honeypot.get("enabled", False)),
             honeypot_host=str(honeypot.get("host", "127.0.0.1")),
             honeypot_port=int(honeypot.get("port", 8080)),
@@ -653,25 +651,6 @@ class AttackForensicsLogbook:
         return generated
 
     def _send_summary(self, summary: dict[str, Any]) -> None:
-        if self.config.external_summary_channel == "telegram":
-            token = os.getenv("TELEGRAM_TOKEN", "")
-            chat_id = os.getenv("TELEGRAM_CHAT_ID", self.config.telegram_chat_id)
-            if token and chat_id:
-                url = f"https://api.telegram.org/bot{token}/sendMessage"
-                target = resolve_outbound_target(
-                    url,
-                    allowed_domains={"api.telegram.org"},
-                    enforce_public_ip_resolution=True,
-                )
-                if target is not None:
-                    with pin_dns_resolution(target):
-                        requests.post(
-                            url,
-                            json={"chat_id": chat_id, "text": json.dumps(summary, ensure_ascii=False)},
-                            timeout=5,
-                        )
-            return
-
         endpoint = os.getenv("WEBHOOK_URL", self.config.webhook_url)
         if endpoint:
             target = resolve_outbound_target(endpoint, enforce_public_ip_resolution=True)

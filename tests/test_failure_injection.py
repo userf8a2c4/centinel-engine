@@ -288,7 +288,6 @@ def test_run_pipeline_resumes_from_checkpoint(monkeypatch, tmp_path) -> None:
 
     monkeypatch.setattr(run_pipeline, "run_command", _record_command)
     monkeypatch.setattr(run_pipeline, "_anchor_snapshot", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(run_pipeline, "_anchor_if_due", lambda *_args, **_kwargs: None)
 
     config = {"alerts": {}, "arbitrum": {"enabled": False}}
     run_pipeline.run_pipeline(config)

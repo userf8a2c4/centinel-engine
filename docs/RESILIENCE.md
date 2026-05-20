@@ -22,6 +22,13 @@ This document describes only active mechanisms in the current flow.
 - Backup cifrado de estado crítico y hash chain.
 - Multi-destino (local, Dropbox, S3) según credenciales disponibles.
 
+### 5) IPFS como capa adicional / IPFS as additional layer
+- Cada push a centinel-data puede anclar el estado completo del repositorio a IPFS vía Pinata.
+- Los datos quedan accesibles incluso si GitHub elimina el repositorio o está bajo presión legal.
+- El CID (Content Identifier) es un hash del contenido: imposible de falsificar retroactivamente.
+- Configuración: añadir `PINATA_JWT` en centinel-data → Settings → Secrets. Silencioso sin él.
+- Ver [IPFS-RESILIENCE.md](IPFS-RESILIENCE.md) para detalles de setup y recuperación.
+
 ## Operational principle / Principio operativo
 
 Continuidad sin agresividad: preservar evidencia, reducir carga y mantener trazabilidad.

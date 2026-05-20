@@ -83,19 +83,14 @@ def test_honeypot_logs_request_metadata(tmp_path: Path) -> None:
 
 def test_alert_level_1_does_not_call_external(monkeypatch: pytest.MonkeyPatch) -> None:
     manager = AlertManager()
-    called = {"email": 0, "tg": 0}
+    called = {"email": 0}
 
     monkeypatch.setattr(
         manager, "_send_email", lambda payload: called.__setitem__("email", called["email"] + 1)
     )
-    monkeypatch.setattr(
-        manager,
-        "_send_telegram",
-        lambda payload: called.__setitem__("tg", called["tg"] + 1) or True,
-    )
 
     manager.send(1, "minor_event")
-    assert called == {"email": 0, "tg": 0}
+    assert called == {"email": 0}
 
 
 def test_detect_internal_anomalies_new_file(tmp_path: Path) -> None:

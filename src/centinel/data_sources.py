@@ -113,7 +113,6 @@ class DataSourceKind(str, Enum):
     CNE_API = "cne_api"
     MIRROR_BUCKET = "mirror_bucket"
     CITIZEN_MIRROR = "citizen_mirror"
-    TELEGRAM_CHANNEL = "telegram_channel"
     FALLBACK_SCRAPE = "fallback_scrape"
 
 
@@ -325,9 +324,6 @@ class DataSourceManager:
             DataSourceKind.CITIZEN_MIRROR,
         }:
             return await self._fetch_http_json(source)
-
-        if source.kind is DataSourceKind.TELEGRAM_CHANNEL:
-            raise DataSourceError("telegram_channel source not implemented yet.")
 
         if source.kind is DataSourceKind.FALLBACK_SCRAPE:
             raise DataSourceError("fallback_scrape source not implemented yet.")

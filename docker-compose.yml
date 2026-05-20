@@ -48,15 +48,6 @@ services:
       CHECKPOINT_KEY: "${CHECKPOINT_KEY}"
       MASTER_KEY: "${MASTER_KEY}"
 
-      # Cloud storage / buckets
-      STORAGE_PROVIDER: "${STORAGE_PROVIDER}"
-      STORAGE_BUCKET: "${STORAGE_BUCKET}"
-      STORAGE_REGION: "${STORAGE_REGION}"
-      STORAGE_ACCESS_KEY_ID: "${STORAGE_ACCESS_KEY_ID}"
-      STORAGE_SECRET_ACCESS_KEY: "${STORAGE_SECRET_ACCESS_KEY}"
-      STORAGE_ENDPOINT: "${STORAGE_ENDPOINT}"
-      STORAGE_PREFIX: "${STORAGE_PREFIX}"
-
       # Alerting / observabilidad
       ALERTING_ENABLED: "${ALERTING_ENABLED:-true}"
       ALERT_WEBHOOK_URL: "${ALERT_WEBHOOK_URL}"
@@ -140,8 +131,6 @@ services:
     environment:
       TZ: "UTC"
       ADMIN_EMAIL: "${ADMIN_EMAIL}"
-      TELEGRAM_TOKEN: "${TELEGRAM_TOKEN}"
-      TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID}"
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data

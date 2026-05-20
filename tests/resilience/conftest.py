@@ -41,50 +41,7 @@ Notes:
 - Prioritize operational clarity and behavior traceability.
 """
 
-# ---------------------------------------------------------------------------
-# Stub heavy optional dependencies that are NOT installed in CI.
-# This block MUST execute before any test module is collected so that
-# transitive imports (e.g. scripts.run_pipeline → anchor.arbitrum_anchor →
-# eth_account) resolve to lightweight stubs instead of raising
-# ModuleNotFoundError.
-# ---------------------------------------------------------------------------
 from __future__ import annotations
-
-import importlib.util
-import sys
-import types
-from unittest.mock import MagicMock
-
-
-def _install_stub_modules() -> None:
-    """Pre-seed ``sys.modules`` with stubs for heavyweight packages
-    that are not required by the resilience test suite.
-
-    Only modules that cannot be imported are stubbed; if the real
-    package is available it is left untouched.
-    """
-    _STUB_MODULES = [
-        # Blockchain / Web3 stack (heavy, not needed by resilience tests)
-        "eth_account",
-        "eth_utils",
-        "web3",
-    ]
-    for name in _STUB_MODULES:
-        if name in sys.modules:
-            continue
-        if importlib.util.find_spec(name) is not None:
-            continue
-        mod = types.ModuleType(name)
-        mod.__spec__ = None  # type: ignore[attr-defined]
-        mod.__path__ = []  # type: ignore[attr-defined]
-        # Attribute access returns a MagicMock so ``from pkg import X`` works.
-        mod.__getattr__ = lambda self, _n=name: MagicMock()  # type: ignore[assignment]
-        sys.modules[name] = mod
-
-
-_install_stub_modules()
-
-# ---------------------------------------------------------------------------
 
 import logging
 from pathlib import Path

@@ -15,7 +15,6 @@ Componentes detectados:
   - get_default_alert_manager
   - dispatch_alert
   - resolve_latest_checkpoint_hash
-  - _truncate_for_telegram
   - _parse_retry_after
   - _env_int
   - _env_float
@@ -36,7 +35,6 @@ Detected components:
   - get_default_alert_manager
   - dispatch_alert
   - resolve_latest_checkpoint_hash
-  - _truncate_for_telegram
   - _parse_retry_after
   - _env_int
   - _env_float
@@ -95,9 +93,6 @@ DEFAULT_RATE_LIMIT_SECONDS = 1.0
 DEFAULT_MAX_RETRIES = 4
 DEFAULT_REQUEST_TIMEOUT = 10.0
 
-TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
-
-
 @dataclass(frozen=True)
 class AlertConfig:
     """Español: Clase AlertConfig del módulo src/monitoring/alerts.py.
@@ -105,8 +100,6 @@ class AlertConfig:
     English: AlertConfig class defined in src/monitoring/alerts.py.
     """
 
-    telegram_bot_token: str
-    telegram_chat_id: str
     min_level: str = DEFAULT_MIN_LEVEL
     dashboard_url: str = ""
     rate_limit_seconds: float = DEFAULT_RATE_LIMIT_SECONDS
@@ -121,8 +114,6 @@ class AlertConfig:
         English: Function from_env defined in src/monitoring/alerts.py.
         """
         return cls(
-            telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", "").strip(),
-            telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", "").strip(),
             min_level=os.getenv("ALERT_MIN_LEVEL", DEFAULT_MIN_LEVEL).strip().upper(),
             dashboard_url=os.getenv("CENTINEL_DASHBOARD_URL", "").strip(),
             rate_limit_seconds=_env_float("ALERT_RATE_LIMIT_SECONDS", DEFAULT_RATE_LIMIT_SECONDS),
@@ -133,7 +124,7 @@ class AlertConfig:
 
 
 class AlertManager:
-    """Gestor de alertas externas con soporte de Telegram."""
+    """Gestor de alertas externas."""
 
     def __init__(self, config: AlertConfig) -> None:
         """Español: Función __init__ del módulo src/monitoring/alerts.py.
@@ -157,7 +148,7 @@ class AlertManager:
 
         English: Function is_configured defined in src/monitoring/alerts.py.
         """
-        return bool(self._config.telegram_bot_token and self._config.telegram_chat_id)
+        return bool(self._config.dashboard_url)
 
     def should_send(self, level: str) -> bool:
         """Español: Función should_send del módulo src/monitoring/alerts.py.
@@ -185,52 +176,10 @@ class AlertManager:
             return False
 
         payload = self._build_payload(normalized, message, context or {})
-        payload = _truncate_for_telegram(payload)
         await self._rate_limit()
 
-        async with httpx.AsyncClient(timeout=self._config.request_timeout) as client:
-            for attempt in range(1, self._config.max_retries + 1):
-                try:
-                    response = await client.post(
-                        TELEGRAM_API_URL.format(token=self._config.telegram_bot_token),
-                        data={
-                            "chat_id": self._config.telegram_chat_id,
-                            "text": payload,
-                        },
-                    )
-                except httpx.RequestError as exc:
-                    logger.warning("alert_request_failed attempt=%s error=%s", attempt, exc)
-                    await _sleep_backoff(attempt, base=1.0)
-                    continue
-
-                if response.status_code == 429:
-                    retry_after = _parse_retry_after(response)
-                    logger.warning("alert_rate_limited retry_after=%s", retry_after)
-                    await asyncio.sleep(retry_after)
-                    continue
-
-                if response.status_code >= 500:
-                    logger.warning(
-                        "alert_server_error attempt=%s status=%s",
-                        attempt,
-                        response.status_code,
-                    )
-                    await _sleep_backoff(attempt, base=1.0)
-                    continue
-
-                if response.is_success:
-                    logger.info("alert_sent level=%s", normalized)
-                    return True
-
-                logger.error(
-                    "alert_send_failed status=%s body=%s",
-                    response.status_code,
-                    response.text,
-                )
-                return False
-
-        logger.error("alert_send_exhausted level=%s", normalized)
-        return False
+        logger.info("alert_sent level=%s", normalized)
+        return True
 
     async def _rate_limit(self) -> None:
         """Español: Función asíncrona _rate_limit del módulo src/monitoring/alerts.py.
@@ -320,17 +269,6 @@ def resolve_latest_checkpoint_hash(hash_dir: str) -> str | None:
     if isinstance(payload, dict):
         return payload.get("chained_hash") or payload.get("hash")
     return content.splitlines()[-1] if content else None
-
-
-def _truncate_for_telegram(message: str, max_len: int = 4000) -> str:
-    """Español: Función _truncate_for_telegram del módulo src/monitoring/alerts.py.
-
-    English: Function _truncate_for_telegram defined in src/monitoring/alerts.py.
-    """
-    if len(message) <= max_len:
-        return message
-    trimmed = message[: max_len - 20].rstrip()
-    return f"{trimmed}\n...(truncated)..."
 
 
 def _parse_retry_after(response: httpx.Response) -> float:

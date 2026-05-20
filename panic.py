@@ -94,7 +94,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import boto3
 import yaml
 
 from centinel.paths import iter_all_hashes
@@ -333,80 +332,6 @@ def build_report(user: str, timestamp: str, checkpoint: dict[str, Any]) -> dict[
     return report
 
 
-def build_s3_client() -> tuple[Any | None, str | None]:
-    """Español: Función build_s3_client del módulo panic.py.
-
-    English: Function build_s3_client defined in panic.py.
-    """
-    bucket = os.getenv("CENTINEL_PANIC_BUCKET") or os.getenv("CENTINEL_CHECKPOINT_BUCKET")
-    if not bucket:
-        return None, None
-    session = boto3.session.Session()
-    client = session.client(
-        "s3",
-        endpoint_url=os.getenv("CENTINEL_S3_ENDPOINT"),
-        region_name=os.getenv("CENTINEL_S3_REGION"),
-        aws_access_key_id=os.getenv("CENTINEL_S3_ACCESS_KEY"),
-        aws_secret_access_key=os.getenv("CENTINEL_S3_SECRET_KEY"),
-    )
-    return client, bucket
-
-
-def upload_to_bucket(
-    client: Any,
-    bucket: str,
-    prefix: str,
-    report_path: Path,
-    checkpoint_path: Path | None,
-    panic_flag: dict[str, Any],
-) -> dict[str, str]:
-    """Español: Función upload_to_bucket del módulo panic.py.
-
-    English: Function upload_to_bucket defined in panic.py.
-    """
-    uploaded: dict[str, str] = {}
-    report_key = f"{prefix}/{report_path.name}"
-    client.put_object(
-        Bucket=bucket,
-        Key=report_key,
-        Body=report_path.read_bytes(),
-        ContentType="application/json",
-    )
-    uploaded["report"] = report_key
-    flag_key = f"{prefix}/panic_flag.json"
-    client.put_object(
-        Bucket=bucket,
-        Key=flag_key,
-        Body=json.dumps(panic_flag, ensure_ascii=False, indent=2).encode("utf-8"),
-        ContentType="application/json",
-    )
-    uploaded["flag"] = flag_key
-    if checkpoint_path and checkpoint_path.exists():
-        checkpoint_key = f"{prefix}/{checkpoint_path.name}"
-        client.put_object(
-            Bucket=bucket,
-            Key=checkpoint_key,
-            Body=checkpoint_path.read_bytes(),
-            ContentType="application/json",
-        )
-        uploaded["checkpoint"] = checkpoint_key
-    return uploaded
-
-
-def build_report_url(bucket: str, key: str) -> str | None:
-    """Español: Función build_report_url del módulo panic.py.
-
-    English: Function build_report_url defined in panic.py.
-    """
-    base_url = os.getenv("CENTINEL_PANIC_PUBLIC_BASE_URL")
-    if base_url:
-        return f"{base_url.rstrip('/')}/{key}"
-    endpoint = os.getenv("CENTINEL_S3_ENDPOINT")
-    if endpoint:
-        return f"{endpoint.rstrip('/')}/{bucket}/{key}"
-    return None
-
-
 def send_alert_message(report_url: str | None, final_hash: str | None, timestamp: str) -> None:
     """Español: Función send_alert_message del módulo panic.py.
 
@@ -490,22 +415,8 @@ def main() -> int:
     report_path = panic_dir / "panic_report.json"
     report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    uploaded_report_url = None
     try:
-        client, bucket = build_s3_client()
-        if client and bucket:
-            prefix = f"panic/{stamp}"
-            uploaded = upload_to_bucket(client, bucket, prefix, report_path, checkpoint_path, panic_flag)
-            if "report" in uploaded:
-                uploaded_report_url = build_report_url(bucket, uploaded["report"])
-            logger.info("panic_upload_complete keys=%s", uploaded)
-        else:
-            logger.warning("panic_bucket_missing")
-    except Exception as exc:  # noqa: BLE001
-        logger.error("panic_upload_failed error=%s", exc)
-
-    try:
-        send_alert_message(uploaded_report_url, report.get("final_hash"), timestamp)
+        send_alert_message(None, report.get("final_hash"), timestamp)
     except Exception as exc:  # noqa: BLE001
         logger.error("panic_alert_publish_failed error=%s", exc)
 

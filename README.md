@@ -18,6 +18,42 @@ computadora portátil.
 > audit a national election from a laptop — no institutional dependency, no
 > dedicated infrastructure, zero operating cost.*
 
+<!-- INSTANCE-STATUS-START -->
+---
+
+## Desplegar esta instancia / Deploy this instance
+
+En menos de 10 minutos, sin instalar nada.
+
+**1. Habilitar workflows**
+→ Pestaña **[Actions](../../actions)** de tu fork → clic en **"I understand my workflows, go ahead and enable them"**
+↳ *GitHub los desactiva en todos los forks por seguridad — es inevitable, son dos segundos.*
+
+**2. Ejecutar el Setup Wizard**
+→ **[Actions → Setup Wizard](../../actions/workflows/setup-wizard.yml)** → "Run workflow" → "Run workflow"
+↳ *Si el token ya está configurado, el setup termina aquí — salta al paso 4.*
+↳ *Si falta el token, el wizard abre un Issue — continúa en el paso 3.*
+
+**3. Crear y conectar el token** *(solo si el wizard abrió un Issue)*
+→ Sigue los dos links del Issue: uno abre la página para crear el token, el otro para guardarlo
+↳ *Único paso que GitHub no permite automatizar.*
+↳ *El Issue tiene un link directo para continuar en el paso 4 cuando termines.*
+
+**4. Re-ejecutar el wizard**
+→ Usa el link del Issue, o directamente: **[Setup Wizard](../../actions/workflows/setup-wizard.yml)** → "Run workflow"
+↳ *Automático: crea centinel-data, activa GitHub Pages, despliega el panel.*
+↳ *Automático: actualiza este README con los links reales, cierra el Issue.*
+
+<details>
+<summary>¿El panel no aparece después del setup?</summary>
+
+→ **[Settings → Pages](../../settings/pages)** → Source: **GitHub Actions** → Save
+
+El panel estará disponible en el siguiente push a `main`.
+</details>
+
+<!-- INSTANCE-STATUS-END -->
+
 ---
 
 ## Qué resuelve
@@ -98,6 +134,20 @@ campo y dictamen académico independiente.
 
 ---
 
+## Arquitectura de Datos
+
+Centinel separa el código (este repositorio) de los datos electorales capturados (centinel-data). Los datos se publican automáticamente en un repositorio independiente en cada captura, garantizando que cualquier auditor pueda verificarlos sin ejecutar el motor.
+
+**Repositorio de datos:** <!-- CENTINEL_DATA_URL -->*(se configura automáticamente al hacer fork)*<!-- /CENTINEL_DATA_URL -->
+
+**Panel de visualización:** <!-- CENTINEL_PAGES_URL -->*(se activa automáticamente al hacer fork)*<!-- /CENTINEL_PAGES_URL -->
+
+El sistema se configura solo: al hacer fork, el wizard detecta qué falta y abre un Issue con instrucciones exactas. Normalmente es un solo paso.
+
+→ [Arquitectura de separación código/datos](docs/DATA-REPOS.md) · [Guía de setup](docs/SETUP-GUIDE.md) · [Panel de visualización](docs/PAGES-GUIDE.md)
+
+---
+
 ## Documentación
 
 | Documento | Audiencia |
@@ -122,3 +172,25 @@ actor, público o privado.
 
 **Centinel** · Auditoría electoral como derecho ciudadano, no como privilegio
 institucional · `userf8a2c4`
+
+<!-- FORK-GUIDE-START -->
+---
+
+## ¿Quieres tu propia instancia? / Want your own instance?
+
+Haz fork de este repositorio — el sistema se despliega solo en menos de 10 minutos.
+
+**1.** Botón **Fork** arriba a la derecha → crea tu copia
+
+**2.** En tu fork: pestaña **[Actions](../../actions)** → **"I understand my workflows, go ahead and enable them"**
+
+**3.** **[Actions → Setup Wizard](../../actions/workflows/setup-wizard.yml)** → "Run workflow" → "Run workflow"
+
+**4.** Sigue el Issue que se abre — tiene links directos para cada acción. El resto es automático.
+
+Tu instancia incluye repositorio de datos público (`centinel-data`), panel de visualización
+en GitHub Pages y captura continua verificable — sin servidores, sin costo operativo.
+
+Para más detalles: [docs/SETUP-GUIDE.md](docs/SETUP-GUIDE.md)
+
+<!-- FORK-GUIDE-END -->

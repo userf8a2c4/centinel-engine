@@ -48,7 +48,7 @@ smtp_settings:
 alerts:
   enabled: true
   escalation_failures: 3
-  channels: ["email", "telegram", "sms_webhook"]
+  channels: ["email", "sms_webhook"]
 
 honeypot:
   enabled: true

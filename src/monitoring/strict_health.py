@@ -92,16 +92,6 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any, Deque, Tuple
 
-if find_spec("boto3"):
-    import boto3
-else:
-    boto3 = None
-
-if find_spec("botocore"):
-    from botocore.config import Config
-else:
-    Config = None
-
 if find_spec("psutil"):
     import psutil
 else:
@@ -127,7 +117,6 @@ DEFAULT_CPU_THRESHOLD = 0.90
 DEFAULT_CPU_WINDOW_SECONDS = 300
 DEFAULT_DIAGNOSTICS_HISTORY = 10
 DEFAULT_LAST_ACTA_MAX_AGE_SECONDS = 900
-DEFAULT_BUCKET_LATENCY_SECONDS = 5
 DEFAULT_CRITICAL_WINDOW_SECONDS = 1800
 
 _diagnostics: Deque[dict[str, Any]] = deque(maxlen=DEFAULT_DIAGNOSTICS_HISTORY)
@@ -202,50 +191,6 @@ def _parse_timestamp(value: Any) -> datetime | None:
     return None
 
 
-def _build_s3_config() -> Config:
-    """Español: Función _build_s3_config del módulo src/monitoring/strict_health.py.
-
-    English: Function _build_s3_config defined in src/monitoring/strict_health.py.
-    """
-    if Config is None:
-        raise RuntimeError("botocore is required to configure the S3 client")
-    return Config(
-        connect_timeout=DEFAULT_BUCKET_LATENCY_SECONDS,
-        read_timeout=5,
-        retries={"max_attempts": 2},
-    )
-
-
-def _build_s3_client():
-    """Español: Función _build_s3_client del módulo src/monitoring/strict_health.py.
-
-    English: Function _build_s3_client defined in src/monitoring/strict_health.py.
-    """
-    if boto3 is None:
-        raise RuntimeError("boto3 is required to build the S3 client")
-    endpoint_url = os.getenv("CENTINEL_S3_ENDPOINT") or os.getenv("STORAGE_ENDPOINT_URL")
-    region = os.getenv("CENTINEL_S3_REGION") or os.getenv("AWS_REGION", "us-east-1")
-    access_key = os.getenv("CENTINEL_S3_ACCESS_KEY") or os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("CENTINEL_S3_SECRET_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY")
-    session = boto3.session.Session()
-    return session.client(
-        "s3",
-        endpoint_url=endpoint_url,
-        region_name=region,
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-        config=_build_s3_config(),
-    )
-
-
-def _get_bucket_name() -> str:
-    """Español: Función _get_bucket_name del módulo src/monitoring/strict_health.py.
-
-    English: Function _get_bucket_name defined in src/monitoring/strict_health.py.
-    """
-    return (os.getenv("CENTINEL_CHECKPOINT_BUCKET") or os.getenv("CHECKPOINT_BUCKET") or "").strip()
-
-
 def _get_pipeline_version() -> str:
     """Español: Función _get_pipeline_version del módulo src/monitoring/strict_health.py.
 
@@ -262,37 +207,25 @@ def _get_run_id() -> str:
     return (os.getenv("CENTINEL_RUN_ID") or "").strip()
 
 
-def _get_write_test_key() -> str:
-    """Español: Función _get_write_test_key del módulo src/monitoring/strict_health.py.
-
-    English: Function _get_write_test_key defined in src/monitoring/strict_health.py.
-    """
-    return os.getenv("STORAGE_WRITE_TEST_KEY", "healthcheck/write-test.txt").strip()
-
-
 def _get_checkpoint_manager() -> Tuple[CheckpointManager | None, str | None]:
     """Español: Función _get_checkpoint_manager del módulo src/monitoring/strict_health.py.
 
     English: Function _get_checkpoint_manager defined in src/monitoring/strict_health.py.
     """
-    bucket = _get_bucket_name()
     pipeline_version = _get_pipeline_version()
     run_id = _get_run_id()
-    if not bucket or not pipeline_version or not run_id:
+    if not pipeline_version or not run_id:
         return None, "checkpoint_config_missing"
 
+    checkpoint_dir = os.getenv("CENTINEL_CHECKPOINT_DIR", "checkpoints/")
     config = CheckpointConfig(
-        bucket=bucket,
         pipeline_version=pipeline_version,
         run_id=run_id,
-        s3_endpoint_url=os.getenv("CENTINEL_S3_ENDPOINT") or os.getenv("STORAGE_ENDPOINT_URL"),
-        s3_region=os.getenv("CENTINEL_S3_REGION") or os.getenv("AWS_REGION"),
-        s3_access_key=os.getenv("CENTINEL_S3_ACCESS_KEY") or os.getenv("AWS_ACCESS_KEY_ID"),
-        s3_secret_key=os.getenv("CENTINEL_S3_SECRET_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY"),
+        checkpoint_dir=checkpoint_dir,
     )
 
     try:
-        manager = CheckpointManager(config, s3_client=_build_s3_client())
+        manager = CheckpointManager(config)
     except Exception as exc:  # noqa: BLE001
         return None, f"checkpoint_manager_init_failed error={exc}"
 
@@ -432,32 +365,12 @@ def get_recent_health_diagnostics() -> list[dict[str, Any]]:
     return list(_diagnostics)
 
 
-def _check_bucket_latency(s3_client, bucket: str) -> dict[str, Any]:
-    """Español: Función _check_bucket_latency del módulo src/monitoring/strict_health.py.
-
-    English: Function _check_bucket_latency defined in src/monitoring/strict_health.py.
-    """
-    start = time.monotonic()
-    try:
-        s3_client.head_bucket(Bucket=bucket)
-    except Exception as exc:  # noqa: BLE001
-        return {
-            "ok": False,
-            "message": f"bucket_latency_failed error={exc}",
-        }
-    elapsed = time.monotonic() - start
-    max_allowed = DEFAULT_BUCKET_LATENCY_SECONDS
-    if elapsed > max_allowed:
-        return {
-            "ok": False,
-            "message": "bucket_latency_exceeded",
-            "elapsed_seconds": round(elapsed, 3),
-        }
-    return {
-        "ok": True,
-        "message": "bucket_latency_ok",
-        "elapsed_seconds": round(elapsed, 3),
-    }
+def _check_storage_writable() -> dict[str, Any]:
+    """Check that the local data directory is writable."""
+    data_dir = "data"
+    if os.access(data_dir, os.W_OK):
+        return {"ok": True, "message": "storage_writable", "path": data_dir}
+    return {"ok": False, "message": "storage_not_writable", "path": data_dir}
 
 
 def _load_checkpoint_payload(
@@ -598,20 +511,6 @@ def _check_resources() -> dict[str, Any]:
     }
 
 
-def _check_storage_write(s3_client, bucket: str) -> dict[str, Any]:
-    """Español: Función _check_storage_write del módulo src/monitoring/strict_health.py.
-
-    English: Function _check_storage_write defined in src/monitoring/strict_health.py.
-    """
-    key = _get_write_test_key()
-    payload = f"healthcheck {datetime.now(timezone.utc).isoformat()}".encode("utf-8")
-    try:
-        s3_client.put_object(Bucket=bucket, Key=key, Body=payload)
-    except Exception as exc:  # noqa: BLE001
-        return {"ok": False, "message": f"storage_write_failed error={exc}"}
-    return {"ok": True, "message": "storage_write_ok", "key": key}
-
-
 def _check_paused_flag() -> dict[str, Any]:
     """Español: Función _check_paused_flag del módulo src/monitoring/strict_health.py.
 
@@ -678,14 +577,6 @@ async def is_healthy_strict() -> tuple[bool, dict[str, Any]]:
         }
         logger.info("strict_healthcheck_checkpoint_skipped reason=%s", manager_error)
     else:
-        bucket = _get_bucket_name()
-        s3_client = _build_s3_client()
-
-        bucket_latency = await asyncio.to_thread(_check_bucket_latency, s3_client, bucket)
-        diagnostics["checks"]["bucket_latency"] = bucket_latency
-        if not bucket_latency.get("ok", False):
-            diagnostics["failures"].append(bucket_latency.get("message", "bucket_latency_failed"))
-
         checkpoint_payload, integrity_message = await asyncio.to_thread(
             _load_checkpoint_payload, manager
         )
@@ -708,10 +599,10 @@ async def is_healthy_strict() -> tuple[bool, dict[str, Any]]:
             if not last_acta_check.get("ok", False):
                 diagnostics["failures"].append(last_acta_check.get("message", "last_acta_failed"))
 
-        write_check = await asyncio.to_thread(_check_storage_write, s3_client, bucket)
-        diagnostics["checks"]["storage_write"] = write_check
-        if not write_check.get("ok", False):
-            diagnostics["failures"].append(write_check.get("message", "storage_write_failed"))
+    storage_check = _check_storage_writable()
+    diagnostics["checks"]["storage"] = storage_check
+    if not storage_check.get("ok", False):
+        diagnostics["failures"].append(storage_check.get("message", "storage_not_writable"))
 
     critical_check = _check_critical_errors()
     diagnostics["checks"]["critical_errors"] = critical_check
@@ -801,13 +692,6 @@ def register_strict_health_endpoints(app: FastAPI) -> None:
 
         English: Async function live defined in src/monitoring/strict_health.py.
         """
-        response: dict[str, Any] = {"status": "alive"}
-        fly_region = os.getenv("FLY_REGION")
-        if fly_region:
-            response["region"] = fly_region
-        fly_alloc = os.getenv("FLY_ALLOC_ID")
-        if fly_alloc:
-            response["alloc_id"] = fly_alloc
-        return response
+        return {"status": "alive"}
 
     app.include_router(router)
