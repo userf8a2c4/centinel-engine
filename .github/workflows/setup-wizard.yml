@@ -39,6 +39,17 @@ jobs:
   wizard:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify caller is repo owner
+        run: |
+          if [ "${{ github.actor }}" != "${{ github.repository_owner }}" ]; then
+            echo "❌ Acceso denegado."
+            echo "Solo el propietario del repositorio puede ejecutar el Setup Wizard."
+            echo "Actor:  ${{ github.actor }}"
+            echo "Owner:  ${{ github.repository_owner }}"
+            exit 1
+          fi
+          echo "✅ Verificado: ${{ github.actor }} es el propietario del repositorio."
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
