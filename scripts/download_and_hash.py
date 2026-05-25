@@ -531,6 +531,12 @@ def process_sources(
                 logger.info("Snapshot reciente detectado, se omite descarga: %s", source_label)
                 continue
 
+            # ES: Jitter entre fuentes — suaviza la ráfaga intra-nodo (default 0.8-1.2s por fuente).
+            # EN: Inter-source jitter — smooths intra-node burst (default 0.8-1.2s per source).
+            _inter_jitter = float(config.get("inter_source_jitter_seconds", 1.0))
+            if _inter_jitter > 0:
+                time.sleep(random.uniform(_inter_jitter * 0.8, _inter_jitter * 1.2))
+
             now = datetime.now(timezone.utc)
             if not breaker.allow_request(now):
                 if breaker.should_log_open_wait(now):
@@ -662,6 +668,22 @@ def process_sources(
             )
     finally:
         session.close()
+
+    # ES: Política de cobertura — solo log. Umbrales: <82% CRITICAL, 82-89% ELEVATED, ≥90% HIGH_TRUST.
+    # EN: Coverage policy — logging only. Thresholds: <82% CRITICAL, 82-89% ELEVATED, ≥90% HIGH_TRUST.
+    _total_sources = min(len(sources), max_sources)
+    if _total_sources > 0:
+        _pct = len(processed_sources) / _total_sources * 100
+        if _pct < 82:
+            logger.critical("swarm_coverage pct=%.1f%% status=CRITICAL covered=%d/%d",
+                            _pct, len(processed_sources), _total_sources)
+        elif _pct < 90:
+            logger.warning("swarm_coverage pct=%.1f%% status=ELEVATED covered=%d/%d",
+                           _pct, len(processed_sources), _total_sources)
+        else:
+            logger.info("swarm_coverage pct=%.1f%% status=HIGH_TRUST covered=%d/%d",
+                        _pct, len(processed_sources), _total_sources)
+
     if not had_errors:
         _clear_checkpoint()
 
@@ -1017,6 +1039,34 @@ def main() -> None:
         logger.error("No se encontraron fuentes en command_center/config.yaml")
         health_state.record_failure(critical=True)
         raise ValueError("No sources defined in command_center/config.yaml")
+
+    # ES: Jitter de inicio de ciclo — distribuye los nodos en el tiempo para evitar burst coordinado.
+    # EN: Cycle jitter — staggers node start times to prevent coordinated bursts.
+    _cycle_jitter = float(os.getenv("CENTINEL_SCRAPE_JITTER_SECONDS", "30"))
+    if _cycle_jitter > 0:
+        _jitter_delay = random.uniform(0.0, _cycle_jitter)
+        logger.info("scrape_cycle_jitter delay_s=%.1f max_s=%.1f", _jitter_delay, _cycle_jitter)
+        time.sleep(_jitter_delay)
+
+    # ES: Filtro de fuentes activas — valida contra source_ids del config. Fail-safe: si todos
+    #     los IDs pedidos son inválidos, raspa todo y emite WARNING.
+    # EN: Active sources filter — validates against config source_ids. Fail-safe: if all
+    #     requested IDs are invalid, scrapes everything and emits WARNING.
+    _active_env = os.getenv("CENTINEL_ACTIVE_SOURCES", "").strip()
+    if _active_env:
+        _known_ids = {resolve_source_id(s) for s in sources}
+        _requested = {sid.strip() for sid in _active_env.split(",") if sid.strip()}
+        _unknown = _requested - _known_ids
+        if _unknown:
+            logger.warning("active_sources_unknown ids=%s — these will be ignored", sorted(_unknown))
+        _active_set = _requested & _known_ids
+        if _active_set:
+            sources = [s for s in sources if resolve_source_id(s) in _active_set]
+            logger.info("active_sources_filter count=%d/%d ids=%s",
+                        len(sources), len(_known_ids), sorted(_active_set))
+        else:
+            logger.warning("active_sources_empty — all requested IDs unknown; scraping all %d sources",
+                           len(sources))
 
     endpoints = config.get("endpoints", {})
     process_sources(sources, endpoints, config)
