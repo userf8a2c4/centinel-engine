@@ -8,8 +8,17 @@ Single source of truth for electoral geographic data.
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+
+
+def _slugify(name: str) -> str:
+    """Convert 'El Paraíso' → 'el_paraiso' for use as DB/slug keys."""
+    nfkd = unicodedata.normalize("NFKD", name)
+    ascii_name = nfkd.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "_", ascii_name.lower()).strip("_")
 
 
 @dataclass
@@ -20,12 +29,36 @@ class CountryPreset:
     authority: str
     divisions_label: str
     divisions: List[str]
+    division_iso_codes: List[str] = field(default_factory=list)
     url_pattern: Optional[str] = None
+    national_url: Optional[str] = None   # National-level results endpoint
+    national_filename_pattern: Optional[str] = None  # Regex to parse filename timestamps
     notes: Optional[str] = None
 
     @property
     def divisions_count(self) -> int:
         return len(self.divisions)
+
+    def build_dept_maps(self) -> Tuple[Dict[str, str], Dict[str, str], List[str]]:
+        """Return (slug_to_iso, iso_to_name, slugs) for use in the API.
+
+        If division_iso_codes is populated, uses those; otherwise generates
+        ISO codes as {CODE}-{SLUG[:2].upper()}, which is a reasonable default
+        for countries without explicit codes.
+        """
+        slugs = [_slugify(d) for d in self.divisions]
+        slug_to_iso: Dict[str, str] = {}
+        iso_to_name: Dict[str, str] = {}
+
+        for i, (div_name, slug) in enumerate(zip(self.divisions, slugs)):
+            if self.division_iso_codes and i < len(self.division_iso_codes):
+                iso = self.division_iso_codes[i]
+            else:
+                iso = f"{self.code}-{slug[:2].upper()}"
+            slug_to_iso[slug] = iso
+            iso_to_name[iso] = div_name
+
+        return slug_to_iso, iso_to_name, slugs
 
 
 LATAM_COUNTRIES: Dict[str, CountryPreset] = {
@@ -42,7 +75,18 @@ LATAM_COUNTRIES: Dict[str, CountryPreset] = {
             "La Paz", "Lempira", "Ocotepeque", "Olancho",
             "Santa Bárbara", "Valle", "Yoro",
         ],
+        # ISO 3166-2:HN codes in the same order as divisions above
+        division_iso_codes=[
+            "HN-AT", "HN-CH", "HN-CL", "HN-CM",
+            "HN-CP", "HN-CR", "HN-EP", "HN-FM",
+            "HN-GD", "HN-IN", "HN-IB",
+            "HN-LP", "HN-LE", "HN-OC", "HN-OL",
+            "HN-SB", "HN-VA", "HN-YO",
+        ],
         url_pattern="https://resultados.cne.hn/api/actas/{division}",
+        national_url="https://resultadosgenerales2025.cne.hn/api/presidencial/nacional",
+        # Filename timestamp regex: matches "2025-12-03 16_25_27" in CNE filenames
+        national_filename_pattern=r"(\d{4}-\d{2}-\d{2} \d{2}_\d{2}_\d{2})",
     ),
     "GT": CountryPreset(
         code="GT",

@@ -606,11 +606,12 @@ def dashboard_data(request: Request) -> dict:
         alert_state = "normal"
         alert_department = None
 
+        _, iso_to_name, _ = _load_country_maps()
         for ds in dept_status:
             dept_code = ds["department"]
             # Map internal name to ISO code used by frontend (e.g. atlantida -> HN-AT).
             iso_code = _dept_to_iso(dept_code)
-            dept_name = _ISO_TO_NAME.get(iso_code, dept_code.replace("_", " ").title())
+            dept_name = iso_to_name.get(iso_code, dept_code.replace("_", " ").title())
 
             row = connection.execute(
                 """
@@ -690,76 +691,187 @@ def dashboard_data(request: Request) -> dict:
                     all_candidates_agg[key] = {**c, "votes": 0}
                 all_candidates_agg[key]["votes"] += c["votes"]
 
-        # Compute national percentages.
-        nat_candidates = list(all_candidates_agg.values())
-        for c in nat_candidates:
-            c["percentage"] = round(c["votes"] / national_votes * 100, 1) if national_votes else 0.0
+        # National JSON is the authoritative source for national totals.
+        # Fall back to summing department snapshots if not available.
+        nat_json = _load_national_snapshot()
 
-        return {
-            "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z",
-            "source": "CENTINEL-API",
-            "alertState": alert_state,
-            "alertDepartment": alert_department,
-            "national": {
+        if nat_json:
+            national_section = {
+                "actasTotal": nat_json["actasTotal"],
+                "actasEscrutadas": nat_json["actasDivulgadas"],
+                "actasCorrectas": nat_json["actasCorrectas"],
+                "actasInconsistentes": nat_json["actasInconsistentes"],
+                "totalVotes": nat_json["votosValidos"],
+                "votosNulos": nat_json["votosNulos"],
+                "votosBlancos": nat_json["votosBlancos"],
+                "integrityPercent": 97.4 if alert_state == "normal" else 91.4,
+                "turnoutPercent": 0.0,
+                "candidates": nat_json["candidates"],
+                "source": "national_json",
+                "fileTimestamp": nat_json.get("file_timestamp"),
+            }
+        else:
+            nat_candidates = list(all_candidates_agg.values())
+            for c in nat_candidates:
+                c["percentage"] = round(c["votes"] / national_votes * 100, 1) if national_votes else 0.0
+            national_section = {
                 "actasTotal": national_actas_total,
                 "actasEscrutadas": national_actas,
                 "totalVotes": national_votes,
                 "integrityPercent": 97.4 if alert_state == "normal" else 91.4,
                 "turnoutPercent": 0.0,
                 "candidates": nat_candidates,
-            },
+                "source": "dept_aggregation",
+            }
+
+        return {
+            "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+            "source": "CENTINEL-API",
+            "alertState": alert_state,
+            "alertDepartment": alert_department,
+            "national": national_section,
             "departments": departments,
         }
     finally:
         connection.close()
 
 
-# ISO code mapping helpers.
-_DEPT_ISO_MAP: dict[str, str] = {
-    "atlantida": "HN-AT",
-    "choluteca": "HN-CH",
-    "colon": "HN-CL",
-    "comayagua": "HN-CM",
-    "copan": "HN-CP",
-    "cortes": "HN-CR",
-    "el_paraiso": "HN-EP",
-    "francisco_morazan": "HN-FM",
-    "gracias_a_dios": "HN-GD",
-    "intibuca": "HN-IN",
-    "islas_de_la_bahia": "HN-IB",
-    "la_paz": "HN-LP",
-    "lempira": "HN-LE",
-    "ocotepeque": "HN-OC",
-    "olancho": "HN-OL",
-    "santa_barbara": "HN-SB",
-    "valle": "HN-VA",
-    "yoro": "HN-YO",
-}
+# ── Country-aware dept maps (lazy, built from CountryPreset) ──────────────────
 
-_ISO_TO_NAME: dict[str, str] = {
-    "HN-AT": "Atlántida",
-    "HN-CH": "Choluteca",
-    "HN-CL": "Colón",
-    "HN-CM": "Comayagua",
-    "HN-CP": "Copán",
-    "HN-CR": "Cortés",
-    "HN-EP": "El Paraíso",
-    "HN-FM": "Francisco Morazán",
-    "HN-GD": "Gracias a Dios",
-    "HN-IB": "Islas de la Bahía",
-    "HN-IN": "Intibucá",
-    "HN-LP": "La Paz",
-    "HN-LE": "Lempira",
-    "HN-OC": "Ocotepeque",
-    "HN-OL": "Olancho",
-    "HN-SB": "Santa Bárbara",
-    "HN-VA": "Valle",
-    "HN-YO": "Yoro",
-}
+_SETUP_MARKER_PATH = BASE_DIR / ".centinel-setup.json"
+
+_cached_country_code: str | None = None
+_cached_dept_to_iso: dict[str, str] | None = None
+_cached_iso_to_name: dict[str, str] | None = None
+_cached_departments: list[str] | None = None
+
+
+def _load_country_maps() -> tuple[dict[str, str], dict[str, str], list[str]]:
+    """Load dept maps from the configured country, defaulting to HN."""
+    global _cached_country_code, _cached_dept_to_iso, _cached_iso_to_name, _cached_departments
+
+    try:
+        setup = json.loads(_SETUP_MARKER_PATH.read_text()) if _SETUP_MARKER_PATH.exists() else {}
+        code = setup.get("country_code", "HN").upper()
+    except Exception:
+        code = "HN"
+
+    if code == _cached_country_code and _cached_dept_to_iso is not None:
+        return _cached_dept_to_iso, _cached_iso_to_name, _cached_departments
+
+    from centinel.countries import LATAM_COUNTRIES
+    preset = LATAM_COUNTRIES.get(code, LATAM_COUNTRIES["HN"])
+    d2i, i2n, slugs = preset.build_dept_maps()
+
+    _cached_country_code = code
+    _cached_dept_to_iso = d2i
+    _cached_iso_to_name = i2n
+    _cached_departments = slugs
+    return d2i, i2n, slugs
 
 
 def _dept_to_iso(dept_code: str) -> str:
-    return _DEPT_ISO_MAP.get(dept_code, dept_code)
+    d2i, _, _ = _load_country_maps()
+    return d2i.get(dept_code, dept_code)
+
+
+# ── National JSON parser (HN schema) ─────────────────────────────────────────
+
+_DATA_DIR = BASE_DIR / "data"
+_FIXTURE_DIR = BASE_DIR / "tests" / "fixtures" / "hnd_2025"
+
+
+def _parse_hn_int(value: str | int | None) -> int:
+    """Parse CNE integer strings like '1,027,090' → 1027090."""
+    if value is None:
+        return 0
+    if isinstance(value, int):
+        return value
+    try:
+        return int(str(value).replace(",", "").strip())
+    except (ValueError, AttributeError):
+        return 0
+
+
+def _find_latest_national_json() -> Path | None:
+    """Find the most recently timestamped national JSON file."""
+    import re
+    pattern = re.compile(r"HN\.PRESIDENTE\.00-TODOS\.000-TODOS .+\.json$")
+    candidates: list[tuple[str, Path]] = []
+
+    for search_dir in (_DATA_DIR, _FIXTURE_DIR):
+        if not search_dir.exists():
+            continue
+        for p in search_dir.iterdir():
+            if pattern.match(p.name):
+                candidates.append((p.name, p))
+
+    if not candidates:
+        return None
+    # Filename contains timestamp; lexicographic sort gives chronological order
+    candidates.sort(key=lambda t: t[0])
+    return candidates[-1][1]
+
+
+def _load_national_snapshot() -> dict | None:
+    """Parse the latest national CNE JSON into dashboard format."""
+    path = _find_latest_national_json()
+    if not path:
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+    resultados = raw.get("resultados", [])
+    stats = raw.get("estadisticas", {})
+    actas_total = _parse_hn_int(stats.get("totalizacion_actas", {}).get("actas_totales"))
+    actas_divulgadas = _parse_hn_int(stats.get("totalizacion_actas", {}).get("actas_divulgadas"))
+    votos_validos = _parse_hn_int(stats.get("distribucion_votos", {}).get("validos"))
+    votos_nulos = _parse_hn_int(stats.get("distribucion_votos", {}).get("nulos"))
+    votos_blancos = _parse_hn_int(stats.get("distribucion_votos", {}).get("blancos"))
+    actas_correctas = _parse_hn_int(stats.get("estado_actas_divulgadas", {}).get("actas_correctas"))
+    actas_inconsistentes = _parse_hn_int(stats.get("estado_actas_divulgadas", {}).get("actas_inconsistentes"))
+    total_emitidos = votos_validos + votos_nulos + votos_blancos
+
+    candidates = []
+    for r in resultados:
+        votes = _parse_hn_int(r.get("votos"))
+        try:
+            pct = float(r.get("porcentaje", "0"))
+        except (ValueError, TypeError):
+            pct = round(votes / votos_validos * 100, 2) if votos_validos else 0.0
+        candidates.append({
+            "name": (r.get("candidato") or "").title(),
+            "party": r.get("partido", ""),
+            "votes": votes,
+            "percentage": pct,
+            "partyColor": "#6b7280",
+            "victoryProbability": 0,
+            "health": "normal",
+            "analysisText": "",
+            "forensics": {"loadSpikes": 0, "sigma": 0, "flowRate": 0,
+                          "benfordDeviation": 0, "lastDelta": 0, "trendDirection": "stable"},
+        })
+
+    # Extract timestamp from filename  e.g. "2025-12-09 15_01_45"
+    import re
+    ts_match = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}_\d{2}_\d{2})", path.name)
+    file_ts = ts_match.group(1).replace("_", ":").replace(" ", "T") + "Z" if ts_match else None
+
+    return {
+        "source_file": path.name,
+        "file_timestamp": file_ts,
+        "actasTotal": actas_total,
+        "actasDivulgadas": actas_divulgadas,
+        "actasCorrectas": actas_correctas,
+        "actasInconsistentes": actas_inconsistentes,
+        "votosValidos": votos_validos,
+        "votosNulos": votos_nulos,
+        "votosBlancos": votos_blancos,
+        "totalEmitidos": total_emitidos,
+        "candidates": candidates,
+    }
 
 
 def _format_candidates(raw: list, total_votes: int) -> list[dict]:
@@ -809,26 +921,9 @@ def api_summaries(request: Request) -> dict:
     return load_summaries_payload()
 
 
-DEPARTMENTS = [
-    "atlantida",
-    "choluteca",
-    "colon",
-    "comayagua",
-    "copan",
-    "cortes",
-    "el_paraiso",
-    "francisco_morazan",
-    "gracias_a_dios",
-    "intibuca",
-    "islas_de_la_bahia",
-    "la_paz",
-    "lempira",
-    "ocotepeque",
-    "olancho",
-    "santa_barbara",
-    "valle",
-    "yoro",
-]
+def _get_departments() -> list[str]:
+    _, _, slugs = _load_country_maps()
+    return slugs
 
 
 def _department_status(connection: sqlite3.Connection) -> list[dict]:
@@ -847,7 +942,7 @@ def _department_status(connection: sqlite3.Connection) -> list[dict]:
         alert_depts.setdefault(dept, set()).add(severity)
 
     results = []
-    for dept in DEPARTMENTS:
+    for dept in _get_departments():
         # Check hash integrity for latest snapshot of this department
         hash_ok = True
         row = connection.execute(
@@ -902,6 +997,21 @@ def departments_status(request: Request) -> list[dict]:
         return _department_status(connection)
     finally:
         connection.close()
+
+
+@app.get("/api/national-snapshot")
+@limiter.limit(f"{rate_limit_per_minute}/minute")
+def national_snapshot(request: Request) -> dict:
+    """Retorna el snapshot nacional más reciente del CNE (JSON de nivel nacional).
+
+    Busca el archivo JSON más reciente en data/ y tests/fixtures/hnd_2025/,
+    lo parsea y retorna en formato normalizado para el dashboard.
+    Retorna 404 si no hay ningún archivo disponible.
+    """
+    snap = _load_national_snapshot()
+    if snap is None:
+        raise HTTPException(status_code=404, detail="No national snapshot available yet.")
+    return snap
 
 
 DASHBOARD_BUILD_DIR = BASE_DIR / "static" / "dashboard"
