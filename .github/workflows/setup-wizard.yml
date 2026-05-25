@@ -206,33 +206,20 @@ jobs:
             -d "{\"name\":\"centinel-data\",\"description\":\"Datos públicos de auditoría electoral — publicados automáticamente por centinel-engine\",\"private\":false,\"auto_init\":true}" \
             "https://api.github.com/user/repos"
 
-          sleep 3  # wait for repo to initialize
-
-          # Push initial structure via GitHub API (tree + commit)
-          BASE_URL="https://api.github.com/repos/$REPO_OWNER/centinel-data"
-          AUTH="-H \"Authorization: Bearer $DATA_REPO_TOKEN\""
-
-          push_file() {
-            local path="$1"
-            local content_b64="$2"
-            curl -sS --fail \
-              -H "Authorization: Bearer $DATA_REPO_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"message\":\"init: $path\",\"content\":\"$content_b64\"}" \
-              "$BASE_URL/contents/$path" > /dev/null
-          }
-
-          # .gitkeep files for directories
-          EMPTY=$(echo -n "" | base64)
-          for dir in snapshots hashes diffs reports observer-packs; do
-            push_file "$dir/.gitkeep" "$EMPTY"
-          done
-
-          # ipfs-manifest.json
-          MANIFEST=$(echo -n '{"snapshots":[],"last_updated":null,"schema_version":"1.0"}' | base64 -w 0)
-          push_file "ipfs-manifest.json" "$MANIFEST"
+          sleep 5  # wait for repo to initialize with its first commit
 
           echo "repo_created=true" >> $GITHUB_OUTPUT
+
+      - name: Create organized department structure in centinel-data
+        if: steps.create_repo.outputs.repo_created == 'true'
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          CENTINEL_COUNTRY: ${{ github.event.inputs.country || 'HN' }}
+          CENTINEL_YEAR: "2025"
+        run: |
+          pip install -q pyyaml 2>/dev/null || true
+          python3 .github/scripts/wizard_repo_structure.py
 
       - name: Initialize centinel-data workflows
         if: steps.create_repo.outputs.repo_created == 'true'
@@ -466,7 +453,6 @@ PYEOF
           git config user.email "bot@centinel.app"
           git add web/access.json
           git diff --cached --quiet || git commit -m "security: generate seeds hashes (PBKDF2-SHA256 x600K)"
-
 
       - name: Upload seeds artifact (expires 24h — download immediately)
         if: steps.check.outputs.state == 'ready' || steps.check.outputs.state == 'needs_repo'
