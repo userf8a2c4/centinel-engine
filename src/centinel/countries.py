@@ -30,9 +30,14 @@ class CountryPreset:
     divisions_label: str
     divisions: List[str]
     division_iso_codes: List[str] = field(default_factory=list)
+    # CNE numeric codes for each division, in the same order as divisions[].
+    # "00" is reserved for the national (TODOS) level.
+    # Example HN: ["01","02",...,"18"] matches the CNE URL /departamento/01 etc.
+    division_cne_codes: List[str] = field(default_factory=list)
     url_pattern: Optional[str] = None
-    national_url: Optional[str] = None   # National-level results endpoint
-    national_filename_pattern: Optional[str] = None  # Regex to parse filename timestamps
+    national_url: Optional[str] = None
+    national_cne_code: str = "00"          # CNE code for the national scope
+    national_filename_pattern: Optional[str] = None
     notes: Optional[str] = None
 
     @property
@@ -40,12 +45,7 @@ class CountryPreset:
         return len(self.divisions)
 
     def build_dept_maps(self) -> Tuple[Dict[str, str], Dict[str, str], List[str]]:
-        """Return (slug_to_iso, iso_to_name, slugs) for use in the API.
-
-        If division_iso_codes is populated, uses those; otherwise generates
-        ISO codes as {CODE}-{SLUG[:2].upper()}, which is a reasonable default
-        for countries without explicit codes.
-        """
+        """Return (slug_to_iso, iso_to_name, slugs) for use in the API."""
         slugs = [_slugify(d) for d in self.divisions]
         slug_to_iso: Dict[str, str] = {}
         iso_to_name: Dict[str, str] = {}
@@ -59,6 +59,31 @@ class CountryPreset:
             iso_to_name[iso] = div_name
 
         return slug_to_iso, iso_to_name, slugs
+
+    def build_cne_map(self) -> Dict[str, str]:
+        """Return {cne_code: division_name} including the national entry.
+
+        Example: {"00": "TODOS", "01": "Atlántida", ..., "18": "Yoro"}
+        """
+        result: Dict[str, str] = {self.national_cne_code: "TODOS"}
+        for i, div_name in enumerate(self.divisions):
+            if self.division_cne_codes and i < len(self.division_cne_codes):
+                code = self.division_cne_codes[i]
+            else:
+                code = f"{i + 1:02d}"
+            result[code] = div_name
+        return result
+
+    def slug_to_cne(self, slug: str) -> Optional[str]:
+        """Return the CNE numeric code for a department slug, e.g. 'atlantida' → '01'."""
+        slugs = [_slugify(d) for d in self.divisions]
+        try:
+            idx = slugs.index(slug)
+        except ValueError:
+            return None
+        if self.division_cne_codes and idx < len(self.division_cne_codes):
+            return self.division_cne_codes[idx]
+        return f"{idx + 1:02d}"
 
 
 LATAM_COUNTRIES: Dict[str, CountryPreset] = {
@@ -83,9 +108,18 @@ LATAM_COUNTRIES: Dict[str, CountryPreset] = {
             "HN-LP", "HN-LE", "HN-OC", "HN-OL",
             "HN-SB", "HN-VA", "HN-YO",
         ],
-        url_pattern="https://resultados.cne.hn/api/actas/{division}",
+        # CNE numeric codes: 00=TODOS, 01=Atlántida … 18=Yoro
+        # These are the numbers used in CNE API URLs and filenames.
+        division_cne_codes=[
+            "01", "02", "03", "04",
+            "05", "06", "07", "08",
+            "09", "10", "11",
+            "12", "13", "14", "15",
+            "16", "17", "18",
+        ],
+        national_cne_code="00",
+        url_pattern="https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/{cne_code}",
         national_url="https://resultadosgenerales2025.cne.hn/api/presidencial/nacional",
-        # Filename timestamp regex: matches "2025-12-03 16_25_27" in CNE filenames
         national_filename_pattern=r"(\d{4}-\d{2}-\d{2} \d{2}_\d{2}_\d{2})",
     ),
     "GT": CountryPreset(
