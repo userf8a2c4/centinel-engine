@@ -27,18 +27,18 @@ computadora portátil.
 
 ## Desplegar en 3 pasos — sin instalar nada
 
-[![Paso 1 — Fork](https://img.shields.io/badge/PASO%201%20→%20Fork%20este%20repo-2b6cb0?style=for-the-badge&logo=github&logoColor=white)](https://github.com/userf8a2c4/centinel-engine/fork)
+[![Paso 1 — Crear tu copia](https://img.shields.io/badge/PASO%201%20→%20Crear%20tu%20copia%20privada-2b6cb0?style=for-the-badge&logo=github&logoColor=white)](https://github.com/userf8a2c4/centinel-engine/fork)
 
-> Haz clic en el botón de arriba. GitHub creará una copia en tu cuenta.
+> Haz clic en el botón de arriba. GitHub crea una copia **tuya, independiente y segura** de la herramienta — en tu propia cuenta.
 
 ---
 
-**Paso 2 — Habilitar Actions** *(en tu fork, una sola vez)*
+**Paso 2 — Habilitar Actions** *(en tu copia, una sola vez)*
 
-Ve a la pestaña **[Actions](../../actions)** de **tu fork** y haz clic en:
+Ve a la pestaña **[Actions](../../actions)** de **tu copia** y haz clic en:
 > **"I understand my workflows, go ahead and enable them"**
 
-*GitHub desactiva los workflows en todos los forks por seguridad. Son dos segundos.*
+*GitHub desactiva los workflows en todas las copias nuevas por seguridad. Son dos segundos.*
 
 ---
 
@@ -46,7 +46,7 @@ Ve a la pestaña **[Actions](../../actions)** de **tu fork** y haz clic en:
 
 [![Ejecutar Setup Wizard](https://img.shields.io/badge/Ejecutar%20Setup%20Wizard%20→-2f855a?style=for-the-badge&logo=github-actions&logoColor=white)](../../actions/workflows/setup-wizard.yml)
 
-> En tu fork: **Actions → Setup Wizard → "Run workflow" → "Run workflow"**
+> En tu copia: **Actions → Setup Wizard → "Run workflow" → "Run workflow"**
 
 El wizard hace el resto automáticamente:
 
@@ -153,11 +153,11 @@ campo y dictamen académico independiente.
 
 Centinel separa el código (este repositorio) de los datos electorales capturados (centinel-data). Los datos se publican automáticamente en un repositorio independiente en cada captura, garantizando que cualquier auditor pueda verificarlos sin ejecutar el motor.
 
-**Repositorio de datos:** <!-- CENTINEL_DATA_URL -->*(se configura automáticamente al hacer fork)*<!-- /CENTINEL_DATA_URL -->
+**Repositorio de datos:** <!-- CENTINEL_DATA_URL -->*(se configura automáticamente al crear tu copia)*<!-- /CENTINEL_DATA_URL -->
 
-**Panel de visualización:** <!-- CENTINEL_PAGES_URL -->*(se activa automáticamente al hacer fork)*<!-- /CENTINEL_PAGES_URL -->
+**Panel de visualización:** <!-- CENTINEL_PAGES_URL -->*(se activa automáticamente al crear tu copia)*<!-- /CENTINEL_PAGES_URL -->
 
-El sistema se configura solo: al hacer fork, el wizard detecta qué falta y abre un Issue con instrucciones exactas. Normalmente es un solo paso.
+El sistema se configura solo: al crear tu copia, el wizard detecta qué falta y abre un Issue con instrucciones exactas. Normalmente es un solo paso.
 
 → [Arquitectura de separación código/datos](docs/DATA-REPOS.md) · [Guía de setup](docs/SETUP-GUIDE.md) · [Panel de visualización](docs/PAGES-GUIDE.md)
 
@@ -193,11 +193,11 @@ institucional · `userf8a2c4`
 
 ## ¿Quieres tu propia instancia? / Want your own instance?
 
-Haz fork de este repositorio — el sistema se despliega solo en menos de 10 minutos.
+Crea tu propia copia privada y segura — el sistema se despliega solo en menos de 10 minutos.
 
-**1.** Botón **Fork** arriba a la derecha → crea tu copia
+**1.** Botón **Fork** arriba a la derecha → GitHub crea tu copia independiente
 
-**2.** En tu fork: pestaña **[Actions](../../actions)** → **"I understand my workflows, go ahead and enable them"**
+**2.** En tu copia: pestaña **[Actions](../../actions)** → **"I understand my workflows, go ahead and enable them"**
 
 **3.** **[Actions → Setup Wizard](../../actions/workflows/setup-wizard.yml)** → "Run workflow" → "Run workflow"
 

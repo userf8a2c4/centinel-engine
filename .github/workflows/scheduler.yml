@@ -4,11 +4,17 @@ on:
     - cron: '*/15 * * * *' # Corre cada 15 minutos
   workflow_dispatch: # Permite correrlo manual
 
+# Cancel any in-progress run before starting a new one.
+concurrency:
+  group: centinel-scheduler
+  cancel-in-progress: true
+
 jobs:
   build:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
       - name: Set up Python

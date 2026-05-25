@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# Cancel any in-progress run before starting a new one.
+# Prevents minute pile-up if a run takes longer than the schedule interval.
+concurrency:
+  group: centinel-pipeline
+  cancel-in-progress: true
+
 jobs:
   collector:
     runs-on: ubuntu-latest
