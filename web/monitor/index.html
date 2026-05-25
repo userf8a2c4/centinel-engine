@@ -469,13 +469,37 @@ function renderCandidates(candidates){
 }
 
 // ── MAPA HN ──
-const DEPT_NAMES={
-  'HN-AT':'Atlántida','HN-CL':'Colón','HN-GD':'Gracias a Dios','HN-YO':'Yoro',
-  'HN-IB':'Islas Bahía','HN-OL':'Olancho','HN-CP':'Copán','HN-SB':'Santa Bárbara',
-  'HN-CM':'Comayagua','HN-IN':'Intibucá','HN-LP':'La Paz','HN-OC':'Ocotepeque',
-  'HN-LE':'Lempira','HN-FM':'Fco. Morazán','HN-VA':'Valle','HN-CH':'Choluteca',
-  'HN-EP':'El Paraíso','HN-CR':'Cortés'
-};
+let DEPT_NAMES={};  // populated from departments.json
+let DEPT_LIST=[];   // [{code,name,abbr,iso,url}, ...]
+let COUNTRY_META={};
+
+async function loadDepartments(){
+  try{
+    const r=await fetch('../data/departments.json?t='+Date.now());
+    if(!r.ok) throw new Error(r.status);
+    const d=await r.json();
+    COUNTRY_META=d;
+    DEPT_LIST=d.departments||[];
+    DEPT_NAMES={};
+    DEPT_LIST.forEach(dep=>{
+      if(dep.iso) DEPT_NAMES[dep.iso]=dep.name;
+      // also index by cne code for pipeline compatibility
+      DEPT_NAMES['CNE-'+dep.code]=dep.name;
+    });
+  }catch(e){
+    console.warn('departments.json not available, using HN fallback');
+    DEPT_NAMES={
+      'HN-AT':'Atlántida','HN-CL':'Colón','HN-GD':'Gracias a Dios','HN-YO':'Yoro',
+      'HN-IB':'Islas Bahía','HN-OL':'Olancho','HN-CP':'Copán','HN-SB':'Santa Bárbara',
+      'HN-CM':'Comayagua','HN-IN':'Intibucá','HN-LP':'La Paz','HN-OC':'Ocotepeque',
+      'HN-LE':'Lempira','HN-FM':'Fco. Morazán','HN-VA':'Valle','HN-CH':'Choluteca',
+      'HN-EP':'El Paraíso','HN-CR':'Cortés'
+    };
+    DEPT_LIST=Object.entries(DEPT_NAMES).map(([iso,name])=>({
+      code:iso.split('-')[1],name,abbr:iso.split('-')[1],iso,url:null
+    }));
+  }
+}
 const DEPT_CODE_FROM_NAME={
   'ATLANTIDA':'HN-AT','COLON':'HN-CL','GRACIAS A DIOS':'HN-GD','YORO':'HN-YO',
   'ISLAS DE LA BAHIA':'HN-IB','ISLAS BAHIA':'HN-IB','OLANCHO':'HN-OL',
@@ -497,17 +521,23 @@ function renderMap(departments){
   const grid=document.getElementById('dept-grid');
   grid.innerHTML='';
 
-  const deptCodes = Object.keys(departments);
-  const allCodes = deptCodes.length > 0 ? deptCodes : Object.keys(DEPT_NAMES);
-  allCodes.forEach(code=>{
-    const dept=departments[code];
+  // Use DEPT_LIST for order and labels; fall back to snapshot keys
+  const rendered = new Set();
+  const renderList = DEPT_LIST.length > 0 ? DEPT_LIST : 
+    Object.keys(departments).map(iso=>({iso,code:iso.replace(/^[A-Z]+-/,''),
+      name:DEPT_NAMES[iso]||iso,abbr:iso.split('-')[1]||iso}));
+  renderList.forEach(dep=>{
+    const code = dep.iso || dep.code;
+    if(rendered.has(code)) return;
+    rendered.add(code);
+    const dept=departments[code]||null;
     const cell=document.createElement('div');
     cell.className='dept-cell';
     cell.dataset.hnCode=code;
     cell.style.background=deptColor(dept);
     cell.style.color='#0f1115';
-    cell.title=DEPT_NAMES[code]||code;
-    cell.textContent=code.replace('HN-','');
+    cell.title=(dep.name||code)+' ('+dep.abbr+')';
+    cell.textContent=dep.abbr||code.replace(/^[A-Z]+-/,'');
     cell.onclick=()=>openDeptPanel(code,departments[code]);
     grid.appendChild(cell);
   });
@@ -924,7 +954,7 @@ async function loadData(){
   _renderAll(data,null);
 }
 
-loadData();
+(async()=>{await loadDepartments();loadData();})();
 setInterval(loadData, 30000); // refresh cada 30s
 
 // ── NUEVO: ÚLTIMO DÍGITO ──

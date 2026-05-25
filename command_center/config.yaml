@@ -1,448 +1,219 @@
-# ============================================================
-# CONFIGURACIÓN OPERATIVA ACTIVA (ES) / ACTIVE OPERATIONS CONFIG (EN)
-# ============================================================
-# ES: Este archivo es la configuración real usada por el sistema en ejecución.
-# EN: This file is the real runtime configuration used by the system.
-#
-# ES: Índice rápido de secciones en este archivo:
-# EN: Quick section index in this file:
-# 01_control_general
-# 02_endpoints_y_fuentes
-# 03_red_y_fetch
-# 04_validacion_y_mapeo
-# 05_reglas_y_alertas
-
-# ES: Convenciones de valores binarios (MUY IMPORTANTE):
-#     - master_switch usa "ON" o "OFF" (texto, en mayúsculas).
-#     - Campos con sufijo/clave tipo enabled/allow/use/verify/sign usan true/false (booleano YAML, sin comillas).
-# EN: Binary value conventions (VERY IMPORTANT):
-#     - master_switch uses "ON" or "OFF" (uppercase strings).
-#     - Fields like enabled/allow/use/verify/sign use true/false (YAML booleans, without quotes).
-
-# Configuración operativa principal de C.E.N.T.I.N.E.L.
-# Main operational configuration for C.E.N.T.I.N.E.L.
-
-# Interruptor maestro para procesos automáticos. Valores permitidos: "ON" o "OFF".
-# Master switch for automatic processes. Allowed values: "ON" or "OFF".
-master_switch: "ON"
-
-# Alcance analítico permitido.
-# Allowed analysis scope.
+master_switch: 'ON'
 scope:
-  - "presidential"
-
-# Deshabilita mockups en modo real. Valores permitidos: true/false.
-# Disable mockups in real mode. Allowed values: true/false.
+- presidential
 allow_mock: false
-
-# Dominios válidos del CNE para validar fuentes.
-# Valid CNE domains to validate sources.
 cne_domains:
-  - "cne.hn"
-
-# Edad máxima (horas) aceptada para timestamps del CNE.
-# Max age (hours) accepted for CNE timestamps.
+- resultadosgenerales2025.cne.hn
 timestamp_max_age_hours: 24
-
-# URL base del API oficial (placeholder).
-# Base URL for the official API (placeholder).
-base_url: "https://api.example.com/cne/resultados"
-
-# Ejemplos de URL completas (solo referencia).
-# Example full URLs (reference only).
-# NACIONAL: https://api.example.com/cne/resultados?ambito=NACIONAL&nivel=PRES
-# DEPARTAMENTO: https://api.example.com/cne/resultados?ambito=DEPARTMENT&nivel=PD&cod_departamento=01
-# Parámetros comunes: ambito, nivel, cod_departamento.
-# Common parameters: ambito, nivel, cod_departamento.
-
-# Endpoints operativos por ámbito.
-# Operational endpoints by scope.
+base_url: https://resultadosgenerales2025.cne.hn/api/presidencial/nacional
 endpoints:
-  # Endpoint principal de resultados presidenciales nacionales.
-  # National presidential results main endpoint.
-  nacional: "https://resultadosgenerales2025.cne.hn/api/presidencial/nacional"
-  # Variante conocida para totales nacionales.
-  # Known national totals variant.
-  fallback_nacional: "https://resultadosgenerales2025.cne.hn/api/resultados/presidencial/totales"
-  # Endpoints por departamento (01-18).
-  # Department endpoints (01-18).
-  "01": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/01"
-  "02": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/02"
-  "03": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/03"
-  "04": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/04"
-  "05": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/05"
-  "06": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/06"
-  "07": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/07"
-  "08": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/08"
-  "09": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/09"
-  "10": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/10"
-  "11": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/11"
-  "12": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/12"
-  "13": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/13"
-  "14": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/14"
-  "15": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/15"
-  "16": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/16"
-  "17": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/17"
-  "18": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/18"
-
-# Red y resiliencia.
-# Network and resilience.
-# Timeout máximo por solicitud (segundos).
-# Max timeout per request (seconds).
+  nacional: https://resultadosgenerales2025.cne.hn/api/presidencial/nacional
+  '01': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/01
+  '02': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/02
+  '03': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/03
+  '04': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/04
+  '05': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/05
+  '06': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/06
+  '07': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/07
+  08: https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/08
+  09: https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/09
+  '10': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/10
+  '11': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/11
+  '12': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/12
+  '13': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/13
+  '14': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/14
+  '15': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/15
+  '16': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/16
+  '17': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/17
+  '18': https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/18
 timeout: 15
-# Reintentos totales antes de fallar.
-# Total retries before failing.
 retries: 3
-# Backoff exponencial entre reintentos (segundos).
-# Exponential backoff between retries (seconds).
 backoff_base_seconds: 1
-# Espera máxima entre reintentos (segundos).
-# Max wait between retries (seconds).
 backoff_max_seconds: 30
-
-# Rate limiting interno para polling/maintain.
-# Internal rate limiting for polling/maintain.
-
-# Habilita respaldo seguro al finalizar scrape y en finally (default: true).
-# Enables secure backup after successful scrape and in finally (default: true).
 ENABLE_BACKUP: true
-
 polling_rate_limit:
-  # Cooldown mínimo entre solicitudes (segundos).
-  # Minimum cooldown between requests (seconds).
   cooldown_seconds: 10
-  # Archivo de estado para última petición.
-  # State file for last request timestamp.
-  state_path: "data/temp/polling_rate_limit.json"
-
-# Encabezados HTTP enviados en cada solicitud.
-# HTTP headers sent with every request.
+  state_path: data/temp/polling_rate_limit.json
 headers:
-  # Tipo de respuesta esperado.
-  # Expected response type.
-  Accept: "application/json"
-  # Identificador del cliente.
-  # Client identifier.
-  User-Agent: "C.E.N.T.I.N.E.L./1.0"
-
-# Fallback Playwright cuando falle la descarga HTTP.
-# Playwright fallback when HTTP download fails.
+  Accept: application/json
+  User-Agent: C.E.N.T.I.N.E.L./1.0
 use_playwright: false
-# Activa modo stealth (playwright-stealth) si está disponible.
-# Enable stealth mode (playwright-stealth) when available.
 playwright_stealth: true
-# User-Agent específico para el contexto Playwright.
-# Playwright context User-Agent.
-playwright_user_agent: "C.E.N.T.I.N.E.L./1.0"
-# Viewport de Playwright.
-# Playwright viewport.
+playwright_user_agent: C.E.N.T.I.N.E.L./1.0
 playwright_viewport:
   width: 1280
   height: 720
-# Locale del contexto Playwright.
-# Playwright context locale.
-playwright_locale: "es-HN"
-# Zona horaria del contexto Playwright.
-# Playwright context timezone.
-playwright_timezone: "America/Tegucigalpa"
-
-# Validaciones de contenido esperado.
-# Expected-content validations.
-# Número de candidatos esperados por fuente.
-# Expected number of candidates per source.
+playwright_locale: es-HN
+playwright_timezone: America/Tegucigalpa
 candidate_count: 10
-# Claves obligatorias adicionales, si aplica.
-# Additional required keys, if any.
 required_keys: []
-
-# Mapeo de rutas JSON hacia campos normalizados.
-# Mapping of JSON paths to normalized fields.
 field_map:
-  # Totales agregados por fuente.
-  # Totals aggregated per source.
   totals:
-    # Votos válidos.
-    # Valid votes.
     valid_votes:
-      - "estadisticas.distribucion_votos.validos"
-    # Votos nulos.
-    # Null votes.
+    - estadisticas.distribucion_votos.validos
     null_votes:
-      - "estadisticas.distribucion_votos.nulos"
-    # Votos en blanco.
-    # Blank votes.
+    - estadisticas.distribucion_votos.nulos
     blank_votes:
-      - "estadisticas.distribucion_votos.blancos"
-    # Total de votos.
-    # Total votes.
+    - estadisticas.distribucion_votos.blancos
     total_votes:
-      - "estadisticas.distribucion_votos.total"
-  # Raíces JSON donde vienen los candidatos.
-  # JSON roots where candidates are located.
+    - estadisticas.distribucion_votos.total
   candidate_roots:
-    - "resultados"
-
-# Fuentes configuradas para consultas.
-# Configured sources for queries.
+  - resultados
 sources:
-  # Fuente nacional.
-  # National source.
-  - name: "Nacional"
-    # Identificador para ambito=NATIONAL.
-    # Identifier for ambito=NATIONAL.
-    source_id: "NACIONAL"
-    # Nivel electoral.
-    # Electoral level.
-    level: "PRES"
-    # Alcance de la fuente.
-    # Source scope.
-    scope: "NATIONAL"
-  # Fuentes departamentales (01-18).
-  # Department sources (01-18).
-  - name: "Atlántida"
-    source_id: "01_atlantida"
-    department_code: "01"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Choluteca"
-    source_id: "02_choluteca"
-    department_code: "02"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Colón"
-    source_id: "03_colon"
-    department_code: "03"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Comayagua"
-    source_id: "04_comayagua"
-    department_code: "04"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Copán"
-    source_id: "05_copan"
-    department_code: "05"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Cortés"
-    source_id: "06_cortes"
-    department_code: "06"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "El Paraíso"
-    source_id: "07_el_paraiso"
-    department_code: "07"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Francisco Morazán"
-    source_id: "08_francisco_morazan"
-    department_code: "08"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Gracias a Dios"
-    source_id: "09_gracias_a_dios"
-    department_code: "09"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Intibucá"
-    source_id: "10_intibuca"
-    department_code: "10"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Islas de la Bahía"
-    source_id: "11_islas_de_la_bahia"
-    department_code: "11"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "La Paz"
-    source_id: "12_la_paz"
-    department_code: "12"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Lempira"
-    source_id: "13_lempira"
-    department_code: "13"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Ocotepeque"
-    source_id: "14_ocotepeque"
-    department_code: "14"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Olancho"
-    source_id: "15_olancho"
-    department_code: "15"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Santa Bárbara"
-    source_id: "16_santa_barbara"
-    department_code: "16"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Valle"
-    source_id: "17_valle"
-    department_code: "17"
-    level: "PRES"
-    scope: "DEPARTMENT"
-  - name: "Yoro"
-    source_id: "18_yoro"
-    department_code: "18"
-    level: "PRES"
-    scope: "DEPARTMENT"
-
-# Logging centralizado.
-# Centralized logging.
+- name: Nacional
+  source_id: NACIONAL
+  level: PRES
+  scope: NATIONAL
+- name: Atlántida
+  source_id: 01_atlantida
+  department_code: '01'
+  level: PRES
+  scope: DEPARTMENT
+- name: Choluteca
+  source_id: 02_choluteca
+  department_code: '02'
+  level: PRES
+  scope: DEPARTMENT
+- name: Colón
+  source_id: 03_colon
+  department_code: '03'
+  level: PRES
+  scope: DEPARTMENT
+- name: Comayagua
+  source_id: 04_comayagua
+  department_code: '04'
+  level: PRES
+  scope: DEPARTMENT
+- name: Copán
+  source_id: 05_copan
+  department_code: '05'
+  level: PRES
+  scope: DEPARTMENT
+- name: Cortés
+  source_id: 06_cortes
+  department_code: '06'
+  level: PRES
+  scope: DEPARTMENT
+- name: El Paraíso
+  source_id: 07_el_paraiso
+  department_code: '07'
+  level: PRES
+  scope: DEPARTMENT
+- name: Francisco Morazán
+  source_id: 08_francisco_morazan
+  department_code: 08
+  level: PRES
+  scope: DEPARTMENT
+- name: Gracias a Dios
+  source_id: 09_gracias_a_dios
+  department_code: 09
+  level: PRES
+  scope: DEPARTMENT
+- name: Intibucá
+  source_id: 10_intibuca
+  department_code: '10'
+  level: PRES
+  scope: DEPARTMENT
+- name: Islas de la Bahía
+  source_id: 11_islas_de_la_bahia
+  department_code: '11'
+  level: PRES
+  scope: DEPARTMENT
+- name: La Paz
+  source_id: 12_la_paz
+  department_code: '12'
+  level: PRES
+  scope: DEPARTMENT
+- name: Lempira
+  source_id: 13_lempira
+  department_code: '13'
+  level: PRES
+  scope: DEPARTMENT
+- name: Ocotepeque
+  source_id: 14_ocotepeque
+  department_code: '14'
+  level: PRES
+  scope: DEPARTMENT
+- name: Olancho
+  source_id: 15_olancho
+  department_code: '15'
+  level: PRES
+  scope: DEPARTMENT
+- name: Santa Bárbara
+  source_id: 16_santa_barbara
+  department_code: '16'
+  level: PRES
+  scope: DEPARTMENT
+- name: Valle
+  source_id: 17_valle
+  department_code: '17'
+  level: PRES
+  scope: DEPARTMENT
+- name: Yoro
+  source_id: 18_yoro
+  department_code: '18'
+  level: PRES
+  scope: DEPARTMENT
 logging:
-  # Nivel de logging.
-  # Logging level.
   level: INFO
-  # Archivo de log relativo al root.
-  # Log file path relative to repo root.
-  file: "C.E.N.T.I.N.E.L.log"
-
-# Alertas críticas.
-# Critical alerts.
+  file: C.E.N.T.I.N.E.L.log
 alerts:
-  # Tipos críticos de anomalías.
-  # Critical anomaly types.
   critical_anomaly_types:
-    - ARITHMETIC_MISMATCH
-    - NEGATIVE_DELTA
-    - CHANGE_POINT
-    - RELATIVE_DELTA
-    - SCRUTINY_JUMP
-    - VOTE_BREAKDOWN_MISMATCH
-  # Ruta de log de alertas críticas.
-  # Critical alerts log path.
-  log_path: "alerts.log"
-  # Salida JSON para API pública.
-  # JSON output for public API.
-  output_path: "data/alerts.json"
-
-# ─────────────────────────────────────────────────────────────────
-# Seguridad Zero Trust (opt-in, todo deshabilitado por defecto).
-# Zero Trust Security (opt-in, everything disabled by default).
-# ─────────────────────────────────────────────────────────────────
+  - ARITHMETIC_MISMATCH
+  - NEGATIVE_DELTA
+  - CHANGE_POINT
+  - RELATIVE_DELTA
+  - SCRUTINY_JUMP
+  - VOTE_BREAKDOWN_MISMATCH
+  log_path: alerts.log
+  output_path: data/alerts.json
 security:
-  # Habilitar middleware Zero Trust en la API pública.
-  # Enable Zero Trust middleware on the public API.
-  # ← Cambiar a true para activar / Change to true to enable.
   zero_trust: true
-
-  # Configuración detallada de Zero Trust (solo aplica si zero_trust: true).
-  # Detailed Zero Trust configuration (only applies when zero_trust: true).
   zero_trust_config:
-    # Máximo de requests por IP por minuto (Rate limit per IP per minute).
     rate_limit_rpm: 60
-    # Máximo tamaño de body en bytes (Max body size in bytes).
-    max_body_bytes: 1048576  # 1 MB
-    # IPs/CIDRs bloqueadas permanentemente (Permanently blocked IPs/CIDRs).
-    # ← Agregar IPs sospechosas aquí / Add suspicious IPs here.
+    max_body_bytes: 1048576
     ip_blocklist: []
-    #   - "192.168.1.100"
-    #   - "10.0.0.0/8"
-    # CIDRs de proxies confiables para respetar X-Forwarded-For.
-    # Trusted proxy CIDRs required to trust X-Forwarded-For.
     trusted_proxy_cidrs: []
-    #   - "127.0.0.1/32"
-    #   - "10.0.0.0/8"
-    # Headers HTTP bloqueados (Blocked HTTP headers).
     blocked_headers: []
-    #   - "x-custom-malicious"
-
-  # Habilitar hashing encadenado SHA-256 en logs de integridad.
-  # Enable SHA-256 chained hashing on integrity logs.
-  # ← Cambiar a true para activar / Change to true to enable.
   log_hashing: true
-
-  # Habilitar encriptación de logs con Fernet (AES-128-CBC).
-  # Enable log encryption with Fernet (AES-128-CBC).
-  # Requiere env var CENTINEL_LOG_KEY con clave Fernet.
-  # Requires env var CENTINEL_LOG_KEY with Fernet key.
-  # Generar clave / Generate key:
-  #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
   log_encryption: false
-  log_encryption_key_env: "CENTINEL_LOG_KEY"
-
-# Resiliencia operativa.
-# Operational resilience.
+  log_encryption_key_env: CENTINEL_LOG_KEY
 resilience:
   auto_resume:
     enabled: true
     max_attempts: 5
     backoff_base_seconds: 5
     backoff_max_seconds: 60
-    retry_on: "any"
+    retry_on: any
   chaos:
     enabled: false
     failure_rate: 0.9
     seed: 2026
-
-  # ─────────────────────────────────────────────────────────────────
-  # Umbrales de detección de DoS / condiciones anómalas del sistema.
-  # DoS detection / abnormal system condition thresholds.
-  # ─────────────────────────────────────────────────────────────────
   dos_thresholds:
-    # CPU % que dispara alerta y curación (CPU % that triggers alert and healing).
     cpu: 90
-    # Memoria % que dispara alerta (Memory % that triggers alert).
     memory: 90
-    # Disco % que dispara alerta (Disk % that triggers alert).
     disk: 95
-
-  # ─────────────────────────────────────────────────────────────────
-  # Watchdog Daemon — proceso externo de auto-curación obsesiva.
-  # Watchdog Daemon — external obsessive self-healing process.
-  # ─────────────────────────────────────────────────────────────────
   watchdog_daemon:
-    # Habilitar el daemon (Enable the daemon).
     enabled: true
-    # Intervalo de chequeo en segundos (Check interval in seconds).
     check_interval_seconds: 30
-    # Cooldown entre acciones correctivas en segundos para prevenir restart storms.
-    # Cooldown between corrective actions in seconds to prevent restart storms.
     cooldown_seconds: 120
-    # Fallos consecutivos antes de actuar (Consecutive failures before acting).
     failure_threshold: 3
-
-# Anclaje Bitcoin via OpenTimestamps (gratuito, sin llave privada requerida).
-# Bitcoin anchoring via OpenTimestamps (free, no private key required).
 opentimestamps:
   enabled: true
   calendars:
-    - "https://alice.btc.calendar.opentimestamps.org"
-    - "https://bob.btc.calendar.opentimestamps.org"
-    - "https://finney.calendar.eternitywall.com"
-    - "https://ots.btc.catallaxy.com"
+  - https://alice.btc.calendar.opentimestamps.org
+  - https://bob.btc.calendar.opentimestamps.org
+  - https://finney.calendar.eternitywall.com
+  - https://ots.btc.catallaxy.com
   timeout_seconds: 30
-  pending_file: "data/pending_ots.json"
-
-# Cadena de custodia verificable — FASE 2.
-# Verifiable custody chain — PHASE 2.
+  pending_file: data/pending_ots.json
 custody:
-  # Verificar cadena de hashes al arranque del pipeline.
-  # Verify hash chain on pipeline startup.
   verify_on_startup: true
-  # Verificar anclajes recientes contra Arbitrum al arranque.
-  # Verify recent anchors against Arbitrum on startup.
   verify_anchors_on_startup: false
-  # Verificar firmas del operador en registros de hash.
-  # Verify operator signatures on hash records.
   verify_signatures: true
-  # Máximo de anclajes a verificar en cada arranque.
-  # Max anchors to verify per startup.
   max_anchor_checks: 5
-  # Firmar cada registro de hash con Ed25519 del operador.
-  # Sign each hash record with operator Ed25519 key.
   sign_hash_records: true
-  # ID del operador (se usa como etiqueta en firmas).
-  # Operator ID (used as label in signatures).
-  operator_id: "default-operator"
-
-# Reglas de análisis — todas activadas por defecto.
-# El usuario desactiva las que no quiera (enabled: false).
-# Analysis rules — all enabled by default.
-# The user disables the ones they don't want (enabled: false).
+  operator_id: default-operator
 rules:
   global_enabled: true
   basic_diff:
@@ -472,13 +243,13 @@ rules:
     sum_mismatch_threshold: 1
   inconsistency_rate:
     enabled: true
-    severity: "CRITICAL"
+    severity: CRITICAL
     critical_pct: 10
     escalation_delta_pct: 0.5
   irreversibility:
     enabled: true
-    historical_participation_rate: 0.60
-    sqlite_path: "reports/irreversibility_state.db"
+    historical_participation_rate: 0.6
+    sqlite_path: reports/irreversibility_state.db
   large_numbers_convergence:
     enabled: true
     min_samples: 30
@@ -498,7 +269,7 @@ rules:
     enabled: true
   null_blank_votes:
     enabled: true
-    severity: "CRITICAL"
+    severity: CRITICAL
     warning_pct: 8
     critical_pct: 12
   participation_anomaly:
@@ -535,3 +306,8 @@ rules:
     enabled: true
     min_turnout_pct: 0
     max_turnout_pct: 100
+centinel:
+  country: HN
+  year: '2025'
+  setup_at: '2026-05-25T06:15:14.290860+00:00'
+  setup_source: github-actions-wizard

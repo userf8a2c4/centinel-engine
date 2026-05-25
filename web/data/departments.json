@@ -1,0 +1,145 @@
+{
+  "country": "HN",
+  "country_name": "Honduras",
+  "flag": "🇭🇳",
+  "authority": "Consejo Nacional Electoral (CNE)",
+  "divisions_label": "Departamentos",
+  "year": "2025",
+  "generated_at": "2026-05-25T06:15:14.269078+00:00",
+  "departments": [
+    {
+      "code": "00",
+      "name": "TODOS",
+      "abbr": "NAC",
+      "iso": null,
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/nacional",
+      "label": "Departamentos"
+    },
+    {
+      "code": "01",
+      "name": "Atlántida",
+      "abbr": "AT",
+      "iso": "HN-AT",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/01"
+    },
+    {
+      "code": "02",
+      "name": "Choluteca",
+      "abbr": "CH",
+      "iso": "HN-CH",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/02"
+    },
+    {
+      "code": "03",
+      "name": "Colón",
+      "abbr": "CL",
+      "iso": "HN-CL",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/03"
+    },
+    {
+      "code": "04",
+      "name": "Comayagua",
+      "abbr": "CM",
+      "iso": "HN-CM",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/04"
+    },
+    {
+      "code": "05",
+      "name": "Copán",
+      "abbr": "CP",
+      "iso": "HN-CP",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/05"
+    },
+    {
+      "code": "06",
+      "name": "Cortés",
+      "abbr": "CR",
+      "iso": "HN-CR",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/06"
+    },
+    {
+      "code": "07",
+      "name": "El Paraíso",
+      "abbr": "EP",
+      "iso": "HN-EP",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/07"
+    },
+    {
+      "code": "08",
+      "name": "Francisco Morazán",
+      "abbr": "FM",
+      "iso": "HN-FM",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/08"
+    },
+    {
+      "code": "09",
+      "name": "Gracias a Dios",
+      "abbr": "GD",
+      "iso": "HN-GD",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/09"
+    },
+    {
+      "code": "10",
+      "name": "Intibucá",
+      "abbr": "IN",
+      "iso": "HN-IN",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/10"
+    },
+    {
+      "code": "11",
+      "name": "Islas de la Bahía",
+      "abbr": "IB",
+      "iso": "HN-IB",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/11"
+    },
+    {
+      "code": "12",
+      "name": "La Paz",
+      "abbr": "LP",
+      "iso": "HN-LP",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/12"
+    },
+    {
+      "code": "13",
+      "name": "Lempira",
+      "abbr": "LE",
+      "iso": "HN-LE",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/13"
+    },
+    {
+      "code": "14",
+      "name": "Ocotepeque",
+      "abbr": "OC",
+      "iso": "HN-OC",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/14"
+    },
+    {
+      "code": "15",
+      "name": "Olancho",
+      "abbr": "OL",
+      "iso": "HN-OL",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/15"
+    },
+    {
+      "code": "16",
+      "name": "Santa Bárbara",
+      "abbr": "SB",
+      "iso": "HN-SB",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/16"
+    },
+    {
+      "code": "17",
+      "name": "Valle",
+      "abbr": "VA",
+      "iso": "HN-VA",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/17"
+    },
+    {
+      "code": "18",
+      "name": "Yoro",
+      "abbr": "YO",
+      "iso": "HN-YO",
+      "url": "https://resultadosgenerales2025.cne.hn/api/presidencial/departamento/18"
+    }
+  ]
+}

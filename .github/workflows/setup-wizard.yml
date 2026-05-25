@@ -428,6 +428,7 @@ PYEOF
         if: steps.check.outputs.state == 'ready' || steps.check.outputs.state == 'needs_repo'
         env:
           CENTINEL_COUNTRY: ${{ github.event.inputs.country || 'HN' }}
+          CENTINEL_YEAR: "2025"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
@@ -436,8 +437,8 @@ PYEOF
           python3 .github/scripts/wizard_config.py
           git config user.name "centinel-bot"
           git config user.email "bot@centinel.app"
-          git add command_center/config.yaml
-          git diff --cached --quiet || git commit -m "config: set country=$CENTINEL_COUNTRY via setup wizard"
+          git add command_center/config.yaml config/prod/endpoints.yaml web/data/departments.json
+          git diff --cached --quiet || git commit -m "config: set country=$CENTINEL_COUNTRY — endpoints, sources, departments.json"
 
       - name: Generate seeds and access.json
         if: steps.check.outputs.state == 'ready' || steps.check.outputs.state == 'needs_repo'
