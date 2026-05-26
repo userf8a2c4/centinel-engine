@@ -47,13 +47,13 @@ honeypot_endpoints:
 airgap_min_minutes: 5
 airgap_max_minutes: 20
 
-cpu_threshold_percent: 60
-cpu_sustain_seconds: 60
+cpu_threshold_percent: 75
+cpu_sustain_seconds: 90
 memory_threshold_percent: 80
 anomaly_consecutive_limit: 3
 honeypot_flood_trigger_count: 2
 honeypot_flood_window_seconds: 60
-integrity_max_established_connections: 50
+integrity_max_established_connections: 75
 
 backup_provider: "s3"
 backup_interval: 1800

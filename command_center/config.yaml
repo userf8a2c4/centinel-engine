@@ -4,7 +4,7 @@ scope:
 allow_mock: false
 cne_domains:
 - resultadosgenerales2025.cne.hn
-timestamp_max_age_hours: 0.5
+timestamp_max_age_hours: 2
 max_forward_drift_minutes: 10
 base_url: https://resultadosgenerales2025.cne.hn/api/presidencial/nacional
 endpoints:
