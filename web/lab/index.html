@@ -108,13 +108,15 @@ body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-
 .b-na{background:rgba(139,146,156,.12);color:var(--muted);border:1px solid rgba(139,146,156,.2)}
 
 /* ── FORENSIC CARDS ── */
-.forensic-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px}
+#s-forensic-list{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}
+.forensic-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:0}
+.forensic-card:has(.forensic-body.open){grid-column:1/-1}
 .forensic-hdr{
-  display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;padding:7px 10px;
   cursor:pointer;background:var(--panel);
 }
 .forensic-hdr:hover{background:rgba(255,255,255,.02)}
-.forensic-title{font-size:12px;font-weight:600}
+.forensic-title{font-size:11px;font-weight:600}
 .forensic-body{display:none;padding:12px 14px;font-size:12px;color:var(--muted);
   background:rgba(255,255,255,.015);line-height:1.6}
 .forensic-body.open{display:block}
