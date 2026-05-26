@@ -373,10 +373,10 @@ def verify_hashchain_from_snapshots(snapshot_root: Path) -> Dict[str, Any]:
                 entry.metadata,
                 previous_hash,
             )
-        except ValueError as exc:
+        except ValueError:
             broken_at = idx
             broken_at_path = str(entry.snapshot_dir)
-            errors.append(f"hash_compute_error path={entry.snapshot_dir} error={exc}")
+            errors.append(f"hash_compute_error path={entry.snapshot_dir.name}")
             break
 
         if computed_hash != entry.expected_hash:

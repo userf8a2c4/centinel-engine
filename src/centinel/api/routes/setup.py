@@ -20,6 +20,11 @@ from centinel.seed_pdf import generate_seeds, hash_seeds, generate_pdf, SEED1_SA
 
 logger = logging.getLogger("centinel.api.setup")
 
+
+def _sl(value: str) -> str:
+    """Sanitize a value for safe log inclusion (prevents log injection)."""
+    return str(value).replace("\n", "\\n").replace("\r", "\\r")
+
 router = APIRouter(prefix="/api/setup", tags=["setup"])
 
 _BASE = Path(__file__).resolve().parents[4]
@@ -110,9 +115,9 @@ def _update_config_yaml(code: str) -> None:
             yaml.dump(cfg, allow_unicode=True, default_flow_style=False),
             encoding="utf-8",
         )
-        logger.info("config_yaml_updated country=%s domain=%s", code, domain)
+        logger.info("config_yaml_updated country=%s domain=%s", _sl(code), _sl(domain))
     except Exception as exc:
-        logger.warning("config_yaml_update_failed country=%s error=%s", code, exc)
+        logger.warning("config_yaml_update_failed country=%s error=%s", _sl(code), _sl(str(exc)))
 
 
 # ── Request models ────────────────────────────────────────────────────────────
@@ -206,7 +211,7 @@ def setup_init(req: InitRequest) -> Response:
 
     _update_config_yaml(code)
 
-    logger.info("setup_complete country=%s", code)
+    logger.info("setup_complete country=%s", _sl(code))
     return _pdf_response(seeds, country.name, country.flag, code)
 
 
@@ -221,7 +226,7 @@ def regenerate_seeds(req: RegenerateRequest) -> Response:
         raise HTTPException(status_code=400, detail="Sistema no configurado aún.")
 
     if not _verify_seed(req.seed_label, req.seed_value):
-        logger.warning("regenerate_auth_failed label=%s", req.seed_label)
+        logger.warning("regenerate_auth_failed label=%s", _sl(req.seed_label))
         raise HTTPException(status_code=401, detail="Seed de autenticación inválido.")
 
     code = (req.country_code or setup.get("country_code", "HN")).upper().strip()
@@ -237,5 +242,5 @@ def regenerate_seeds(req: RegenerateRequest) -> Response:
     setup["last_regenerated_at"] = datetime.now(timezone.utc).isoformat()
     _SETUP_MARKER.write_text(json.dumps(setup, indent=2) + "\n", encoding="utf-8")
 
-    logger.warning("seeds_regenerated country=%s — previous seeds invalidated", code)
+    logger.warning("seeds_regenerated country=%s — previous seeds invalidated", _sl(code))
     return _pdf_response(seeds, country.name, country.flag, code)

@@ -161,6 +161,7 @@ def _probe_tcp_tls(host: str, port: int, use_tls: bool, timeout: float) -> Dict[
         # connection, we are *fingerprinting whatever is presented* to
         # detect a MITM. The pin comparison is the real check.
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         sock.settimeout(timeout)

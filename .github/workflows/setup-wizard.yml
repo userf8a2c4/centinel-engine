@@ -251,7 +251,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Pin to IPFS via Pinata
-        if: ${{ toJSON(secrets.PINATA_JWT) != '"'"'null'"'"' }}
+        if: ${{ secrets.PINATA_JWT != '' }}
         env:
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
         run: |

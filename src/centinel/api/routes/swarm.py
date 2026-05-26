@@ -184,7 +184,10 @@ async def swarm_connect(request: Request) -> dict:
     except (asyncio.TimeoutError, asyncio.CancelledError):
         pass
 
-    logger.info("swarm_connect country=%s my_url=%s", country, my_url)
+    def _sl(v: object) -> str:
+        return str(v).replace("\n", "\\n").replace("\r", "\\r")
+
+    logger.info("swarm_connect country=%s my_url=%s", _sl(country), _sl(my_url))
     return {"status": "connecting", "node_id": _engine._node_id, "country_code": country}
 
 

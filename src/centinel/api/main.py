@@ -384,10 +384,11 @@ def fetch_snapshot_by_hash(connection: sqlite3.Connection, snapshot_hash: str) -
         try:
             payload = json.loads(snapshot["canonical_json"])
         except (json.JSONDecodeError, TypeError) as exc:
+            _safe_hash = str(snapshot_hash).replace("\n", "\\n").replace("\r", "\\r")
             logger.error(
                 "corrupted_canonical_json hash=%s error=%s",
-                snapshot_hash,
-                exc,
+                _safe_hash,
+                type(exc).__name__,
             )
     return {
         "snapshot_id": row["hash"],
