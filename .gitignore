@@ -1,5 +1,9 @@
-# Claude Code session data
-.claude/
+# Claude Code session data (user-specific, not project files)
+.claude/settings.json
+.claude/settings.local.json
+.claude/*.jsonl
+.claude/todos/
+.claude/memory/
 
 # Entornos virtuales
 .venv/
