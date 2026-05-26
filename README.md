@@ -7,7 +7,7 @@ Centinela Electrónico Neutral Técnico Integro Nacional Electoral Libre
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-2b6cb0.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-2b6cb0.svg)](pyproject.toml)
 [![Tests](https://img.shields.io/badge/tests-526%20passing-2f855a.svg)](#estado-de-validación)
-[![Security](https://img.shields.io/badge/dependencies-audited-2f855a.svg)](docs/SECURITY-REVIEW.md)
+[![Security](https://img.shields.io/badge/dependencies-audited-2f855a.svg)](docs/security/SECURITY-REVIEW.md)
 
 **Infraestructura de auditoría electoral verificable, sin confianza institucional.**
 
@@ -131,7 +131,7 @@ amenaza a la integridad o disponibilidad de la auditoría.
 | Interruptor de seguridad | Congelación ante ataque activo | Compromiso en tiempo real |
 
 → [Especificación de defensas](docs/ANIMAL-DEFENSES-ES.md) ·
-[Arquitectura y teoremas T1–T4](docs/ARCHITECTURE.md)
+[Arquitectura y teoremas T1–T4](docs/architecture/ARCHITECTURE.md)
 
 ---
 
@@ -167,11 +167,11 @@ El sistema se configura solo: al crear tu copia, el wizard detecta qué falta y 
 
 | Documento | Audiencia |
 |---|---|
-| [QUICKSTART.md](docs/QUICKSTART.md) | Operadores — primeros pasos |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Revisores técnicos — diseño y teoremas |
-| [SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md) | Auditores — modelo de amenazas |
-| [METHODOLOGY.md](docs/METHODOLOGY.md) | Académicos — fundamento metodológico |
-| [OPERATOR-RUNBOOKS.md](docs/OPERATOR-RUNBOOKS.md) | Operadores — procedimientos |
+| [QUICKSTART.md](docs/guides/QUICKSTART.md) | Operadores — primeros pasos |
+| [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | Revisores técnicos — diseño y teoremas |
+| [SECURITY-REVIEW.md](docs/security/SECURITY-REVIEW.md) | Auditores — modelo de amenazas |
+| [METHODOLOGY.md](docs/research/METHODOLOGY.md) | Académicos — fundamento metodológico |
+| [OPERATOR-RUNBOOKS.md](docs/operations/OPERATOR-RUNBOOKS.md) | Operadores — procedimientos |
 | [LEGAL-AND-OPERATIONAL-BOUNDARIES.md](docs/LEGAL-AND-OPERATIONAL-BOUNDARIES.md) | Marco legal y límites operativos |
 
 ---
