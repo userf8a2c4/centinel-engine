@@ -9,10 +9,11 @@
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 :root{
-  --bg:#0f1115;--panel:#15171c;--border:#24272e;--fg:#e7e9ec;
-  --muted:#8b929c;--accent:#6ea8fe;--ok:#57c08d;--bad:#df6b86;
-  --warn:#d4b066;--purple:#b08cf0;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
-  --txt:#e7e9ec;--txt-dim:#8b929c;
+  /* ── PALETA LABORATORIO — gris pizarra + oro + blanco hueso ── */
+  --bg:#111827;--panel:#1f2937;--border:#374151;--fg:#f3f4f6;
+  --muted:#9ca3af;--accent:#d4af37;--ok:#6ee7b7;--bad:#fca5a5;
+  --warn:#fcd34d;--purple:#c9a227;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  --txt:#f3f4f6;--txt-dim:#9ca3af;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-size:14px;min-height:100vh}
@@ -32,8 +33,8 @@ body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-
 /* ── CONSOLA DE REPRODUCCIÓN FORENSE ── */
 #sim-control-bar{
   position:sticky;top:0;z-index:150;
-  background:rgba(15,17,21,.96);backdrop-filter:blur(8px);
-  border-bottom:2px solid rgba(176,140,240,.25);
+  background:rgba(17,24,39,.97);backdrop-filter:blur(8px);
+  border-bottom:2px solid rgba(212,175,55,.35);
   padding:8px 20px;display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow:hidden;
 }
 .sim-transport-btn{
@@ -48,14 +49,14 @@ body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-
   background:var(--panel);border:1px solid var(--border);color:var(--muted);
   border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;transition:.15s;
 }
-.speed-pill.on{border-color:var(--purple);color:var(--purple);background:rgba(176,140,240,.1)}
+.speed-pill.on{border-color:var(--accent);color:var(--accent);background:rgba(212,175,55,.1)}
 #sim-timeline-wrap{
   flex:1;min-width:160px;position:relative;height:22px;
   background:var(--border);border-radius:11px;cursor:pointer;overflow:hidden;
 }
 #sim-progress-fill{
   height:100%;border-radius:11px;
-  background:linear-gradient(90deg,var(--purple),var(--accent));
+  background:linear-gradient(90deg,var(--accent),#e8c84a);
   transition:width .12s;pointer-events:none;
 }
 #sim-scrubber{
@@ -370,6 +371,20 @@ body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-
 .meth-contact-body{font-size:11px;color:var(--muted);line-height:1.6}
 code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:10.5px}
 
+/* ── LAB WATERMARK ── */
+#lab-watermark-badge{position:fixed;bottom:16px;right:16px;z-index:9999;
+  background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.45);
+  border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:8px;
+  font-size:11px;color:#d4af37;pointer-events:none;backdrop-filter:blur(4px);line-height:1.3}
+.lab-wm-icon{font-size:18px}
+.lab-env-pill{background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.4);
+  color:#d4af37;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;
+  letter-spacing:.05em;flex-shrink:0}
+.card{position:relative;overflow:hidden}
+.card::after{content:'SIMULACIÓN';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(-35deg);font-size:52px;font-weight:900;
+  color:rgba(212,175,55,.04);pointer-events:none;white-space:nowrap;letter-spacing:.2em;z-index:0}
+
 /* ===== BUILDER OVERLAY ===== */
 #builder-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:4000;display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto}
 #builder-overlay.open{display:flex}
@@ -424,7 +439,6 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
 
 /* Injection grid extras */
 .inj-dur-sel{background:var(--bg);border:1px solid var(--border);color:var(--txt);border-radius:4px;padding:2px 5px;font-size:10px;margin-left:4px}
-.breach-badge{display:none;font-size:9px;color:#dc2626;font-weight:700;margin-left:4px;letter-spacing:.03em}
 
 @media print{
   #breadcrumb,#sim-control-bar,.section-title,
@@ -453,6 +467,7 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
   <a href="../">CENTINEL</a>
   <span class="sep">/</span>
   <span>Simulación Forense Académica</span>
+  <span class="lab-env-pill">⚗ LABORATORIO</span>
   <div id="dl-btn">
     <button class="dl-pill" onclick="downloadFullPNG()">↓ PNG</button>
     <button class="dl-pill" onclick="downloadPDF()">↓ PDF</button>
@@ -890,7 +905,7 @@ const EVENTS = {
   B1:{block:'B',label:'DDoS Sostenido',
     desc:'Simula carga masiva de solicitudes. Evalúa rate limiting y arquitectura Static-First.',
     breakpoint:'> 100k req/s → Rate limiter exhausto → logs muestran "503 flooding"',
-    param:{label:'Intensidad (req/s)',min:100,max:200000,def:5000,unit:'',detectAt:60000,breachAt:130000},
+    param:{label:'Intensidad (req/s)',min:100,max:400000,def:5000,unit:'',detectAt:120000,breachAt:260000},
     apply(s,p){s._ddos=p;
       for(let i=0;i<Math.min(4,1+Math.floor(p/10000));i++){
         logA('CRITICAL',`${rndIP()}`,'DDoS HTTP flood',
@@ -901,7 +916,7 @@ const EVENTS = {
   B2:{block:'B',label:'Activación de Honeypots',
     desc:'Peticiones a rutas trampa (/admin, /debug, /.git). Evalúa detección perimetral.',
     breakpoint:'Sin escalada → "Honeypot muted" (falso negativo)',
-    param:{label:'Intentos por tick',min:1,max:50,def:5,unit:'',detectAt:16,breachAt:32},
+    param:{label:'Intentos por tick',min:1,max:100,def:5,unit:'',detectAt:32,breachAt:64},
     apply(s,p){const routes=['/admin','/debug','/.git','/.env','/api/internal','/metrics'];
       for(let i=0;i<Math.min(p,6);i++){
         logA('WARN',rndIP(),`Honeypot trigger → ${routes[i%routes.length]}`,
@@ -911,7 +926,7 @@ const EVENTS = {
   B3:{block:'B',label:'Tampering / Alteración en Tránsito',
     desc:'Inyecta votos alterados y hash SHA-256 incorrecto. Evalúa integridad de cadena.',
     breakpoint:'100% alteración → integridad 0% → cadena "ROTA"',
-    param:{label:'% actas alteradas',min:1,max:100,def:10,unit:'%',detectAt:30,breachAt:65},
+    param:{label:'% actas alteradas',min:1,max:100,def:10,unit:'%',detectAt:50,breachAt:100},
     apply(s,p){const f=p/100;
       if(s.partidos&&s.partidos.length>=2){const d=Math.round(s.partidos[1].votos*f*0.1);
         s.partidos[0].votos+=d;s.partidos[1].votos-=d;}
@@ -933,7 +948,7 @@ const EVENTS = {
   B5:{block:'B',label:'Contaminación de Espejo CDN',
     desc:'Uno o más espejos sirven datos modificados. Evalúa consenso multi-espejo.',
     breakpoint:'≥50% contaminados → consenso imposible → modo offline',
-    param:{label:'Espejos comprometidos',min:1,max:5,def:1,unit:' de 5',detectAt:2,breachAt:4},
+    param:{label:'Espejos comprometidos',min:1,max:5,def:1,unit:' de 5',detectAt:3,breachAt:5},
     apply(s,p){s._cdn_mirrors_poisoned=p;
       if(p>=3)pushAlert('CRITICAL','CDNPoison',`${p}/5 espejos contaminados — consenso imposible`);
       logE(p>=3?'CRITICAL':'WARN',`CDN: ${p}/5 espejos contaminados — ${p>=3?'CONSENSO IMPOSIBLE':'divergencia detectada'}`);
@@ -943,7 +958,7 @@ const EVENTS = {
   B6:{block:'B',label:'Envenenamiento de Caché',
     desc:'TTL falso: datos obsoletos servidos durante N ticks. Evalúa frescura de datos.',
     breakpoint:'TTL > 60min → divergencia >25% del origen real → alerta de consistencia',
-    param:{label:'TTL falso (min)',min:5,max:240,def:30,unit:'min',detectAt:75,breachAt:155},
+    param:{label:'TTL falso (min)',min:5,max:480,def:30,unit:'min',detectAt:150,breachAt:310},
     apply(s,p){s._cache_stale=p;
       if(p>60)pushAlert('HIGH','CachePoison',`Caché venenoso: TTL=${p}min → datos obsoletos`);
       logE(p>60?'CRITICAL':'WARN',`Caché: TTL=${p}min — ${p>60?'divergencia crítica':'monitoreo activo'}`);
@@ -952,7 +967,7 @@ const EVENTS = {
   B7:{block:'B',label:'Ataque de Sincronización Temporal',
     desc:'Manipula timestamps para crear falsa estabilidad en el análisis de tendencias.',
     breakpoint:'Todos timestamps iguales → trend analysis colapsado',
-    param:{label:'Distorsión (min)',min:1,max:120,def:15,unit:'min',detectAt:38,breachAt:77},
+    param:{label:'Distorsión (min)',min:1,max:240,def:15,unit:'min',detectAt:76,breachAt:154},
     apply(s,p){if(SIM.idx<SIM.snapshots.length-1){
       s.ts=SIM.snapshots[Math.min(SIM.idx+1,SIM.snapshots.length-1)].ts;}
       s._time_distorted=p;
@@ -979,7 +994,7 @@ const EVENTS = {
   B10:{block:'B',label:'Tampering del Binario (Auto-audit)',
     desc:'Simula hash de binario diferente al baseline. Evalúa auto-auditoría de integridad.',
     breakpoint:'Auto-audit falla → todos los semáforos rojos → modo cuarentena',
-    param:{label:'Módulos comprometidos',min:1,max:5,def:2,unit:'',detectAt:2,breachAt:4},
+    param:{label:'Módulos comprometidos',min:1,max:5,def:2,unit:'',detectAt:3,breachAt:5},
     apply(s,p){s._binary_tampered=p;
       pushAlert('CRITICAL','BinaryTamper',`Auto-audit: ${p} módulos con hash diferente al baseline`);
       logE('CRITICAL',`Binary integrity: ${p} módulos comprometidos → AUTO-AUDIT FALLA → cuarentena`);
@@ -988,7 +1003,7 @@ const EVENTS = {
   B11:{block:'B',label:'Bypass de Zero-Trust Middleware',
     desc:'Peticiones con cabeceras forjadas (X-Forwarded-For, Origin falso). Evalúa middleware.',
     breakpoint:'Middleware no filtra → "ZT bypass" en log → datos no autorizados',
-    param:{label:'Cabeceras forjadas',min:1,max:10,def:3,unit:'',detectAt:3,breachAt:7},
+    param:{label:'Cabeceras forjadas',min:1,max:20,def:3,unit:'',detectAt:6,breachAt:14},
     apply(s,p){s._zt_bypass_attempt=p;
       for(let i=0;i<Math.min(p,5);i++){
         logA(p>=5?'CRITICAL':'WARN',rndIP(),
@@ -999,7 +1014,7 @@ const EVENTS = {
   B12:{block:'B',label:'Colapso Cascada de Espejos',
     desc:'Contamina espejos 1→2→3 en ticks consecutivos hasta consenso imposible.',
     breakpoint:'3er espejo contaminado → sistema entra en modo solo-local',
-    param:{label:'Velocidad cascada (ticks)',min:1,max:10,def:3,unit:'',detectAt:3,breachAt:7},
+    param:{label:'Velocidad cascada (ticks)',min:1,max:20,def:3,unit:'',detectAt:6,breachAt:14},
     apply(s,p){if(!this._cascade)this._cascade=0;this._cascade++;
       s._cdn_mirrors_poisoned=Math.min(this._cascade,5);
       const msg=this._cascade>=3?'⚠ MODO SOLO-LOCAL ACTIVADO':'Escalando...';
@@ -2154,7 +2169,6 @@ function _updateSliderColor(input, detectAt, breachAt) {
   const mn = +input.min, mx = +input.max, v = +input.value;
   const norm = x => Math.max(0, Math.min(100, (x - mn) / (mx - mn) * 100));
   const pct = norm(v);
-  const badge = input.parentElement?.querySelector('.breach-badge');
   if (detectAt == null) {
     input.style.background = `linear-gradient(to right,var(--accent) 0%,var(--accent) ${pct}%,#333 ${pct}%,#333 100%)`;
     return;
@@ -2162,14 +2176,11 @@ function _updateSliderColor(input, detectAt, breachAt) {
   const dPct = norm(detectAt);
   const bPct = breachAt != null ? norm(breachAt) : null;
   if (bPct != null && v >= breachAt) {
-    input.style.background = `linear-gradient(to right,#555 0%,#555 ${dPct}%,var(--accent) ${dPct}%,var(--accent) ${bPct}%,#dc2626 ${bPct}%,#dc2626 ${pct}%,#333 ${pct}%,#333 100%)`;
-    if (badge) badge.style.display = 'inline';
+    input.style.background = `linear-gradient(to right,#444 0%,#444 ${dPct}%,var(--accent) ${dPct}%,var(--accent) ${bPct}%,#dc2626 ${bPct}%,#dc2626 ${pct}%,#333 ${pct}%,#333 100%)`;
   } else if (v >= detectAt) {
-    input.style.background = `linear-gradient(to right,#555 0%,#555 ${dPct}%,var(--accent) ${dPct}%,var(--accent) ${pct}%,#333 ${pct}%,#333 100%)`;
-    if (badge) badge.style.display = 'none';
+    input.style.background = `linear-gradient(to right,#444 0%,#444 ${dPct}%,var(--accent) ${dPct}%,var(--accent) ${pct}%,#333 ${pct}%,#333 100%)`;
   } else {
-    input.style.background = `linear-gradient(to right,#555 0%,#555 ${pct}%,#333 ${pct}%,#333 100%)`;
-    if (badge) badge.style.display = 'none';
+    input.style.background = `linear-gradient(to right,#444 0%,#444 ${pct}%,#333 ${pct}%,#333 100%)`;
   }
 }
 
@@ -2191,7 +2202,6 @@ function renderInjGrid(gridId,block){
           data-detect="${ev.param.detectAt??''}" data-breach="${ev.param.breachAt??''}"
           oninput="this.nextElementSibling.textContent=this.value+'${ev.param.unit||''}';_updateSliderColor(this,${ev.param.detectAt??null},${ev.param.breachAt??null})">
         <span class="inj-param-val">${ev.param.def}${ev.param.unit||''}</span>
-        <span class="breach-badge">⚠ ZONA MORTAL</span>
       </div>`:'';
     const durHtml=`<div style="display:flex;align-items:center;gap:4px;margin-top:4px">
         <span style="font-size:9px;color:var(--txt-dim)">Duración:</span>
@@ -3514,6 +3524,11 @@ function sendFeedback(){
       <button class="ss-ok" onclick="confirmSaveSession()">Descargar</button>
     </div>
   </div>
+</div>
+<!-- ===== LAB WATERMARK BADGE ===== -->
+<div id="lab-watermark-badge">
+  <span class="lab-wm-icon">⚗</span>
+  <span>LAB · SIMULACIÓN<br><small style="opacity:.7">Datos no oficiales</small></span>
 </div>
 </body>
 </html>
