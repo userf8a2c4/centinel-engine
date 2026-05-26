@@ -28,6 +28,23 @@ SEED1_SALT   = "centinel-admin-salt-v1"
 SEED1_ITERS  = 600_000
 SEED1_LABELS = list("ABCDEFGHIJKL")
 
+_COUNTRY_LABELS = {
+    "HN": "Honduras        (CNE — production-ready)",
+    "GT": "Guatemala       (TSE — configured)",
+    "SV": "El Salvador     (TSE — configured)",
+    "NI": "Nicaragua       (CSE — configured)",
+    "MX": "Mexico          (INE — configured)",
+    "CO": "Colombia        (Registraduría — configured)",
+}
+_DEFAULT_URLS = {
+    "HN": "https://resultadosgenerales2025.cne.hn",
+    "GT": "https://resultados.tse.org.gt",
+    "SV": "https://resultados.tse.gob.sv",
+    "NI": "https://resultados.cse.gob.ni",
+    "MX": "https://prep2024.ine.mx",
+    "CO": "https://resultados.registraduria.gov.co",
+}
+
 # ── Terminal helpers ──────────────────────────────────────────────────────────
 
 BOLD = "\033[1m"
@@ -223,10 +240,24 @@ def _generate_seed1() -> None:
 
 
 def main() -> None:
+    inner = 60  # visible characters between ║ borders
+    def _banner_line(text: str = "") -> None:
+        pad = inner - len(text)
+        left = pad // 2
+        right = pad - left
+        print(_c(CYAN, "║") + " " * left + text + " " * right + _c(CYAN, "║"))
+
     print()
-    print(_c(BOLD, "=" * 62))
-    print(_c(BOLD, "  CENTINEL ENGINE — Asistente de Configuración / Setup Wizard"))
-    print(_c(BOLD, "=" * 62))
+    print(_c(CYAN, "╔" + "═" * inner + "╗"))
+    _banner_line()
+    _banner_line("CENTINEL")
+    _banner_line("Trustless Electoral Integrity Verification")
+    _banner_line("Latin America")
+    _banner_line()
+    _banner_line("Auditoría electoral independiente, reproducible y")
+    _banner_line("verificable por cualquier tercero — costo cero.")
+    _banner_line()
+    print(_c(CYAN, "╚" + "═" * inner + "╝"))
     print()
     print("  Configuración interactiva en ~3 minutos.")
     print("  Interactive setup in ~3 minutes.")
@@ -253,22 +284,6 @@ def main() -> None:
     print("  Select the country. The wizard will load the correct endpoints and divisions.")
     print()
 
-    _COUNTRY_LABELS = {
-        "HN": "Honduras        (CNE — production-ready)",
-        "GT": "Guatemala       (TSE — configured)",
-        "SV": "El Salvador     (TSE — configured)",
-        "NI": "Nicaragua       (CSE — configured)",
-        "MX": "Mexico          (INE — configured)",
-        "CO": "Colombia        (Registraduría — configured)",
-    }
-    _DEFAULT_URLS = {
-        "HN": "https://resultadosgenerales2025.cne.hn",
-        "GT": "https://resultados.tse.org.gt",
-        "SV": "https://resultados.tse.gob.sv",
-        "NI": "https://resultados.cse.gob.ni",
-        "MX": "https://prep2024.ine.mx",
-        "CO": "https://resultados.registraduria.gov.co",
-    }
     for code, label in _COUNTRY_LABELS.items():
         marker = _c(GREEN, "◉") if code == env.get("CENTINEL_COUNTRY", "HN") else "○"
         print(f"    {marker}  {code}  {label}")
@@ -401,9 +416,17 @@ def main() -> None:
     # OTS — default ON (free, no registration, no API key needed)
     ots_raw = env.get("OTS_ENABLED", "true").lower()
     ots_on = ots_raw in ("true", "1", "yes")
-    print("  OpenTimestamps ancla cada snapshot al blockchain de Bitcoin — gratis, sin registro.")
-    print("  OpenTimestamps anchors each snapshot to the Bitcoin blockchain — free, no sign-up.")
-    print("  En una swarm, si un nodo ya tiene el .ots, los demás lo reutilizan.")
+    print("  OpenTimestamps (OTS) — Anclaje a Bitcoin")
+    print("  " + "─" * 42)
+    print("  Cada snapshot queda sellado en el blockchain de Bitcoin.")
+    print("  Sin costo. Sin cuenta. Sin API key.")
+    print()
+    print("  Resultado: prueba criptográfica independiente de que los datos")
+    print("  existían en ese momento exacto — imposible de falsificar.")
+    print()
+    print(f"  {_c(GREEN, '✓')} Activado por defecto  "
+          f"{_c(GREEN, '✓')} Gratis para siempre  "
+          f"{_c(GREEN, '✓')} Descentralizado")
     print()
     if _ask_yn("¿Activar anclaje Bitcoin/OpenTimestamps?", default=True):
         env["OTS_ENABLED"] = "true"
@@ -417,6 +440,29 @@ def main() -> None:
     else:
         env["OTS_ENABLED"] = "false"
         _note("OpenTimestamps desactivado — los snapshots no tendrán anclaje temporal externo.")
+    ots_mode = env.get("OTS_NETWORK", "mainnet")
+
+    # Backup encryption key (optional but strongly recommended)
+    print()
+    print("  Clave de backup cifrado (recomendado)")
+    print("  " + "─" * 38)
+    print("  Cifra tus snapshots para recuperación ante desastres.")
+    print("  Si no la configuras ahora, puedes añadirla luego en .env.")
+    print()
+    backup_key = env.get("CENTINEL_BACKUP_KEY", "")
+    if not backup_key:
+        if _ask_yn("¿Generar clave de backup automáticamente?", default=True):
+            backup_key = secrets.token_urlsafe(32)
+            print()
+            print(_c(BOLD, "  ⚠  COPIA ESTO EN UN LUGAR SEGURO (no se guarda en el repo):"))
+            print(f"  CENTINEL_BACKUP_KEY={_c(CYAN, backup_key)}")
+            print()
+            env["CENTINEL_BACKUP_KEY"] = backup_key
+            _ok("CENTINEL_BACKUP_KEY generada y guardada en .env")
+        else:
+            _note("Backup key omitida — configura CENTINEL_BACKUP_KEY en .env antes de producción.")
+    else:
+        _ok("CENTINEL_BACKUP_KEY ya configurada")
 
     # ── PASO 7: Seed 1 (admin passwords) ─────────────────────────────────────
     _header("PASO 7 / STEP 7: Accesos de administrador (Seed 1)")
@@ -440,6 +486,23 @@ def main() -> None:
     _ok(f".env guardado / saved: {ENV_FILE.relative_to(REPO_ROOT)}")
 
     # ── Resumen y próximos pasos ──────────────────────────────────────────────
+    country_label = _COUNTRY_LABELS.get(new_country, new_country)
+    has_backup = bool(env.get("CENTINEL_BACKUP_KEY", ""))
+    seeds_status = "✓ generadas" if ACCESS_JSON.exists() else "— omitidas"
+
+    print()
+    print(_c(BOLD, "─" * 62))
+    print(_c(BOLD, "  Configuración guardada / Configuration saved"))
+    print(_c(BOLD, "─" * 62))
+    print(f"  País          {_c(CYAN, new_country)}  {country_label.strip()}")
+    print(f"  Endpoint      {_c(CYAN, new_url)}")
+    print(f"  Modo          {_c(CYAN, new_mode)}")
+    print(f"  Intervalo     {_c(CYAN, new_interval + 's')}")
+    ots_display = f"✓ {ots_mode}" if env.get('OTS_ENABLED') == 'true' else "— desactivado"
+    print(f"  OpenTimestamps {_c(GREEN if env.get('OTS_ENABLED') == 'true' else YELLOW, ots_display)}")
+    print(f"  Backup key    {_c(GREEN, '✓ configurada') if has_backup else _c(YELLOW, '— omitida')}")
+    print(f"  Seeds S1      {_c(GREEN, seeds_status)}")
+    print(_c(BOLD, "─" * 62))
     print()
     print(_c(BOLD, "=" * 62))
     print(_c(BOLD, "  PRÓXIMOS PASOS / NEXT STEPS"))
@@ -462,6 +525,9 @@ def main() -> None:
     print()
     print(f"  {_c(CYAN, 'centinel doctor')} → Verificar que todo está listo")
     print( "                    Verify everything is ready (GO/NO-GO)")
+    print()
+    print(_c(GREEN, "  CENTINEL está listo. Tu instancia es completamente independiente"))
+    print(_c(GREEN, "  de cualquier autoridad electoral o institución."))
     print()
     print(_c(GREEN, "  Configuración completada / Configuration complete."))
     print()

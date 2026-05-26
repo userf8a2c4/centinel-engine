@@ -1,5 +1,9 @@
 # Security
 
+> **Audience:** Security auditors, bug bounty researchers, penetration testers, operators  
+> **Start here:** [SECURITY-REVIEW.md](SECURITY-REVIEW.md) — full threat model and cryptographic audit  
+> *~14 documents · Est. 20 min (SECURITY-REVIEW.md) · 2 hr (full section)*
+
 Cryptographic design, threat models, incident response, and hardening guides.
 
 | Document | Description |

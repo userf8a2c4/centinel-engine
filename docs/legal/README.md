@@ -1,5 +1,9 @@
 # Legal & Governance
 
+> **Audience:** Legal counsel, compliance officers, institutional partners, grant program officers  
+> **Start here:** [LEGAL-AND-OPERATIONAL-BOUNDARIES.md](LEGAL-AND-OPERATIONAL-BOUNDARIES.md) — scope and legal limits  
+> *~5 documents · Est. 15 min (boundaries doc) · 45 min (full section)*
+
 Governance framework, operational boundaries, and compliance.
 
 | Document | Description |

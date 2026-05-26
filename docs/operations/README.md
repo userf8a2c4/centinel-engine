@@ -1,5 +1,9 @@
 # Operations
 
+> **Audience:** Field operators, DevOps, system administrators, forkers  
+> **Start here:** [SETUP-GUIDE.md](SETUP-GUIDE.md) — full deployment guide (or use the wizard)  
+> *~17 documents · Est. 10 min (SETUP-GUIDE.md) · 2 hr (full section)*
+
 Deployment, configuration, monitoring, and operational runbooks.
 
 | Document | Description |

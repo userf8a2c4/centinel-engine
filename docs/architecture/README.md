@@ -1,5 +1,9 @@
 # Architecture
 
+> **Audience:** Technical reviewers, security auditors, academic validators, grant evaluators  
+> **Start here:** [ARCHITECTURE.md](ARCHITECTURE.md) — core design and formal theorems T1–T4  
+> *~9 documents · Est. 15 min (ARCHITECTURE.md) · 90 min (full section)*
+
 System design, theoretical foundations, and defense mechanisms.
 
 | Document | Description |

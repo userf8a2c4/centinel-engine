@@ -1,5 +1,9 @@
 # Guides
 
+> **Audience:** New operators, contributors, academic partners  
+> **Start here:** [QUICKSTART.md](QUICKSTART.md) — up and running in 3 minutes  
+> *~4 documents · Est. 3 min (QUICKSTART.md) · 30 min (full section)*
+
 Getting started, contributing, and academic access guides.
 
 | Document | Description |

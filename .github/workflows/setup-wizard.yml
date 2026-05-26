@@ -478,8 +478,8 @@ PYEOF
           sed -i "s|<!-- CENTINEL_PAGES_URL -->.*<!-- /CENTINEL_PAGES_URL -->|<!-- CENTINEL_PAGES_URL -->${PAGES_LINK}<!-- /CENTINEL_PAGES_URL -->|" README.md
 
           # In forks: update CI badge + replace INSTANCE-STATUS with live status
-          ORIGINAL_OWNER="userf8a2c4"
-          ORIGINAL_REPO="centinel-engine"
+          ORIGINAL_OWNER="vectisdev"
+          ORIGINAL_REPO="centinel"
           if [ "$REPO_OWNER" != "$ORIGINAL_OWNER" ] || [ "$REPO_NAME" != "$ORIGINAL_REPO" ]; then
             sed -i "s|github.com/${ORIGINAL_OWNER}/${ORIGINAL_REPO}/actions|github.com/${REPO_OWNER}/${REPO_NAME}/actions|g" README.md
             python3 - "$REPO_OWNER" "$REPO_NAME" <<'PYEOF'

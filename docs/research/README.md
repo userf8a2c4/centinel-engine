@@ -1,5 +1,9 @@
 # Research
 
+> **Audience:** Academic researchers, statisticians, election integrity experts, grant reviewers  
+> **Start here:** [METHODOLOGY.md](METHODOLOGY.md) — 25+ statistical detectors, academic foundation  
+> *~8 documents · Est. 20 min (METHODOLOGY.md) · 90 min (full section)*
+
 Academic methodology, detection rules, data formats, and forensic analysis.
 
 | Document | Description |

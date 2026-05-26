@@ -1,10 +1,14 @@
+<p align="center">
+  <img src="web/assets/logo.svg" alt="CENTINEL — Trustless Electoral Integrity" width="700">
+</p>
+
 # CENTINEL
 ### Trustless Electoral Integrity Verification — Latin America
 *Verificación Confiable de Integridad Electoral — América Latina*
 
 ---
 
-[![CI](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/userf8a2c4/centinel-engine/actions/workflows/ci.yml)
+[![CI](https://github.com/vectisdev/centinel/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/vectisdev/centinel/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-2b6cb0.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-2b6cb0.svg)](pyproject.toml)
 [![Tests](https://img.shields.io/badge/tests-526%20passing-2f855a.svg)](#validation-status)
@@ -12,9 +16,14 @@
 [![Zero Cost](https://img.shields.io/badge/deployment-zero%20cost-2f855a.svg)](#design-principles)
 [![LATAM](https://img.shields.io/badge/countries-HN%20%7C%20GT%20%7C%20SV%20%7C%20NI%20%7C%20MX%20%7C%20CO-orange.svg)](#supported-countries)
 
-**Independent, reproducible election auditing without institutional dependency, dedicated infrastructure, or operating cost.**
+---
 
-A single operator can audit a national election from a laptop — capturing, cryptographically chaining, and publishing verifiable snapshots of electoral authority data, with every step independently reproducible by any third party.
+> Electoral authorities publish results that citizens must accept on trust.  
+> **CENTINEL eliminates that required trust** — permanently, cryptographically, at zero cost.
+
+A single operator can audit a national election from a laptop.  
+Every capture is chained, signed, and anchored to Bitcoin's blockchain.  
+Any third party can verify — offline, independently, without your cooperation.
 
 > *Auditoría electoral independiente y reproducible, sin dependencia institucional, sin infraestructura dedicada y sin coste operativo. Un solo operador puede auditar una elección nacional desde un portátil.*
 
@@ -24,7 +33,7 @@ A single operator can audit a national election from a laptop — capturing, cry
 
 ## Deploy in 3 steps — nothing to install
 
-[![Step 1 — Fork this repo](https://img.shields.io/badge/STEP%201%20→%20Fork%20this%20repository-2b6cb0?style=for-the-badge&logo=github&logoColor=white)](https://github.com/userf8a2c4/centinel-engine/fork)
+[![Step 1 — Fork this repo](https://img.shields.io/badge/STEP%201%20→%20Fork%20this%20repository-2b6cb0?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vectisdev/centinel/fork)
 
 > Click above. GitHub creates **your own independent, private copy** of the tool in your account.
 
@@ -45,6 +54,9 @@ Go to the **[Actions](../../actions)** tab of **your fork** and click:
 
 The wizard auto-configures everything: data repository, electoral authority endpoints, cryptographic seeds, and the visualization dashboard. Follow the Issue it opens for any remaining manual step.
 
+**What you get after setup:**  
+→ Captures every 30 min · Cryptographic hash chain · Bitcoin-anchored proof · Public verification dashboard · P2P swarm-ready
+
 <details>
 <summary>Panel not showing after setup?</summary>
 
@@ -54,6 +66,21 @@ It will be available on the next push to `main`.
 </details>
 
 <!-- INSTANCE-STATUS-END -->
+
+---
+
+## Why CENTINEL?
+
+| | Traditional NGO Observer | CENTINEL |
+|--|--------------------------|----------|
+| **Cost** | $10K – $500K per election | **Zero** — GitHub Actions free tier |
+| **Independence** | Requires access, funding, accreditation | **Complete** — no permission needed |
+| **Verifiability** | Reports and statements | **Cryptographic proof** — anyone can verify offline |
+| **Scale** | Team of observers, weeks of planning | **1 operator, 1 laptop, 3-step setup** |
+| **Real-time** | Post-election reports | **Continuous capture during the event** |
+| **Censorship resistance** | Single organization = single point to pressure | **P2P swarm — no center to seize or bribe** |
+| **Temporal proof** | None | **Bitcoin-anchored** via OpenTimestamps |
+| **Replicability** | Closed methodology | **Every step reproducible by any third party** |
 
 ---
 
@@ -84,6 +111,8 @@ Electoral authorities publish results that citizens must accept on trust. CENTIN
 | **Temporal immutability** | Bitcoin anchoring via OpenTimestamps — zero cost |
 | **Neutrality** | Reports verifiable facts only — no political interpretation |
 | **Ethical scraping** | Token-bucket rate limiting + jitter + gossip-first swarm design — the full swarm behaves as at most one visitor to the audited site |
+
+> **Anti-DDoS by design:** If a node receives a cryptographically-signed snapshot from a peer, it skips the scrape entirely. The entire witness swarm never exceeds the footprint of a single polite visitor — your infrastructure cannot cause harm to the audited site.
 
 ---
 
@@ -159,8 +188,9 @@ CENTINEL applies defense in depth: each layer mitigates a distinct class of thre
 | Test suite | 526 / 526 passing |
 | Independent academic validation | In progress (UPNFM, Honduras) |
 | Field pilot | Completed — Honduras 2025 general election data |
+| False positive analysis | 500-run validation — [results published](docs/research/FALSE_POSITIVE_ANALYSIS.md) |
 
-Version **0.1 — pre-pilot.** Cryptographic core stable; pending formal independent academic review.
+Version **0.1 — pre-pilot.** Cryptographic core stable; pending formal independent academic review (UPNFM, Universidad Pedagógica Nacional Francisco Morazán).
 
 ---
 
@@ -204,6 +234,8 @@ CENTINEL is designed for zero operating cost, maximum verifiability, and AGPL-3.
 
 **Suitable for:** Gitcoin · Open Society Foundations · NDI / IRI · OAS · NSF · Immunefi security bounties
 
+→ [Full grants documentation](docs/grants/)
+
 ---
 
 ## License
@@ -212,7 +244,7 @@ CENTINEL is designed for zero operating cost, maximum verifiability, and AGPL-3.
 
 ---
 
-**CENTINEL** · Electoral auditing as a citizen right, not an institutional privilege · `userf8a2c4`
+**CENTINEL** · Electoral auditing as a citizen right, not an institutional privilege · `vectisdev`
 
 <!-- FORK-GUIDE-START -->
 ---
