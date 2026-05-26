@@ -498,7 +498,13 @@ def _update_env_file(path: Path, updates: dict[str, str]) -> None:
     for key, value in remaining.items():
         updated_lines.append(f"{key}={value}")
 
-    path.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
+    content = "\n".join(updated_lines) + "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(content, encoding="utf-8")
+    os.chmod(tmp_path, 0o600)
+    os.replace(tmp_path, path)
+    os.chmod(path, 0o600)
 
 
 def command_rotate_keys(runtime: RuntimeConfig, logger: logging.Logger) -> None:
