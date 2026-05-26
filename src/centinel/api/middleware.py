@@ -192,11 +192,12 @@ def _parse_networks(
     nets: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
     if not raw_list:
         return nets
-    for entry in raw_list:
+    for idx, entry in enumerate(raw_list):
+        candidate = entry.strip()
         try:
-            nets.append(ipaddress.ip_network(entry.strip(), strict=False))
+            nets.append(ipaddress.ip_network(candidate, strict=False))
         except ValueError:
-            logger.warning("%s entry=%s", log_key, entry)
+            logger.warning("%s invalid_entry_index=%d entry_len=%d", log_key, idx, len(candidate))
     return nets
 
 
