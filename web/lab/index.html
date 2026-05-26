@@ -390,7 +390,7 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
   background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.45);
   border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:8px;
   font-size:11px;color:#d4af37;pointer-events:none;backdrop-filter:blur(4px);line-height:1.3}
-.lab-wm-icon{font-size:18px}
+.lab-wm-icon{display:flex;align-items:center}
 .lab-env-pill{background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.4);
   color:#d4af37;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;
   letter-spacing:.05em;flex-shrink:0}
@@ -481,14 +481,14 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
   <a href="../">CENTINEL</a>
   <span class="sep">/</span>
   <span>Simulación Forense Académica</span>
-  <span class="lab-env-pill">⚗ LABORATORIO</span>
+  <span class="lab-env-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M9 3h6"/><path d="M9 3v7l-4.5 7.5A2 2 0 0 0 6 20h12a2 2 0 0 0 1.72-3L15 10V3"/><line x1="6.5" y1="15" x2="17.5" y2="15"/></svg>LABORATORIO</span>
   <div id="dl-btn">
-    <button class="dl-pill" onclick="downloadFullPNG()">↓ PNG</button>
-    <button class="dl-pill" onclick="downloadPDF()">↓ PDF</button>
-    <button class="dl-pill acad-pill" onclick="openCitationModal()" title="Citar en APA / BibTeX / ISO">📚 Citar</button>
-    <button class="dl-pill acad-pill" onclick="downloadReproZip()" title="Descargar paquete reproducible ZIP">⬇ ZIP</button>
-    <button class="dl-pill acad-pill" onclick="openMethodologySidebar()" title="Metodología y referencias">📖</button>
-    <button class="dl-pill" onclick="openSettings()" title="Configuración" style="font-size:14px;padding:3px 9px">⚙</button>
+    <button class="dl-pill" onclick="downloadFullPNG()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/></svg>PNG</button>
+    <button class="dl-pill" onclick="downloadPDF()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/></svg>PDF</button>
+    <button class="dl-pill acad-pill" onclick="openCitationModal()" title="Citar en APA / BibTeX / ISO"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Citar</button>
+    <button class="dl-pill acad-pill" onclick="downloadReproZip()" title="Descargar paquete reproducible ZIP"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>ZIP</button>
+    <button class="dl-pill acad-pill" onclick="openMethodologySidebar()" title="Metodología y referencias"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></button>
+    <button class="dl-pill" onclick="openSettings()" title="Configuración" style="padding:3px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </div>
 </div>
 
@@ -511,18 +511,17 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
   </select>
 
   <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
-  <button class="dl-pill" onclick="openBuilder()" title="Construir dataset personalizado">🔧 Construir</button>
-  <button class="dl-pill" onclick="saveLabSession()" title="Guardar configuración completa de esta sesión">💾 Sesión</button>
-  <label class="dl-pill" style="cursor:pointer;margin:0" title="Cargar sesión guardada">
-    📂 Cargar
+  <button class="dl-pill" onclick="openBuilder()" title="Construir dataset personalizado"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Construir</button>
+  <button class="dl-pill" onclick="saveLabSession()" title="Guardar configuración completa de esta sesión"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>Sesión</button>
+  <label class="dl-pill" style="cursor:pointer;margin:0" title="Cargar sesión guardada"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Cargar
     <input type="file" accept=".json" style="display:none" onchange="loadLabSession(this)">
   </label>
 
   <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
 
-  <button class="sim-transport-btn" id="btn-play" onclick="simToggle()" title="Play / Pausa">▶</button>
-  <button class="sim-transport-btn" onclick="simStop()" title="Stop">⏹</button>
-  <button class="sim-transport-btn" id="btn-loop" onclick="toggleLoop()" title="Loop">⟳</button>
+  <button class="sim-transport-btn" id="btn-play" onclick="simToggle()" title="Play / Pausa"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+  <button class="sim-transport-btn" onclick="simStop()" title="Stop"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></button>
+  <button class="sim-transport-btn" id="btn-loop" onclick="toggleLoop()" title="Loop"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
 
   <div class="speed-group" id="speed-group">
     <button class="speed-pill on" data-s="1"   onclick="setSpeed(1)">1×</button>
@@ -586,7 +585,7 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
 </div>
 
 <!-- ══ SECTION 2 — CHARTS ════════════════════════════════════════════════════ -->
-<div class="section-title">Panel de Visualización Forense<button class="section-dl" onclick="downloadPNG()">↓ PNG</button></div>
+<div class="section-title">Panel de Visualización Forense<button class="section-dl" onclick="downloadPNG()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/></svg>PNG</button></div>
 <div class="card" style="margin-bottom:14px">
   <canvas id="s-chart-cand" height="80"></canvas>
 </div>
@@ -625,7 +624,7 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
 </div>
 
 <!-- ══ SECTION 3 — THRESHOLDS ════════════════════════════════════════════════ -->
-<div class="section-title">Umbrales de Sensibilidad de Reglas<button class="section-dl" onclick="downloadUmbralesPNG()">↓ PNG</button></div>
+<div class="section-title">Umbrales de Sensibilidad de Reglas<button class="section-dl" onclick="downloadUmbralesPNG()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/></svg>PNG</button></div>
 <div class="thresh-lock-panel">
   <h4>Pre-registro de Hipótesis</h4>
   <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
@@ -643,7 +642,7 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
 </div>
 
 <!-- ══ SECTION 4 — INJECTION MATRIX ══════════════════════════════════════════ -->
-<div class="section-title">Matriz de Inyección de Eventos<button class="section-dl" onclick="downloadMatrizPNG()">↓ PNG</button></div>
+<div class="section-title">Matriz de Inyección de Eventos<button class="section-dl" onclick="downloadMatrizPNG()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/></svg>PNG</button></div>
 
 <div class="inj-mode-bar">
   <button class="inj-mode-btn on" id="btn-inj-instant" onclick="setInjMode('instant')">Inmediata</button>
@@ -685,7 +684,7 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
 </div>
 
 <!-- ══ SECTION 5 — DUAL TELEMETRY ════════════════════════════════════════════ -->
-<div class="section-title">Centro de Telemetría Dual<button class="section-dl" onclick="downloadTelemTxt('engine')">↓ Engine TXT</button><button class="section-dl" onclick="downloadTelemTxt('attack')">↓ Attack TXT</button></div>
+<div class="section-title">Centro de Telemetría Dual<button class="section-dl" onclick="downloadTelemTxt('engine')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/></svg>Engine TXT</button><button class="section-dl" onclick="downloadTelemTxt('attack')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/></svg>Attack TXT</button></div>
 <div class="telem-wrap">
   <div class="telem-panel">
     <h4>
@@ -706,9 +705,9 @@ code.inline{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--f
 <!-- ══ SECTION 6 — HERRAMIENTAS ACADÉMICAS ════════════════════════════════════ -->
 <div class="section-title" id="acad-section">
   Herramientas Académicas
-  <button class="section-dl" onclick="downloadCSV()">↓ CSV estadísticas</button>
-  <button class="section-dl" onclick="downloadBib()">↓ .bib</button>
-  <button class="section-dl" onclick="openMethodologySidebar()">📖 Metodología</button>
+  <button class="section-dl" onclick="downloadCSV()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/></svg>CSV estadísticas</button>
+  <button class="section-dl" onclick="downloadBib()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/></svg>.bib</button>
+  <button class="section-dl" onclick="openMethodologySidebar()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Metodología</button>
 </div>
 
 <div class="card">
@@ -3612,7 +3611,7 @@ function sendFeedback(){
 </div>
 <!-- ===== LAB WATERMARK BADGE ===== -->
 <div id="lab-watermark-badge">
-  <span class="lab-wm-icon">⚗</span>
+  <span class="lab-wm-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M9 3v7l-4.5 7.5A2 2 0 0 0 6 20h12a2 2 0 0 0 1.72-3L15 10V3"/><line x1="6.5" y1="15" x2="17.5" y2="15"/></svg></span>
   <span>LAB · SIMULACIÓN<br><small style="opacity:.7">Datos no oficiales</small></span>
 </div>
 </body>
