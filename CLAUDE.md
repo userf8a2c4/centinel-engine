@@ -5,7 +5,8 @@
 | Rama | Rol |
 |---|---|
 | `main` | Producción — merge sólo vía PR revisado |
-| `dev-v11` | Integración — rama dev más reciente |
+| `dev-v11` | Integración — rama dev anterior |
+| `dev-v12` | Integración — rama dev más reciente |
 
 Actualizar esta tabla cuando se cree una nueva rama `dev-vNN`.
 
@@ -16,7 +17,7 @@ Actualizar esta tabla cuando se cree una nueva rama `dev-vNN`.
 **Siempre que se cree un PR, crear DOS PRs simultáneos:**
 
 1. **PR → `main`** (base: `main`)
-2. **PR → rama dev más reciente** (base: `dev-v11` o la que esté activa)
+2. **PR → rama dev más reciente** (base: `dev-v12` o la que esté activa)
 
 Ambos PRs deben crearse en el mismo momento, con el mismo título y descripción.
 Nunca crear un PR que apunte sólo a uno de los dos targets.
@@ -26,7 +27,7 @@ Nunca crear un PR que apunte sólo a uno de los dos targets.
 ```
 feature-branch
     ├── PR #A  →  main
-    └── PR #B  →  dev-v11   (rama dev más reciente)
+    └── PR #B  →  dev-v12   (rama dev más reciente)
 ```
 
 Si la rama dev más reciente ya contiene los cambios (p.ej. via cherry-pick directo),
