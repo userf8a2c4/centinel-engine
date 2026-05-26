@@ -196,7 +196,7 @@ def _parse_networks(
         try:
             nets.append(ipaddress.ip_network(entry.strip(), strict=False))
         except ValueError:
-            logger.warning("%s entry=%s", log_key, entry)
+            logger.warning("%s entry=<redacted>", log_key)
     return nets
 
 

@@ -499,6 +499,7 @@ def _update_env_file(path: Path, updates: dict[str, str]) -> None:
         updated_lines.append(f"{key}={value}")
 
     path.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
+    path.chmod(0o600)
 
 
 def command_rotate_keys(runtime: RuntimeConfig, logger: logging.Logger) -> None:
@@ -683,12 +684,10 @@ def ensure_recent_proactive_scan(logger: logging.Logger, max_age_minutes: int = 
     logger.info("🩺 Ejecutando proactive endpoint scan previo a fetch/auditoría")
     result = healer.heal_proactive(force=True)
     logger.info(
-        "🧾 Proactive endpoint scan ejecutado: status=%s mode=%s interval=%s trusted=%s safe_mode=%s",
+        "🧾 Proactive endpoint scan ejecutado: status=%s mode=%s interval=%s",
         result.get("scan_status", "unknown"),
         result.get("animal_mode", "normal"),
         result.get("recommended_interval_minutes", "n/a"),
-        result.get("trusted_for_production", False),
-        result.get("safe_mode_active", False),
     )
     return result
 

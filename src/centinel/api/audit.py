@@ -159,11 +159,14 @@ def audit_chain_verify() -> Dict[str, Any]:
             "errors": [],
             "note": "snapshot_root_missing — no data captured yet",
         }
-    result = _cached(
-        "chain_verify",
-        _CACHE_TTL_SECONDS,
-        lambda: verify_hashchain_from_snapshots(snapshot_root),
-    )
+    try:
+        result = _cached(
+            "chain_verify",
+            _CACHE_TTL_SECONDS,
+            lambda: verify_hashchain_from_snapshots(snapshot_root),
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="chain_verify_failed")
     result = dict(result)
     result["snapshot_root"] = _redact_path(snapshot_root)
     if result.get("broken_at_path") is not None:
@@ -236,11 +239,14 @@ def audit_degradation(
     """
     from ..core.connectivity import read_degradation_log
 
-    log = _cached(
-        "degradation_log",
-        _CACHE_TTL_SECONDS,
-        lambda: read_degradation_log(),
-    )
+    try:
+        log = _cached(
+            "degradation_log",
+            _CACHE_TTL_SECONDS,
+            lambda: read_degradation_log(),
+        )
+    except Exception:
+        log = []
     if interference_only:
         log = [e for e in log if e.get("verdict", {}).get("is_interference_signal") is True]
     interference_count = sum(

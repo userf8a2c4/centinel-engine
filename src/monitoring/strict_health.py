@@ -649,7 +649,7 @@ async def _health_response() -> tuple[bool, dict[str, Any]]:
             "healthy": False,
             "timestamp": _now_utc().isoformat().replace("+00:00", "Z"),
             "failures": ["strict_healthcheck_exception"],
-            "checks": {"exception": {"ok": False, "message": str(exc)}},
+            "checks": {"exception": {"ok": False, "message": "internal_error"}},
         }
         _record_diagnostic(diagnostics)
         return False, diagnostics
