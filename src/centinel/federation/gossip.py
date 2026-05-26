@@ -344,7 +344,7 @@ def _bootstrap_from_mdns() -> list[str]:
         # mDNS multicast (RFC 6762) requires INADDR_ANY to receive packets from
         # peers on any local interface. Operators on multi-homed hosts can pin
         # to a specific iface via CENTINEL_MDNS_IFACE.
-        _mdns_iface = os.environ.get("CENTINEL_MDNS_IFACE", "0.0.0.0").strip() or "0.0.0.0"  # nosec B104
+        _mdns_iface = os.environ.get("CENTINEL_MDNS_IFACE", "0.0.0.0")  # nosec B104
         sock.bind((_mdns_iface, _MDNS_PORT))  # nosec B104
 
         # Send a simple discovery probe: the service name as UTF-8
