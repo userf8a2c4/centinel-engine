@@ -56,10 +56,10 @@ _MDNS_PORT = 5353
 _MDNS_TIMEOUT = 3.0
 _CENTINEL_MDNS_SERVICE = b"_centinel._tcp.local"
 
-_FAN_OUT = 2
+_FAN_OUT = 3
 _GOSSIP_VERSION = 1
 _FINDING_VERSION = 1
-_FINDING_RATE_LIMIT = 10       # max findings broadcast per minute per node
+_FINDING_RATE_LIMIT = 20       # max findings broadcast per minute per node
 _FINDING_RATE_WINDOW = 60.0    # sliding window in seconds
 _BROADCAST_SEVERITIES = {"HIGH", "CRITICAL"}
 _LRU_PUBKEY_CACHE_SIZE = 10_000
@@ -418,8 +418,8 @@ class GossipEngine:
         self,
         country_code: str,
         my_url: Optional[str] = None,
-        broadcast_interval: float = 60.0,
-        max_peers: int = 50,
+        broadcast_interval: float = 45.0,
+        max_peers: int = 100,
         anomaly_log: Optional[object] = None,
         attack_log: Optional[object] = None,
     ) -> None:
