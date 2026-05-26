@@ -82,6 +82,22 @@
   footer{color:var(--muted);font-size:12px;text-align:center;padding:32px;
     border-top:1px solid var(--border)}
   .step{color:var(--muted);font-size:12px;margin:2px 0}
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:600px){
+    .hwrap{padding:16px 14px}
+    main{padding:20px 14px}
+    header{padding:20px 14px 16px}
+  }
+  @media(max-width:480px){
+    .kv{grid-template-columns:1fr;gap:4px 0}
+    .kv>*:nth-child(odd){font-weight:600;color:var(--fg);font-size:12px;padding-bottom:2px;margin-top:10px}
+    .kv>*:first-child{margin-top:0}
+    .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .row{flex-wrap:wrap;gap:6px}
+    .row button,.row .sec{flex:1 1 auto;min-width:120px}
+    main{padding:16px 12px}
+  }
 </style>
 </head>
 <body>

@@ -316,10 +316,24 @@ body{background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;font-
   .grid4{grid-template-columns:1fr 1fr}.grid2,.grid3{grid-template-columns:1fr}
   .telem-wrap{grid-template-columns:1fr}
   .inj-grid{grid-template-columns:1fr}
+  .lab-dept-grid{grid-template-columns:repeat(6,1fr)}
+  #s-forensic-list{grid-template-columns:1fr}
+  .forensic-card:has(.forensic-body.open){grid-column:auto}
 }
 @media(max-width:600px){
   .grid4{grid-template-columns:1fr}
-  #sim-control-bar{gap:8px}
+  .lab-dept-grid{grid-template-columns:repeat(4,1fr)}
+  #sim-control-bar{gap:6px;flex-wrap:wrap;padding:8px 12px}
+  .dataset-select{width:100%;flex-shrink:0}
+  .bld-form-row{grid-template-columns:1fr!important}
+  #thresh-sliders-container{grid-template-columns:1fr!important}
+  .page{padding:12px 8px}
+  #inj-topbar{padding:5px 12px}
+  .kpi-val{font-size:18px}
+}
+@media(max-width:420px){
+  .lab-dept-grid{grid-template-columns:repeat(3,1fr)}
+  .grid4{grid-template-columns:1fr}
 }
 /* ── ACADEMIC TOOLS ── */
 .acad-session-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}

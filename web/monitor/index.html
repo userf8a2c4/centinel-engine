@@ -131,6 +131,29 @@ footer a{color:var(--accent);text-decoration:none}
 .merkle-box{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:inline-flex;align-items:center;gap:12px;margin:12px auto;font-family:var(--mono);font-size:12px}
 .copy-btn{background:var(--border);border:none;color:var(--fg);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;transition:.15s}
 .copy-btn:hover{background:#2e3238}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  #statusbar{padding:8px 14px;gap:8px}
+  #status-row{padding:10px 14px;gap:8px}
+  .status-card{min-width:120px;padding:8px 12px}
+  main{padding:16px 12px}
+  .card{padding:16px 14px}
+  .kpi-val{font-size:28px}
+}
+@media(max-width:480px){
+  #last-update{display:none}
+  .status-card{min-width:0;flex:1 1 calc(50% - 6px)}
+  main{padding:12px 8px;gap:14px}
+  .card{padding:14px 12px}
+  .kpi-val{font-size:22px}
+  #ep-card-grid{grid-template-columns:1fr}
+  #customize-drawer{width:min(260px,92vw)}
+  #map-side{width:min(320px,100vw)}
+  .cand-name{width:80px}
+  .tbl{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  #breadcrumb{padding:6px 12px}
+}
 </style>
 </head>
 <body>
