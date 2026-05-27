@@ -425,6 +425,33 @@ details .details-body{padding:12px 0 4px}
           <button onclick="discardEdits()" style="background:transparent;border:1px solid var(--border);color:var(--fg);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:4px">Descartar</button>
         </div>
 
+        <!-- País monitoreado -->
+        <div class="ctrl-section" id="country-section">
+          <h3>País monitoreado</h3>
+          <div class="info-box">El país determina los endpoints del CNE, los departamentos y el idioma de los reportes. Cambiar aquí actualiza <code>.centinel-setup.json</code> y <code>config/prod/config.yaml</code> sin regenerar seeds.</div>
+          <div class="ctrl-row" style="align-items:center">
+            <label>País activo</label>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <span id="country-current-flag" style="font-size:24px;line-height:1">🌎</span>
+              <span id="country-current-name" style="font-weight:600;font-size:15px">—</span>
+              <span id="country-current-auth" style="font-size:12px;color:var(--muted)"></span>
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <label>Cambiar país</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="country-select" style="min-width:240px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--fg);font-size:13px">
+                <option value="">Cargando países…</option>
+              </select>
+              <button class="hdr-btn primary" id="btn-change-country" onclick="doChangeCountry()">Aplicar</button>
+            </div>
+          </div>
+          <div id="country-change-result" style="margin-top:10px;font-size:13px;display:none;padding:8px 12px;border-radius:6px"></div>
+          <div id="country-swarm-warn" style="display:none;margin-top:8px;padding:8px 12px;border-radius:6px;font-size:12px;color:var(--warn);background:rgba(212,176,102,.08);border:1px solid rgba(212,176,102,.25)">
+            ⚠ El swarm está conectado con el país anterior. Ve a §8 Red de Nodos → Desconectar y vuelve a conectar para que use el nuevo país.
+          </div>
+        </div>
+
         <!-- EASY MODE -->
         <div id="easy-mode">
           <div class="ctrl-section">
@@ -1027,11 +1054,40 @@ details .details-body{padding:12px 0 4px}
                   <th style="padding:6px 10px">Snapshots</th>
                   <th style="padding:6px 10px">Merkle Root</th>
                   <th style="padding:6px 10px">Sincronía</th>
+                  <th style="padding:6px 10px">Especialización</th>
                   <th style="padding:6px 10px">Timestamp</th>
                 </tr>
               </thead>
               <tbody id="swarm-peers-tbody"></tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- ── Consenso multi-nodo de hallazgos ── -->
+        <div class="ctrl-section" id="swarm-consensus-findings-section">
+          <h3>Hallazgos con Consenso Multi-Nodo</h3>
+          <p style="font-size:12px;color:var(--muted);margin:6px 0 12px">
+            Anomalías detectadas de forma independiente por ≥2 nodos distintos del enjambre.
+            Fondo ámbar = 2–4 nodos · Fondo rojo = 5+ nodos.
+          </p>
+          <div id="swarm-consensus-findings-wrap">
+            <div style="font-size:12px;color:var(--muted);font-style:italic" id="swarm-consensus-empty">
+              Sin hallazgos con consenso multi-nodo aún.
+            </div>
+            <div style="overflow-x:auto;display:none" id="swarm-consensus-table-wrap">
+              <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                  <tr style="color:var(--muted);text-align:left;border-bottom:1px solid var(--border)">
+                    <th style="padding:6px 10px">Regla</th>
+                    <th style="padding:6px 10px">Snapshot</th>
+                    <th style="padding:6px 10px">Nodos</th>
+                    <th style="padding:6px 10px">Severidad</th>
+                    <th style="padding:6px 10px">Último hallazgo</th>
+                  </tr>
+                </thead>
+                <tbody id="swarm-consensus-tbody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1342,10 +1398,12 @@ function showAdminShell(){
 // INIT
 // ══════════════════════════════════════════════════════════
 async function initAll(){
-  buildSensorCards();
+  // Wrap each synchronous call so a transient error can't abort the whole
+  // init chain and leave later sections (like §2 dept grid) unrendered.
+  try { buildSensorCards(); } catch(e){ console.warn('buildSensorCards',e); }
   await loadDepartments();
-  buildDeptGrid();
-  buildPresetsGrid();
+  try { buildDeptGrid(); }    catch(e){ console.warn('buildDeptGrid',e); }
+  try { buildPresetsGrid(); } catch(e){ console.warn('buildPresetsGrid',e); }
   await Promise.all([
     loadSnapshot(),
     loadConfig(),
@@ -1354,6 +1412,7 @@ async function initAll(){
   fetchAttackLog();
   loadOtsStatus();
   loadSeedStatus();
+  loadCountrySelector();
   loadSwarmStatus();
   loadElectionStatus();
 }
@@ -1636,6 +1695,13 @@ function buildDeptGrid(){
   const grid = document.getElementById('dept-ep-grid');
   if(!grid) return;
   grid.innerHTML = '';
+
+  // Defensive: DEPTS should always have entries (fallback list guarantees it)
+  if(!DEPTS || DEPTS.length === 0){
+    grid.innerHTML = '<div style="grid-column:1/-1;font-size:12px;color:var(--muted);padding:12px 0">Cargando departamentos…</div>';
+    return;
+  }
+
   // NACIONAL card first
   const natCard = document.createElement('div');
   natCard.className = 'dep-card dep-national';
@@ -2465,6 +2531,107 @@ function relTime(ts){
 
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 
+// ── §3 País monitoreado ────────────────────────────────────────────────────
+async function loadCountrySelector() {
+  const sel   = document.getElementById('country-select');
+  const flag  = document.getElementById('country-current-flag');
+  const name  = document.getElementById('country-current-name');
+  const auth  = document.getElementById('country-current-auth');
+  if (!sel) return;
+
+  let currentCode = '';
+  try {
+    const s = await fetch((window.CENTINEL_API_BASE||'') + '/api/setup/status');
+    if (s.ok) {
+      const d = await s.json();
+      currentCode = d.country_code || '';
+      if (d.country_name && name) name.textContent = d.country_name;
+    }
+  } catch(_) {}
+
+  try {
+    const r = await fetch((window.CENTINEL_API_BASE||'') + '/api/setup/countries');
+    if (!r.ok) return;
+    const countries = await r.json();
+    sel.innerHTML = countries.map(c =>
+      `<option value="${c.code}"${c.code === currentCode ? ' selected' : ''}>${c.flag} ${c.name} — ${c.authority}</option>`
+    ).join('');
+    const cur = countries.find(c => c.code === currentCode);
+    if (cur) {
+      if (flag) flag.textContent = cur.flag;
+      if (name) name.textContent = cur.name;
+      if (auth) auth.textContent = cur.authority;
+    }
+  } catch(_) {}
+}
+
+async function doChangeCountry() {
+  const sel = document.getElementById('country-select');
+  const btn = document.getElementById('btn-change-country');
+  const res = document.getElementById('country-change-result');
+  const swWarn = document.getElementById('country-swarm-warn');
+  if (!sel || !sel.value) return;
+  const code = sel.value;
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Aplicando…'; }
+  if (res) res.style.display = 'none';
+
+  try {
+    const r = await fetch((window.CENTINEL_API_BASE||'') + '/api/setup/change_country', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({country_code: code}),
+    });
+    const d = await r.json();
+
+    if (r.ok && d.success) {
+      const flag = document.getElementById('country-current-flag');
+      const name = document.getElementById('country-current-name');
+      const auth = document.getElementById('country-current-auth');
+      if (flag) flag.textContent = d.flag;
+      if (name) name.textContent = d.country_name;
+      if (auth) auth.textContent = d.authority;
+
+      if (res) {
+        res.style.display = '';
+        res.style.background = 'rgba(87,192,141,.08)';
+        res.style.border = '1px solid rgba(87,192,141,.25)';
+        res.style.color = 'var(--ok)';
+        res.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><polyline points="20 6 9 17 4 12"/></svg> País cambiado a ${d.flag} <strong>${d.country_name}</strong> — ${d.authority}`;
+      }
+
+      // Warn if swarm is currently running with the old country
+      if (swWarn) {
+        try {
+          const sw = await fetch((window.CENTINEL_API_BASE||'') + '/api/swarm/status');
+          const sd = sw.ok ? await sw.json() : {running: false};
+          swWarn.style.display = (sd.running || sd.connected_peers > 0) ? '' : 'none';
+        } catch(_) { swWarn.style.display = 'none'; }
+      }
+
+      loadSeedStatus();  // refresh §7 country display
+    } else {
+      if (res) {
+        res.style.display = '';
+        res.style.background = 'rgba(220,50,47,.08)';
+        res.style.border = '1px solid rgba(220,50,47,.25)';
+        res.style.color = 'var(--alert)';
+        res.textContent = d.detail || 'Error al cambiar país.';
+      }
+    }
+  } catch(e) {
+    if (res) {
+      res.style.display = '';
+      res.style.background = 'rgba(220,50,47,.08)';
+      res.style.border = '1px solid rgba(220,50,47,.25)';
+      res.style.color = 'var(--alert)';
+      res.textContent = 'Error de red: ' + e.message;
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Aplicar'; }
+  }
+}
+
 // ── §7 Acceso y Seeds ──────────────────────────────────────────────────────
 async function loadSeedStatus() {
   const el = document.getElementById('seed-status');
@@ -2660,16 +2827,57 @@ function _renderSwarmStatus(s) {
       const ts = p.timestamp_utc ? relTime(p.timestamp_utc) : '—';
       const flagMap = {HN:'🇭🇳',GT:'🇬🇹',SV:'🇸🇻',NI:'🇳🇮',CR:'🇨🇷',PA:'🇵🇦',MX:'🇲🇽',CO:'🇨🇴',VE:'🇻🇪',PE:'🇵🇪',EC:'🇪🇨',BO:'🇧🇴',PY:'🇵🇾',UY:'🇺🇾',AR:'🇦🇷',CL:'🇨🇱',BR:'🇧🇷',DO:'🇩🇴',CU:'🇨🇺',PR:'🇵🇷'};
       const flag = flagMap[p.country_code] || '🌎';
+      const specIcons = {temporal:'⏱', statistical:'📊', structural:'🔗', general:'⚙️'};
+      const specLabel = p.specialization || 'general';
+      const specBadge = `<span style="font-size:11px;opacity:.8">${specIcons[specLabel]||'⚙️'} ${specLabel}</span>`;
       return `<tr style="border-bottom:1px solid var(--border)">
         <td style="padding:7px 10px;font-family:var(--mono);font-size:11px">${p.node_id}</td>
         <td style="padding:7px 10px">${flag} ${p.country_code}</td>
         <td style="padding:7px 10px">${p.chain_length ?? '—'}</td>
         <td style="padding:7px 10px;font-family:var(--mono);font-size:11px">${(p.merkle_root||'').slice(0,12)}…</td>
         <td style="padding:7px 10px">${syncBadge}</td>
+        <td style="padding:7px 10px">${specBadge}</td>
         <td style="padding:7px 10px;color:var(--muted)">${ts}</td>
       </tr>`;
     }).join('');
   }
+
+  // Load consensus findings (works even without swarm running)
+  loadSwarmConsensus();
+}
+
+async function loadSwarmConsensus() {
+  try {
+    const r = await fetch((window.CENTINEL_API_BASE||'') + '/api/swarm/consensus_findings?min_nodes=1&limit=20');
+    if (!r.ok) return;
+    const d = await r.json();
+    const items = d.consensus || [];
+    const empty = document.getElementById('swarm-consensus-empty');
+    const tableWrap = document.getElementById('swarm-consensus-table-wrap');
+    const tbody = document.getElementById('swarm-consensus-tbody');
+    if (!empty || !tableWrap || !tbody) return;
+    if (!items.length) {
+      empty.style.display = '';
+      tableWrap.style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    tableWrap.style.display = '';
+    const sevColor = s => s === 'CRITICAL' ? 'var(--alert)' : 'var(--warn)';
+    tbody.innerHTML = items.map(c => {
+      const nc = parseInt(c.node_count, 10) || 1;
+      const rowBg = nc >= 5 ? 'rgba(220,50,47,.08)' : nc >= 2 ? 'rgba(212,176,102,.08)' : '';
+      const snap = (c.snapshot_id || '—').slice(0, 8);
+      const ts = c.last_seen ? relTime(c.last_seen) : '—';
+      return `<tr style="border-bottom:1px solid var(--border);background:${rowBg}">
+        <td style="padding:7px 10px;font-family:var(--mono);font-size:11px">${c.rule_key}</td>
+        <td style="padding:7px 10px;font-family:var(--mono);font-size:11px">${snap}…</td>
+        <td style="padding:7px 10px;font-weight:600">${nc} nodo${nc!==1?'s':''}</td>
+        <td style="padding:7px 10px;color:${sevColor(c.severity)};font-weight:600">${c.severity}</td>
+        <td style="padding:7px 10px;color:var(--muted)">${ts}</td>
+      </tr>`;
+    }).join('');
+  } catch(_) {}
 }
 
 async function doSwarmConnect() {

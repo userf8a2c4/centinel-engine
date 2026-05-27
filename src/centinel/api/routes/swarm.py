@@ -290,6 +290,20 @@ async def swarm_anomalies(
     return {"findings": items, "stats": _anomaly_log.stats()}
 
 
+@router.get("/api/swarm/consensus_findings")
+async def consensus_findings(
+    min_nodes: int = Query(2, ge=1, le=100, description="Minimum distinct nodes required"),
+    limit: int = Query(20, ge=1, le=200),
+) -> dict:
+    """Return electoral findings corroborated by >= min_nodes distinct swarm nodes.
+
+    Useful for the 'X nodes confirmed [rule] in snapshot Y' consensus view.
+    Works even when the swarm engine is offline — queries the local SQLite store.
+    """
+    summary = _anomaly_log.get_consensus_summary(min_nodes=min_nodes, limit=limit)
+    return {"consensus": summary, "min_nodes": min_nodes, "total": len(summary)}
+
+
 @router.get("/api/swarm/attacks")
 async def swarm_attacks(
     since: Optional[str] = Query(None, description="ISO 8601 lower bound"),

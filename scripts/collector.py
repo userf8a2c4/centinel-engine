@@ -70,6 +70,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import random
 import time
 from datetime import datetime, timezone
@@ -91,6 +92,17 @@ import yaml
 
 LOGGER = logging.getLogger("centinel.collector")
 DEFAULT_CONFIG_PATH = Path("command_center/config.yaml")
+
+# ── Cooperative scraping constants ────────────────────────────────────────────
+# Cooperative mode is auto-detected at the start of each collection run:
+#   - "auto" (default): enabled only when the local swarm engine is running
+#     with >= 1 connected peer. Zero overhead when swarm is offline.
+#   - "1" / "true" / "on": always enabled (assumes swarm is running).
+#   - "0" / "false" / "off": always disabled regardless of swarm state.
+# This protects the CNE endpoint from collective overload across the swarm.
+_SWARM_COOP_SETTING = os.getenv("CENTINEL_SWARM_COOPERATIVE", "auto").strip().lower()
+_SWARM_PORT = os.getenv("CENTINEL_PORT", "8000")
+_SWARM_FRESHNESS_SECS = int(os.getenv("CENTINEL_SWARM_FRESHNESS_SECS", "240"))  # 4 min default
 DEFAULT_RETRY_PATH = Path("config/prod/retry_config.yaml")
 DEFAULT_OUTPUT_PATH = Path("data/collector_latest.json")
 
@@ -320,12 +332,64 @@ def run_collection(config_path: Path = DEFAULT_CONFIG_PATH, retry_path: Path = D
 
     allowed_domains = {str(item).lower() for item in config.get("cne_domains", []) if str(item).strip()}
 
+    # ── Detect cooperative scraping mode once per collection run ──────────────
+    # "auto": query swarm status once; enable only when running with >= 1 peer.
+    # This avoids per-source overhead when swarm is offline.
+    _swarm_coop: bool = False
+    if _SWARM_COOP_SETTING in ("1", "true", "on"):
+        _swarm_coop = True
+        LOGGER.info("collector_swarm_coop_forced_on")
+    elif _SWARM_COOP_SETTING not in ("0", "false", "off"):
+        # "auto": probe swarm status with a single fast call
+        try:
+            import requests as _req_probe
+            _sr = _req_probe.get(
+                f"http://127.0.0.1:{_SWARM_PORT}/api/swarm/status",
+                timeout=0.5,
+            )
+            if _sr.ok:
+                _sd = _sr.json()
+                _swarm_coop = bool(_sd.get("running") and int(_sd.get("connected_peers", 0)) >= 1)
+                if _swarm_coop:
+                    LOGGER.info(
+                        "collector_swarm_coop_auto_enabled peers=%s",
+                        _sd.get("connected_peers"),
+                    )
+        except Exception:
+            pass  # swarm offline — cooperative mode stays off, no overhead
+
     fetched_payloads: list[dict[str, Any]] = []
     for source in sources:
         endpoint = source.get("endpoint") or endpoints.get(source.get("department_code"))
         if not endpoint:
             LOGGER.error("collector_source_without_endpoint source=%s", source)
             continue
+
+        # ── Cooperative scraping: skip if swarm peer already has fresh data ──
+        source_id = str(source.get("source_id") or source.get("name") or source.get("department_code") or endpoint)
+        if _swarm_coop:
+            try:
+                import requests as _req
+                _r = _req.get(
+                    f"http://127.0.0.1:{_SWARM_PORT}/api/swarm/last_scraped",
+                    params={"source_id": source_id},
+                    timeout=0.5,
+                )
+                if _r.ok:
+                    _scraped_at = _r.json().get("scraped_at_utc")
+                    if _scraped_at:
+                        from datetime import timezone as _tz
+                        import dateutil.parser as _dp  # type: ignore[import]
+                        _age = (datetime.now(_tz.utc) - _dp.parse(_scraped_at)).total_seconds()
+                        if _age < _SWARM_FRESHNESS_SECS:
+                            LOGGER.info(
+                                "collector_swarm_coop_skip source_id=%s age_secs=%.0f",
+                                source_id, _age,
+                            )
+                            continue
+            except Exception:
+                pass  # swarm offline or unreachable — proceed normally
+
         proxy_url = rotator.get_proxy_for_request()
         payload = fetch_json_with_retry(
             str(endpoint),
@@ -341,6 +405,20 @@ def run_collection(config_path: Path = DEFAULT_CONFIG_PATH, retry_path: Path = D
             fetched_payloads.append(payload)
             if proxy_url:
                 rotator.mark_success(proxy_url)
+            # ── Report successful scrape to swarm ──────────────────────────
+            if _swarm_coop:
+                try:
+                    import hashlib as _hl, requests as _req
+                    _content_hash = _hl.sha256(
+                        json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()
+                    ).hexdigest()
+                    _req.post(
+                        f"http://127.0.0.1:{_SWARM_PORT}/api/swarm/report_scrape",
+                        json={"source_id": source_id, "content_hash": _content_hash},
+                        timeout=0.5,
+                    )
+                except Exception:
+                    pass  # non-fatal
         elif proxy_url:
             rotator.mark_failure(proxy_url, "collector_fetch_failed")
 

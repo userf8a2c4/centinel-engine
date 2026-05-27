@@ -300,6 +300,65 @@ def _locate_hashchain(current_path: Path) -> Optional[Path]:
     return None
 
 
+# ── swarm broadcast urgente ──────────────────────────────────────────────
+
+
+def _broadcast_findings_urgent(result: object, snapshot_id: str) -> None:
+    """POST HIGH/CRITICAL rule findings to the local swarm API immediately after detection.
+
+    Fire-and-forget — exceptions are silently swallowed so a missing swarm
+    never blocks the analysis pipeline.
+
+    English:
+        Urgently broadcasts HIGH/CRITICAL rule findings to the local swarm node.
+    """
+    import os
+    import requests as _requests
+
+    port = os.getenv("CENTINEL_PORT", "8000")
+    endpoint = f"http://127.0.0.1:{port}/api/swarm/broadcast"
+
+    alerts = getattr(result, "alerts", [])
+    specialization = os.getenv("CENTINEL_SPECIALIZATION", "")
+
+    # Mapping of specialization → priority rule keys (soft — all rules still run)
+    _SPEC_RULES: dict[str, set[str]] = {
+        "temporal": {
+            "timestamp_monotonicity", "nocturnal_acceleration",
+            "hold_and_release", "late_mesa",
+        },
+        "statistical": {
+            "benford_law", "z_score", "vote_share",
+            "standard_deviation", "coefficient_variation",
+        },
+        "structural": {
+            "hashchain_integrity", "irreversibility", "acta_dedup",
+            "endpoint_health", "mesa_completeness",
+        },
+    }
+    priority_rules = _SPEC_RULES.get(specialization, set())
+
+    for alert in alerts:
+        sev = str(alert.get("severity", "")).upper()
+        if sev not in ("HIGH", "CRITICAL"):
+            continue
+        rule_key = str(alert.get("type", "unknown")).lower().replace(" ", "_")
+        is_priority = bool(priority_rules and rule_key in priority_rules)
+        payload = {
+            "finding_type": "rule_violation",
+            "severity": sev,
+            "rule_key": rule_key,
+            "summary": str(alert.get("justification", alert.get("description", "")))[:200],
+            "snapshot_id": snapshot_id,
+        }
+        if is_priority:
+            payload["priority"] = True
+        try:
+            _requests.post(endpoint, json=payload, timeout=1.5)
+        except Exception:
+            pass
+
+
 # ── main ─────────────────────────────────────────────────────────────────
 
 
@@ -338,6 +397,9 @@ def main() -> None:
 
     # ── generar reportes ─────────────────────────────────────────────
     report_path = RulesEngine.write_report(result, current_path, snapshot_id, ANALYSIS_DIR)
+
+    # ── broadcast urgente al swarm ───────────────────────────────────
+    _broadcast_findings_urgent(result, snapshot_id)
 
     print(f"[i] Reporte generado: {report_path}")
     if result.pause_snapshots:

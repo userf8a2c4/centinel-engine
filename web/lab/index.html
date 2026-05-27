@@ -1428,9 +1428,68 @@ function _tickSwarm(){
         c>bft?'CONSENSO EN RIESGO':'Contenido por BFT');
     });
   }
+
+  // ── Distributed audit intelligence messages ──────────────────────────────
+
+  // Rule specialization — show which rule subset this local node prioritizes
+  const _SPECS=['temporal','statistical','structural'];
+  const _SPEC_RULES={
+    temporal:  ['timestamp_monotonicity','nocturnal_acceleration','hold_and_release','late_mesa'],
+    statistical:['benford_law','z_score','vote_share','standard_deviation'],
+    structural: ['hashchain_integrity','irreversibility','endpoint_health','acta_dedup'],
+  };
+  if(t===3 || (t%30===0 && N>1)){
+    const mySpec=_SPECS[t%3];
+    const myRules=_SPEC_RULES[mySpec].slice(0,2).join(', ');
+    logSE('INFO',`[SPEC:${mySpec}] Nodo local especializado — reglas prioritarias: ${myRules} (+${_SPEC_RULES[mySpec].length-2} más)`);
+  }
+
+  // Urgent finding broadcast — when anomaly injections are active, emit broadcast
+  const anomalyIds=activeIds.filter(id=>!['B1','B2','B11','B12'].includes(id));
+  if(anomalyIds.length>0 && t%4===0){
+    const ruleMap={
+      A1:'endpoint_health',A2:'benford_law',A3:'z_score',A4:'hold_and_release',
+      A5:'late_mesa',A6:'timestamp_monotonicity',A7:'acta_dedup',
+      B3:'hashchain_integrity',B4:'irreversibility',B5:'vote_share',
+      B6:'standard_deviation',B7:'nocturnal_acceleration',B8:'mesa_completeness',
+      C1:'benford_law',C2:'z_score',C3:'vote_share',C5:'acta_dedup',C6:'nocturnal_acceleration',
+    };
+    const id=anomalyIds[t%anomalyIds.length];
+    const rk=ruleMap[id]||id.toLowerCase();
+    const snapHex=[...Array(8)].map(()=>'0123456789abcdef'[rnd(0,15)]).join('');
+    const sev=(['A1','A4','A6','B3','B4'].includes(id)?'CRITICAL':'HIGH');
+    logSE(sev===`CRITICAL`?'CRITICAL':'WARN',
+      `[URGENT] Broadcast hallazgo ${sev} → rule=${rk} snap=${snapHex}… → ${Math.min(N-1,_FAN_OUT())} peers (fan-out)`);
+  }
+
+  // Consensus — when same finding confirmed by multiple nodes
+  if(anomalyIds.length>0 && t%7===0){
+    const confirmedCount=Math.min(N, 2+rnd(0,Math.min(8,Math.floor(N/10))));
+    const id=anomalyIds[0];
+    const ruleMap2={
+      A2:'benford_law',A3:'z_score',A4:'hold_and_release',A6:'timestamp_monotonicity',
+      B3:'hashchain_integrity',B4:'irreversibility',C6:'nocturnal_acceleration',
+    };
+    const rk=ruleMap2[id]||id.toLowerCase();
+    const snapHex=[...Array(4)].map(()=>'0123456789abcdef'[rnd(0,15)]).join('');
+    logSE(confirmedCount>=5?'CRITICAL':'WARN',
+      `[CONSENSUS] ${confirmedCount} nodos confirmaron ${rk} en snap ${snapHex}… — hallazgo corroborado`);
+  }
+
+  // Cooperative scraping — periodically show skip messages when swarm is healthy
+  if(N>50 && t%8===0 && c<bft){
+    const depts=['Miranda','Zulia','Carabobo','Aragua','Bolívar','Lara'];
+    const dept=depts[t%depts.length];
+    const peerHex=[...Array(4)].map(()=>'0123456789abcdef'[rnd(0,15)]).join('');
+    const age=rnd(1,3);
+    logSE('INFO',`[COOP] Skip scrape CNE-${dept} — peer:${peerHex} ya tiene datos frescos (${age}m ago) · carga reducida`);
+  }
+
   updateSwarmKpis();
   if(N<=200) renderSwarmViz();
 }
+
+function _FAN_OUT(){return SWARM.fanout||3;}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ALERTS

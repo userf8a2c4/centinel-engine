@@ -127,6 +127,10 @@ class InitRequest(BaseModel):
     country_code: str
 
 
+class ChangeCountryRequest(BaseModel):
+    country_code: str
+
+
 class RegenerateRequest(BaseModel):
     country_code: str | None = None
     seed_label: str          # e.g. "S1-A"
@@ -213,6 +217,42 @@ def setup_init(req: InitRequest) -> Response:
 
     logger.info("setup_complete country=%s", _sl(code))
     return _pdf_response(seeds, country.name, country.flag, code)
+
+
+@router.post("/change_country")
+def change_country(req: ChangeCountryRequest) -> dict:
+    """Cambia el país monitorado sin regenerar seeds.
+
+    Actualiza .centinel-setup.json y command_center/config.yaml con el
+    nuevo country_code. Los seeds existentes no se tocan.
+    Idempotente — se puede llamar múltiples veces.
+    """
+    code = req.country_code.upper().strip()
+    if code not in LATAM_COUNTRIES:
+        raise HTTPException(status_code=400, detail=f"País '{code}' no soportado.")
+
+    country = LATAM_COUNTRIES[code]
+
+    # Preserve existing setup fields (configured_at, last_regenerated_at, …)
+    existing = _read_setup()
+    existing["country_code"] = code
+    existing["country_name"] = country.name
+    existing["last_changed_country_at"] = datetime.now(timezone.utc).isoformat()
+
+    _SETUP_MARKER.write_text(
+        json.dumps(existing, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    _update_config_yaml(code)
+
+    logger.info("country_changed code=%s name=%s", _sl(code), _sl(country.name))
+    return {
+        "success": True,
+        "country_code": code,
+        "country_name": country.name,
+        "flag": country.flag,
+        "authority": country.authority,
+    }
 
 
 @router.post("/regenerate")

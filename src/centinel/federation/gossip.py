@@ -82,6 +82,10 @@ class NodePayload:
     signature: str         # Ed25519(sha256(canonical JSON without this field))
     version: int = _GOSSIP_VERSION
     epoch: int = 0  # Incremented when a fork/rollback in chain is detected locally
+    # Soft rule specialization — computed from node_id hash, purely informational.
+    # "temporal" | "statistical" | "structural" | "general"
+    # All nodes run all rules; this signals which subset this node prioritises.
+    specialization: str = "general"
 
     def canonical_bytes(self) -> bytes:
         """Serialise deterministically for signing/verification (excludes signature)."""
@@ -458,6 +462,9 @@ class GossipEngine:
         self._node_id: str = ""
         self._key_path: Optional[Path] = None
         self._running = False
+        # Soft rule specialization — derived deterministically from node_id once keypair loads.
+        # Until the keypair is loaded, defaults to "general".
+        self._specialization: str = "general"
         self._task: Optional[asyncio.Task] = None
         self._last_broadcast: Optional[float] = None
 
@@ -471,7 +478,16 @@ class GossipEngine:
         if self._running:
             return
         self._pub_hex, self._node_id, self._key_path = _load_or_generate_keypair()
-        logger.info("gossip_start node_id=%s country=%s", self._node_id, self.country_code)
+        # Derive soft specialization deterministically from node_id hex
+        _SPECS = ["temporal", "statistical", "structural"]
+        try:
+            self._specialization = _SPECS[int(self._node_id, 16) % 3]
+        except Exception:
+            self._specialization = "general"
+        logger.info(
+            "gossip_start node_id=%s country=%s specialization=%s",
+            self._node_id, self.country_code, self._specialization,
+        )
 
         # Bootstrap peer discovery — try all sources in parallel
         results = await asyncio.gather(
@@ -732,6 +748,7 @@ class GossipEngine:
             timestamp_utc=datetime.now(timezone.utc).isoformat(),
             my_url=self.my_url,
             signature="",
+            specialization=self._specialization,
         )
         if self._key_path:
             payload.signature = _sign_payload(payload, self._key_path)

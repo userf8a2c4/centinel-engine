@@ -248,6 +248,36 @@ class FederationAnomalyLog:
             "by_node": by_node,
         }
 
+    def get_consensus_summary(self, min_nodes: int = 2, limit: int = 20) -> list[dict]:
+        """Return findings corroborated by >= min_nodes distinct nodes.
+
+        Groups findings by (rule_key, snapshot_id) and counts distinct node_ids.
+        Useful for building a "X nodes confirmed [rule] in snapshot Y" view.
+
+        English:
+            Returns cross-node consensus: findings seen by multiple distinct nodes.
+        """
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                """
+                SELECT rule_key, snapshot_id,
+                       COUNT(DISTINCT node_id) AS node_count,
+                       GROUP_CONCAT(DISTINCT node_id) AS nodes,
+                       MAX(severity) AS severity,
+                       MAX(timestamp_utc) AS last_seen
+                FROM findings
+                GROUP BY rule_key, snapshot_id
+                HAVING node_count >= ?
+                ORDER BY node_count DESC, last_seen DESC
+                LIMIT ?
+                """,
+                (min_nodes, limit),
+            ).fetchall()
+        finally:
+            self._close(conn)
+        return [dict(r) for r in rows]
+
     def _append_jsonl(self, entry: dict) -> None:
         try:
             with self._log_path.open("a", encoding="utf-8") as fh:  # type: ignore[union-attr]
