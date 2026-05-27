@@ -70,7 +70,7 @@ body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSyst
 #sidebar a.active{color:var(--accent);border-left-color:var(--accent);background:rgba(110,168,254,.05)}
 #sidebar .sec-header{padding:14px 20px 4px;font-size:10px;font-weight:700;color:var(--muted);
   text-transform:uppercase;letter-spacing:.06em}
-#main-area{flex:1;padding:24px;max-width:1100px;overflow-x:hidden}
+#main-area{flex:1;padding:24px;overflow-x:hidden}
 
 /* ── SECTIONS ── */
 .section{margin-bottom:48px}
@@ -250,7 +250,7 @@ body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSyst
 }
 
 /* ── RESPONSIVE ── */
-@media(max-width:768px){
+@media(max-width:1024px){
   /* sidebar: de columna lateral a barra de tabs horizontal */
   #admin-content{flex-direction:column}
   #sidebar{
@@ -273,11 +273,11 @@ body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSyst
     border-bottom-color:var(--accent);border-left:none;
     background:rgba(110,168,254,.06);color:var(--accent);
   }
-  #main-area{padding:16px;max-width:100%}
+  #main-area{padding:16px}
   .cards-grid{grid-template-columns:1fr 1fr}
   .auth-card{padding:28px 20px}
 }
-@media(max-width:480px){
+@media(max-width:600px){
   #sidebar a{padding:8px 12px;font-size:11px}
   .cards-grid{grid-template-columns:1fr}
   #main-area{padding:12px 10px}
